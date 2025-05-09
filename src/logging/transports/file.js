@@ -1,0 +1,243 @@
+/**
+ * @voilajs/appkit - File transport for logging
+ * @module @voilajs/appkit/logging/transports/file
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { BaseTransport } from './base.js';
+
+/**
+ * File transport implementation with rotation and retention
+ * @extends BaseTransport
+ */
+export class FileTransport extends BaseTransport {
+  constructor(options = {}) {
+    super(options);
+    
+    // Configuration with smart defaults
+    this.dirname = options.dirname || 'logs';
+    this.filename = options.filename || 'app.log';
+    this.maxSize = options.maxSize || 10 * 1024 * 1024; // 10MB default
+    this.retentionDays = options.retentionDays ?? 5; // 5 days default
+    this.datePattern = options.datePattern || 'YYYY-MM-DD';
+    
+    // State
+    this.currentSize = 0;
+    this.currentDate = this.getCurrentDate();
+    this.stream = null;
+    
+    // Initialize
+    this.ensureDirectoryExists();
+    this.createStream();
+    this.setupRetentionCleanup();
+  }
+
+  /**
+   * Ensures log directory exists
+   * @private
+   */
+  ensureDirectoryExists() {
+    if (!fs.existsSync(this.dirname)) {
+      fs.mkdirSync(this.dirname, { recursive: true });
+    }
+  }
+
+  /**
+   * Gets current date string for filename
+   * @private
+   * @returns {string} Formatted date
+   */
+  getCurrentDate() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+
+  /**
+   * Gets current log filename
+   * @private
+   * @returns {string} Current log filename
+   */
+  getCurrentFilename() {
+    const base = path.basename(this.filename, path.extname(this.filename));
+    const ext = path.extname(this.filename);
+    return `${base}-${this.currentDate}${ext}`;
+  }
+
+  /**
+   * Creates write stream for current log file
+   * @private
+   */
+  createStream() {
+    const filename = this.getCurrentFilename();
+    const filepath = path.join(this.dirname, filename);
+    
+    // Get current file size if it exists
+    if (fs.existsSync(filepath)) {
+      const stats = fs.statSync(filepath);
+      this.currentSize = stats.size;
+    } else {
+      this.currentSize = 0;
+    }
+    
+    // Create write stream in append mode
+    this.stream = fs.createWriteStream(filepath, { flags: 'a' });
+    
+    this.stream.on('error', (error) => {
+      console.error('Log file write error:', error);
+    });
+  }
+
+  /**
+   * Rotates log file if needed
+   * @private
+   */
+  checkRotation() {
+    const currentDate = this.getCurrentDate();
+    
+    // Date-based rotation
+    if (currentDate !== this.currentDate) {
+      this.rotate();
+      return;
+    }
+    
+    // Size-based rotation
+    if (this.currentSize >= this.maxSize) {
+      this.rotateSizeBased();
+    }
+  }
+
+  /**
+   * Performs date-based rotation
+   * @private
+   */
+  rotate() {
+    if (this.stream) {
+      this.stream.end();
+    }
+    
+    this.currentDate = this.getCurrentDate();
+    this.currentSize = 0;
+    this.createStream();
+  }
+
+  /**
+   * Performs size-based rotation
+   * @private
+   */
+  rotateSizeBased() {
+    if (this.stream) {
+      this.stream.end();
+    }
+    
+    const filename = this.getCurrentFilename();
+    const filepath = path.join(this.dirname, filename);
+    
+    // Find next available rotation number
+    let rotation = 1;
+    while (fs.existsSync(`${filepath}.${rotation}`)) {
+      rotation++;
+    }
+    
+    // Rename current file
+    fs.renameSync(filepath, `${filepath}.${rotation}`);
+    
+    // Create new stream
+    this.currentSize = 0;
+    this.createStream();
+  }
+
+  /**
+   * Sets up retention cleanup
+   * @private
+   */
+  setupRetentionCleanup() {
+    // Run cleanup on startup
+    this.cleanOldLogs();
+    
+    // Run cleanup daily
+    this.cleanupInterval = setInterval(() => {
+      this.cleanOldLogs();
+    }, 24 * 60 * 60 * 1000);
+  }
+
+  /**
+   * Cleans old log files based on retention policy
+   * @private
+   */
+  async cleanOldLogs() {
+    if (this.retentionDays <= 0) return; // Retention disabled
+    
+    try {
+      const files = await fs.promises.readdir(this.dirname);
+      const now = Date.now();
+      const maxAge = this.retentionDays * 24 * 60 * 60 * 1000;
+      
+      for (const file of files) {
+        // Only process log files
+        if (!file.includes(path.basename(this.filename, path.extname(this.filename)))) {
+          continue;
+        }
+        
+        const filepath = path.join(this.dirname, file);
+        const stats = await fs.promises.stat(filepath);
+        
+        if (now - stats.mtimeMs > maxAge) {
+          await fs.promises.unlink(filepath);
+          console.log(`Deleted old log file: ${file}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning old logs:', error);
+    }
+  }
+
+  /**
+   * Logs entry to file
+   * @param {Object} entry - Log entry
+   */
+  log(entry) {
+    this.checkRotation();
+    
+    const line = JSON.stringify(entry) + '\n';
+    const size = Buffer.byteLength(line);
+    
+    this.stream.write(line);
+    this.currentSize += size;
+  }
+
+  /**
+   * Flushes any pending writes
+   * @returns {Promise<void>}
+   */
+  flush() {
+    return new Promise((resolve) => {
+      if (this.stream) {
+        this.stream.once('drain', resolve);
+        this.stream.write('');
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * Closes the transport
+   * @returns {Promise<void>}
+   */
+  close() {
+    return new Promise((resolve) => {
+      if (this.cleanupInterval) {
+        clearInterval(this.cleanupInterval);
+      }
+      
+      if (this.stream) {
+        this.stream.end(() => {
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
+  }
+}
