@@ -1,10 +1,15 @@
 # @voilajs/appkit
 
-A minimal, framework-agnostic Node.js application toolkit providing essential building blocks for modern applications.
+A minimal, framework-agnostic Node.js application toolkit providing essential
+building blocks for modern applications.
 
 ## Introduction
 
-@voilajs/appkit is designed to be the foundation of your Node.js applications, offering a collection of well-crafted utilities that handle common tasks without imposing a specific framework or architecture. Each module is independent, allowing you to use only what you need while maintaining a consistent API across the entire toolkit.
+@voilajs/appkit is designed to be the foundation of your Node.js applications,
+offering a collection of well-crafted utilities that handle common tasks without
+imposing a specific framework or architecture. Each module is independent,
+allowing you to use only what you need while maintaining a consistent API across
+the entire toolkit.
 
 ### Key Principles
 
@@ -44,7 +49,7 @@ Each module has its own documentation with detailed examples and API references:
 ### Core Modules
 
 - [Auth](/src/auth/README.md) - Authentication and authorization utilities
-- [Database](/src/database/README.md) - Database connection and adapter management
+- [TenantDB](/src/tenantdb/README.md) - Complete multi-tenant database solution
 - [Cache](/src/cache/README.md) - Caching strategies and implementations
 - [Events](/src/events/README.md) - Event bus for pub/sub communication
 - [Security](/src/security/README.md) - Security middleware and utilities
@@ -70,18 +75,18 @@ const logger = logging.createLogger({ level: 'info' });
 
 // Configure authentication
 const token = auth.generateToken(
-  { userId: '123' }, 
+  { userId: '123' },
   { secret: process.env.JWT_SECRET }
 );
 
 // Connect to database
 await database.initDatabase('prisma', {
-  datasourceUrl: process.env.DATABASE_URL
+  datasourceUrl: process.env.DATABASE_URL,
 });
 
 // Initialize cache
 await cache.initCache('redis', {
-  url: process.env.REDIS_URL
+  url: process.env.REDIS_URL,
 });
 
 logger.info('Application initialized');
@@ -94,11 +99,13 @@ logger.info('Application initialized');
 3. Configure each module with your settings
 4. Use the utilities in your application
 
-Each module is designed to work independently, so you can adopt them incrementally in your existing projects.
+Each module is designed to work independently, so you can adopt them
+incrementally in your existing projects.
 
 ## Documentation
 
-For detailed documentation and examples, please refer to each module's README file linked above. Each module documentation includes:
+For detailed documentation and examples, please refer to each module's README
+file linked above. Each module documentation includes:
 
 - API reference
 - Usage examples
@@ -108,7 +115,8 @@ For detailed documentation and examples, please refer to each module's README fi
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md)
+for details.
 
 ## License
 
