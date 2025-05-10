@@ -44,7 +44,3 @@ export {
   filterAsync,
   createQueue,
 } from './async.js';
-
-// Additional utilities that might be in separate files
-export { chunk, flatten, unique, groupBy } from './array.js';
-export { memoize, once, compose, pipe } from './function.js';
