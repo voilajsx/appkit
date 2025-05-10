@@ -1,7 +1,7 @@
 // src/utils/index.js
 
 // Object utilities
-export { pick, omit, deepMerge, clone } from './object.js';
+export { pick, omit, deepMerge } from './object.js';
 
 // String utilities
 export {
