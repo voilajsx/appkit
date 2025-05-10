@@ -88,6 +88,3 @@ export {
   once,
   poll,
 } from './async.js';
-
-// Type checking utilities
-export { types } from './types.js';
