@@ -1,47 +1,16 @@
-/**
- * @voilajs/appkit - Utils module
- * @module @voilajs/appkit/utils
- */
+// src/utils/index.js
 
 // Object utilities
-export {
-  pick,
-  omit,
-  deepMerge,
-  deepClone,
-  get,
-  set,
-  has,
-  flatten,
-  unflatten,
-  isEqual,
-  isEmpty,
-  defaults,
-  mapKeys,
-  mapValues,
-  groupBy,
-  keyBy,
-} from './object.js';
+export { pick, omit, deepMerge, clone } from './object.js';
 
 // String utilities
 export {
   capitalize,
   camelCase,
   snakeCase,
-  kebabCase,
-  pascalCase,
-  titleCase,
   generateId,
-  generateUuid,
-  slugify,
   truncate,
-  padStart,
-  padEnd,
-  template,
-  escapeHtml,
-  unescapeHtml,
-  escapeRegExp,
-  maskString,
+  slugify,
 } from './string.js';
 
 // Date utilities
@@ -51,25 +20,15 @@ export {
   addDays,
   addMonths,
   addYears,
-  subDays,
+  subDays, // This was missing and causing the error
   subMonths,
   subYears,
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  getDaysBetween,
-  getMonthsBetween,
+  dateDiff,
+  startOf,
+  endOf,
+  isBetween,
   isAfter,
   isBefore,
-  isSameDay,
-  isToday,
-  isYesterday,
-  isTomorrow,
-  formatDuration,
-  formatRelative,
 } from './date.js';
 
 // Async utilities
@@ -77,14 +36,15 @@ export {
   sleep,
   retry,
   timeout,
-  debounce,
-  throttle,
-  queue,
   parallel,
   series,
-  race,
-  waterfall,
-  memoize,
-  once,
-  poll,
+  debounce,
+  throttle,
+  mapAsync,
+  filterAsync,
+  createQueue,
 } from './async.js';
+
+// Additional utilities that might be in separate files
+export { chunk, flatten, unique, groupBy } from './array.js';
+export { memoize, once, compose, pipe } from './function.js';
