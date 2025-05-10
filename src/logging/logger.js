@@ -208,5 +208,5 @@ export function createLogger(options = {}) {
   return new Logger(options);
 }
 
-// Export types for TypeScript
-export { LogLevels, LogLevel, LogEntry, LoggerOptions };
+// Only export actual JavaScript values
+export { LogLevels };
