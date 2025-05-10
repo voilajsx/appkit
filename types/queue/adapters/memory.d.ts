@@ -3,9 +3,9 @@
  * @extends QueueAdapter
  */
 export class MemoryAdapter extends QueueAdapter {
-    queues: any;
-    processors: any;
-    processing: any;
+    queues: Map<any, any>;
+    processors: Map<any, any>;
+    processing: Map<any, any>;
     jobCounter: number;
     /**
      * Processes jobs from a queue

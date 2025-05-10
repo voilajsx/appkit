@@ -4,27 +4,69 @@
   "description": "A minimal, framework-agnostic Node.js application toolkit",
   "main": "src/index.js",
   "type": "module",
+  "types": "./types/index.d.ts",
   "exports": {
-    ".": "./src/index.js",
-    "./auth": "./src/auth/index.js",
-    "./tenantdb": "./src/tenantdb/index.js",
-    "./cache": "./src/cache/index.js",
-    "./events": "./src/events/index.js",
-    "./security": "./src/security/index.js",
-    "./error": "./src/error/index.js",
-    "./logging": "./src/logging/index.js",
-    "./storage": "./src/storage/index.js",
-    "./email": "./src/email/index.js",
-    "./queue": "./src/queue/index.js",
-    "./config": "./src/config/index.js",
-    "./validation": "./src/validation/index.js",
-    "./utils": "./src/utils/index.js"
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./auth": {
+      "types": "./types/auth/index.d.ts",
+      "default": "./src/auth/index.js"
+    },
+    "./tenantdb": {
+      "types": "./types/tenantdb/index.d.ts",
+      "default": "./src/tenantdb/index.js"
+    },
+    "./cache": {
+      "types": "./types/cache/index.d.ts",
+      "default": "./src/cache/index.js"
+    },
+    "./events": {
+      "types": "./types/events/index.d.ts",
+      "default": "./src/events/index.js"
+    },
+    "./security": {
+      "types": "./types/security/index.d.ts",
+      "default": "./src/security/index.js"
+    },
+    "./error": {
+      "types": "./types/error/index.d.ts",
+      "default": "./src/error/index.js"
+    },
+    "./logging": {
+      "types": "./types/logging/index.d.ts",
+      "default": "./src/logging/index.js"
+    },
+    "./storage": {
+      "types": "./types/storage/index.d.ts",
+      "default": "./src/storage/index.js"
+    },
+    "./email": {
+      "types": "./types/email/index.d.ts",
+      "default": "./src/email/index.js"
+    },
+    "./queue": {
+      "types": "./types/queue/index.d.ts",
+      "default": "./src/queue/index.js"
+    },
+    "./config": {
+      "types": "./types/config/index.d.ts",
+      "default": "./src/config/index.js"
+    },
+    "./validation": {
+      "types": "./types/validation/index.d.ts",
+      "default": "./src/validation/index.js"
+    },
+    "./utils": {
+      "types": "./types/utils/index.d.ts",
+      "default": "./src/utils/index.js"
+    }
   },
   "files": [
     "src/",
     "types/"
   ],
-  "types": "./types/index.d.ts",
   "scripts": {
     "test": "vitest",
     "test:watch": "vitest --watch",
@@ -36,15 +78,59 @@
   },
   "keywords": [
     "nodejs",
+    "node",
     "toolkit",
     "framework-agnostic",
     "auth",
+    "authentication",
+    "jwt",
+    "bcrypt",
+    "multi-tenant",
+    "tenant",
     "database",
+    "saas",
     "cache",
+    "caching",
+    "redis",
+    "memcached",
     "events",
-    "security"
+    "event-bus",
+    "pubsub",
+    "security",
+    "csrf",
+    "rate-limiting",
+    "sanitization",
+    "email",
+    "smtp",
+    "ses",
+    "sendgrid",
+    "mailgun",
+    "queue",
+    "job-queue",
+    "background-jobs",
+    "logging",
+    "logger",
+    "storage",
+    "s3",
+    "file-storage",
+    "configuration",
+    "config",
+    "validation",
+    "utils",
+    "utilities",
+    "express",
+    "middleware",
+    "error-handling"
   ],
   "author": "VoilaJS",
+  "contributors": [
+    {
+      "name": "Krishna Teja GS",
+      "email": "kt@voilacode.com",
+      "url": "https://voilacode.com"
+    }
+  ],
+  "creator": "Krishna Teja GS",
   "license": "MIT",
   "dependencies": {
     "bcrypt": "^5.1.1",

@@ -108,7 +108,7 @@ export namespace commonSchemas {
     namespace boolean {
         let type_9: string;
         export { type_9 as type };
-        export function transform_3(value: any): any;
+        export function transform_3(value: any): boolean;
         export { transform_3 as transform };
     }
     namespace integer {

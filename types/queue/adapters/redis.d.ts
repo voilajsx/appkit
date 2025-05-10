@@ -3,7 +3,7 @@
  * @extends QueueAdapter
  */
 export class RedisAdapter extends QueueAdapter {
-    queues: any;
+    queues: Map<any, any>;
     redisConfig: any;
     defaultJobOptions: any;
     /**

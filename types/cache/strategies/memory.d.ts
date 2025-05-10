@@ -3,15 +3,13 @@
  * @extends CacheStrategy
  */
 export class MemoryStrategy extends CacheStrategy {
-    store: any;
-    timers: any;
+    store: Map<any, any>;
+    timers: Map<any, any>;
     maxItems: any;
     defaultTTL: any;
-    connect(): Promise<any>;
-    disconnect(): Promise<any>;
     get(key: any): Promise<any>;
     set(key: any, value: any, ttl?: any): Promise<boolean>;
-    delete(key: any): Promise<any>;
+    delete(key: any): Promise<boolean>;
     /**
      * Get cache statistics (Memory-specific)
      * @returns {Object} Cache statistics

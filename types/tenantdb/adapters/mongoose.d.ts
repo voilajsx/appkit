@@ -2,7 +2,7 @@
  * Mongoose adapter implementation
  */
 export class MongooseAdapter extends BaseAdapter {
-    connections: any;
+    connections: Map<any, any>;
     connect(config: any): Promise<any>;
     mongoose: any;
     createClient(config: any): Promise<any>;

@@ -6,10 +6,25 @@
 import { BaseTransport } from './base.js';
 
 /**
+ * @typedef {import('./base.js').TransportOptions} TransportOptions
+ * @typedef {import('./base.js').LogEntry} LogEntry
+ */
+
+/**
+ * @typedef {Object} ConsoleTransportOptions
+ * @property {boolean} [colorize=true] - Apply colors to output
+ * @property {boolean} [prettyPrint=false] - Pretty print JSON metadata
+ */
+
+/**
  * Console transport implementation
  * @extends BaseTransport
  */
 export class ConsoleTransport extends BaseTransport {
+  /**
+   * Creates a new ConsoleTransport instance
+   * @param {ConsoleTransportOptions & TransportOptions} [options={}] - Console transport options
+   */
   constructor(options = {}) {
     super(options);
     this.colorize = options.colorize !== false;
@@ -18,7 +33,8 @@ export class ConsoleTransport extends BaseTransport {
 
   /**
    * Logs entry to console
-   * @param {Object} entry - Log entry
+   * @param {LogEntry} entry - Log entry
+   * @returns {void}
    */
   log(entry) {
     const { level } = entry;
@@ -53,41 +69,41 @@ export class ConsoleTransport extends BaseTransport {
 
   /**
    * Pretty format for development
-   * @param {Object} entry - Log entry
+   * @param {LogEntry} entry - Log entry
    * @returns {string} Formatted entry
    */
   prettyFormat(entry) {
     const { timestamp, level, message, ...meta } = entry;
     let formatted = `${timestamp} ${this.getLevelLabel(level)} ${message}`;
-    
+
     if (Object.keys(meta).length > 0) {
       formatted += '\n' + JSON.stringify(meta, null, 2);
     }
-    
+
     return formatted;
   }
 
   /**
    * Apply color to output
    * @param {string} output - Output string
-   * @param {string} level - Log level
+   * @param {'error'|'warn'|'info'|'debug'} level - Log level
    * @returns {string} Colored output
    */
   applyColor(output, level) {
     const colors = {
-      error: '\x1b[31m',  // Red
-      warn: '\x1b[33m',   // Yellow
-      info: '\x1b[36m',   // Cyan
-      debug: '\x1b[90m'   // Gray
+      error: '\x1b[31m', // Red
+      warn: '\x1b[33m', // Yellow
+      info: '\x1b[36m', // Cyan
+      debug: '\x1b[90m', // Gray
     };
     const reset = '\x1b[0m';
-    
+
     return `${colors[level] || ''}${output}${reset}`;
   }
 
   /**
    * Get level label with emoji
-   * @param {string} level - Log level
+   * @param {'error'|'warn'|'info'|'debug'} level - Log level
    * @returns {string} Level label
    */
   getLevelLabel(level) {
@@ -95,9 +111,9 @@ export class ConsoleTransport extends BaseTransport {
       error: '❌ ERROR',
       warn: '⚠️  WARN',
       info: 'ℹ️  INFO',
-      debug: '🐛 DEBUG'
+      debug: '🐛 DEBUG',
     };
-    
+
     return labels[level] || level.toUpperCase();
   }
 }

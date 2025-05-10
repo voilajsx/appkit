@@ -2,7 +2,7 @@
  * TypeORM adapter implementation
  */
 export class TypeORMAdapter extends BaseAdapter {
-    dataSources: any;
+    dataSources: Map<any, any>;
     connect(config: any): Promise<any>;
     createClient(config: any): Promise<any>;
     executeQuery(query: any, params?: any[]): Promise<any>;

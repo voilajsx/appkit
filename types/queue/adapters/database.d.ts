@@ -6,7 +6,7 @@ export class DatabaseAdapter extends QueueAdapter {
     dbType: any;
     connectionString: any;
     connection: any;
-    processors: any;
+    processors: Map<any, any>;
     processing: boolean;
     pollInterval: any;
     /**
