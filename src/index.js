@@ -10,7 +10,7 @@
 
 // Export all modules as namespaces
 export * as auth from './auth/index.js';
-export * as database from './database/index.js';
+export * as tenantdb from './tenantdb/index.js';
 export * as cache from './cache/index.js';
 export * as events from './events/index.js';
 export * as security from './security/index.js';
