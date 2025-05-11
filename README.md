@@ -1,5 +1,8 @@
 # @voilajs/appkit
 
+[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A minimal, framework-agnostic Node.js application toolkit providing essential
 building blocks for modern applications.
 
