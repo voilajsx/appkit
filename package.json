@@ -167,5 +167,8 @@
   "bugs": {
     "url": "https://github.com/voilajs/appkit/issues"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "homepage": "https://github.com/voilajs/appkit#readme"
 }
