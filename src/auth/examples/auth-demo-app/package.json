@@ -1,0 +1,15 @@
+{
+  "name": "@voilajs/appkit-auth-demo",
+  "version": "1.0.0",
+  "description": "Simple authentication demo for @voilajs/appkit",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@voilajs/appkit": "github:voilajs/appkit",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "type": "module"
+}

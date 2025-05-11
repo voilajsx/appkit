@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@voilajs/appkit Auth Demo</title>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>@voilajs/appkit Auth Demo</h1>
+            <p>Simple authentication example using vanilla JavaScript</p>
+        </header>
+
+        <!-- Login/Register Section -->
+        <div class="auth-section" id="authSection">
+            <div class="form-container">
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <input type="email" id="loginEmail" placeholder="Email" required>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <button type="submit">Login</button>
+                </form>
+                <p>Don't have an account? <a href="#" id="showRegister">Register</a></p>
+            </div>
+
+            <div class="form-container hidden" id="registerContainer">
+                <h2>Register</h2>
+                <form id="registerForm">
+                    <input type="text" id="registerName" placeholder="Name" required>
+                    <input type="email" id="registerEmail" placeholder="Email" required>
+                    <input type="password" id="registerPassword" placeholder="Password" required>
+                    <button type="submit">Register</button>
+                </form>
+                <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
+            </div>
+        </div>
+
+        <!-- Dashboard Section (shown when logged in) -->
+        <div class="dashboard hidden" id="dashboard">
+            <h2>Welcome, <span id="userName"></span>!</h2>
+            <div class="info-box">
+                <h3>Your Profile</h3>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>User ID:</strong> <span id="userId"></span></p>
+                <p><strong>Token:</strong> <code id="userToken"></code></p>
+            </div>
+            
+            <div class="demo-section">
+                <h3>Test Protected Endpoint</h3>
+                <button id="testProtected">Call Protected API</button>
+                <pre id="apiResult"></pre>
+            </div>
+
+            <button id="logoutBtn" class="logout-btn">Logout</button>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+<style>
+    /* Simple, clean styling for auth demo */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f4f4f4;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #2c3e50;
+    color: white;
+    border-radius: 5px;
+}
+
+.auth-section {
+    display: flex;
+    justify-content: center;
+}
+
+.form-container {
+    background: white;
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.form-container h2 {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #2c3e50;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+input {
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+.logout-btn {
+    background: #e74c3c;
+    margin-top: 20px;
+}
+
+.logout-btn:hover {
+    background: #c0392b;
+}
+
+.dashboard {
+    background: white;
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.info-box {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    margin: 20px 0;
+}
+
+.demo-section {
+    margin: 20px 0;
+}
+
+pre {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 3px;
+    overflow-x: auto;
+    margin-top: 10px;
+}
+
+code {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    word-break: break-all;
+}
+
+.status-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: white;
+    display: none;
+}
+
+.status-message.success {
+    background: #27ae60;
+}
+
+.status-message.error {
+    background: #e74c3c;
+}
+
+.hidden {
+    display: none;
+}
+
+a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+</style>
+</html>

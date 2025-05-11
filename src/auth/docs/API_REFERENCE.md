@@ -380,3 +380,9 @@ interface AuthOptions {
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+</p>

@@ -933,5 +933,5 @@ app.listen(PORT, () => {
 ---
 
 <p align="center">
-  Made with ❤️ by the VoilaJS team
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
 </p>

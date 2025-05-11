@@ -124,10 +124,11 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- 📧 Email: support@voilajs.com
-- 💬 Discord: [Join our community](https://discord.gg/voilajs)
+- 📧 Email: kt@voilacode.com
 - 🐛 Issues: [GitHub Issues](https://github.com/voilajs/appkit/issues)
 
 ---
 
-Built with ❤️ by the VoilaJS team
+<p align="center">
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+</p>

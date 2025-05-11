@@ -250,7 +250,7 @@ try {
   [API Reference](https://github.com/voilajs/appkit/blob/main/src/auth/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Integration REFERENCE](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
+  [LLM Code generation REFERENCE](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
 
 ## 🤝 Contributing
@@ -266,5 +266,5 @@ MIT © [VoilaJS](https://github.com/voilajs)
 ---
 
 <p align="center">
-  Made with ❤️ by the VoilaJS team
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
 </p>
