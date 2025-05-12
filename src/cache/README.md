@@ -1,319 +1,311 @@
-## Cache Module
+# @voilajs/appkit - Cache Module 🚀
 
-The Cache module of the `@voilajs/appkit` package provides a unified caching
-interface to improve application performance by storing frequently accessed
-data. It supports multiple backend strategies including Redis, Memcached, and
-in-memory storage with consistent APIs.
+[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-### Snapshot of Methods
+> A unified caching interface with support for multiple backends to boost
+> application performance
 
-| S.No. | Method                            | Description                                     |
-| ----- | --------------------------------- | ----------------------------------------------- |
-| 1     | [`createCache`](#createcache)     | Creates a new cache instance with configuration |
-| 2     | [`get`](#get)                     | Retrieves a value from cache by key             |
-| 3     | [`set`](#set)                     | Stores a value in cache with optional TTL       |
-| 4     | [`has`](#has)                     | Checks if a key exists in cache                 |
-| 5     | [`delete`](#delete)               | Removes a key from cache                        |
-| 6     | [`clear`](#clear)                 | Clears all keys from cache                      |
-| 7     | [`getMany`](#getmany)             | Retrieves multiple values by keys               |
-| 8     | [`setMany`](#setmany)             | Stores multiple key-value pairs                 |
-| 9     | [`deleteMany`](#deletemany)       | Removes multiple keys from cache                |
-| 10    | [`deletePattern`](#deletepattern) | Removes keys matching a pattern                 |
-| 11    | [`keys`](#keys)                   | Gets keys matching a pattern                    |
-| 12    | [`ttl`](#ttl)                     | Gets remaining time-to-live for a key           |
-| 13    | [`expire`](#expire)               | Sets expiration for an existing key             |
-| 14    | [`namespace`](#namespace)         | Creates a namespaced cache instance             |
-| 15    | [`getOrSet`](#getorset)           | Gets a value or sets it if not found            |
+The Cache module provides a flexible, powerful caching solution for Node.js
+applications with support for in-memory, Redis, and Memcached backends. It
+offers a consistent API to store, retrieve, and manage cached data with
+automatic serialization and TTL management.
 
-### Use Cases
+## 🚀 Features
 
-| S.No. | Method                            | Use Cases                                                                                                                                                                                                                                                                                                                        |
-| ----- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | [`createCache`](#createcache)     | <ul><li>Configuring cache strategy based on environment</li><li>Setting up Redis for production environments</li><li>Creating in-memory cache for development</li><li>Establishing distributed cache for microservices</li><li>Configuring cache with custom serializers</li><li>Setting up caching with memory limits</li></ul> |
-| 2     | [`get`](#get)                     | <ul><li>Retrieving cached user profiles</li><li>Accessing stored API responses</li><li>Reading cached database query results</li><li>Looking up session data</li><li>Fetching cached configuration settings</li><li>Retrieving cached rendered templates</li></ul>                                                               |
-| 3     | [`set`](#set)                     | <ul><li>Caching database query results</li><li>Storing API responses</li><li>Caching rendered HTML templates</li><li>Setting temporary session data</li><li>Storing user preferences</li><li>Saving computed values</li></ul>                                                                                                    |
-| 4     | [`has`](#has)                     | <ul><li>Checking if cache needs to be refreshed</li><li>Validating cache availability before operations</li><li>Determining if a heavy computation is needed</li><li>Checking for cached assets</li><li>Verifying session existence</li></ul>                                                                                    |
-| 5     | [`delete`](#delete)               | <ul><li>Invalidating stale data</li><li>Removing sensitive information</li><li>Clearing user-specific cache</li><li>Resetting cached values after updates</li><li>Removing expired sessions</li><li>Clearing cached permissions after role changes</li></ul>                                                                     |
-| 6     | [`clear`](#clear)                 | <ul><li>Clearing cache during deployment</li><li>Resetting application state</li><li>Flushing all caches after major updates</li><li>Clearing during maintenance mode</li><li>Purging cache when data structure changes</li></ul>                                                                                                |
-| 7     | [`getMany`](#getmany)             | <ul><li>Batch retrieving multiple user profiles</li><li>Loading related data in single operation</li><li>Retrieving collections of items</li><li>Fetching dashboard widgets data</li><li>Loading multiple configuration settings</li></ul>                                                                                       |
-| 8     | [`setMany`](#setmany)             | <ul><li>Bulk caching database query results</li><li>Storing related data in one operation</li><li>Setting multiple configuration values</li><li>Caching collections of items</li><li>Populating cache during initialization</li></ul>                                                                                            |
-| 9     | [`deletePattern`](#deletepattern) | <ul><li>Invalidating all user-related cache</li><li>Clearing category-specific products</li><li>Removing all cache for a specific tenant</li><li>Purging cached API responses by endpoint</li><li>Removing all temporary files</li></ul>                                                                                         |
-| 10    | [`namespace`](#namespace)         | <ul><li>Isolating cache for different services</li><li>Separating user-specific data</li><li>Creating tenant-specific cache spaces</li><li>Organizing cache by feature area</li><li>Partitioning cache for different environments</li></ul>                                                                                      |
-| 11    | [`getOrSet`](#getorset)           | <ul><li>Implementing cache-aside pattern</li><li>Loading data with automatic caching</li><li>Managing expensive computations</li><li>Optimizing repetitive database queries</li><li>Building self-healing cache systems</li></ul>                                                                                                |
+- **💾 Multiple Backend Support** - In-memory, Redis, and Memcached
+  implementations
+- **⏱️ TTL Management** - Automatic expiration of cached items
+- **🗂️ Namespaces** - Organize cache keys with logical grouping
+- **🔄 Batch Operations** - Efficient bulk access and manipulation
+- **🧠 Smart Patterns** - Built-in cache-aside pattern with `getOrSet`
+- **🔍 Pattern Matching** - Find and delete keys using glob patterns
+- **🧩 Consistent API** - Same interface across all backends
+- **🔌 Framework Agnostic** - Works with any Node.js application
 
-### Basic Usage Examples
+## 📦 Installation
 
-#### createCache
+```bash
+npm install @voilajs/appkit
 
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-// In-memory cache for development
-const devCache = await createCache({
-  strategy: 'memory',
-  maxItems: 1000,
-});
-
-// Redis cache for production
-const prodCache = await createCache({
-  strategy: 'redis',
-  url: process.env.REDIS_URL,
-  keyPrefix: 'myapp:',
-});
+# Optional: Install backend-specific dependencies
+npm install redis       # For Redis support
+npm install memcached   # For Memcached support
 ```
 
-#### get
+## 🏃‍♂️ Quick Start
 
 ```javascript
 import { createCache } from '@voilajs/appkit/cache';
 
-const cache = await createCache({ strategy: 'redis' });
+// Create a cache instance
+const cache = await createCache({
+  strategy: 'memory', // or 'redis', 'memcached'
+  // strategy-specific options
+});
+
+// Store a value (with optional TTL)
+await cache.set('user:123', { name: 'Alice', role: 'admin' }, 3600); // 1 hour TTL
+
+// Retrieve a value
 const user = await cache.get('user:123');
+console.log(user.name); // 'Alice'
 
-if (user) {
-  console.log('Cache hit:', user.name);
-} else {
-  console.log('Cache miss');
-}
-```
+// Store multiple values
+await cache.setMany({
+  'product:1': { name: 'Laptop', price: 999 },
+  'product:2': { name: 'Phone', price: 699 },
+});
 
-#### set
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-
-// Set with default TTL
-await cache.set('user:123', { name: 'John', email: 'john@example.com' });
-
-// Set with 1 hour TTL
-await cache.set('session:abc', { userId: 123 }, 3600);
-```
-
-#### has
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-const exists = await cache.has('user:123');
-
-if (exists) {
-  console.log('Key exists in cache');
-}
-```
-
-#### delete
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-await cache.delete('user:123');
-console.log('User cache cleared');
-```
-
-#### clear
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-await cache.clear();
-console.log('All cache cleared');
-```
-
-#### getMany
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-const users = await cache.getMany(['user:123', 'user:456']);
-console.log(`Retrieved ${users.length} users`);
-```
-
-#### setMany
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-await cache.setMany(
-  {
-    'user:123': { name: 'John' },
-    'user:456': { name: 'Jane' },
-  },
-  3600
-); // 1 hour TTL
-```
-
-#### deletePattern
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-// Clear all user-related cache
-const removedCount = await cache.deletePattern('user:*');
-console.log(`Removed ${removedCount} keys`);
-```
-
-#### namespace
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-const userCache = cache.namespace('user');
-const productCache = cache.namespace('product');
-
-// These operate on different namespaces
-await userCache.set('123', userData); // Sets 'user:123'
-await productCache.set('456', productData); // Sets 'product:456'
-```
-
-#### getOrSet
-
-```javascript
-import { createCache } from '@voilajs/appkit/cache';
-
-const cache = await createCache({ strategy: 'redis' });
-
-// Cache-aside pattern made simple
-const user = await cache.getOrSet(
-  'user:123',
+// Use cache-aside pattern
+const product = await cache.getOrSet(
+  'product:3',
   async () => {
     // This only runs on cache miss
-    return await db.user.findUnique({ where: { id: 123 } });
+    return { name: 'Tablet', price: 499 };
   },
-  3600 // 1 hour TTL
+  1800 // 30 minutes TTL
 );
 ```
 
-### Advanced Examples
+## 📋 Examples
 
-#### Database Query Caching
+### Cache Strategies
+
+```javascript
+// In-memory cache (perfect for development)
+const memoryCache = await createCache({
+  strategy: 'memory',
+  maxItems: 1000, // Limit number of items
+  defaultTTL: 3600, // Default TTL in seconds
+});
+
+// Redis cache (recommended for production)
+const redisCache = await createCache({
+  strategy: 'redis',
+  url: 'redis://localhost:6379',
+  keyPrefix: 'myapp:', // Prefix for all keys
+  defaultTTL: 3600, // Default TTL in seconds
+});
+
+// Memcached with multiple servers
+const memcachedCache = await createCache({
+  strategy: 'memcached',
+  servers: ['localhost:11211', 'cache2.example.com:11211'],
+  keyPrefix: 'myapp:',
+  defaultTTL: 3600,
+});
+```
+
+### Cache Namespaces
+
+```javascript
+// Create namespaced caches for different data types
+const userCache = cache.namespace('user');
+const productCache = cache.namespace('product');
+
+// These operations use the appropriate namespace
+await userCache.set('123', userData); // Actual key: 'user:123'
+await productCache.set('456', productData); // Actual key: 'product:456'
+
+// Nested namespaces
+const adminCache = userCache.namespace('admin');
+await adminCache.set('789', adminData); // Actual key: 'user:admin:789'
+
+// Clear only products
+await productCache.clear(); // Only clears keys with 'product:' prefix
+```
+
+### Database Query Caching
 
 ```javascript
 import { createCache } from '@voilajs/appkit/cache';
+import { db } from './database';
 
 const cache = await createCache({ strategy: 'redis' });
 
-async function getUserById(id) {
-  return cache.getOrSet(
-    `user:${id}`,
-    async () => db.user.findUnique({ where: { id } }),
-    3600 // 1 hour TTL
+// Cache function to retrieve user with posts
+async function getUserWithPosts(userId) {
+  // Get user data with cache-aside pattern
+  const user = await cache.getOrSet(
+    `user:${userId}`,
+    async () => db.findUserById(userId),
+    3600 // 1 hour cache
   );
+
+  // Get user posts with cache-aside pattern
+  const posts = await cache.getOrSet(
+    `user:${userId}:posts`,
+    async () => db.findPostsByUserId(userId),
+    1800 // 30 minutes cache
+  );
+
+  return { user, posts };
 }
 
-async function updateUser(id, data) {
-  await db.user.update({ where: { id }, data });
-  // Invalidate cache
-  await cache.delete(`user:${id}`);
+// Clear cache when user is updated
+async function updateUser(userId, data) {
+  // Update database
+  await db.updateUser(userId, data);
+
+  // Invalidate user-related cache
+  await cache.deletePattern(`user:${userId}*`);
 }
 ```
 
-#### API Response Caching
+### API Response Caching
 
 ```javascript
 import { createCache } from '@voilajs/appkit/cache';
 import express from 'express';
 
-const cache = await createCache({ strategy: 'redis' });
 const app = express();
+const cache = await createCache({ strategy: 'redis' });
 
-// Cache middleware
+// Express middleware for caching API responses
 function cacheMiddleware(ttl = 300) {
+  // Default: 5 minutes
   return async (req, res, next) => {
+    // Only cache GET requests
     if (req.method !== 'GET') return next();
 
     const cacheKey = `api:${req.originalUrl}`;
-    const cached = await cache.get(cacheKey);
 
-    if (cached) {
-      return res.json(cached);
+    try {
+      // Check cache first
+      const cachedResponse = await cache.get(cacheKey);
+
+      if (cachedResponse) {
+        // Cache hit, send response
+        res.set('X-Cache', 'HIT');
+        return res.json(cachedResponse);
+      }
+
+      // Cache miss, continue processing
+      res.set('X-Cache', 'MISS');
+
+      // Store original json method
+      const originalJson = res.json;
+
+      // Override json method to cache response
+      res.json = function (body) {
+        // Store in cache before sending
+        cache.set(cacheKey, body, ttl);
+
+        // Call original method
+        return originalJson.call(this, body);
+      };
+
+      next();
+    } catch (error) {
+      // Continue without caching on error
+      next();
     }
-
-    // Store original json function
-    const originalJson = res.json;
-
-    // Override json function to cache response
-    res.json = function (body) {
-      cache.set(cacheKey, body, ttl);
-      return originalJson.call(this, body);
-    };
-
-    next();
   };
 }
 
-app.get('/api/products', cacheMiddleware(600), async (req, res) => {
-  const products = await db.product.findMany();
+// Apply middleware to routes
+app.get('/api/products', cacheMiddleware(600), (req, res) => {
+  // This response will be cached for 10 minutes
   res.json(products);
 });
 ```
 
-#### Session Storage
+## 🔍 Core Functions
+
+### Cache Creation
+
+| Method                 | Description                  | Use Cases                                    |
+| ---------------------- | ---------------------------- | -------------------------------------------- |
+| `createCache(options)` | Creates a new cache instance | Configuring cache for different environments |
 
 ```javascript
-import { createCache } from '@voilajs/appkit/cache';
-import express from 'express';
-import session from 'express-session';
-
-const cache = await createCache({ strategy: 'redis' });
-
-class CacheSessionStore {
-  constructor(cache) {
-    this.cache = cache.namespace('session');
-    this.ttl = 86400; // 24 hours
-  }
-
-  async get(sid, callback) {
-    try {
-      const session = await this.cache.get(sid);
-      callback(null, session);
-    } catch (err) {
-      callback(err);
-    }
-  }
-
-  async set(sid, session, callback) {
-    try {
-      await this.cache.set(sid, session, this.ttl);
-      callback(null);
-    } catch (err) {
-      callback(err);
-    }
-  }
-
-  async destroy(sid, callback) {
-    try {
-      await this.cache.delete(sid);
-      callback(null);
-    } catch (err) {
-      callback(err);
-    }
-  }
-}
-
-const app = express();
-app.use(
-  session({
-    store: new CacheSessionStore(cache),
-    secret: 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-  })
-);
+const cache = await createCache({
+  strategy: 'redis', // 'memory', 'redis', or 'memcached'
+  url: process.env.REDIS_URL,
+  keyPrefix: 'myapp:',
+  defaultTTL: 3600,
+});
 ```
 
-### Detailed Note
+### Basic Operations
 
-To explore advanced features, configuration options, and detailed API
-specifications, refer to the developer reference at
-[https://github.com/voilajs/appkit/src/cache/DEV_REF.md](https://github.com/voilajs/appkit/src/cache/DEV_REF.md)
-and the API documentation at
-[https://github.com/voilajs/appkit/src/cache/API.md](https://github.com/voilajs/appkit/src/cache/API.md).
+| Method                  | Description          | Use Cases                                       |
+| ----------------------- | -------------------- | ----------------------------------------------- |
+| `get(key)`              | Retrieves a value    | Loading cached user data, API responses         |
+| `set(key, value, ttl?)` | Stores a value       | Caching query results, responses, computed data |
+| `has(key)`              | Checks if key exists | Validating cache before operations              |
+| `delete(key)`           | Removes a key        | Invalidating data after updates                 |
+| `clear()`               | Clears entire cache  | Resetting cache during deployments              |
+
+### Batch Operations
+
+| Method                 | Description                | Use Cases                    |
+| ---------------------- | -------------------------- | ---------------------------- |
+| `getMany(keys)`        | Retrieves multiple values  | Batch loading related data   |
+| `setMany(items, ttl?)` | Stores multiple key-values | Caching collections of items |
+| `deleteMany(keys)`     | Removes multiple keys      | Batch invalidation           |
+
+### Pattern Operations
+
+| Method                   | Description                   | Use Cases                    |
+| ------------------------ | ----------------------------- | ---------------------------- |
+| `deletePattern(pattern)` | Removes keys matching pattern | Clearing user-specific cache |
+| `keys(pattern)`          | Gets keys matching pattern    | Finding related cache keys   |
+
+### TTL Management
+
+| Method             | Description                 | Use Cases                  |
+| ------------------ | --------------------------- | -------------------------- |
+| `ttl(key)`         | Gets remaining time-to-live | Checking expiration time   |
+| `expire(key, ttl)` | Updates expiration time     | Extending session lifetime |
+
+### Advanced Features
+
+| Method                         | Description              | Use Cases                        |
+| ------------------------------ | ------------------------ | -------------------------------- |
+| `namespace(prefix)`            | Creates namespaced cache | Organizing cache by feature area |
+| `getOrSet(key, factory, ttl?)` | Gets or sets if missing  | Implementing cache-aside pattern |
+
+## 🛡️ Best Practices
+
+1. **Choose the right strategy**: Use memory cache for development and
+   Redis/Memcached for production
+2. **Set appropriate TTLs**: Balance freshness with performance based on data
+   volatility
+3. **Use namespaces**: Organize your cache keys to avoid collisions
+4. **Consider key design**: Use consistent, hierarchical keys (e.g.,
+   `user:123:profile`)
+5. **Invalidate properly**: Delete related cache when data changes
+6. **Handle errors gracefully**: Don't let cache failures affect user experience
+7. **Monitor cache usage**: Watch hit/miss ratios and memory usage
+
+## 🔧 Performance Tips
+
+- Use batch operations (`getMany`, `setMany`) for multiple related items
+- Leverage the `getOrSet` method for implementing the cache-aside pattern
+- Choose appropriate TTLs based on data volatility
+- Implement a fallback mechanism when cache is unavailable
+- Consider compression for large values in Redis/Memcached
+
+## 📚 Documentation Links
+
+- 📘
+  [Developer Reference](https://github.com/voilajs/appkit/blob/main/src/cache/docs/DEVELOPER_REFERENCE.md) -
+  Detailed implementation guide with examples
+- 📗
+  [API Reference](https://github.com/voilajs/appkit/blob/main/src/cache/docs/API_REFERENCE.md) -
+  Complete API documentation
+- 📙
+  [Code Generation Reference](https://github.com/voilajs/appkit/blob/main/src/cache/docs/PROMPT_REFERENCE.md) -
+  Guide for AI/LLM code generation
+
+## 📄 License
+
+MIT © [VoilaJS](https://github.com/voilajs)
+
+---
+
+<p align="center">
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+</p>

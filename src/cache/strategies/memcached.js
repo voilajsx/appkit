@@ -11,28 +11,44 @@ import { createSerializer } from '../serializer.js';
  * @extends CacheStrategy
  */
 export class MemcachedStrategy extends CacheStrategy {
+  /**
+   * Create a new Memcached cache strategy
+   * @param {Object} config - Strategy configuration
+   * @param {string[]} [config.servers] - Memcached servers
+   * @param {Object} [config.options] - Memcached client options
+   * @param {string} [config.keyPrefix] - Key prefix
+   * @param {number} [config.defaultTTL] - Default TTL in seconds
+   */
   constructor(config) {
     super(config);
     this.client = null;
     this.serializer = createSerializer(config.serializer);
-    this.defaultTTL = config.ttl || 3600;
   }
 
+  /**
+   * Connect to Memcached
+   * @returns {Promise<void>}
+   */
   async connect() {
     const Memcached = await import('memcached');
-    
+
     this.client = new Memcached.default(
       this.config.servers || 'localhost:11211',
       this.config.options || {}
     );
 
-    // Promisify memcached methods
-    this.client.getAsync = this.promisify(this.client.get);
-    this.client.setAsync = this.promisify(this.client.set);
-    this.client.delAsync = this.promisify(this.client.del);
-    this.client.flushAsync = this.promisify(this.client.flush);
+    // Promisify Memcached methods
+    this.client.getAsync = this._promisify(this.client.get);
+    this.client.setAsync = this._promisify(this.client.set);
+    this.client.delAsync = this._promisify(this.client.del);
+    this.client.flushAsync = this._promisify(this.client.flush);
+    this.client.touchAsync = this._promisify(this.client.touch);
   }
 
+  /**
+   * Disconnect from Memcached
+   * @returns {Promise<void>}
+   */
   async disconnect() {
     if (this.client) {
       this.client.end();
@@ -40,11 +56,18 @@ export class MemcachedStrategy extends CacheStrategy {
     }
   }
 
+  /**
+   * Get value from Memcached
+   * @param {string} key - Cache key
+   * @returns {Promise<any>} Cached value or null
+   */
   async get(key) {
+    const prefixedKey = this.keyPrefix + key;
+
     try {
-      const data = await this.client.getAsync(key);
+      const data = await this.client.getAsync(prefixedKey);
       if (!data) return null;
-      
+
       return this.serializer.deserialize(data);
     } catch (error) {
       console.error(`Failed to get cache value for key ${key}:`, error);
@@ -52,11 +75,19 @@ export class MemcachedStrategy extends CacheStrategy {
     }
   }
 
+  /**
+   * Set value in Memcached
+   * @param {string} key - Cache key
+   * @param {any} value - Value to cache
+   * @param {number} [ttl] - Time to live in seconds
+   * @returns {Promise<boolean>} Success status
+   */
   async set(key, value, ttl = this.defaultTTL) {
-    const serialized = this.serializer.serialize(value);
-    
+    const prefixedKey = this.keyPrefix + key;
+
     try {
-      await this.client.setAsync(key, serialized, ttl);
+      const serialized = this.serializer.serialize(value);
+      await this.client.setAsync(prefixedKey, serialized, ttl || 0);
       return true;
     } catch (error) {
       console.error(`Failed to set cache value for key ${key}:`, error);
@@ -64,9 +95,16 @@ export class MemcachedStrategy extends CacheStrategy {
     }
   }
 
+  /**
+   * Delete key from Memcached
+   * @param {string} key - Cache key
+   * @returns {Promise<boolean>} Success status
+   */
   async delete(key) {
+    const prefixedKey = this.keyPrefix + key;
+
     try {
-      await this.client.delAsync(key);
+      await this.client.delAsync(prefixedKey);
       return true;
     } catch (error) {
       console.error(`Failed to delete cache key ${key}:`, error);
@@ -74,6 +112,10 @@ export class MemcachedStrategy extends CacheStrategy {
     }
   }
 
+  /**
+   * Clear Memcached cache
+   * @returns {Promise<boolean>} Success status
+   */
   async clear() {
     try {
       await this.client.flushAsync();
@@ -85,10 +127,30 @@ export class MemcachedStrategy extends CacheStrategy {
   }
 
   /**
-   * Promisify a memcached method
-   * @private
+   * Update expiration for a key
+   * @param {string} key - Cache key
+   * @param {number} ttl - New TTL in seconds
+   * @returns {Promise<boolean>} Success status
    */
-  promisify(method) {
+  async expire(key, ttl) {
+    const prefixedKey = this.keyPrefix + key;
+
+    try {
+      await this.client.touchAsync(prefixedKey, ttl);
+      return true;
+    } catch (error) {
+      console.error(`Failed to update expiration for key ${key}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Promisify a Memcached method
+   * @private
+   * @param {Function} method - Method to promisify
+   * @returns {Function} Promisified method
+   */
+  _promisify(method) {
     return (...args) => {
       return new Promise((resolve, reject) => {
         method.call(this.client, ...args, (err, result) => {

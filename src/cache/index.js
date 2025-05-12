@@ -3,8 +3,10 @@
  * @module @voilajs/appkit/cache
  */
 
-// Main exports file
-export { initCache, getCache, closeCache } from './manager.js';
+// Export the main factory function
+export { createCache } from './factory.js';
+
+// Export utilities for advanced usage
 export { CacheStrategy } from './strategies/base.js';
 export { RedisStrategy } from './strategies/redis.js';
 export { MemcachedStrategy } from './strategies/memcached.js';

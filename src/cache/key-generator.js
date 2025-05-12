@@ -10,18 +10,15 @@
  * @returns {string} Generated cache key
  */
 export function generateCacheKey(prefix, params) {
-    if (!params || Object.keys(params).length === 0) {
-      return prefix;
-    }
-  
-    // Sort parameters for consistent keys
-    const sortedParams = Object.keys(params)
-      .sort()
-      .map(key => `${key}:${params[key]}`)
-      .join(':');
-  
-    return `${prefix}:${sortedParams}`;
+  if (!params || Object.keys(params).length === 0) {
+    return prefix;
   }
-  
-  // Legacy export for backward compatibility
-  export const getCacheKey = generateCacheKey;
+
+  // Sort parameters for consistent keys
+  const sortedParams = Object.keys(params)
+    .sort()
+    .map((key) => `${key}:${params[key]}`)
+    .join(':');
+
+  return `${prefix}:${sortedParams}`;
+}

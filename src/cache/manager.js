@@ -1,60 +1,89 @@
 /**
- * @voilajs/appkit - Cache connection manager
+ * @voilajs/appkit - Cache instance manager
  * @module @voilajs/appkit/cache/manager
  */
 
-import { RedisStrategy } from './strategies/redis.js';
-import { MemcachedStrategy } from './strategies/memcached.js';
-import { MemoryStrategy } from './strategies/memory.js';
+import { createCache } from './factory.js';
 
-let instance = null;
-
-const strategies = {
-  redis: RedisStrategy,
-  memcached: MemcachedStrategy,
-  memory: MemoryStrategy
-};
+// Cache instances registry
+const instances = new Map();
 
 /**
- * Initializes cache with specified strategy
- * @param {string} strategy - Cache strategy ('redis', 'memcached', 'memory')
- * @param {Object} config - Cache configuration
- * @returns {Promise<CacheStrategy>} Cache strategy instance
+ * Creates and registers a named cache instance
+ * @param {string} name - Instance name
+ * @param {Object} options - Cache options (strategy, connection details, etc.)
+ * @returns {Promise<Object>} Cache instance
+ * @throws {Error} If an instance with the same name already exists
  */
-export async function initCache(strategy, config) {
-  if (instance) {
-    throw new Error('Cache already initialized');
+export async function createNamedCache(name, options) {
+  if (instances.has(name)) {
+    throw new Error(`Cache instance "${name}" already exists`);
   }
 
-  const StrategyClass = strategies[strategy];
-  if (!StrategyClass) {
-    throw new Error(`Unknown cache strategy: ${strategy}`);
-  }
+  const instance = await createCache(options);
+  instances.set(name, instance);
 
-  instance = new StrategyClass(config);
-  await instance.connect();
-  
   return instance;
 }
 
 /**
- * Gets current cache instance
- * @returns {CacheStrategy} Cache strategy instance
+ * Gets a previously created cache instance by name
+ * @param {string} name - Instance name
+ * @returns {Object} Cache instance
+ * @throws {Error} If the named instance doesn't exist
  */
-export function getCache() {
+export function getNamedCache(name) {
+  const instance = instances.get(name);
+
   if (!instance) {
-    throw new Error('Cache not initialized. Call initCache() first.');
+    throw new Error(`Cache instance "${name}" not found`);
   }
+
   return instance;
 }
 
 /**
- * Closes cache connection
+ * Checks if a named cache instance exists
+ * @param {string} name - Instance name
+ * @returns {boolean} True if the instance exists
+ */
+export function hasNamedCache(name) {
+  return instances.has(name);
+}
+
+/**
+ * Closes and removes a named cache instance
+ * @param {string} name - Instance name
+ * @returns {Promise<boolean>} True if the instance was removed
+ */
+export async function removeNamedCache(name) {
+  const instance = instances.get(name);
+
+  if (!instance) {
+    return false;
+  }
+
+  await instance.disconnect();
+  return instances.delete(name);
+}
+
+/**
+ * Closes and removes all cache instances
  * @returns {Promise<void>}
  */
-export async function closeCache() {
-  if (instance) {
-    await instance.disconnect();
-    instance = null;
-  }
+export async function clearAllCaches() {
+  const closePromises = Array.from(instances.values()).map((instance) =>
+    instance.disconnect()
+  );
+
+  await Promise.all(closePromises);
+  instances.clear();
+}
+
+/**
+ * Gets all registered cache instance names
+ * @returns {string[]} Array of instance names
+ */
+export function getCacheNames() {
+  return Array.from(instances.keys());
 }
