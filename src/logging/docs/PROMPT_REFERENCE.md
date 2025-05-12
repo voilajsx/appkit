@@ -1,15 +1,16 @@
-## @voilajs/appkit/logging LLM API Reference
+# @voilajs/appkit/logging LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.
 
-### LLM Code Generation Guidelines
+## LLM Code Generation Guidelines
 
 1. **Adhere to Code Style**:
 
-   - ESM, single quotes, 2-space indentation, semicolons, JSDoc.
+   - ESM imports, single quotes, 2-space indentation, semicolons
+   - Always include JSDoc comments for functions
 
-2. **Always include JSDoc comments** with all functions using this format:
+2. **JSDoc Format** (Required for all functions):
 
    ```javascript
    /**
@@ -20,19 +21,19 @@
     */
    ```
 
-3. **Error handling patterns**:
+3. **Error Handling**:
 
    - Use try/catch blocks for async functions
    - Check parameters before using them
    - Return standardized error objects
 
-4. **Framework agnostic**:
+4. **Framework Agnostic**:
    - Implementation should work with any framework
    - Middleware patterns should be adaptable
 
-### Function Signatures
+## Function Signatures
 
-#### 1. `createLogger`
+### createLogger
 
 ```typescript
 function createLogger(options?: {
@@ -54,51 +55,21 @@ function createLogger(options?: {
 - Default `retentionDays`: `5`
 - Default `maxSize`: `10485760` (10MB)
 
-#### 2. `info`
+### Logger Methods
 
 ```typescript
-function info(message: string, meta?: Record<string, any>): void;
+interface Logger {
+  info(message: string, meta?: Record<string, any>): void;
+  error(message: string, meta?: Record<string, any>): void;
+  warn(message: string, meta?: Record<string, any>): void;
+  debug(message: string, meta?: Record<string, any>): void;
+  child(bindings: Record<string, any>): Logger;
+  flush(): Promise<void>;
+  close(): Promise<void>;
+}
 ```
 
-#### 3. `error`
-
-```typescript
-function error(message: string, meta?: Record<string, any>): void;
-```
-
-#### 4. `warn`
-
-```typescript
-function warn(message: string, meta?: Record<string, any>): void;
-```
-
-#### 5. `debug`
-
-```typescript
-function debug(message: string, meta?: Record<string, any>): void;
-```
-
-#### 6. `child`
-
-```typescript
-function child(bindings: Record<string, any>): Logger;
-```
-
-#### 7. `flush`
-
-```typescript
-async function flush(): Promise<void>;
-```
-
-#### 8. `close`
-
-```typescript
-async function close(): Promise<void>;
-```
-
-### Transport Signatures
-
-#### 1. `ConsoleTransport`
+### Transport Classes
 
 ```typescript
 class ConsoleTransport {
@@ -108,14 +79,7 @@ class ConsoleTransport {
     prettyPrint?: boolean;
   });
 }
-```
 
-- Default `colorize`: `true`
-- Default `prettyPrint`: `false`
-
-#### 2. `FileTransport`
-
-```typescript
 class FileTransport {
   constructor(options?: {
     level?: 'error' | 'warn' | 'info' | 'debug';
@@ -128,15 +92,12 @@ class FileTransport {
 }
 ```
 
-- Default `dirname`: `'logs'`
-- Default `filename`: `'app.log'`
-- Default `retentionDays`: `5`
-- Default `maxSize`: `10485760` (10MB)
-- Default `datePattern`: `'YYYY-MM-DD'`
+- ConsoleTransport defaults: `colorize: true`, `prettyPrint: false`
+- FileTransport defaults: Same as createLogger defaults
 
-### Example Implementations
+## Example Implementations
 
-#### Basic Logger Setup
+### Basic Logger Setup
 
 ```javascript
 /**
@@ -144,7 +105,6 @@ class FileTransport {
  * @returns {Object} Logger instance
  */
 function setupLogger() {
-  // Basic logger with file storage
   const logger = createLogger({
     level: 'info',
     defaultMeta: {
@@ -172,7 +132,7 @@ function logMessage(logger, message, metadata = {}) {
 }
 ```
 
-#### Request Logging Middleware
+### Request Logging Middleware
 
 ```javascript
 /**
@@ -211,7 +171,7 @@ function createRequestLogger(logger) {
 }
 ```
 
-#### Error Logging
+### Error Logging
 
 ```javascript
 /**
@@ -251,7 +211,7 @@ function createErrorLogger(logger) {
 }
 ```
 
-#### Child Loggers for Context
+### Child Loggers for Context
 
 ```javascript
 /**
@@ -301,7 +261,7 @@ async function updateUser(logger, userId, data) {
 }
 ```
 
-#### Production Logger Configuration
+### Production Logger Configuration
 
 ```javascript
 /**
@@ -352,7 +312,7 @@ function createProductionLogger(options = {}) {
 }
 ```
 
-#### Log Rotation and Retention
+### Log Rotation and Retention
 
 ```javascript
 /**
@@ -423,7 +383,7 @@ async function monitorLogDirectory(logger, dirname = 'logs') {
 }
 ```
 
-#### Graceful Shutdown
+### Graceful Shutdown
 
 ```javascript
 /**
@@ -466,7 +426,7 @@ function setupGracefulShutdown(logger) {
 }
 ```
 
-#### Audit Logging
+### Audit Logging
 
 ```javascript
 /**
@@ -515,3 +475,15 @@ function createAuditLogger(baseLogger) {
   };
 }
 ```
+
+## Code Generation Rules
+
+1. Always use `createLogger()` with an options object when configuration is
+   needed
+2. Use child loggers for request/operation-specific context
+3. Include timestamp in metadata for audit trails
+4. Implement proper error handling with try/catch blocks
+5. Close logger instances during graceful shutdown
+6. Use appropriate log levels based on severity
+7. Sanitize sensitive data before logging
+8. Configure file retention based on compliance requirements

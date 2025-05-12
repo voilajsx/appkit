@@ -93,10 +93,14 @@ export class FileTransport extends BaseTransport {
     const filepath = path.join(this.dirname, filename);
 
     // Get current file size if it exists
-    if (fs.existsSync(filepath)) {
-      const stats = fs.statSync(filepath);
-      this.currentSize = stats.size;
-    } else {
+    try {
+      if (fs.existsSync(filepath)) {
+        const stats = fs.statSync(filepath);
+        this.currentSize = stats.size;
+      } else {
+        this.currentSize = 0;
+      }
+    } catch (error) {
       this.currentSize = 0;
     }
 
@@ -156,14 +160,26 @@ export class FileTransport extends BaseTransport {
     const filename = this.getCurrentFilename();
     const filepath = path.join(this.dirname, filename);
 
-    // Find next available rotation number
-    let rotation = 1;
-    while (fs.existsSync(`${filepath}.${rotation}`)) {
-      rotation++;
-    }
+    try {
+      // Check if file exists before rotation
+      if (!fs.existsSync(filepath)) {
+        // File doesn't exist, just create new stream
+        this.currentSize = 0;
+        this.createStream();
+        return;
+      }
 
-    // Rename current file
-    fs.renameSync(filepath, `${filepath}.${rotation}`);
+      // Find next available rotation number
+      let rotation = 1;
+      while (fs.existsSync(`${filepath}.${rotation}`)) {
+        rotation++;
+      }
+
+      // Rename current file
+      fs.renameSync(filepath, `${filepath}.${rotation}`);
+    } catch (error) {
+      console.error('Error during file rotation:', error);
+    }
 
     // Create new stream
     this.currentSize = 0;
@@ -202,12 +218,9 @@ export class FileTransport extends BaseTransport {
       const maxAge = this.retentionDays * 24 * 60 * 60 * 1000;
 
       for (const file of files) {
-        // Only process log files
-        if (
-          !file.includes(
-            path.basename(this.filename, path.extname(this.filename))
-          )
-        ) {
+        // Only process log files that match our filename pattern
+        const base = path.basename(this.filename, path.extname(this.filename));
+        if (!file.startsWith(base)) {
           continue;
         }
 
@@ -230,13 +243,17 @@ export class FileTransport extends BaseTransport {
    * @returns {void}
    */
   log(entry) {
-    this.checkRotation();
+    try {
+      this.checkRotation();
 
-    const line = JSON.stringify(entry) + '\n';
-    const size = Buffer.byteLength(line);
+      const line = JSON.stringify(entry) + '\n';
+      const size = Buffer.byteLength(line);
 
-    this.stream.write(line);
-    this.currentSize += size;
+      this.stream.write(line);
+      this.currentSize += size;
+    } catch (error) {
+      console.error('Error logging to file:', error);
+    }
   }
 
   /**
@@ -245,7 +262,7 @@ export class FileTransport extends BaseTransport {
    */
   flush() {
     return new Promise((resolve) => {
-      if (this.stream) {
+      if (this.stream && this.stream.writable) {
         this.stream.once('drain', resolve);
         this.stream.write('');
       } else {

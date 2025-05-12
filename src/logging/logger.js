@@ -155,6 +155,16 @@ export class Logger {
       return;
     }
 
+    // Handle missing message gracefully
+    if (message === undefined) {
+      message = '';
+    }
+
+    // Handle null metadata
+    if (meta === null) {
+      meta = {};
+    }
+
     // Create log entry
     const entry = {
       timestamp: new Date().toISOString(),
