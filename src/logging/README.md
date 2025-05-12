@@ -98,6 +98,55 @@ app.use((req, res, next) => {
 });
 ```
 
+## 🤖 Code Generation with LLMs
+
+You can use large language models (LLMs) like ChatGPT or Claude to generate code
+for common logging scenarios using the `@voilajs/appkit/logging` module. We've
+created a specialized
+[LOGGING_PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md)
+document that's designed specifically for LLMs (not humans) to understand the
+module's capabilities and generate consistent, high-quality logging code.
+
+### How to Use LLM Code Generation
+
+Simply copy one of the prompts below (which include a link to the
+PROMPT_REFERENCE.md) and share it with ChatGPT, Claude, or another capable LLM.
+The LLM will read the reference document and use it to generate optimized,
+best-practice logging code tailored to your specific requirements.
+
+### Sample Prompts to Try
+
+#### Basic Logging Setup
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then create a complete logging system for an Express app using @voilajs/appkit/logging with the following features:
+- Structured logger initialization with custom retention policies
+- Request logging middleware with request IDs
+- Error handling middleware with detailed error logging
+- Performance monitoring for slow requests
+```
+
+#### Microservice Logging
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement a logging system for a microservice architecture using @voilajs/appkit/logging that includes:
+- Consistent request ID propagation across services
+- Correlation IDs for tracing requests
+- Service-specific context in all logs
+- Centralized log configuration
+```
+
+#### Advanced Logging Patterns
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement advanced logging patterns using @voilajs/appkit/logging with:
+- Hierarchical loggers for different application components
+- Redaction of sensitive information
+- Performance profiling with timing measurements
+- Custom formatting for different environments (dev/staging/prod)
+- Log aggregation preparation for ELK stack
+```
+
 ## 📖 Core Functions
 
 ### Logger Functions

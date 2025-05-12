@@ -48,6 +48,130 @@ app.get('/dashboard', auth, (req, res) => {
 });
 ```
 
+## 📋 Examples
+
+The module includes several examples to help you get started with common
+authentication scenarios:
+
+| Example                                                                                                          | Description                           | Key Features                                              |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------- |
+| [01-password-basics.js](https://github.com/voilajs/appkit/blob/main/src/auth/examples/01-password-basics.js)     | Password hashing and comparison       | Hash generation, password validation, salt rounds         |
+| [02-jwt-basics.js](https://github.com/voilajs/appkit/blob/main/src/auth/examples/02-jwt-basics.js)               | JWT token generation and verification | Token creation, payload verification, expiration handling |
+| [03-simple-middleware.js](https://github.com/voilajs/appkit/blob/main/src/auth/examples/03-simple-middleware.js) | Express authentication middleware     | Route protection, token extraction, error handling        |
+| [auth-demo-app](https://github.com/voilajs/appkit/blob/main/src/auth/examples/auth-demo-app)                     | Complete authentication demo          | User registration, login flow, protected routes, RBAC     |
+
+### Example: JWT Basics
+
+```javascript
+// From 02-jwt-basics.js
+import { generateToken, verifyToken } from '@voilajs/appkit/auth';
+
+// Generate a token with user information
+const token = generateToken(
+  { userId: '123', email: 'user@example.com', role: 'admin' },
+  { secret: 'your-secret-key', expiresIn: '1h' }
+);
+
+console.log('Generated token:', token);
+
+// Verify the token
+try {
+  const payload = verifyToken(token, { secret: 'your-secret-key' });
+  console.log('Token is valid. Payload:', payload);
+  // { userId: '123', email: 'user@example.com', role: 'admin', iat: 1621234567, exp: 1621238167 }
+} catch (error) {
+  console.error('Token verification failed:', error.message);
+}
+```
+
+### Example: Auth Middleware
+
+```javascript
+// From 03-simple-middleware.js
+import express from 'express';
+import {
+  createAuthMiddleware,
+  createAuthorizationMiddleware,
+} from '@voilajs/appkit/auth';
+
+const app = express();
+app.use(express.json());
+
+// Create auth middleware with your secret
+const auth = createAuthMiddleware({ secret: 'your-secret-key' });
+const adminOnly = createAuthorizationMiddleware(['admin']);
+
+// Public endpoint - no auth required
+app.get('/api/public', (req, res) => {
+  res.json({ message: 'This is a public endpoint' });
+});
+
+// Protected endpoint - requires valid token
+app.get('/api/protected', auth, (req, res) => {
+  // req.user contains the decoded token payload
+  res.json({
+    message: 'This is a protected endpoint',
+    user: req.user,
+  });
+});
+
+// Admin endpoint - requires valid token with admin role
+app.get('/api/admin', auth, adminOnly, (req, res) => {
+  res.json({
+    message: 'This is an admin-only endpoint',
+    user: req.user,
+  });
+});
+```
+
+## 🤖 Code Generation with LLMs
+
+You can use large language models (LLMs) like ChatGPT or Claude to generate code
+for common authentication scenarios using the `@voilajs/appkit/auth` module.
+We've created a specialized
+[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md)
+document that's designed specifically for LLMs (not humans) to understand the
+module's capabilities and generate consistent, high-quality authentication code.
+
+### How to Use LLM Code Generation
+
+Simply copy one of the prompts below (which include a link to the
+PROMPT_REFERENCE.md) and share it with ChatGPT, Claude, or another capable LLM.
+The LLM will read the reference document and use it to generate secure,
+best-practice authentication code tailored to your specific requirements.
+
+### Sample Prompts to Try
+
+#### Basic Auth Setup
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then create a complete authentication system for an Express app using @voilajs/appkit/auth with the following features:
+- User registration with password hashing
+- Login with JWT token generation
+- Middleware for protected routes
+- Role-based access control for admin routes
+```
+
+#### Custom Authentication Flow
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a secure authentication flow for a React Native mobile app using @voilajs/appkit/auth that includes:
+- Token storage in secure storage
+- Token refresh mechanism
+- Biometric authentication integration
+- Protection against common mobile auth vulnerabilities
+```
+
+#### Complex Authorization
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a complex authorization system using @voilajs/appkit/auth with:
+- Hierarchical role structure (admin > manager > user)
+- Resource-based permissions (users can only access their own data)
+- Team-based access control
+- Audit logging for all authentication and authorization events
+```
+
 ## 📖 Core Functions
 
 ### JWT Token Management

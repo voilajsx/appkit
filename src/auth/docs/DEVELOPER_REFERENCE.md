@@ -76,8 +76,26 @@ const secureHash = await hashPassword('myPassword123', 12);
 const quickHash = await hashPassword('myPassword123', 8);
 ```
 
+**Expected Output:**
+
+```
+// Basic hash (example)
+'$2b$10$X9xLHM7h6aQX/Zggjl7MYeVd7YuGwAkXzzF9zj7lJSU4ZfozTiwna'
+
+// Each hash will be different even for the same password due to random salt
+```
+
+**When to use:**
+
+- **User Registration**: Hash passwords before storing in your database
+- **Password Updates**: When users change their passwords
+- **Bulk User Import**: When migrating users from another system
+- **Admin-Created Accounts**: When administrators create accounts with temporary
+  passwords
+
 💡 **Tip**: Higher rounds = more security but slower performance. Use 10-12 for
-production.
+production systems where security is paramount, 8-10 for applications with high
+user volume where performance might be a concern.
 
 ### Verifying Passwords
 
@@ -93,6 +111,25 @@ if (isValid) {
   console.log('❌ Invalid password');
 }
 ```
+
+**Expected Output:**
+
+```
+// If password matches
+✅ Password is correct!
+
+// If password does not match
+❌ Invalid password
+```
+
+**When to use:**
+
+- **User Login**: Verify credentials during authentication
+- **Sensitive Actions**: Require password confirmation for sensitive operations
+  (account deletion, payments)
+- **Password Changes**: Verify the current password before allowing a change
+- **Admin Actions**: Verify admin credentials before allowing administrative
+  operations
 
 ### Complete Password Example
 
@@ -140,6 +177,21 @@ async function loginUser(email, password) {
 }
 ```
 
+**When to implement:**
+
+- **New User Authentication Systems**: When building user authentication from
+  scratch
+- **Legacy System Upgrades**: When improving security in older systems that
+  might use weak hashing
+- **Multi-factor Authentication Systems**: As part of a comprehensive
+  authentication strategy
+- **Self-service User Management**: Allow users to register and manage their own
+  accounts
+
+Similar to logging middleware, password handling should be implemented
+consistently across your entire application, ensuring the same security
+standards are applied everywhere.
+
 ## JWT Token Management
 
 JWT utilities handle token generation and verification for stateless
@@ -177,6 +229,23 @@ const secureToken = generateToken(
 );
 ```
 
+**Expected Output:**
+
+```
+// Example JWT token
+'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJpYXQiOjE2MjEyMzQ1NjcsImV4cCI6MTYyMTgzOTM2N30.9JnkBGlDZJ5ZX4-PQz9YEVGnHN9SH6N0SKhgLYfS3cA'
+```
+
+**When to use:**
+
+- **After User Login**: Generate access tokens upon successful authentication
+- **Session Management**: Create refresh tokens for extended sessions
+- **Stateless APIs**: Perfect for RESTful and microservice architectures
+- **Single-Page Applications**: Ideal for SPAs that need to maintain state
+- **Mobile Applications**: Tokens can be securely stored in mobile app secure
+  storage
+- **Cross-Service Communication**: For secure service-to-service authentication
+
 ### Verifying Tokens
 
 Use `verifyToken` to validate and decode tokens:
@@ -203,6 +272,27 @@ try {
   }
 }
 ```
+
+**Expected Output:**
+
+```
+// Successful verification
+User ID: 123
+Email: user@example.com
+
+// Failed verification (expired token)
+⏰ Token expired - user needs to login again
+```
+
+**When to use:**
+
+- **Protected Routes**: Verify tokens before allowing access to protected
+  resources
+- **API Authentication**: Validate tokens in API endpoints
+- **Single Sign-On (SSO)**: Verify tokens from SSO providers
+- **Gateway Services**: Validate tokens at API gateways before passing requests
+  to microservices
+- **Webhook Verification**: Confirm webhook requests are legitimate
 
 ### Complete JWT Example
 
@@ -271,6 +361,19 @@ function verifyAuthToken(token) {
 }
 ```
 
+**When to implement:**
+
+- **Modern Web Applications**: Ideal for modern frontend frameworks working with
+  APIs
+- **Mobile App Backends**: Perfect for authenticating mobile clients
+- **Microservice Architectures**: Essential for service-to-service communication
+- **Third-party API Integration**: When your service needs to authenticate with
+  external APIs
+
+Similar to structured logging systems, JWT token management should be
+centralized and consistent across your application, rather than implemented
+separately in different components.
+
 ## Authentication Middleware
 
 Authentication middleware protects your routes by verifying JWT tokens.
@@ -300,6 +403,26 @@ app.get('/profile', auth, (req, res) => {
   });
 });
 ```
+
+**Expected Behavior:**
+
+- For requests with valid tokens: The middleware passes control to the next
+  handler
+- For requests without tokens: Returns 401 with "No token provided" message
+- For invalid tokens: Returns 401 with "Invalid token" message
+- For expired tokens: Returns 401 with "Token has expired" message
+
+**When to use:**
+
+- **API Routes**: Protect all private API endpoints
+- **User-specific Resources**: Guard routes that access user data
+- **Admin Panels**: Secure administrative interfaces
+- **Payments and Sensitive Operations**: Protect routes handling sensitive
+  operations
+- **User Settings**: Secure routes for updating user preferences and settings
+
+Just like logging middleware that adds context to log entries, auth middleware
+adds user context to requests, making it available to downstream handlers.
 
 ### Custom Token Sources
 
@@ -340,6 +463,15 @@ const auth = createAuthMiddleware({
   },
 });
 ```
+
+**When to customize:**
+
+- **Mobile Apps**: Adjust token extraction for mobile API conventions
+- **Legacy Systems**: Accommodate existing authentication schemes during
+  migration
+- **Custom Headers**: Support custom authentication headers for specific clients
+- **Multiple Auth Methods**: Allow different authentication methods for
+  different clients
 
 ### Error Handling
 
@@ -388,6 +520,18 @@ const auth = createAuthMiddleware({
   },
 });
 ```
+
+**When to customize:**
+
+- **Frontend Integration**: To provide consistent error messages for the UI
+- **Client Applications**: To provide error codes that clients can respond to
+  programmatically
+- **Security Incident Monitoring**: To log specific auth failures for security
+  analysis
+- **User Experience**: To provide user-friendly error messages
+
+This approach is similar to how you might customize logging transports to format
+errors differently depending on the environment.
 
 ### Complete Middleware Example
 
@@ -459,6 +603,13 @@ app.post('/api/logout', auth, (req, res) => {
 });
 ```
 
+**When to implement:**
+
+- **Web Applications**: For user authentication in traditional web apps
+- **REST APIs**: For securing API endpoints
+- **SPA Backends**: For authentication in single-page application backends
+- **Mobile Backends**: For authenticating mobile applications
+
 ## Authorization Middleware
 
 Authorization middleware adds role-based access control (RBAC) to your routes.
@@ -485,6 +636,25 @@ app.put('/content/edit', auth, editorAccess, (req, res) => {
   res.json({ message: 'Edit content' });
 });
 ```
+
+**Expected Behavior:**
+
+- For users with required roles: The middleware passes control to the next
+  handler
+- For users without required roles: Returns 403 with "Forbidden" message
+
+**When to use:**
+
+- **Admin Panels**: Restrict access to administrative features
+- **Content Management**: Control who can create, edit, or delete content
+- **User Management**: Limit who can modify user accounts
+- **Feature Access**: Control access to premium or restricted features
+- **Sensitive Operations**: Protect destructive or important operations
+
+The relationship between authentication and authorization is similar to the
+relationship between base logging and contextual logging - authorization builds
+on the context provided by authentication to make more specific access
+decisions.
 
 ### Custom Role Logic
 
@@ -546,6 +716,15 @@ const projectAccess = createAuthorizationMiddleware(['member'], {
   },
 });
 ```
+
+**When to customize:**
+
+- **Complex Permission Systems**: When simple role checks aren't sufficient
+- **Multi-tenant Applications**: To check tenant-specific permissions
+- **Resource Ownership**: To verify users can only access their own resources
+- **Hierarchical Organizations**: To model reporting structures and access
+  levels
+- **Team-based Access**: To check access based on team membership
 
 ### Complete Authorization Example
 
@@ -614,6 +793,13 @@ app.get('/api/admin/stats', auth, adminOnly, async (req, res) => {
   res.json({ stats });
 });
 ```
+
+**When to implement:**
+
+- **SaaS Platforms**: For multi-tier access based on subscription plans
+- **Content Platforms**: For different contributor and moderator levels
+- **Enterprise Applications**: For complex organizational access controls
+- **Collaborative Tools**: For team-based and project-based permissions
 
 ## Complete Integration Example
 
@@ -805,9 +991,7 @@ app.post('/auth/verify-email', async (req, res) => {
     // Update user
     await db.updateUser(payload.email, { emailVerified: true });
 
-    res.json({
-      message: 'Email verified successfully',
-    });
+    res.json({ message: 'Email verified successfully' });
   } catch (error) {
     res.status(400).json({
       error: 'Invalid or expired verification token',
@@ -889,13 +1073,25 @@ app.listen(PORT, () => {
 });
 ```
 
+**When to implement this comprehensive approach:**
+
+- **Production Applications**: For robust auth in real-world apps
+- **Startups**: To quickly implement secure authentication with best practices
+- **Enterprise Applications**: For comprehensive security with email
+  verification
+- **Multi-platform Apps**: When supporting web, mobile, and API clients
+
+Just as a complete logging system integrates multiple components (transports,
+formatters, retention), a complete auth system integrates various authentication
+and authorization components into a cohesive whole.
+
 ## Additional Resources
 
 - 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/auth/docs/API_GUIDE.md) -
+  [API Reference](https://github.com/voilajs/appkit/blob/main/src/auth/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Integration Guide](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_GUIDE.md) -
+  [LLM Code Generation Reference](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
 
 ## Best Practices

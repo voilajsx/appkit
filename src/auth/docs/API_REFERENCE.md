@@ -21,6 +21,7 @@ import {
   hashPassword,
   comparePassword,
   createAuthMiddleware,
+  createAuthorizationMiddleware,
 } from '@voilajs/appkit/auth';
 ```
 
