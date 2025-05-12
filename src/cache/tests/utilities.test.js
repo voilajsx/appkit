@@ -6,10 +6,10 @@ import {
   hasNamedCache,
   clearAllCaches,
   getCacheNames,
-} from '../src/manager.js';
+} from '../manager.js';
 
 // Mock factory module
-vi.mock('../src/factory.js', () => ({
+vi.mock('../factory.js', () => ({
   createCache: vi.fn().mockImplementation(() => ({
     disconnect: vi.fn(),
     get: vi.fn(),

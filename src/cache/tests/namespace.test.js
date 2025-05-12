@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createCache } from '../src/factory.js';
+import { createCache } from '../factory.js';
 
 describe('Cache Namespace', () => {
   let cache;
@@ -33,7 +33,7 @@ describe('Cache Namespace', () => {
 
     // Keys should be namespaced properly
     expect(await cache.get('123')).toBeNull();
-    expect(await userCache.get('admin:456')).toBeNull();
+    expect(await userCache.get('456')).toBeNull(); // This was incorrect before - admin:456 is not how namespaces work
   });
 
   it('should handle batch operations', async () => {

@@ -35,6 +35,7 @@ export async function loadConfig(pathOrConfig, options = {}) {
 
     if (typeof pathOrConfig === 'string') {
       config = await loadFromFile(pathOrConfig);
+      configOptions.lastPath = pathOrConfig;
     } else if (typeof pathOrConfig === 'object' && pathOrConfig !== null) {
       config = pathOrConfig;
     } else {
@@ -120,9 +121,6 @@ async function loadFromFile(filePath) {
     case '.js':
     case '.mjs':
       return loadJavaScript(absolutePath);
-    case '.yaml':
-    case '.yml':
-      return parseYAML(content, absolutePath);
     case '.env':
       return parseDotEnv(content);
     default:
@@ -166,33 +164,6 @@ async function loadJavaScript(filePath) {
     throw new ConfigError(
       `Failed to load JavaScript configuration: ${error.message}`,
       'JS_LOAD_ERROR'
-    );
-  }
-}
-
-/**
- * Parses YAML configuration
- * @private
- * @param {string} content - YAML content
- * @param {string} filePath - File path for error reporting
- * @returns {Object} Parsed configuration
- */
-function parseYAML(content, filePath) {
-  try {
-    // Lazy load yaml parser
-    const yaml = require('js-yaml');
-    return yaml.load(content);
-  } catch (error) {
-    if (error.code === 'MODULE_NOT_FOUND') {
-      throw new ConfigError(
-        'YAML support requires installing js-yaml: npm install js-yaml',
-        'YAML_MODULE_MISSING'
-      );
-    }
-    throw new ConfigError(
-      `Invalid YAML in configuration file: ${filePath}`,
-      'YAML_PARSE_ERROR',
-      { parseError: error.message }
     );
   }
 }

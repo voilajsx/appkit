@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createCache } from '../src/factory.js';
+import { createCache } from '../factory.js';
 
 describe('Memory Cache', () => {
   let cache;

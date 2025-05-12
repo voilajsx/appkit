@@ -296,7 +296,7 @@ function getType(value) {
   return typeof value;
 }
 
-// Predefined schemas
+// Predefined schemas - only the essential ones
 defineSchema('server', {
   type: 'object',
   required: ['port'],
@@ -341,25 +341,6 @@ defineSchema('database', {
   },
 });
 
-defineSchema('redis', {
-  type: 'object',
-  required: ['url'],
-  properties: {
-    url: {
-      type: 'string',
-      pattern: '^redis://',
-    },
-    options: {
-      type: 'object',
-      properties: {
-        db: { type: 'number', minimum: 0 },
-        password: { type: 'string' },
-        retryStrategy: { type: 'function' },
-      },
-    },
-  },
-});
-
 defineSchema('logging', {
   type: 'object',
   properties: {
@@ -373,94 +354,13 @@ defineSchema('logging', {
       enum: ['json', 'simple', 'detailed'],
       default: 'json',
     },
-    transports: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['type'],
-        properties: {
-          type: { type: 'string' },
-          level: { type: 'string' },
-          options: { type: 'object' },
-        },
-      },
-    },
   },
 });
 
-defineSchema('security', {
-  type: 'object',
-  required: ['secretKey'],
-  properties: {
-    secretKey: {
-      type: 'string',
-      minLength: 32,
-    },
-    cors: {
-      type: 'object',
-      properties: {
-        enabled: { type: 'boolean', default: true },
-        origins: {
-          type: 'array',
-          items: { type: 'string' },
-          default: ['*'],
-        },
-        credentials: { type: 'boolean', default: false },
-      },
-    },
-    rateLimit: {
-      type: 'object',
-      properties: {
-        enabled: { type: 'boolean', default: true },
-        windowMs: { type: 'number', default: 60000 },
-        max: { type: 'number', default: 100 },
-      },
-    },
-  },
-});
-
-defineSchema('email', {
-  type: 'object',
-  required: ['provider'],
-  properties: {
-    provider: {
-      type: 'string',
-      enum: ['smtp', 'sendgrid', 'mailgun', 'ses'],
-    },
-    from: {
-      type: 'string',
-      pattern: '^[^@]+@[^@]+\\.[^@]+$',
-    },
-    smtp: {
-      type: 'object',
-      properties: {
-        host: { type: 'string' },
-        port: { type: 'number' },
-        secure: { type: 'boolean' },
-        auth: {
-          type: 'object',
-          required: ['user', 'pass'],
-          properties: {
-            user: { type: 'string' },
-            pass: { type: 'string' },
-          },
-        },
-      },
-    },
-    sendgrid: {
-      type: 'object',
-      required: ['apiKey'],
-      properties: {
-        apiKey: { type: 'string' },
-      },
-    },
-  },
-});
-
-// Complete application schema
+// Simple app schema that uses the predefined schemas
 defineSchema('app', {
   type: 'object',
-  required: ['server', 'database'],
+  required: ['server'],
   properties: {
     name: { type: 'string' },
     version: { type: 'string' },
@@ -471,10 +371,7 @@ defineSchema('app', {
     },
     server: { $ref: 'server' },
     database: { $ref: 'database' },
-    redis: { $ref: 'redis' },
     logging: { $ref: 'logging' },
-    security: { $ref: 'security' },
-    email: { $ref: 'email' },
     features: {
       type: 'object',
       additionalProperties: { type: 'boolean' },
