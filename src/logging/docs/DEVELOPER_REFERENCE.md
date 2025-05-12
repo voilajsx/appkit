@@ -67,8 +67,19 @@ logger.warn('Deprecated API used');
 logger.debug('Processing user request');
 ```
 
+**Expected Output:**
+
+```
+2025-05-12T14:30:00.000Z [INFO] Application started
+2025-05-12T14:30:01.235Z [ERROR] Database connection failed
+2025-05-12T14:30:02.457Z [WARN] Deprecated API used
+2025-05-12T14:30:03.789Z [DEBUG] Processing user request
+```
+
 💡 **Tip**: Use appropriate log levels for different scenarios to make filtering
-and analysis easier.
+and analysis easier. In production environments, you might want to set the
+minimum level to 'info' to reduce log volume, while using 'debug' during
+development and troubleshooting.
 
 ### Advanced Usage
 
@@ -102,6 +113,19 @@ try {
   });
 }
 ```
+
+**Expected Output:**
+
+```
+2025-05-12T14:35:00.000Z [INFO] User action {"service":"user-api","environment":"production","version":"1.2.3","userId":"123456","action":"profile_update","ip":"192.168.1.1","duration":145}
+
+2025-05-12T14:35:10.500Z [ERROR] Operation failed {"service":"user-api","environment":"production","version":"1.2.3","error":"Database timeout","stack":"Error: Database timeout\n    at riskyOperation...","context":{"userId":"123456","operation":"riskyOperation"}}
+```
+
+This advanced configuration is particularly valuable for microservice
+architectures where you need to correlate logs across multiple services. The
+consistent metadata structure makes it easier to filter and search logs in
+centralized logging systems like ELK Stack or Datadog.
 
 ### Complete Example
 
@@ -154,6 +178,24 @@ async function updateUser(userId, data) {
 }
 ```
 
+**Expected Output (Success):**
+
+```
+2025-05-12T14:40:00.000Z [INFO] Database operation completed {"service":"payment-service","environment":"production","hostname":"app-server-01","pid":12345,"operation":"updateUser","duration":45,"success":true,"timestamp":"2025-05-12T14:40:00.045Z"}
+```
+
+**Expected Output (Failure):**
+
+```
+2025-05-12T14:41:00.000Z [ERROR] Database operation failed {"service":"payment-service","environment":"production","hostname":"app-server-01","pid":12345,"operation":"updateUser","duration":78,"success":false,"timestamp":"2025-05-12T14:41:00.078Z","error":"User not found","stack":"Error: User not found\n    at updateUser..."}
+```
+
+This pattern is particularly useful for performance monitoring and
+troubleshooting. By consistently logging operation durations and outcomes, you
+can track system performance over time, identify slow database queries, and
+quickly pinpoint the source of errors. This approach works well with monitoring
+tools that can alert on error rates or performance degradations.
+
 ## File Storage and Rotation
 
 The module includes automatic file logging with rotation based on size and date,
@@ -170,8 +212,18 @@ const logger = createLogger();
 // - logs/app-2024-01-01.log.1 (rotated file)
 ```
 
+**Expected Outcome:**  
+With the default settings, log files will be:
+
+1. Created in a `logs` directory in your project root
+2. Named with the current date (e.g., `app-2025-05-12.log`)
+3. Rotated when they exceed 10MB to `app-2025-05-12.log.1`,
+   `app-2025-05-12.log.2`, etc.
+4. Automatically deleted after 5 days to manage disk space
+
 💡 **Tip**: Monitor your log directory size and adjust retention settings based
-on your needs.
+on your needs. In high-traffic applications, log files can grow rapidly and
+consume significant disk space, potentially impacting application performance.
 
 ### Advanced Usage
 
@@ -200,10 +252,25 @@ const errorLogger = createLogger({
       filename: 'error.log',
       retentionDays: 90,
       level: 'error',
+      maxSize: 100 * 1024 * 1024, // 100MB
     }),
   ],
 });
 ```
+
+**Expected Outcome:**  
+This configuration will:
+
+1. Store general logs in `/var/log/myapp/api-YYYY-MM-DD.log`
+2. Rotate these files when they reach 50MB
+3. Keep these logs for 30 days
+4. Store error-only logs in `logs/errors/error-YYYY-MM-DD.log`
+5. Keep error logs for 90 days (useful for compliance requirements)
+
+This approach is ideal for applications with different compliance or audit
+requirements where error logs need longer retention. It's also useful for
+separating high-volume debug logs from critical error information that needs to
+be preserved.
 
 ### Complete Example
 
@@ -266,6 +333,23 @@ const logger = createProductionLogger('user-api');
 setInterval(() => monitorLogs(logger), 24 * 60 * 60 * 1000);
 ```
 
+**Expected Outcome:**  
+This production-ready setup:
+
+1. Creates separate log files for each microservice (e.g.,
+   `user-api-2025-05-12.log`)
+2. Outputs plain JSON logs to console (ideal for container environments like
+   Docker)
+3. Separates error logs with longer retention periods
+4. Monitors log directory size to prevent disk space issues
+5. Sends a warning when log volume exceeds 1GB
+
+This configuration is particularly valuable in containerized environments
+(Docker, Kubernetes) where logs from the console are typically collected by the
+container orchestration system, while file logs can be mounted to persistent
+volumes. The monitoring function helps prevent disk space issues that could
+impact application availability.
+
 ## Child Loggers
 
 Child loggers inherit context from their parent while adding their own metadata,
@@ -286,8 +370,15 @@ requestLogger.info('Processing request');
 // All logs include requestId and userId
 ```
 
+**Expected Output:**
+
+```
+2025-05-12T15:00:00.000Z [INFO] Processing request {"requestId":"abc123","userId":"user-456"}
+```
+
 💡 **Tip**: Use child loggers instead of repeating the same metadata in every
-log call.
+log call. This not only makes your code cleaner but ensures consistent context
+in logs, improving traceability when analyzing issues.
 
 ### Advanced Usage
 
@@ -318,6 +409,20 @@ function requestLoggingMiddleware(logger) {
   };
 }
 ```
+
+**Expected Output:**
+
+```
+2025-05-12T15:05:00.000Z [INFO] Request started {"requestId":"req-789","method":"GET","path":"/users/123","ip":"203.0.113.42","userAgent":"Mozilla/5.0..."}
+
+2025-05-12T15:05:00.120Z [INFO] Request completed {"requestId":"req-789","method":"GET","path":"/users/123","ip":"203.0.113.42","userAgent":"Mozilla/5.0...","statusCode":200,"duration":120}
+```
+
+This middleware approach is especially valuable for request tracing in
+microservice architectures. By attaching a logger with request context to the
+request object, you create a clean way to track the entire request lifecycle
+across all middleware and route handlers, making it easier to trace issues
+through the system.
 
 ### Complete Example
 
@@ -387,6 +492,44 @@ app.get('/users/:id', async (req, res) => {
 });
 ```
 
+**Expected Output (Successful Request):**
+
+```
+2025-05-12T15:10:00.000Z [INFO] Request received {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100"}
+
+2025-05-12T15:10:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
+
+2025-05-12T15:10:00.050Z [INFO] User retrieved successfully {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
+
+2025-05-12T15:10:00.055Z [INFO] Response sent {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","statusCode":200,"duration":55,"size":1024}
+```
+
+**Expected Output (Failed Request):**
+
+```
+2025-05-12T15:15:00.000Z [INFO] Request received {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100"}
+
+2025-05-12T15:15:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
+
+2025-05-12T15:15:00.030Z [WARN] User not found {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
+
+2025-05-12T15:15:00.035Z [INFO] Response sent {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","statusCode":404,"duration":35,"size":27}
+```
+
+This example demonstrates the power of nested child loggers, which are
+particularly useful in complex web applications. The pattern creates a hierarchy
+of context (request → operation) that makes it easy to:
+
+1. Track complete request lifecycles from receipt to response
+2. Associate specific operations with requests
+3. Measure performance at different stages
+4. Quickly identify problematic requests in logs
+5. See the complete request context when errors occur
+
+This approach scales well to complex applications with many routes and
+operations, maintaining consistent logging context throughout the request
+lifecycle.
+
 ## Custom Transports
 
 Create custom transports to send logs to external services or implement
@@ -409,8 +552,21 @@ const logger = createLogger({
 });
 ```
 
+**Expected Output:**
+
+```
+Custom: {
+  timestamp: '2025-05-12T15:20:00.000Z',
+  level: 'info',
+  message: 'Test message',
+  ...other metadata
+}
+```
+
 💡 **Tip**: Extend BaseTransport to inherit level filtering and other base
-functionality.
+functionality. Custom transports are ideal for integrating with specialized log
+management systems or for implementing organization-specific logging
+requirements.
 
 ### Advanced Usage
 
@@ -446,6 +602,19 @@ class DatadogTransport extends BaseTransport {
   }
 }
 ```
+
+**Expected Outcome:**  
+This transport will:
+
+1. Format log entries for the Datadog API
+2. Send logs to Datadog in real-time
+3. Include service name and other metadata
+4. Catch and report any transmission errors
+
+This pattern is especially useful for organizations using centralized log
+management systems like Datadog, Splunk, or ELK Stack. By implementing custom
+transports, you can ensure logs are properly formatted and delivered to the
+appropriate service without changing your application's logging code.
 
 ### Complete Example
 
@@ -533,6 +702,32 @@ function auditLog(action, userId, details) {
   });
 }
 ```
+
+**Expected Outcome:**  
+This multi-transport configuration:
+
+1. Outputs all logs to console and files
+2. Stores audit logs in a database table for compliance
+3. Sends email alerts for all error logs
+4. Uses a helper function to standardize audit logging
+
+The outcomes of different log types:
+
+- **Regular log**: Goes to console and file
+- **Audit log**: Goes to console, file, and database
+- **Error log**: Goes to console, file, and triggers an email alert
+
+This pattern is particularly valuable for:
+
+- **Compliance requirements**: Storing audit logs in a database for legal or
+  regulatory requirements
+- **Operations monitoring**: Sending immediate alerts for critical errors
+- **Security analysis**: Maintaining separate audit trails for security reviews
+- **Legacy system integration**: Connecting with existing logging infrastructure
+
+Such a setup provides both real-time monitoring capability and long-term audit
+trails while maintaining a clean, consistent logging API in your application
+code.
 
 ## Complete Integration Example
 
@@ -703,6 +898,37 @@ async function startApp() {
 startApp();
 ```
 
+**Expected Outcome:**  
+This comprehensive example:
+
+1. **Startup sequence**:
+   - Logs application startup events
+   - Captures startup duration
+   - Records system information
+2. **Request handling**:
+   - Creates a child logger for each request
+   - Tracks request duration and outcome
+   - Adds operation-specific context for specific routes
+3. **Error handling**:
+   - Captures detailed error information
+   - Tracks both expected errors (like validation) and unexpected errors
+   - Stores errors with extended retention
+4. **Graceful shutdown**:
+   - Logs the shutdown sequence
+   - Ensures all pending logs are flushed
+   - Reports any shutdown errors
+
+This integration shows how a well-structured logging system touches every part
+of your application lifecycle - from startup to shutdown, and every request in
+between. It provides visibility into application performance, user behavior, and
+errors while maintaining a clean separation of concerns in your code.
+
+The approach is particularly valuable for production applications where
+observability is critical for maintaining service reliability. By consistently
+applying this logging pattern, you create a rich foundation for monitoring,
+alerting, and troubleshooting that can help reduce mean time to resolution
+(MTTR) when issues occur.
+
 ## Additional Resources
 
 - 📗
@@ -711,8 +937,9 @@ startApp();
 - 📙
   [LLM Integration Guide](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md) -
   AI/LLM code generation
-- 📘 [Examples Repository](https://github.com/voilajs/appkit-examples) - Full
-  example applications
+- 📘
+  [Examples](https://github.com/voilajs/appkit/blob/main/src/logging/examples/) -
+  Full example code
 
 ## Best Practices
 

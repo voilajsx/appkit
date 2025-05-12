@@ -43,6 +43,61 @@ const requestLogger = logger.child({ requestId: 'abc123' });
 requestLogger.info('Processing request');
 ```
 
+## 📋 Examples
+
+The module includes several examples to help you get started with common use
+cases:
+
+| Example                                                                                                     | Description                                     | Key Features                           |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------- |
+| [01-basic-logging.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/01-basic-logging.js) | Basic usage of logger with different log levels | Basic log levels, metadata             |
+| [02-child-logger.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/02-child-logger.js)   | Creating child loggers with request context     | Context binding, nested loggers        |
+| [03-file-config.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/03-file-config.js)     | Configuring file logging options                | Custom directories, retention policies |
+| [04-express-basic.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/04-express-basic.js) | Integration with Express.js middleware          | Request logging, HTTP context          |
+
+### Example: Basic Logging
+
+```javascript
+// From 01-basic-logging.js
+import { createLogger } from '@voilajs/appkit/logging';
+
+const logger = createLogger();
+
+logger.info('Application started');
+logger.warn('Configuration issue detected', { setting: 'timeout', value: 30 });
+logger.error('Operation failed', {
+  code: 'DB_ERROR',
+  message: 'Connection refused',
+});
+```
+
+### Example: Express Integration
+
+```javascript
+// From 04-express-basic.js
+import express from 'express';
+import { createLogger } from '@voilajs/appkit/logging';
+
+const app = express();
+const logger = createLogger();
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const requestId = Math.random().toString(36).substring(2, 15);
+  req.logger = logger.child({ requestId, path: req.path });
+  req.logger.info('Request received');
+
+  res.on('finish', () => {
+    req.logger.info('Request completed', {
+      statusCode: res.statusCode,
+      responseTime: Date.now() - req.startTime,
+    });
+  });
+
+  next();
+});
+```
+
 ## 📖 Core Functions
 
 ### Logger Functions
