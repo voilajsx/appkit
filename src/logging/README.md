@@ -5,9 +5,20 @@
 
 > Structured logging with file storage and retention for Node.js applications
 
-The logging module provides a simple yet powerful logging system with automatic
-file rotation, retention policies, and support for contextual logging through
-child loggers.
+The Logging module of `@voilajs/appkit` provides a simple yet powerful logging
+system with automatic file rotation, retention policies, and support for
+contextual logging through child loggers.
+
+## Module Overview
+
+The Logging module provides everything you need for robust application logging:
+
+| Feature                | What it does                            | Main functions                                                       |
+| ---------------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| **Logger Creation**    | Initialize loggers with various options | `createLogger()`                                                     |
+| **Log Levels**         | Log messages at appropriate severity    | `logger.info()`, `logger.error()`, `logger.warn()`, `logger.debug()` |
+| **Contextual Logging** | Add context to all related log messages | `logger.child()`                                                     |
+| **File Management**    | Store logs with rotation and retention  | File storage configuration options                                   |
 
 ## 🚀 Features
 
@@ -26,6 +37,9 @@ npm install @voilajs/appkit
 
 ## 🏃‍♂️ Quick Start
 
+Import only the functions you need and start using them right away. The logging
+module provides a simple, fluent API for all your logging needs.
+
 ```javascript
 import { createLogger } from '@voilajs/appkit/logging';
 
@@ -43,76 +57,132 @@ const requestLogger = logger.child({ requestId: 'abc123' });
 requestLogger.info('Processing request');
 ```
 
-## 📋 Examples
+## 📖 Core Functions
 
-The module includes several examples to help you get started with common use
-cases:
+### Logger Creation and Management
 
-| Example                                                                                                     | Description                                     | Key Features                           |
-| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------- |
-| [01-basic-logging.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/01-basic-logging.js) | Basic usage of logger with different log levels | Basic log levels, metadata             |
-| [02-child-logger.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/02-child-logger.js)   | Creating child loggers with request context     | Context binding, nested loggers        |
-| [03-file-config.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/03-file-config.js)     | Configuring file logging options                | Custom directories, retention policies |
-| [04-express-basic.js](https://github.com/voilajs/appkit/blob/main/src/logging/examples/04-express-basic.js) | Integration with Express.js middleware          | Request logging, HTTP context          |
+These utilities enable you to create and configure loggers for your application.
+Loggers handle the details of log formatting, storage, and management so you can
+focus on recording important events.
 
-### Example: Basic Logging
+| Function         | Purpose                                    | When to use                                |
+| ---------------- | ------------------------------------------ | ------------------------------------------ |
+| `createLogger()` | Creates a new logger instance with options | Application startup, module initialization |
+| `logger.child()` | Creates a child logger with added context  | Request handling, operation tracking       |
 
 ```javascript
-// From 01-basic-logging.js
-import { createLogger } from '@voilajs/appkit/logging';
+// Create a logger with custom options
+const logger = createLogger({
+  level: 'info',
+  dirname: 'logs',
+  filename: 'app.log',
+});
 
-const logger = createLogger();
-
-logger.info('Application started');
-logger.warn('Configuration issue detected', { setting: 'timeout', value: 30 });
-logger.error('Operation failed', {
-  code: 'DB_ERROR',
-  message: 'Connection refused',
+// Create a child logger with request context
+const requestLogger = logger.child({
+  requestId: 'req-123',
+  userId: 'user-456',
 });
 ```
 
-### Example: Express Integration
+### Logging Methods
+
+These methods let you log messages at different severity levels, helping you
+categorize information and filter logs based on importance.
+
+| Function         | Purpose                              | When to use                                 |
+| ---------------- | ------------------------------------ | ------------------------------------------- |
+| `logger.error()` | Logs errors and critical issues      | Exceptions, fatal errors, security breaches |
+| `logger.warn()`  | Logs warnings and potential problems | Deprecation notices, approaching limits     |
+| `logger.info()`  | Logs normal operational information  | Startup events, normal operations           |
+| `logger.debug()` | Logs detailed debugging information  | Development details, troubleshooting        |
 
 ```javascript
-// From 04-express-basic.js
-import express from 'express';
-import { createLogger } from '@voilajs/appkit/logging';
+// Log at different levels
+logger.error('Failed to connect to database', {
+  error: err.message,
+  connectionString: 'db://hostname:port/dbname',
+});
 
-const app = express();
-const logger = createLogger();
+logger.warn('API rate limit at 80%', {
+  current: 800,
+  limit: 1000,
+});
 
-// Request logging middleware
-app.use((req, res, next) => {
-  const requestId = Math.random().toString(36).substring(2, 15);
-  req.logger = logger.child({ requestId, path: req.path });
-  req.logger.info('Request received');
+logger.info('User login successful', {
+  userId: 'user-123',
+  loginTime: new Date(),
+});
 
-  res.on('finish', () => {
-    req.logger.info('Request completed', {
-      statusCode: res.statusCode,
-      responseTime: Date.now() - req.startTime,
-    });
-  });
-
-  next();
+logger.debug('Cache operation details', {
+  operation: 'set',
+  key: 'user:123',
+  ttl: 3600,
 });
 ```
+
+## 🔧 Configuration Options
+
+The examples above show basic usage, but you have much more control over how the
+logging system works. Here are the customization options available:
+
+### Logger Creation Options
+
+| Option              | Description                    | Default           | Example                                  |
+| ------------------- | ------------------------------ | ----------------- | ---------------------------------------- |
+| `level`             | Minimum log level to record    | `'info'`          | `'debug'`, `'info'`, `'warn'`, `'error'` |
+| `dirname`           | Directory for log files        | `'logs'`          | `'app/logs'`, `'/var/log/myapp'`         |
+| `filename`          | Base name for log files        | `'app.log'`       | `'server.log'`, `'api.log'`              |
+| `retentionDays`     | Days to keep log files         | `7`               | `30`, `90`, `365`                        |
+| `maxSize`           | Max file size before rotation  | `10485760` (10MB) | `52428800` (50MB)                        |
+| `enableFileLogging` | Whether to write logs to files | `true`            | `false` (console only)                   |
+| `customFormat`      | Custom formatter function      | `undefined`       | Function for custom formatting           |
+
+```javascript
+// Logger with custom configuration
+const logger = createLogger({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  dirname: 'logs',
+  filename: 'application.log',
+  retentionDays: 30,
+  maxSize: 52428800, // 50MB
+  enableFileLogging: true,
+});
+```
+
+## 💡 Common Use Cases
+
+Here's where you can apply the logging module's functionality in your
+applications:
+
+| Category            | Use Case               | Description                                       | Components Used                                           |
+| ------------------- | ---------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| **HTTP Servers**    | Request Logging        | Log details of incoming HTTP requests             | `createLogger()`, `logger.child()`, `logger.info()`       |
+|                     | Error Tracking         | Record API errors with context                    | `logger.error()` with metadata                            |
+|                     | Performance Monitoring | Track slow requests and bottlenecks               | `logger.warn()` with timing data                          |
+| **Databases**       | Query Logging          | Monitor database operations                       | `logger.debug()` with query details                       |
+|                     | Connection Issues      | Track database connectivity problems              | `logger.error()` with connection info                     |
+| **Background Jobs** | Job Execution          | Track background task execution                   | `logger.child()` with job context                         |
+|                     | Scheduled Tasks        | Monitor cron jobs and scheduled operations        | `logger.info()` for job completion                        |
+| **Security**        | Auth Events            | Track login attempts and authentication events    | `logger.info()` for success, `logger.warn()` for failures |
+|                     | Security Alerts        | Log potential security incidents                  | `logger.error()` with security context                    |
+| **DevOps**          | Application Startup    | Log startup configuration and environment details | `logger.info()` with startup details                      |
+|                     | Health Checks          | Record results of regular health checks           | `logger.info()` or `logger.error()` based on status       |
 
 ## 🤖 Code Generation with LLMs
 
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
 for common logging scenarios using the `@voilajs/appkit/logging` module. We've
 created a specialized
-[LOGGING_PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md)
-document that's designed specifically for LLMs (not humans) to understand the
-module's capabilities and generate consistent, high-quality logging code.
+[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md)
+document that's designed specifically for LLMs to understand the module's
+capabilities and generate high-quality logging code.
 
 ### How to Use LLM Code Generation
 
-Simply copy one of the prompts below (which include a link to the
-PROMPT_REFERENCE.md) and share it with ChatGPT, Claude, or another capable LLM.
-The LLM will read the reference document and use it to generate optimized,
-best-practice logging code tailored to your specific requirements.
+Simply copy one of the prompts below and share it with ChatGPT, Claude, or
+another capable LLM. The LLM will read the reference document and generate
+optimized, best-practice logging code tailored to your specific requirements.
 
 ### Sample Prompts to Try
 
@@ -147,93 +217,65 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 - Log aggregation preparation for ELK stack
 ```
 
-## 📖 Core Functions
+## 📋 Example Code
 
-### Logger Functions
+For complete, working examples, check our examples folder:
 
-| Function         | Description                    | Usage                           |
-| ---------------- | ------------------------------ | ------------------------------- |
-| `createLogger()` | Creates a new logger instance  | Initialize logging for your app |
-| `logger.info()`  | Log informational messages     | General application events      |
-| `logger.error()` | Log error messages             | Errors and exceptions           |
-| `logger.warn()`  | Log warning messages           | Non-critical issues             |
-| `logger.debug()` | Log debug messages             | Development troubleshooting     |
-| `logger.child()` | Create contextual child logger | Add request/operation context   |
+- [Basic Logging](https://github.com/voilajs/appkit/blob/main/src/logging/examples/01-basic-logging.js) -
+  How to use different log levels and metadata
+- [Child Loggers](https://github.com/voilajs/appkit/blob/main/src/logging/examples/02-child-logger.js) -
+  Creating context-aware child loggers
+- [File Configuration](https://github.com/voilajs/appkit/blob/main/src/logging/examples/03-file-config.js) -
+  Customizing file storage options
+- [Express Integration](https://github.com/voilajs/appkit/blob/main/src/logging/examples/04-express-basic.js) -
+  Using loggers with Express.js
 
-## 🔧 Configuration Options
+## 🛡️ Logging Best Practices
 
-```javascript
-const logger = createLogger({
-  level: 'info', // Minimum log level (error/warn/info/debug)
-  dirname: 'logs', // Directory for log files
-  filename: 'app.log', // Base filename for logs
-  retentionDays: 5, // Days to keep log files
-  maxSize: 10485760, // Max file size before rotation (10MB)
-  enableFileLogging: true, // Enable/disable file logging
-});
-```
+Following these practices will help ensure your logging system remains effective
+and secure:
 
-## 💡 Common Use Cases
+1. **Use appropriate log levels** - Only log what's needed at each level to
+   avoid overwhelming logs
+2. **Never log sensitive data** - Avoid passwords, API keys, or personal
+   information in logs
+3. **Add context to logs** - Include request IDs and relevant metadata for
+   easier troubleshooting
+4. **Implement retention policies** - Delete old logs to comply with data
+   regulations
+5. **Structure your logs** - Use metadata objects rather than string
+   concatenation
+6. **Use consistent formats** - Maintain a standard logging pattern across your
+   application
 
-### Express Request Logging
+## 📊 Performance Considerations
 
-```javascript
-app.use((req, res, next) => {
-  req.logger = logger.child({
-    requestId: req.id,
-    method: req.method,
-    path: req.path,
-  });
-  req.logger.info('Request started');
-  next();
-});
-```
-
-### Operation Tracking
-
-```javascript
-async function processOrder(orderId) {
-  const opLogger = logger.child({ orderId, operation: 'processOrder' });
-
-  opLogger.info('Starting order processing');
-  try {
-    // Process order...
-    opLogger.info('Order processed successfully');
-  } catch (error) {
-    opLogger.error('Order processing failed', { error: error.message });
-    throw error;
-  }
-}
-```
-
-## 🛡️ Security Best Practices
-
-1. **Never log sensitive data** - Passwords, API keys, or personal information
-2. **Sanitize user input** - Clean data before including in logs
-3. **Use appropriate levels** - Don't log sensitive details at debug level
-4. **Secure log files** - Set proper file permissions on log directories
-5. **Implement retention policies** - Delete old logs per compliance
-   requirements
-
-## 📊 Performance Tips
-
-- Use appropriate log levels to reduce I/O in production
-- Configure reasonable file sizes and retention periods
-- Use child loggers instead of repeating metadata
-- Avoid logging in tight loops
-- Batch operations when logging high-frequency events
+- **Set appropriate log levels** in production (typically 'info' or 'warn')
+- **Configure reasonable file sizes** and rotation settings to avoid disk issues
+- **Use child loggers** rather than creating new loggers to improve performance
+- **Avoid excessive logging** in high-throughput code paths
+- **Consider log batching** for very high-volume logs
 
 ## 🔍 Error Handling
 
+The logging module is designed to help you track errors effectively:
+
 ```javascript
 try {
-  // Your code here
+  // Operation that might fail
+  await database.connect();
 } catch (error) {
-  logger.error('Operation failed', {
+  logger.error('Database connection failed', {
     error: error.message,
     stack: error.stack,
-    context: { userId: '123' },
+    connectionDetails: {
+      host: database.host,
+      port: database.port,
+      database: database.name,
+    },
   });
+
+  // Handle the error appropriately
 }
 ```
 
@@ -246,8 +288,8 @@ try {
   [API Reference](https://github.com/voilajs/appkit/blob/main/src/logging/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Integration Guide](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md) -
-  AI/LLM code generation
+  [LLM Code Generation Reference](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md) -
+  Guide for AI/LLM code generation
 
 ## 🤝 Contributing
 
