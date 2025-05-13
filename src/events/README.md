@@ -1,835 +1,439 @@
-# Events Module
+# @voilajs/appkit - Events Module 🔔
 
-The events module provides a simple yet powerful event bus for implementing publish/subscribe patterns in your Node.js applications. It enables decoupled communication between different parts of your application through event-driven architecture.
+[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Table of Contents
+> Simple, flexible event bus for Node.js applications with subscription
+> management and event history
 
-- [What is Event-Driven Architecture?](#what-is-event-driven-architecture)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Core Concepts](#core-concepts)
-  - [Publishers and Subscribers](#publishers-and-subscribers)
-  - [Event Naming](#event-naming)
-  - [Event History](#event-history)
-- [Basic Usage](#basic-usage)
-  - [Subscribing to Events](#subscribing-to-events)
-  - [Publishing Events](#publishing-events)
-  - [Unsubscribing](#unsubscribing)
-- [Advanced Patterns](#advanced-patterns)
-  - [Wildcard Subscriptions](#wildcard-subscriptions)
-  - [Event Namespaces](#event-namespaces)
-  - [Async Event Handlers](#async-event-handlers)
-- [Event History](#event-history-1)
-  - [Tracking Events](#tracking-events)
-  - [Filtering History](#filtering-history)
-  - [History Management](#history-management)
-- [Common Use Cases](#common-use-cases)
-  - [User Activity Tracking](#user-activity-tracking)
-  - [Cache Invalidation](#cache-invalidation)
-  - [Notifications](#notifications)
-  - [Audit Logging](#audit-logging)
-- [Best Practices](#best-practices)
-- [API Reference](#api-reference)
-- [Performance Considerations](#performance-considerations)
-- [Error Handling](#error-handling)
-- [Troubleshooting](#troubleshooting)
+The Events module of `@voilajs/appkit` provides a lightweight event system
+implementing the publisher-subscriber pattern, with support for event history
+tracking, asynchronous handlers, and customizable storage backends.
 
-## What is Event-Driven Architecture?
+## Module Overview
 
-Event-driven architecture is a design pattern where components communicate by emitting and responding to events. Instead of direct function calls, components publish events when something happens, and other components subscribe to these events to react accordingly.
+The Events module provides everything you need for event-driven architecture:
 
-### Benefits
+| Feature                | What it does                        | Main functions                             |
+| ---------------------- | ----------------------------------- | ------------------------------------------ |
+| **Event Subscription** | Listen for specific events          | `subscribe()`, `subscribeAsync()`          |
+| **Event Publishing**   | Broadcast events to subscribers     | `publish()`, `publishBatch()`              |
+| **Event History**      | Track and query past events         | `getEventHistory()`, `clearEventHistory()` |
+| **Async Support**      | Handle events with async operations | `subscribeAsync()`, `waitForEvent()`       |
+| **Custom Storage**     | Customize how events are stored     | `setEventStore()`, `EventStore`            |
+| **Wildcard Events**    | Listen for all events               | `subscribe('*', handler)`                  |
 
-1. **Loose Coupling**: Components don't need to know about each other
-2. **Scalability**: Easy to add new event handlers without modifying existing code
-3. **Flexibility**: Can add/remove functionality by subscribing/unsubscribing
-4. **Separation of Concerns**: Business logic is separated from side effects
+## 🚀 Features
 
-### Example Scenario
+- **📢 Event Publishing & Subscription** - Decouple components with a simple
+  pub/sub system
+- **📚 Event History** - Track and query past events for debugging and auditing
+- **🔄 Asynchronous Support** - Handle events with non-blocking async functions
+- **💾 Extensible Storage** - Customize how events are stored with pluggable
+  backends
+- **🌐 Framework Agnostic** - Works with any JavaScript framework or vanilla
+  Node.js
+- **⚡ Minimal API** - Simple, intuitive interface for quick integration
 
-```javascript
-// Without events - tightly coupled
-async function createUser(userData) {
-  const user = await db.users.create(userData);
-  await sendWelcomeEmail(user);
-  await updateAnalytics('user.created', user);
-  await notifyAdmins(user);
-  return user;
-}
-
-// With events - loosely coupled
-async function createUser(userData) {
-  const user = await db.users.create(userData);
-  publish('user:created', user);
-  return user;
-}
-
-// Handlers can be added independently
-subscribe('user:created', sendWelcomeEmail);
-subscribe('user:created', updateAnalytics);
-subscribe('user:created', notifyAdmins);
-```
-
-## Installation
+## 📦 Installation
 
 ```bash
 npm install @voilajs/appkit
 ```
 
-## Quick Start
+## 🏃‍♂️ Quick Start
 
 ```javascript
-import { subscribe, publish } from '@voilajs/appkit/events';
+import { subscribe, publish, getEventHistory } from '@voilajs/appkit/events';
 
-// Subscribe to an event
-const unsubscribe = subscribe('user:login', (data) => {
-  console.log('User logged in:', data.userId);
+// Subscribe to events
+const unsubscribe = subscribe('user:login', (user) => {
+  console.log(`User logged in: ${user.name}`);
 });
 
 // Publish an event
-publish('user:login', { 
-  userId: 123, 
-  timestamp: new Date() 
-});
+publish('user:login', { id: '123', name: 'John Doe' });
 
-// Clean up when done
-unsubscribe();
+// Access event history
+const events = getEventHistory();
+console.log(`Total events: ${events.length}`);
 ```
 
-## Core Concepts
+## 📖 Core Functions
 
-### Publishers and Subscribers
+### Event Subscription
 
-- **Publishers**: Emit events when something happens
-- **Subscribers**: Listen for events and react to them
-- **Event Bus**: Manages the connections between publishers and subscribers
+These utilities allow you to register handlers for specific events.
+
+| Function           | Purpose                          | When to use                         |
+| ------------------ | -------------------------------- | ----------------------------------- |
+| `subscribe()`      | Registers a handler for an event | UI updates, component communication |
+| `subscribeAsync()` | Registers an async handler       | Database operations, API calls      |
+| `unsubscribe()`    | Removes a handler                | Component cleanup, feature toggling |
+| `waitForEvent()`   | Waits for an event to occur      | Sequential workflows, testing       |
 
 ```javascript
-// Publisher
-function login(username, password) {
-  const user = authenticate(username, password);
-  publish('auth:login:success', { userId: user.id });
-  return user;
+// Basic subscription
+const unsubscribe = subscribe('notification:new', (data) => {
+  showNotification(data.message);
+});
+
+// Async subscription
+subscribeAsync('data:import', async (data) => {
+  await processData(data);
+  await saveToDatabase(data);
+});
+
+// Wait for an event with a timeout
+try {
+  const result = await waitForEvent('process:complete', { timeout: 5000 });
+  console.log('Process completed:', result);
+} catch (error) {
+  console.error('Process timed out');
 }
-
-// Subscriber
-subscribe('auth:login:success', ({ userId }) => {
-  console.log(`User ${userId} logged in`);
-});
 ```
 
-### Event Naming
+### Event Publishing
 
-Use consistent naming patterns for events:
+These functions broadcast events to all registered handlers.
+
+| Function         | Purpose                           | When to use                 |
+| ---------------- | --------------------------------- | --------------------------- |
+| `publish()`      | Emits an event with optional data | State changes, user actions |
+| `publishBatch()` | Emits multiple events at once     | Bulk operations, imports    |
 
 ```javascript
-// Resource:action
-'user:created'
-'user:updated'
-'user:deleted'
+// Publish a simple event
+publish('app:initialized');
 
-// Module:resource:action
-'auth:session:created'
-'payment:invoice:sent'
+// Publish with data
+publish('user:created', {
+  id: '123',
+  name: 'Jane Smith',
+  email: 'jane@example.com',
+});
 
-// Domain:status
-'order:completed'
-'subscription:expired'
+// Publish multiple events
+publishBatch([
+  { event: 'item:added', data: { id: 'a1', name: 'Item 1' } },
+  { event: 'item:added', data: { id: 'a2', name: 'Item 2' } },
+  { event: 'batch:complete', data: { count: 2 } },
+]);
 ```
 
 ### Event History
 
-The module automatically tracks all published events, allowing you to:
-- Debug event flows
-- Analyze system behavior
-- Implement audit logs
+These utilities let you work with past events.
 
-## Basic Usage
-
-### Subscribing to Events
+| Function              | Purpose                 | When to use                    |
+| --------------------- | ----------------------- | ------------------------------ |
+| `getEventHistory()`   | Retrieves stored events | Debugging, auditing, analytics |
+| `clearEventHistory()` | Removes all events      | Cleanup, resetting state       |
 
 ```javascript
-import { subscribe } from '@voilajs/appkit/events';
-
-// Basic subscription
-subscribe('product:viewed', (data) => {
-  console.log(`Product ${data.productId} viewed`);
-});
-
-// Multiple handlers for same event
-subscribe('order:created', sendConfirmationEmail);
-subscribe('order:created', updateInventory);
-subscribe('order:created', notifyWarehouse);
-
-// Store unsubscribe function
-const unsubscribe = subscribe('user:updated', handleUserUpdate);
-
-// Unsubscribe later
-unsubscribe();
-```
-
-### Publishing Events
-
-```javascript
-import { publish } from '@voilajs/appkit/events';
-
-// Simple event
-publish('app:started', { version: '1.0.0' });
-
-// Event with data
-publish('user:registered', {
-  userId: 123,
-  email: 'user@example.com',
-  plan: 'premium'
-});
-
-// Error event
-publish('payment:failed', {
-  orderId: 456,
-  reason: 'Insufficient funds',
-  amount: 99.99
-});
-```
-
-### Unsubscribing
-
-```javascript
-import { subscribe, unsubscribe } from '@voilajs/appkit/events';
-
-// Method 1: Use returned function
-const unsub = subscribe('event:name', handler);
-unsub(); // Unsubscribe
-
-// Method 2: Use unsubscribe function
-subscribe('event:name', handler);
-unsubscribe('event:name', handler); // Must pass same handler reference
-
-// Clean up all handlers on shutdown
-const handlers = [];
-handlers.push(subscribe('event1', handler1));
-handlers.push(subscribe('event2', handler2));
-
-process.on('SIGTERM', () => {
-  handlers.forEach(unsub => unsub());
-});
-```
-
-## Advanced Patterns
-
-### Wildcard Subscriptions
-
-Subscribe to all events using the wildcard pattern:
-
-```javascript
-// Listen to all events
-subscribe('*', ({ event, data }) => {
-  console.log(`Event: ${event}`, data);
-  
-  // Log to monitoring system
-  monitor.track(event, data);
-});
-
-// Useful for:
-// - Debugging
-// - Logging
-// - Analytics
-// - Monitoring
-```
-
-### Event Namespaces
-
-Organize events by domain or module:
-
-```javascript
-// User domain events
-const userEvents = {
-  created: 'user:created',
-  updated: 'user:updated',
-  deleted: 'user:deleted',
-  login: 'user:login',
-  logout: 'user:logout'
-};
-
-// Order domain events
-const orderEvents = {
-  created: 'order:created',
-  paid: 'order:paid',
-  shipped: 'order:shipped',
-  delivered: 'order:delivered',
-  cancelled: 'order:cancelled'
-};
-
-// Subscribe to all user events
-Object.values(userEvents).forEach(event => {
-  subscribe(event, (data) => {
-    auditLog.record(event, data);
-  });
-});
-```
-
-### Async Event Handlers
-
-Handle asynchronous operations in event handlers:
-
-```javascript
-// Async handler
-subscribe('image:uploaded', async (data) => {
-  try {
-    // Generate thumbnails
-    await generateThumbnails(data.imageId);
-    
-    // Update metadata
-    await updateImageMetadata(data.imageId);
-    
-    // Notify completion
-    publish('image:processed', { imageId: data.imageId });
-  } catch (error) {
-    publish('image:processing:failed', { 
-      imageId: data.imageId, 
-      error: error.message 
-    });
-  }
-});
-
-// Chain events
-subscribe('order:paid', async (order) => {
-  await processPayment(order);
-  publish('order:processing', order);
-});
-
-subscribe('order:processing', async (order) => {
-  await allocateInventory(order);
-  publish('order:ready', order);
-});
-```
-
-## Event History
-
-### Tracking Events
-
-All published events are automatically stored in memory:
-
-```javascript
-import { getEventHistory } from '@voilajs/appkit/events';
-
 // Get all events
-const history = getEventHistory();
-console.log(`Total events: ${history.length}`);
+const allEvents = getEventHistory();
 
-// Each event record contains:
-// {
-//   id: 'unique-event-id',
-//   event: 'event:name',
-//   data: { ... },
-//   timestamp: Date
-// }
+// Get filtered events
+const userEvents = getEventHistory({
+  event: 'user:login',
+  since: new Date('2023-06-01'),
+  limit: 10,
+});
+
+// Clear history when needed
+clearEventHistory();
 ```
 
-### Filtering History
+### Store Management
+
+These functions allow you to customize event storage.
+
+| Function          | Purpose                   | When to use                      |
+| ----------------- | ------------------------- | -------------------------------- |
+| `setEventStore()` | Configures custom storage | Persistence, distributed systems |
+| `EventStore`      | Base store interface      | Creating custom stores           |
+| `MemoryStore`     | Default in-memory store   | Testing, simple applications     |
 
 ```javascript
-import { getEventHistory } from '@voilajs/appkit/events';
+import { setEventStore, MemoryStore } from '@voilajs/appkit/events';
 
-// Filter by event name
-const userEvents = getEventHistory({ 
-  event: 'user:created' 
+// Configure a custom memory store
+const store = new MemoryStore({
+  maxEvents: 5000,
+  maxEventSize: 1048576,
 });
 
-// Filter by time
-const recentEvents = getEventHistory({ 
-  since: new Date(Date.now() - 3600000) // Last hour
-});
-
-// Combine filters
-const recentUserEvents = getEventHistory({
-  event: 'user:created',
-  since: new Date('2024-01-01')
-});
+setEventStore(store);
 ```
 
-### History Management
+## 🔧 Configuration Options
+
+### Memory Store Options
 
 ```javascript
-import { clearEventHistory, getEventHistory } from '@voilajs/appkit/events';
+const store = new MemoryStore({
+  // Maximum events to keep in memory (default: 10000)
+  maxEvents: 5000,
 
-// Monitor history size
-setInterval(() => {
-  const history = getEventHistory();
-  if (history.length > 10000) {
-    console.warn('Event history growing large');
-    // Keep only recent events
-    const cutoff = new Date(Date.now() - 86400000); // 24 hours
-    const recentEvents = getEventHistory({ since: cutoff });
-    clearEventHistory();
-    // Re-publish recent events if needed
-  }
-}, 3600000); // Check every hour
-
-// Clear history on demand
-app.post('/admin/clear-events', (req, res) => {
-  clearEventHistory();
-  res.json({ message: 'Event history cleared' });
+  // Maximum size in bytes per event (default: 1MB)
+  maxEventSize: 512000,
 });
 ```
 
-## Common Use Cases
-
-### User Activity Tracking
+### Event History Filters
 
 ```javascript
-// Track user activities
-const activities = [
-  'user:login',
-  'user:logout',
-  'user:profile:viewed',
-  'user:profile:updated',
-  'user:password:changed'
-];
+const filteredEvents = getEventHistory({
+  // Filter by event name
+  event: 'user:action',
 
-activities.forEach(event => {
-  subscribe(event, async (data) => {
-    await db.activities.create({
-      userId: data.userId,
-      event,
-      data,
-      timestamp: new Date()
-    });
-  });
-});
+  // Only events since this date
+  since: new Date('2023-07-15'),
 
-// Track page views
-subscribe('page:viewed', ({ userId, page, referrer }) => {
-  analytics.pageView(userId, page, referrer);
-});
-
-// Session tracking
-subscribe('user:login', ({ userId }) => {
-  sessions.create(userId);
-});
-
-subscribe('user:logout', ({ userId }) => {
-  sessions.end(userId);
+  // Limit to most recent N events
+  limit: 20,
 });
 ```
 
-### Cache Invalidation
+### Wait For Event Options
 
 ```javascript
-// Invalidate cache on data changes
-subscribe('product:updated', async ({ productId }) => {
-  await cache.delete(`product:${productId}`);
-  await cache.delete(`product:${productId}:reviews`);
-  await cache.deletePattern(`category:*:products`);
-});
+const result = await waitForEvent('import:complete', {
+  // Timeout in milliseconds
+  timeout: 10000,
 
-subscribe('user:profile:updated', async ({ userId }) => {
-  await cache.delete(`user:${userId}`);
-  await cache.delete(`user:${userId}:profile`);
-  await cache.delete(`user:${userId}:preferences`);
-});
-
-// Invalidate related caches
-subscribe('order:completed', async ({ orderId, userId }) => {
-  await cache.delete(`user:${userId}:orders`);
-  await cache.delete(`order:${orderId}`);
-  await cache.delete(`user:${userId}:stats`);
+  // Custom filter function
+  filter: (data) => data.userId === '123',
 });
 ```
 
-### Notifications
+## 💡 Common Use Cases
+
+### User Interface Updates
 
 ```javascript
-// Email notifications
-subscribe('user:created', async (user) => {
-  await emailService.send({
-    to: user.email,
-    template: 'welcome',
-    data: user
-  });
+// Subscribe to state changes
+subscribe('cart:updated', (cart) => {
+  updateCartIcon(cart.items.length);
+  updateTotalPrice(cart.totalPrice);
 });
 
-subscribe('order:shipped', async (order) => {
-  await emailService.send({
-    to: order.customerEmail,
-    template: 'order-shipped',
-    data: order
-  });
-});
+// Trigger updates when cart changes
+function addToCart(product) {
+  cart.items.push(product);
+  cart.totalPrice += product.price;
 
-// Push notifications
-subscribe('message:received', async ({ userId, message }) => {
-  await pushService.notify(userId, {
-    title: 'New Message',
-    body: message.preview,
-    data: { messageId: message.id }
-  });
-});
+  publish('cart:updated', cart);
+}
+```
 
-// SMS notifications
-subscribe('appointment:reminder', async (appointment) => {
-  await smsService.send({
-    to: appointment.phoneNumber,
-    message: `Reminder: Your appointment is tomorrow at ${appointment.time}`
-  });
+### Service Communication
+
+```javascript
+// User service publishes events
+function createUser(userData) {
+  const user = database.createUser(userData);
+  publish('user:created', user);
+  return user;
+}
+
+// Email service subscribes to user events
+subscribeAsync('user:created', async (user) => {
+  await sendWelcomeEmail(user.email, user.name);
+  publish('email:welcome-sent', { userId: user.id });
 });
 ```
 
-### Audit Logging
+### Activity Logging
 
 ```javascript
-// Audit all data changes
-const auditEvents = [
-  'user:created',
-  'user:updated',
-  'user:deleted',
-  'role:assigned',
-  'permission:granted',
-  'data:exported'
-];
-
-auditEvents.forEach(event => {
-  subscribe(event, async (data) => {
-    await db.auditLogs.create({
-      event,
-      actor: data.actorId || 'system',
-      subject: data.subjectId,
-      changes: data.changes,
-      metadata: data,
-      timestamp: new Date(),
-      ip: data.ip,
-      userAgent: data.userAgent
-    });
-  });
-});
-
-// Compliance tracking
-subscribe('user:data:accessed', async ({ userId, accessedBy, reason }) => {
-  await complianceLog.record({
-    event: 'data_access',
-    subject: userId,
-    accessor: accessedBy,
-    reason,
-    timestamp: new Date()
-  });
-});
-```
-
-## Best Practices
-
-### 1. Event Naming Conventions
-
-```javascript
-// Use consistent patterns
-const EVENT_PATTERNS = {
-  // Resource lifecycle
-  created: (resource) => `${resource}:created`,
-  updated: (resource) => `${resource}:updated`, 
-  deleted: (resource) => `${resource}:deleted`,
-  
-  // State changes
-  status: (resource, status) => `${resource}:${status}`,
-  
-  // Actions
-  action: (resource, action) => `${resource}:${action}`,
-  
-  // Errors
-  error: (resource, action) => `${resource}:${action}:failed`
-};
-
-// Usage
-publish(EVENT_PATTERNS.created('user'), userData);
-publish(EVENT_PATTERNS.status('order', 'shipped'), orderData);
-publish(EVENT_PATTERNS.error('payment', 'process'), errorData);
-```
-
-### 2. Event Data Structure
-
-```javascript
-// Include essential information
-publish('order:created', {
-  // Identifiers
-  orderId: order.id,
-  userId: order.userId,
-  
-  // Timestamps
-  createdAt: new Date(),
-  
-  // Relevant data (avoid sensitive info)
-  total: order.total,
-  itemCount: order.items.length,
-  
-  // Context
-  source: 'web',
-  version: '2.0'
-});
-
-// Avoid including sensitive data
-// Bad: publish('user:created', { password: '...' })
-// Good: publish('user:created', { userId: user.id })
-```
-
-### 3. Error Handling
-
-```javascript
-// Wrap handlers in try-catch
-subscribe('risky:operation', async (data) => {
-  try {
-    await riskyOperation(data);
-  } catch (error) {
-    console.error('Handler failed:', error);
-    
-    // Publish error event
-    publish('risky:operation:failed', {
-      originalData: data,
-      error: error.message,
-      stack: error.stack
-    });
-  }
-});
-
-// Global error handler
+// Log all events
 subscribe('*', ({ event, data }) => {
-  try {
-    // Global logging/monitoring
-  } catch (error) {
-    console.error(`Global handler failed for ${event}:`, error);
-  }
+  logger.info(`Event: ${event}`, data);
 });
-```
 
-### 4. Memory Management
-
-```javascript
-// Store references to unsubscribe functions
-class EventManager {
-  constructor() {
-    this.subscriptions = [];
-  }
-  
-  subscribe(event, handler) {
-    const unsubscribe = subscribe(event, handler);
-    this.subscriptions.push(unsubscribe);
-    return unsubscribe;
-  }
-  
-  cleanup() {
-    this.subscriptions.forEach(unsub => unsub());
-    this.subscriptions = [];
-  }
-}
-
-// Clean up on application shutdown
-const eventManager = new EventManager();
-
-process.on('SIGTERM', () => {
-  eventManager.cleanup();
-  process.exit(0);
-});
-```
-
-### 5. Testing Events
-
-```javascript
-import { subscribe, publish, clearEventHistory } from '@voilajs/appkit/events';
-
-describe('User Events', () => {
-  beforeEach(() => {
-    clearEventHistory();
+// Generate activity report
+function getActivityReport() {
+  const events = getEventHistory({
+    since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
   });
-  
-  test('publishes user:created on registration', async () => {
-    const handler = jest.fn();
-    subscribe('user:created', handler);
-    
-    await userService.register({
-      email: 'test@example.com',
-      password: 'password'
-    });
-    
-    expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: 'test@example.com'
-      })
-    );
-  });
-});
-```
 
-## API Reference
-
-### Functions
-
-| Function | Description | Parameters | Returns |
-|----------|-------------|------------|---------|
-| `subscribe(event, callback)` | Subscribe to an event | `event: string`, `callback: Function` | `Function` (unsubscribe) |
-| `unsubscribe(event, callback)` | Unsubscribe from an event | `event: string`, `callback: Function` | `void` |
-| `publish(event, data)` | Publish an event | `event: string`, `data: any` | `void` |
-| `getEventHistory(filters?)` | Get event history | `filters?: {event?: string, since?: Date}` | `Array<Object>` |
-| `clearEventHistory()` | Clear event history | None | `void` |
-
-### Event Record Structure
-
-```javascript
-{
-  id: string,          // Unique event identifier
-  event: string,       // Event name
-  data: any,          // Event data
-  timestamp: Date     // When the event occurred
-}
-```
-
-## Performance Considerations
-
-### Memory Usage
-
-```javascript
-// Event history is stored in memory
-// Default limit: 10,000 events
-// Each event: ~100-500 bytes
-// Total memory: ~1-5 MB
-
-// Monitor memory usage
-setInterval(() => {
-  const history = getEventHistory();
-  const memoryUsage = process.memoryUsage();
-  
-  console.log({
-    eventCount: history.length,
-    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)} MB`
-  });
-}, 60000);
-```
-
-### Performance Tips
-
-1. **Keep event data small**: Don't pass large objects
-2. **Avoid blocking operations**: Use async handlers
-3. **Limit history size**: Clear old events periodically
-4. **Batch operations**: Group related events when possible
-
-```javascript
-// Bad: Large data in events
-publish('file:uploaded', { 
-  content: largeFileBuffer // Don't do this
-});
-
-// Good: Reference to data
-publish('file:uploaded', { 
-  fileId: 'abc123',
-  size: file.size,
-  type: file.type
-});
-```
-
-## Error Handling
-
-Event handlers are automatically wrapped in try-catch blocks:
-
-```javascript
-// Errors in handlers are caught
-subscribe('test:event', () => {
-  throw new Error('Handler error');
-});
-
-// Doesn't crash the application
-publish('test:event', {}); // Error is logged
-
-// Access error events
-subscribe('*', ({ event, data }) => {
-  try {
-    // Your handler
-  } catch (error) {
-    // Publish error event
-    publish('handler:error', {
-      originalEvent: event,
-      error: error.message
-    });
-  }
-});
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Handler not being called**
-```javascript
-// Check event name matches exactly
-subscribe('user:created', handler);  // lowercase
-publish('User:Created', data);       // Won't trigger!
-
-// Check handler reference
-const handler = () => console.log('called');
-subscribe('event', handler);
-unsubscribe('event', () => console.log('called')); // Different reference!
-```
-
-2. **Memory leaks**
-```javascript
-// Forgetting to unsubscribe
-function component() {
-  subscribe('event', () => {
-    // Handler
-  });
-  // Memory leak - subscription persists!
-}
-
-// Correct approach
-function component() {
-  const unsubscribe = subscribe('event', () => {
-    // Handler
-  });
-  
-  // Cleanup
-  return () => unsubscribe();
-}
-```
-
-3. **Event history growing too large**
-```javascript
-// Implement automatic cleanup
-setInterval(() => {
-  const history = getEventHistory();
-  if (history.length > 5000) {
-    // Keep only recent events
-    const recentEvents = getEventHistory({
-      since: new Date(Date.now() - 3600000) // Last hour
-    });
-    
-    clearEventHistory();
-    // Optionally republish recent critical events
-  }
-}, 300000); // Every 5 minutes
-```
-
-### Debug Mode
-
-```javascript
-// Enable debug logging
-if (process.env.NODE_ENV === 'development') {
-  subscribe('*', ({ event, data }) => {
-    console.log(`[EVENT] ${event}`, data);
-  });
-}
-
-// Track handler execution time
-function timedHandler(handler) {
-  return (data) => {
-    const start = performance.now();
-    const result = handler(data);
-    const duration = performance.now() - start;
-    
-    if (duration > 100) {
-      console.warn(`Slow handler: ${duration}ms`);
-    }
-    
-    return result;
+  return {
+    totalEvents: events.length,
+    eventTypes: countEventTypes(events),
+    mostActive: findMostActive(events),
   };
 }
-
-subscribe('heavy:task', timedHandler(heavyHandler));
 ```
 
-## Support
+### Workflow Orchestration
 
-For issues and feature requests, visit our [GitHub repository](https://github.com/voilajs/appkit).
+```javascript
+async function processOrder(order) {
+  // Start the workflow
+  publish('order:received', order);
+
+  try {
+    // Wait for verification step
+    await waitForEvent('order:verified', {
+      timeout: 30000,
+      filter: (data) => data.orderId === order.id,
+    });
+
+    // Wait for payment step
+    await waitForEvent('order:payment-complete', {
+      timeout: 60000,
+      filter: (data) => data.orderId === order.id,
+    });
+
+    // Complete the order
+    publish('order:completed', {
+      orderId: order.id,
+      status: 'complete',
+      timestamp: new Date(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    publish('order:failed', {
+      orderId: order.id,
+      reason: error.message,
+    });
+
+    return { success: false, error: error.message };
+  }
+}
+```
+
+## 🤖 Code Generation with LLMs
+
+You can use large language models (LLMs) like ChatGPT or Claude to generate code
+for common event-driven patterns using the `@voilajs/appkit/events` module.
+We've created a specialized
+[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/events/docs/PROMPT_REFERENCE.md)
+document designed specifically for LLMs to understand the module's capabilities
+and generate consistent, high-quality code.
+
+### Sample Prompts to Try
+
+#### Basic Event System
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/events/docs/PROMPT_REFERENCE.md and then create a simple notification system using @voilajs/appkit/events with the following features:
+- Different notification types (info, warning, error)
+- Ability to subscribe to specific notification types
+- Notification history tracking
+- A cleanup function to remove all subscriptions
+```
+
+#### Custom Event Store
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/events/docs/PROMPT_REFERENCE.md and then implement a persistent event store using @voilajs/appkit/events that:
+- Extends the EventStore base class
+- Stores events in localStorage for browser environments
+- Includes proper error handling
+- Limits the total number of stored events
+```
+
+#### Async Workflow
+
+```
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/events/docs/PROMPT_REFERENCE.md and then implement an async file processing workflow using @voilajs/appkit/events with:
+- Events for each processing stage (upload, validate, process, complete)
+- Async handlers for time-consuming operations
+- Timeout handling if processing takes too long
+- Progress tracking and reporting
+```
+
+## 📋 Example Code
+
+For complete, working examples, check our examples folder:
+
+- [Basic Events](https://github.com/voilajs/appkit/blob/main/src/events/examples/01-basic-events.js) -
+  Simple event subscription and publishing
+- [Event History](https://github.com/voilajs/appkit/blob/main/src/events/examples/02-event-history.js) -
+  Working with event history
+- [Async Events](https://github.com/voilajs/appkit/blob/main/src/events/examples/03-async-events.js) -
+  Using async event handlers
+- [Custom Store](https://github.com/voilajs/appkit/blob/main/src/events/examples/04-custom-store.js) -
+  Implementing a custom event store
+
+## 🛡️ Best Practices
+
+1. **Event Naming**: Use consistent naming patterns like `entity:action` (e.g.,
+   `user:created`, `order:shipped`)
+2. **Cleanup Subscriptions**: Always unsubscribe handlers when they're no longer
+   needed to prevent memory leaks
+3. **Error Handling**: Include try/catch blocks in event handlers to prevent one
+   handler failure from affecting others
+4. **Event Size**: Keep event payloads small and focused for better performance
+5. **Wildcard Usage**: Use wildcard subscribers (`*`) sparingly as they process
+   every event
+6. **Storage Limits**: Configure appropriate `maxEvents` limits based on memory
+   constraints
+7. **Sensitive Data**: Avoid including sensitive information in events that
+   shouldn't be widely accessible
+
+## 📊 Performance Considerations
+
+- **Handler Complexity**: Keep event handlers lightweight and fast when possible
+- **Async Handlers**: Use `subscribeAsync` for time-consuming operations to
+  avoid blocking
+- **Batch Operations**: Use `publishBatch` when emitting multiple related events
+- **Event History**: Clear event history periodically in long-running
+  applications
+- **Custom Stores**: Implement efficient storage for high-volume event systems
+
+## 🔍 Error Handling
+
+The module provides descriptive errors that should be caught and handled
+appropriately:
+
+```javascript
+try {
+  publish(''); // Invalid event name
+} catch (error) {
+  console.error('Publishing failed:', error.message);
+  // Output: "Publishing failed: Event name must be a non-empty string"
+}
+
+try {
+  await waitForEvent('data:ready', { timeout: 1000 });
+} catch (error) {
+  if (error.message.includes('Timeout')) {
+    console.error('Operation timed out');
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+## 📚 Documentation Links
+
+- 📘
+  [Developer REFERENCE](https://github.com/voilajs/appkit/blob/main/src/events/docs/DEVELOPER_REFERENCE.md) -
+  Detailed implementation guide with examples
+- 📗
+  [API Reference](https://github.com/voilajs/appkit/blob/main/src/events/docs/API_REFERENCE.md) -
+  Complete API documentation
+- 📙
+  [LLM Code Generation REFERENCE](https://github.com/voilajs/appkit/blob/main/src/events/docs/PROMPT_REFERENCE.md) -
+  Guide for AI/LLM code generation
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our
+[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
+for details.
+
+## 📄 License
+
+MIT © [VoilaJS](https://github.com/voilajs)
+
+---
+
+<p align="center">
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+</p>

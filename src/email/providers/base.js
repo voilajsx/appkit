@@ -4,9 +4,15 @@
  */
 
 /**
- * Base email provider interface
+ * Base email provider interface that all other providers extend
+ * @class
  */
 export class EmailProvider {
+  /**
+   * Creates a new email provider instance
+   * @param {Object} config - Provider configuration
+   * @param {string} [config.defaultFrom] - Default sender email address
+   */
   constructor(config = {}) {
     this.config = config;
     this.validateConfig();
@@ -17,7 +23,7 @@ export class EmailProvider {
    * @throws {Error} If configuration is invalid
    */
   validateConfig() {
-    // Override in subclasses
+    // Override in subclasses with provider-specific validation
   }
 
   /**
@@ -29,9 +35,31 @@ export class EmailProvider {
   }
 
   /**
+   * Closes the email provider connection
+   * @returns {Promise<void>}
+   */
+  async close() {
+    // Override in subclasses if needed
+  }
+
+  /**
    * Sends an email
    * @param {Object} options - Email options
-   * @returns {Promise<Object>} Send result
+   * @param {string|string[]} options.to - Recipient email address(es)
+   * @param {string} options.subject - Email subject
+   * @param {string} [options.html] - HTML content
+   * @param {string} [options.text] - Plain text content (used if html not provided)
+   * @param {string} [options.from] - Sender email address (overrides default)
+   * @param {string|string[]} [options.cc] - CC recipient(s)
+   * @param {string|string[]} [options.bcc] - BCC recipient(s)
+   * @param {string} [options.replyTo] - Reply-to email address
+   * @param {Object[]} [options.attachments] - Email attachments
+   * @param {Buffer|string} options.attachments[].content - Attachment content
+   * @param {string} options.attachments[].filename - Attachment filename
+   * @param {string} [options.attachments[].type] - Attachment MIME type
+   * @param {Object} [options.headers] - Custom email headers
+   * @returns {Promise<Object>} Send result with success flag and provider-specific info
+   * @throws {Error} If send fails or options are invalid
    */
   async send(options) {
     throw new Error('send() must be implemented by subclass');
@@ -44,7 +72,7 @@ export class EmailProvider {
    */
   validateEmailOptions(options) {
     if (!options.to) {
-      throw new Error('Recipient email is required');
+      throw new Error('Recipient email (to) is required');
     }
 
     if (!options.subject) {
@@ -57,9 +85,10 @@ export class EmailProvider {
   }
 
   /**
-   * Normalizes email addresses
-   * @param {string|Array<string>} emails - Email address(es)
-   * @returns {Array<string>} Normalized email array
+   * Normalizes email addresses to an array
+   * @param {string|string[]} emails - Email address(es)
+   * @returns {string[]} Normalized email array
+   * @throws {Error} If email format is invalid
    */
   normalizeEmails(emails) {
     if (typeof emails === 'string') {
@@ -68,6 +97,8 @@ export class EmailProvider {
     if (Array.isArray(emails)) {
       return emails;
     }
-    throw new Error('Invalid email format');
+    throw new Error(
+      'Invalid email format. Must be string or array of strings.'
+    );
   }
 }

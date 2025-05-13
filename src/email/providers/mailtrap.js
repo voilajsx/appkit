@@ -10,6 +10,16 @@ import { SMTPProvider } from './smtp.js';
  * @extends SMTPProvider
  */
 export class MailtrapProvider extends SMTPProvider {
+  /**
+   * Creates a new Mailtrap provider instance with default settings
+   * @param {Object} config - Provider configuration
+   * @param {Object} [config.auth] - Auth credentials object
+   * @param {string} [config.auth.user] - Mailtrap username
+   * @param {string} [config.auth.pass] - Mailtrap password
+   * @param {string} [config.username] - Alternative way to provide username
+   * @param {string} [config.password] - Alternative way to provide password
+   * @param {number} [config.port=2525] - Mailtrap SMTP port
+   */
   constructor(config = {}) {
     // Set Mailtrap SMTP defaults
     const mailtrapConfig = {
@@ -25,6 +35,10 @@ export class MailtrapProvider extends SMTPProvider {
     super(mailtrapConfig);
   }
 
+  /**
+   * Validates Mailtrap configuration
+   * @throws {Error} If Mailtrap credentials are missing
+   */
   validateConfig() {
     if (!this.config.auth?.user || !this.config.auth?.pass) {
       throw new Error('Mailtrap username and password are required');
@@ -34,21 +48,28 @@ export class MailtrapProvider extends SMTPProvider {
   /**
    * Sends an email via Mailtrap
    * @param {Object} options - Email options
-   * @returns {Promise<Object>} Send result
+   * @returns {Promise<Object>} Send result with additional Mailtrap info
+   * @throws {Error} If send fails
    */
   async send(options) {
     // Add test mode indicator
-    if (!options.headers) {
-      options.headers = {};
-    }
-    options.headers['X-Mailtrap-Test'] = 'true';
+    const emailOptions = { ...options };
 
-    const result = await super.send(options);
+    if (!emailOptions.headers) {
+      emailOptions.headers = {};
+    }
+
+    // Add Mailtrap-specific headers
+    emailOptions.headers['X-Mailtrap-Test'] = 'true';
+
+    // Send email using parent SMTP implementation
+    const result = await super.send(emailOptions);
 
     return {
       ...result,
       testMode: true,
       info: 'Email sent to Mailtrap inbox for testing',
+      inboxUrl: `https://mailtrap.io/inboxes/${this.config.inboxId || ''}`,
     };
   }
 }

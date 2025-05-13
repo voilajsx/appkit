@@ -11,12 +11,20 @@ import { EmailProvider } from './base.js';
  * @extends EmailProvider
  */
 export class SESProvider extends EmailProvider {
+  /**
+   * Validates SES configuration
+   * @throws {Error} If required SES configuration is missing
+   */
   validateConfig() {
     if (!this.config.region) {
-      throw new Error('AWS region is required');
+      throw new Error('AWS region is required for SES');
     }
   }
 
+  /**
+   * Initializes the SES client
+   * @returns {Promise<void>}
+   */
   async initialize() {
     const clientConfig = {
       region: this.config.region,
@@ -34,9 +42,29 @@ export class SESProvider extends EmailProvider {
   }
 
   /**
+   * Closes the SES client
+   * @returns {Promise<void>}
+   */
+  async close() {
+    if (this.client) {
+      this.client.destroy();
+    }
+  }
+
+  /**
    * Sends an email via AWS SES
    * @param {Object} options - Email options
-   * @returns {Promise<Object>} Send result
+   * @param {string|string[]} options.to - Recipient email address(es)
+   * @param {string} options.subject - Email subject
+   * @param {string} [options.html] - HTML content
+   * @param {string} [options.text] - Plain text content
+   * @param {string} [options.from] - Sender email address
+   * @param {string|string[]} [options.cc] - CC recipient(s)
+   * @param {string|string[]} [options.bcc] - BCC recipient(s)
+   * @param {string|string[]} [options.replyTo] - Reply-to email address(es)
+   * @param {string} [options.configurationSet] - SES configuration set name
+   * @returns {Promise<Object>} Send result with messageId and SES response
+   * @throws {Error} If send fails
    */
   async send(options) {
     this.validateEmailOptions(options);
@@ -47,6 +75,9 @@ export class SESProvider extends EmailProvider {
       : undefined;
     const bccAddresses = options.bcc
       ? this.normalizeEmails(options.bcc)
+      : undefined;
+    const replyToAddresses = options.replyTo
+      ? this.normalizeEmails(options.replyTo)
       : undefined;
 
     const params = {
@@ -63,11 +94,16 @@ export class SESProvider extends EmailProvider {
         },
         Body: {},
       },
-      ReplyToAddresses: options.replyTo
-        ? this.normalizeEmails(options.replyTo)
-        : undefined,
+      ReplyToAddresses: replyToAddresses,
     };
 
+    // Add configuration set if specified
+    if (options.configurationSet || this.config.configurationSet) {
+      params.ConfigurationSetName =
+        options.configurationSet || this.config.configurationSet;
+    }
+
+    // Add HTML content if provided
     if (options.html) {
       params.Message.Body.Html = {
         Data: options.html,
@@ -75,6 +111,7 @@ export class SESProvider extends EmailProvider {
       };
     }
 
+    // Add text content if provided
     if (options.text) {
       params.Message.Body.Text = {
         Data: options.text,
@@ -89,10 +126,10 @@ export class SESProvider extends EmailProvider {
       return {
         success: true,
         messageId: result.MessageId,
-        result: result,
+        result,
       };
     } catch (error) {
-      throw new Error(`Failed to send email: ${error.message}`);
+      throw new Error(`Failed to send email via SES: ${error.message}`);
     }
   }
 }
