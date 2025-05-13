@@ -1,10 +1,10 @@
 /**
- * Basic Usage - @voilajs/appkit Error Module
+ * Basic Error Creation - @voilajs/appkit Error Module
  *
- * Simple example showing basic error creation and handling
+ * This example demonstrates creating different types of errors
  * No external dependencies needed - just run it!
  *
- * Run: node 01-basic-usage.js
+ * Run: node 01-error-creation.js
  */
 
 import {
@@ -23,205 +23,165 @@ import {
 } from '@voilajs/appkit/error';
 
 function demo() {
-  console.log('=== Basic Error Usage Demo ===\n');
+  console.log('=== Error Creation Demo ===\n');
 
-  // 1. Create errors with factory functions
-  console.log('1. Creating errors with factory functions:');
+  // 1. Create a basic AppError
+  console.log('1. Creating a basic AppError:');
+  const basicError = new AppError(
+    ErrorTypes.NOT_FOUND,
+    'User not found',
+    { userId: '123' },
+    404
+  );
 
-  const validationErr = validationError({
+  console.log(`Error type: ${basicError.type}`);
+  console.log(`Error message: ${basicError.message}`);
+  console.log(`Status code: ${basicError.statusCode}`);
+  console.log(`Details: ${JSON.stringify(basicError.details)}`);
+  console.log(`JSON format: ${JSON.stringify(basicError.toJSON())}`);
+  console.log('');
+
+  // 2. Using factory functions
+  console.log('2. Using factory functions:');
+
+  // Validation error
+  const valError = validationError({
     email: 'Email is required',
     password: 'Password must be at least 8 characters',
   });
+  console.log('- Validation Error:');
+  console.log(`  Type: ${valError.type}`);
+  console.log(`  Status: ${valError.statusCode}`);
+  console.log(`  Details: ${JSON.stringify(valError.details)}`);
 
-  const notFoundErr = notFoundError('User', '123');
+  // Not found error
+  const notFound = notFoundError('User', '123');
+  console.log('- Not Found Error:');
+  console.log(`  Message: ${notFound.message}`);
+  console.log(`  Type: ${notFound.type}`);
+  console.log(`  Status: ${notFound.statusCode}`);
 
-  const authErr = authenticationError('Invalid credentials');
+  // Authentication error
+  const authError = authenticationError('Invalid credentials');
+  console.log('- Authentication Error:');
+  console.log(`  Message: ${authError.message}`);
+  console.log(`  Type: ${authError.type}`);
+  console.log(`  Status: ${authError.statusCode}`);
 
-  const permissionErr = authorizationError('Admin access required');
+  // Authorization error
+  const permError = authorizationError('Admin access required');
+  console.log('- Authorization Error:');
+  console.log(`  Message: ${permError.message}`);
+  console.log(`  Type: ${permError.type}`);
+  console.log(`  Status: ${permError.statusCode}`);
 
-  // Display error properties
-  console.log(`Validation Error: 
-  - Type: ${validationErr.type}
-  - Status: ${validationErr.statusCode}
-  - Message: ${validationErr.message}
-  - Details: ${JSON.stringify(validationErr.details.errors)}`);
-
-  console.log(`\nNot Found Error: 
-  - Type: ${notFoundErr.type}
-  - Status: ${notFoundErr.statusCode}
-  - Message: ${notFoundErr.message}`);
-
-  console.log(`\nAuthentication Error: 
-  - Type: ${authErr.type}
-  - Status: ${authErr.statusCode}
-  - Message: ${authErr.message}`);
-
-  console.log(`\nAuthorization Error: 
-  - Type: ${permissionErr.type}
-  - Status: ${permissionErr.statusCode}
-  - Message: ${permissionErr.message}`);
-  console.log('');
-
-  // 2. Create additional error types
-  console.log('2. Creating additional error types:');
-
-  const conflictErr = conflictError('Email already exists', {
+  // Conflict error
+  const confError = conflictError('Email already exists', {
     email: 'user@example.com',
   });
+  console.log('- Conflict Error:');
+  console.log(`  Message: ${confError.message}`);
+  console.log(`  Type: ${confError.type}`);
+  console.log(`  Status: ${confError.statusCode}`);
 
-  const badReqErr = badRequestError('Invalid query parameters', {
-    param: 'sort',
-    value: 'invalidValue',
-  });
+  // Bad Request error
+  const badReqError = badRequestError('Invalid query parameters');
+  console.log('- Bad Request Error:');
+  console.log(`  Message: ${badReqError.message}`);
+  console.log(`  Type: ${badReqError.type}`);
+  console.log(`  Status: ${badReqError.statusCode}`);
 
-  const rateErr = rateLimitError('Too many requests', { retryAfter: 60 });
+  // Rate Limit error
+  const rateError = rateLimitError('Too many requests', { retryAfter: 60 });
+  console.log('- Rate Limit Error:');
+  console.log(`  Message: ${rateError.message}`);
+  console.log(`  Type: ${rateError.type}`);
+  console.log(`  Status: ${rateError.statusCode}`);
+  console.log(`  Details: ${JSON.stringify(rateError.details)}`);
 
-  const unavailErr = serviceUnavailableError('Database connection failed');
+  // Service Unavailable error
+  const unavailError = serviceUnavailableError('Database connection failed');
+  console.log('- Service Unavailable Error:');
+  console.log(`  Message: ${unavailError.message}`);
+  console.log(`  Type: ${unavailError.type}`);
+  console.log(`  Status: ${unavailError.statusCode}`);
 
-  const internalErr = internalError('Unexpected error', {
-    stack: 'Error stack...',
-  });
-
-  console.log(`Conflict Error: 
-  - Type: ${conflictErr.type}
-  - Status: ${conflictErr.statusCode}
-  - Message: ${conflictErr.message}
-  - Details: ${JSON.stringify(conflictErr.details)}`);
-
-  console.log(`\nBad Request Error: 
-  - Type: ${badReqErr.type}
-  - Status: ${badReqErr.statusCode}
-  - Message: ${badReqErr.message}
-  - Details: ${JSON.stringify(badReqErr.details)}`);
-
-  console.log(`\nRate Limit Error: 
-  - Type: ${rateErr.type}
-  - Status: ${rateErr.statusCode}
-  - Message: ${rateErr.message}
-  - Details: ${JSON.stringify(rateErr.details)}`);
-
-  console.log(`\nService Unavailable Error: 
-  - Type: ${unavailErr.type}
-  - Status: ${unavailErr.statusCode}
-  - Message: ${unavailErr.message}`);
-
-  console.log(`\nInternal Error: 
-  - Type: ${internalErr.type}
-  - Status: ${internalErr.statusCode}
-  - Message: ${internalErr.message}
-  - Details: ${JSON.stringify(internalErr.details)}`);
+  // Internal error
+  const intError = internalError('Unexpected error occurred');
+  console.log('- Internal Error:');
+  console.log(`  Message: ${intError.message}`);
+  console.log(`  Type: ${intError.type}`);
+  console.log(`  Status: ${intError.statusCode}`);
   console.log('');
 
-  // 3. Generic error creation with custom type
-  console.log('3. Generic error creation with createError:');
-
-  const customErr = createError(
+  // 3. Generic error creation
+  console.log('3. Using createError function:');
+  const customError = createError(
     ErrorTypes.BAD_REQUEST,
-    'Custom error message',
-    { custom: 'details' }
+    'Invalid parameters',
+    { param: 'userId', value: 'abc' }
   );
 
-  console.log(`Custom Error:
-  - Type: ${customErr.type}
-  - Status: ${customErr.statusCode}
-  - Message: ${customErr.message}
-  - Details: ${JSON.stringify(customErr.details)}`);
-  console.log('');
-
-  // 4. Error handling example
-  console.log('4. Error handling example:');
-
-  function getUserById(id) {
-    const users = { 1: { id: '1', name: 'John' } };
-
-    if (!users[id]) {
-      throw notFoundError('User', id);
-    }
-
-    return users[id];
-  }
-
-  try {
-    console.log('  - Trying to get user with ID 999');
-    getUserById('999');
-  } catch (error) {
-    console.log('  - Error caught!');
-    console.log(`  - Type: ${error.type}`);
-    console.log(`  - Message: ${error.message}`);
-    console.log(`  - Status: ${error.statusCode}`);
-    console.log(`  - Details: ${JSON.stringify(error.details)}`);
-  }
+  console.log(`Error type: ${customError.type}`);
+  console.log(`Error message: ${customError.message}`);
+  console.log(`Status code: ${customError.statusCode}`);
+  console.log(`Details: ${JSON.stringify(customError.details)}`);
 }
 
 demo();
 
 /* Expected output:
-=== Basic Error Usage Demo ===
-
-1. Creating errors with factory functions:
-Validation Error: 
-  - Type: VALIDATION_ERROR
-  - Status: 400
-  - Message: Validation failed
-  - Details: {"email":"Email is required","password":"Password must be at least 8 characters"}
-
-Not Found Error: 
-  - Type: NOT_FOUND
-  - Status: 404
-  - Message: User not found
-
-Authentication Error: 
-  - Type: AUTHENTICATION_ERROR
-  - Status: 401
-  - Message: Invalid credentials
-
-Authorization Error: 
-  - Type: AUTHORIZATION_ERROR
-  - Status: 403
-  - Message: Admin access required
-
-2. Creating additional error types:
-Conflict Error: 
-  - Type: CONFLICT
-  - Status: 409
-  - Message: Email already exists
-  - Details: {"email":"user@example.com"}
-
-Bad Request Error: 
-  - Type: BAD_REQUEST
-  - Status: 400
-  - Message: Invalid query parameters
-  - Details: {"param":"sort","value":"invalidValue"}
-
-Rate Limit Error: 
-  - Type: RATE_LIMIT_EXCEEDED
-  - Status: 429
-  - Message: Too many requests
-  - Details: {"retryAfter":60}
-
-Service Unavailable Error: 
-  - Type: SERVICE_UNAVAILABLE
-  - Status: 503
-  - Message: Database connection failed
-
-Internal Error: 
-  - Type: INTERNAL_ERROR
-  - Status: 500
-  - Message: Unexpected error
-  - Details: {"stack":"Error stack..."}
-
-3. Generic error creation with createError:
-Custom Error:
-  - Type: BAD_REQUEST
-  - Status: 400
-  - Message: Custom error message
-  - Details: {"custom":"details"}
-
-4. Error handling example:
-  - Trying to get user with ID 999
-  - Error caught!
-  - Type: NOT_FOUND
-  - Message: User not found
-  - Status: 404
-  - Details: {"entity":"User","id":"999"}
-*/
+  === Error Creation Demo ===
+  
+  1. Creating a basic AppError:
+  Error type: NOT_FOUND
+  Error message: User not found
+  Status code: 404
+  Details: {"userId":"123"}
+  JSON format: {"type":"NOT_FOUND","message":"User not found","details":{"userId":"123"},"timestamp":"..."}
+  
+  2. Using factory functions:
+  - Validation Error:
+    Type: VALIDATION_ERROR
+    Status: 400
+    Details: {"errors":{"email":"Email is required","password":"Password must be at least 8 characters"}}
+  - Not Found Error:
+    Message: User not found
+    Type: NOT_FOUND
+    Status: 404
+  - Authentication Error:
+    Message: Invalid credentials
+    Type: AUTHENTICATION_ERROR
+    Status: 401
+  - Authorization Error:
+    Message: Admin access required
+    Type: AUTHORIZATION_ERROR
+    Status: 403
+  - Conflict Error:
+    Message: Email already exists
+    Type: CONFLICT
+    Status: 409
+  - Bad Request Error:
+    Message: Invalid query parameters
+    Type: BAD_REQUEST
+    Status: 400
+  - Rate Limit Error:
+    Message: Too many requests
+    Type: RATE_LIMIT_EXCEEDED
+    Status: 429
+    Details: {"retryAfter":60}
+  - Service Unavailable Error:
+    Message: Database connection failed
+    Type: SERVICE_UNAVAILABLE
+    Status: 503
+  - Internal Error:
+    Message: Unexpected error occurred
+    Type: INTERNAL_ERROR
+    Status: 500
+  
+  3. Using createError function:
+  Error type: BAD_REQUEST
+  Error message: Invalid parameters
+  Status code: 400
+  Details: {"param":"userId","value":"abc"}
+  */

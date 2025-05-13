@@ -26,8 +26,15 @@ function demo() {
 
   // Handle uncaught exceptions
   handleUncaughtExceptions((error) => {
-    console.log(`  [UNCAUGHT EXCEPTION] ${error.message}`);
-    console.log(`  Stack: ${error.stack.split('\n')[1].trim()}`);
+    console.log(`  [UNCAUGHT EXCEPTION] ${error?.message || 'Unknown error'}`);
+    // Check if stack exists before trying to access it
+    if (error?.stack) {
+      console.log(
+        `  Stack: ${error.stack.split('\n')[1]?.trim() || error.stack}`
+      );
+    } else {
+      console.log('  No stack trace available');
+    }
 
     // In a real app, you might:
     // 1. Log to a monitoring service
@@ -41,9 +48,14 @@ function demo() {
 
   // Handle unhandled rejections
   handleUnhandledRejections((reason, promise) => {
-    console.log(`  [UNHANDLED REJECTION] ${reason?.message || reason}`);
+    console.log(`  [UNHANDLED REJECTION] ${reason?.message || String(reason)}`);
+    // Check if stack exists before trying to access it
     if (reason?.stack) {
-      console.log(`  Stack: ${reason.stack.split('\n')[1].trim()}`);
+      console.log(
+        `  Stack: ${reason.stack.split('\n')[1]?.trim() || reason.stack}`
+      );
+    } else {
+      console.log('  No stack trace available');
     }
 
     // In a real app, you might:
@@ -108,30 +120,30 @@ function demo() {
 demo();
 
 /* Expected output:
-  === Global Error Handlers Demo ===
-  
-  1. Setting up global error handlers:
-    - Uncaught exception handler registered
-    - Unhandled rejection handler registered
-  
-  2. Proper error handling example:
-    - Throwing error inside try/catch
-    ✓ Caught synchronously: Properly caught synchronous error
-    - Rejecting promise with .catch()
-    - Throwing in async function with try/catch
-    ✓ Caught with .catch(): Properly caught promise rejection
-    ✓ Caught with async/await: Properly caught async error
-  
-  3. Triggering uncaught exception in 1 second:
-  4. Triggering unhandled rejection in 2 seconds:
-  
-  Waiting for errors to be triggered...
-    - About to throw uncaught exception
-    [UNCAUGHT EXCEPTION] Uncaught synchronous error
-    Stack: at Timeout._onTimeout (/path/to/04-global-handlers.js:79:11)
-    (In a real app, would exit here with process.exit(1))
-    - About to create unhandled rejection
-    [UNHANDLED REJECTION] Unhandled promise rejection
-    Stack: at Timeout._onTimeout (/path/to/04-global-handlers.js:86:13)
-    (In production, might exit with process.exit(1))
-  */
+=== Global Error Handlers Demo ===
+
+1. Setting up global error handlers:
+  - Uncaught exception handler registered
+  - Unhandled rejection handler registered
+
+2. Proper error handling example:
+  - Throwing error inside try/catch
+  ✓ Caught synchronously: Properly caught synchronous error
+  - Rejecting promise with .catch()
+  - Throwing in async function with try/catch
+  ✓ Caught with .catch(): Properly caught promise rejection
+  ✓ Caught with async/await: Properly caught async error
+
+3. Triggering uncaught exception in 1 second:
+4. Triggering unhandled rejection in 2 seconds:
+
+Waiting for errors to be triggered...
+  - About to throw uncaught exception
+  [UNCAUGHT EXCEPTION] Uncaught synchronous error
+  Stack: at Timeout._onTimeout (/path/to/04-global-handlers.js:79:11)
+  (In a real app, would exit here with process.exit(1))
+  - About to create unhandled rejection
+  [UNHANDLED REJECTION] Unhandled promise rejection
+  Stack: at Timeout._onTimeout (/path/to/04-global-handlers.js:86:13)
+  (In production, might exit with process.exit(1))
+*/
