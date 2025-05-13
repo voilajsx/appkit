@@ -3,14 +3,28 @@
  * @module @voilajs/appkit/error
  */
 
-// Main exports file
-export { 
-    AppError, 
-    ErrorTypes, 
-    createError, 
-    validationError, 
-    notFoundError, 
-    authenticationError, 
-    authorizationError 
-  } from './errors.js';
-  export { formatErrorResponse, createErrorHandler } from './handlers.js';
+// Main exports file with all available functions
+export {
+  AppError,
+  ErrorTypes,
+  createError,
+  validationError,
+  notFoundError,
+  authenticationError,
+  authorizationError,
+  conflictError,
+  badRequestError,
+  rateLimitError,
+  serviceUnavailableError,
+  internalError,
+} from './errors.js';
+
+export {
+  formatErrorResponse,
+  createErrorHandler,
+  asyncHandler,
+  notFoundHandler,
+  handleUnhandledRejections,
+  handleUncaughtExceptions,
+  validateRequest,
+} from './handlers.js';
