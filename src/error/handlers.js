@@ -18,29 +18,29 @@ export function formatErrorResponse(error) {
         type: error.type,
         message: error.message,
         details: error.details,
-        timestamp: error.timestamp
-      }
+        timestamp: error.timestamp,
+      },
     };
   }
 
   // Handle validation errors from common libraries
   if (error.name === 'ValidationError') {
     const errors = {};
-    
+
     // Mongoose validation error
     if (error.errors) {
-      Object.keys(error.errors).forEach(key => {
+      Object.keys(error.errors).forEach((key) => {
         errors[key] = error.errors[key].message;
       });
     }
-    
+
     return {
       error: {
         type: ErrorTypes.VALIDATION,
         message: 'Validation failed',
         details: { errors },
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -51,8 +51,8 @@ export function formatErrorResponse(error) {
         type: ErrorTypes.BAD_REQUEST,
         message: 'Invalid ID format',
         details: { value: error.value },
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -61,8 +61,8 @@ export function formatErrorResponse(error) {
       error: {
         type: ErrorTypes.AUTHENTICATION,
         message: 'Invalid token',
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -71,8 +71,8 @@ export function formatErrorResponse(error) {
       error: {
         type: ErrorTypes.AUTHENTICATION,
         message: 'Token expired',
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -84,8 +84,8 @@ export function formatErrorResponse(error) {
         type: ErrorTypes.CONFLICT,
         message: `Duplicate value for ${field}`,
         details: { field, value: error.keyValue[field] },
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -93,11 +93,12 @@ export function formatErrorResponse(error) {
   return {
     error: {
       type: ErrorTypes.INTERNAL,
-      message: process.env.NODE_ENV === 'production' 
-        ? 'Internal server error' 
-        : error.message,
-      timestamp: new Date().toISOString()
-    }
+      message:
+        process.env.NODE_ENV === 'production'
+          ? 'Internal server error'
+          : error.message,
+      timestamp: new Date().toISOString(),
+    },
   };
 }
 
@@ -109,10 +110,7 @@ export function formatErrorResponse(error) {
  * @returns {Function} Express error middleware
  */
 export function createErrorHandler(options = {}) {
-  const {
-    logger = console.error,
-    includeStack = false
-  } = options;
+  const { logger = console.error, includeStack = false } = options;
 
   return (error, req, res, next) => {
     // Log error
@@ -127,14 +125,14 @@ export function createErrorHandler(options = {}) {
       query: req.query,
       headers: {
         'user-agent': req.headers['user-agent'],
-        'content-type': input.headers['content-type']
+        'content-type': req.headers['content-type'], // Fixed: changed input.headers to req.headers
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     // Get status code
     let statusCode = 500;
-    
+
     if (error instanceof AppError) {
       statusCode = error.statusCode;
     } else if (error.status) {
@@ -178,7 +176,7 @@ export function notFoundHandler() {
       `Route ${req.method} ${req.url} not found`,
       {
         method: req.method,
-        url: req.url
+        url: req.url,
       },
       404
     );
@@ -193,7 +191,7 @@ export function notFoundHandler() {
 export function handleUnhandledRejections(logger = console.error) {
   process.on('unhandledRejection', (reason, promise) => {
     logger('Unhandled Promise Rejection:', reason);
-    
+
     // Exit process in production
     if (process.env.NODE_ENV === 'production') {
       process.exit(1);
@@ -208,7 +206,7 @@ export function handleUnhandledRejections(logger = console.error) {
 export function handleUncaughtExceptions(logger = console.error) {
   process.on('uncaughtException', (error) => {
     logger('Uncaught Exception:', error);
-    
+
     // Exit process
     process.exit(1);
   });
@@ -222,16 +220,16 @@ export function handleUncaughtExceptions(logger = console.error) {
 export function validateRequest(schema) {
   return (req, res, next) => {
     const { error } = schema.validate(req.body, { abortEarly: false });
-    
+
     if (error) {
       const errors = {};
-      error.details.forEach(detail => {
+      error.details.forEach((detail) => {
         errors[detail.path.join('.')] = detail.message;
       });
-      
+
       return next(validationError(errors));
     }
-    
+
     next();
   };
 }
