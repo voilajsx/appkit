@@ -27,9 +27,15 @@ export async function initQueue(adapter, config = {}) {
     throw new Error('Queue already initialized');
   }
 
+  if (!adapter) {
+    throw new Error('Queue adapter type is required');
+  }
+
   const AdapterClass = ADAPTERS[adapter];
   if (!AdapterClass) {
-    throw new Error(`Unknown queue adapter: ${adapter}`);
+    throw new Error(
+      `Unknown queue adapter: ${adapter}. Available adapters: ${Object.keys(ADAPTERS).join(', ')}`
+    );
   }
 
   queueInstance = new AdapterClass(config);
@@ -47,4 +53,15 @@ export function getQueue() {
     throw new Error('Queue not initialized. Call initQueue() first.');
   }
   return queueInstance;
+}
+
+/**
+ * Closes the current queue instance and releases resources
+ * @returns {Promise<void>}
+ */
+export async function closeQueue() {
+  if (queueInstance) {
+    await queueInstance.stop();
+    queueInstance = null;
+  }
 }
