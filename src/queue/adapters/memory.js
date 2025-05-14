@@ -17,7 +17,7 @@ export class MemoryAdapter extends QueueAdapter {
     this.processors = new Map();
     this.processing = new Map();
     this.jobCounter = 0;
-    this.delayedTimeouts = new Map(); // Store timeout IDs for cleanup
+    this.delayedTimeouts = new Map();
   }
 
   /**
@@ -37,12 +37,21 @@ export class MemoryAdapter extends QueueAdapter {
    * @returns {Promise<Object>} Job info
    */
   async addJob(queue, data, options = {}) {
-    super.addJob(queue, data, options); // Validation
+    // Validation
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
 
+    if (data === undefined || data === null) {
+      throw new Error('Job data is required');
+    }
+
+    // Initialize queue if it doesn't exist
     if (!this.queues.has(queue)) {
       this.queues.set(queue, []);
     }
 
+    // Create job object
     const job = {
       id: this.generateJobId(),
       queue,
@@ -72,10 +81,11 @@ export class MemoryAdapter extends QueueAdapter {
       this.delayedTimeouts.set(job.id, timeoutId);
     }
 
+    // Add job to queue
     const queueJobs = this.queues.get(queue);
     queueJobs.push(job);
 
-    // Sort queue by priority (only when needed)
+    // Sort queue by priority (higher numbers first)
     if (options.priority !== 0) {
       this.sortQueueByPriority(queue);
     }
@@ -83,26 +93,12 @@ export class MemoryAdapter extends QueueAdapter {
     // Trigger processing
     this.processNextJob(queue);
 
-    return this._standardizeJob(job);
-  }
-
-  /**
-   * Sorts a queue by job priority
-   * @private
-   * @param {string} queue - Queue name to sort
-   */
-  sortQueueByPriority(queue) {
-    const jobs = this.queues.get(queue);
-    if (jobs && jobs.length > 1) {
-      jobs.sort((a, b) => {
-        // Higher priority first
-        if (b.priority !== a.priority) {
-          return b.priority - a.priority;
-        }
-        // Then oldest first (FIFO)
-        return a.createdAt - b.createdAt;
-      });
-    }
+    // Return job info
+    return {
+      id: job.id,
+      queue,
+      status: job.status,
+    };
   }
 
   /**
@@ -112,10 +108,19 @@ export class MemoryAdapter extends QueueAdapter {
    * @param {Object} [options] - Processing options
    */
   async processJobs(queue, processor, options = {}) {
-    super.processJobs(queue, processor, options); // Validation
+    // Validation
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
 
+    if (typeof processor !== 'function') {
+      throw new Error('Job processor must be a function');
+    }
+
+    // Set concurrency
     const concurrency = options.concurrency || 1;
 
+    // Store processor config
     this.processors.set(queue, {
       processor,
       concurrency,
@@ -135,16 +140,24 @@ export class MemoryAdapter extends QueueAdapter {
    * @returns {Promise<Object>} Job data
    */
   async getJob(queue, jobId) {
-    super.getJob(queue, jobId); // Validation
+    // Validation
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
+
+    if (!jobId) {
+      throw new Error('Job ID is required');
+    }
 
     const jobs = this.queues.get(queue) || [];
-    const job = jobs.find((job) => job.id === jobId);
+    const job = jobs.find((j) => j.id === jobId);
 
     if (!job) {
       return null;
     }
 
-    return this._standardizeJob(job);
+    // Return formatted job
+    return this.formatJob(job);
   }
 
   /**
@@ -155,17 +168,25 @@ export class MemoryAdapter extends QueueAdapter {
    * @returns {Promise<boolean>} Success status
    */
   async updateJob(queue, jobId, update) {
-    super.updateJob(queue, jobId, update); // Validation
+    // Validation
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
 
-    const job = await this.getJob(queue, jobId);
-    if (!job) return false;
+    if (!jobId) {
+      throw new Error('Job ID is required');
+    }
 
-    const queueJobs = this.queues.get(queue) || [];
-    const jobIndex = queueJobs.findIndex((j) => j.id === jobId);
+    if (!update || typeof update !== 'object') {
+      throw new Error('Update data must be an object');
+    }
+
+    const jobs = this.queues.get(queue) || [];
+    const jobIndex = jobs.findIndex((j) => j.id === jobId);
 
     if (jobIndex === -1) return false;
 
-    Object.assign(queueJobs[jobIndex], update);
+    Object.assign(jobs[jobIndex], update);
 
     // If priority changed, resort the queue
     if (update.priority !== undefined) {
@@ -182,14 +203,21 @@ export class MemoryAdapter extends QueueAdapter {
    * @returns {Promise<boolean>} Success status
    */
   async removeJob(queue, jobId) {
-    super.removeJob(queue, jobId); // Validation
+    // Validation
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
+
+    if (!jobId) {
+      throw new Error('Job ID is required');
+    }
 
     const jobs = this.queues.get(queue) || [];
     const index = jobs.findIndex((job) => job.id === jobId);
 
     if (index === -1) return false;
 
-    // Clear any associated timeout
+    // Clear any associated timeout for delayed jobs
     if (this.delayedTimeouts.has(jobId)) {
       clearTimeout(this.delayedTimeouts.get(jobId));
       this.delayedTimeouts.delete(jobId);
@@ -205,25 +233,27 @@ export class MemoryAdapter extends QueueAdapter {
    * @returns {Promise<Object>} Queue statistics
    */
   async getQueueInfo(queue) {
-    super.getQueueInfo(queue); // Validation
+    // Validation
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
 
     const jobs = this.queues.get(queue) || [];
     const now = new Date();
 
-    const stats = {
+    return {
       name: queue,
       total: jobs.length,
       pending: jobs.filter((j) => j.status === 'pending').length,
       processing: jobs.filter((j) => j.status === 'processing').length,
       completed: jobs.filter((j) => j.status === 'completed').length,
       failed: jobs.filter((j) => j.status === 'failed').length,
-      delayed: jobs.filter((j) => j.status === 'delayed').length,
-      waiting: jobs.filter(
-        (j) => j.status === 'pending' && j.processAfter <= now
+      delayed: jobs.filter(
+        (j) =>
+          j.status === 'delayed' ||
+          (j.status === 'pending' && j.processAfter > now)
       ).length,
     };
-
-    return stats;
   }
 
   /**
@@ -232,10 +262,14 @@ export class MemoryAdapter extends QueueAdapter {
    * @returns {Promise<boolean>} Success status
    */
   async clearQueue(queue) {
-    super.clearQueue(queue); // Validation
+    // Validation
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
 
-    // Clear all timeouts for jobs in this queue
     const jobs = this.queues.get(queue) || [];
+
+    // Clear timeouts for delayed jobs
     for (const job of jobs) {
       if (this.delayedTimeouts.has(job.id)) {
         clearTimeout(this.delayedTimeouts.get(job.id));
@@ -273,7 +307,7 @@ export class MemoryAdapter extends QueueAdapter {
     const processorConfig = this.processors.get(queue);
     if (!processorConfig) return;
 
-    const { processor, concurrency, options } = processorConfig;
+    const { processor, concurrency } = processorConfig;
 
     // Check concurrency limit
     const processing = this.processing.get(queue) || 0;
@@ -299,17 +333,19 @@ export class MemoryAdapter extends QueueAdapter {
 
     try {
       // Process job
-      const result = await processor(this._standardizeJob(job));
+      const result = await processor(this.formatJob(job));
 
+      // Mark as completed
       job.status = 'completed';
       job.completedAt = new Date();
       job.result = result;
 
       // Remove completed jobs if configured
-      if (options.removeOnComplete) {
+      if (processorConfig.options.removeOnComplete) {
         await this.removeJob(queue, job.id);
       }
     } catch (error) {
+      // Mark as failed
       job.status = 'failed';
       job.failedAt = new Date();
       job.error = error.message;
@@ -317,7 +353,7 @@ export class MemoryAdapter extends QueueAdapter {
       // Handle retries
       if (job.attempts < (job.options.maxAttempts || job.maxAttempts)) {
         job.status = 'pending';
-        job.delay = this._calculateRetryDelay(job.attempts, job.options);
+        job.delay = this.calculateRetryDelay(job.attempts, job.options);
         job.processAfter = new Date(Date.now() + job.delay);
       }
     } finally {
@@ -339,14 +375,83 @@ export class MemoryAdapter extends QueueAdapter {
   }
 
   /**
-   * Gets all jobs with a specific status
+   * Sorts a queue by job priority
+   * @private
+   * @param {string} queue - Queue name to sort
+   */
+  sortQueueByPriority(queue) {
+    const jobs = this.queues.get(queue);
+    if (jobs && jobs.length > 1) {
+      jobs.sort((a, b) => {
+        // Higher priority first
+        if (b.priority !== a.priority) {
+          return b.priority - a.priority;
+        }
+        // Then oldest first (FIFO)
+        return a.createdAt - b.createdAt;
+      });
+    }
+  }
+
+  /**
+   * Formats a job for processors
+   * @private
+   * @param {Object} job - Internal job object
+   * @returns {Object} Formatted job
+   */
+  formatJob(job) {
+    return {
+      id: job.id,
+      queue: job.queue,
+      data: job.data,
+      options: job.options,
+      status: job.status,
+      attempts: job.attempts,
+      maxAttempts: job.maxAttempts,
+      error: job.error,
+      result: job.result,
+      createdAt: job.createdAt,
+      processAfter: job.processAfter,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      failedAt: job.failedAt,
+    };
+  }
+
+  /**
+   * Calculates retry delay
+   * @private
+   * @param {number} attempts - Current attempt count
+   * @param {Object} options - Job options
+   * @returns {number} Delay in milliseconds
+   */
+  calculateRetryDelay(attempts, options = {}) {
+    const backoff = options.backoff || { type: 'exponential', delay: 1000 };
+    const maxDelay = backoff.maxDelay || 30000;
+
+    if (backoff.type === 'exponential') {
+      return Math.min(backoff.delay * Math.pow(2, attempts - 1), maxDelay);
+    } else if (backoff.type === 'fixed') {
+      return backoff.delay || 1000;
+    } else if (backoff.type === 'linear') {
+      return Math.min(backoff.delay * attempts, maxDelay);
+    }
+
+    return 1000; // Default to 1 second
+  }
+
+  /**
+   * Gets jobs with a specific status
    * @param {string} queue - Queue name
    * @param {string} status - Job status
    * @param {number} [limit=100] - Maximum number of jobs to return
    * @returns {Promise<Array>} Jobs with the specified status
    */
   async getJobsByStatus(queue, status, limit = 100) {
-    this._validateQueue(queue);
+    if (!queue) {
+      throw new Error('Queue name is required');
+    }
+
     if (!status) {
       throw new Error('Status is required');
     }
@@ -355,7 +460,7 @@ export class MemoryAdapter extends QueueAdapter {
     return jobs
       .filter((job) => job.status === status)
       .slice(0, limit)
-      .map((job) => this._standardizeJob(job));
+      .map((job) => this.formatJob(job));
   }
 
   /**

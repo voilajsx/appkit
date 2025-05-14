@@ -519,7 +519,7 @@ import { initQueue } from '@voilajs/appkit/queue';
 
 // PostgreSQL
 await initQueue('database', {
-  type: 'postgres',
+  databaseType: 'postgres',
   connectionString: 'postgresql://user:password@localhost/dbname',
   connectionPool: {
     max: 10,
@@ -532,7 +532,7 @@ await initQueue('database', {
 
 // MySQL
 await initQueue('database', {
-  type: 'mysql',
+  databaseType: 'mysql',
   connectionString: 'mysql://user:password@localhost/dbname',
   // Same other options as PostgreSQL
 });
@@ -546,7 +546,7 @@ import { initQueue, getQueue } from '@voilajs/appkit/queue';
 async function setupDatabaseQueue() {
   // Initialize database queue
   await initQueue('database', {
-    type: 'postgres',
+    databaseType: 'postgres',
     connectionString: 'postgresql://user:password@localhost/dbname',
   });
 

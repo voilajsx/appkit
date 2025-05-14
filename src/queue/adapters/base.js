@@ -35,7 +35,7 @@ export class QueueAdapter {
 
   /**
    * Validates queue name
-   * @private
+   * @protected
    * @param {string} queue - Queue name to validate
    * @throws {Error} If queue name is invalid
    */
@@ -50,7 +50,7 @@ export class QueueAdapter {
 
   /**
    * Validates job ID
-   * @private
+   * @protected
    * @param {string} jobId - Job ID to validate
    * @throws {Error} If job ID is invalid
    */
@@ -76,7 +76,9 @@ export class QueueAdapter {
     if (data === undefined || data === null) {
       throw new Error('Job data is required');
     }
-    throw new Error('addJob() must be implemented by subclass');
+
+    // This should be implemented by subclass
+    throw new Error('addJob() not implemented in this adapter');
   }
 
   /**
@@ -92,7 +94,9 @@ export class QueueAdapter {
     if (typeof processor !== 'function') {
       throw new Error('Job processor must be a function');
     }
-    throw new Error('processJobs() must be implemented by subclass');
+
+    // This should be implemented by subclass
+    throw new Error('processJobs() not implemented in this adapter');
   }
 
   /**
@@ -105,7 +109,9 @@ export class QueueAdapter {
     this._validateInitialized();
     this._validateQueue(queue);
     this._validateJobId(jobId);
-    throw new Error('getJob() must be implemented by subclass');
+
+    // This should be implemented by subclass
+    throw new Error('getJob() not implemented in this adapter');
   }
 
   /**
@@ -122,7 +128,9 @@ export class QueueAdapter {
     if (!update || typeof update !== 'object') {
       throw new Error('Update data must be an object');
     }
-    throw new Error('updateJob() must be implemented by subclass');
+
+    // This should be implemented by subclass
+    throw new Error('updateJob() not implemented in this adapter');
   }
 
   /**
@@ -135,7 +143,9 @@ export class QueueAdapter {
     this._validateInitialized();
     this._validateQueue(queue);
     this._validateJobId(jobId);
-    throw new Error('removeJob() must be implemented by subclass');
+
+    // This should be implemented by subclass
+    throw new Error('removeJob() not implemented in this adapter');
   }
 
   /**
@@ -146,7 +156,9 @@ export class QueueAdapter {
   async getQueueInfo(queue) {
     this._validateInitialized();
     this._validateQueue(queue);
-    throw new Error('getQueueInfo() must be implemented by subclass');
+
+    // This should be implemented by subclass
+    throw new Error('getQueueInfo() not implemented in this adapter');
   }
 
   /**
@@ -157,7 +169,9 @@ export class QueueAdapter {
   async clearQueue(queue) {
     this._validateInitialized();
     this._validateQueue(queue);
-    throw new Error('clearQueue() must be implemented by subclass');
+
+    // This should be implemented by subclass
+    throw new Error('clearQueue() not implemented in this adapter');
   }
 
   /**
@@ -165,7 +179,8 @@ export class QueueAdapter {
    * @returns {Promise<void>}
    */
   async stop() {
-    throw new Error('stop() must be implemented by subclass');
+    // This should be implemented by subclass
+    throw new Error('stop() not implemented in this adapter');
   }
 
   /**
@@ -195,7 +210,7 @@ export class QueueAdapter {
   }
 
   /**
-   * Calculates retry delay using exponential backoff
+   * Calculates retry delay using backoff strategy
    * @protected
    * @param {number} attempts - Current attempt count
    * @param {Object} options - Job options

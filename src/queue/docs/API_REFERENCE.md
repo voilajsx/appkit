@@ -78,14 +78,14 @@ await initQueue('redis', {
 
 // Database adapter (PostgreSQL)
 await initQueue('database', {
-  type: 'postgres',
+  databaseType: 'postgres',
   connectionString: 'postgresql://user:password@localhost/dbname',
   pollInterval: 1000,
 });
 
 // Database adapter (MySQL)
 await initQueue('database', {
-  type: 'mysql',
+  databaseType: 'mysql',
   connectionString: 'mysql://user:password@localhost/dbname',
   tableName: 'job_queue',
 });

@@ -66,7 +66,7 @@ async function initQueue(
       removeOnFail?: boolean;
     };
     // Database adapter options
-    type?: 'postgres' | 'mysql';
+    databaseType?: 'postgres' | 'mysql';
     connectionString?: string;
     connectionPool?: {
       max?: number;
@@ -540,7 +540,7 @@ async function setupDatabaseQueue(connectionString) {
 
   try {
     await initQueue('database', {
-      type: 'postgres',
+      databaseType: 'postgres',
       connectionString,
       connectionPool: {
         max: 20,
