@@ -3,124 +3,87 @@
  * @module @voilajs/appkit/security/sanitizer
  */
 
+const ESCAPE_MAP = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#x27;',
+  '/': '&#x2F;',
+};
+
 /**
- * Sanitizes HTML input
+ * Escapes special characters in a string to prevent XSS
+ * @param {string} input - String to escape
+ * @returns {string} Escaped string
+ */
+export function escapeString(input) {
+  if (typeof input !== 'string') {
+    return '';
+  }
+
+  return input.replace(/[&<>"'/]/g, (char) => ESCAPE_MAP[char]);
+}
+
+/**
+ * Sanitizes HTML input by removing dangerous elements
  * @param {string} input - HTML string to sanitize
  * @param {Object} [options] - Sanitization options
+ * @param {boolean} [options.stripAllTags=false] - Remove all tags
+ * @param {string[]} [options.allowedTags] - Only allow specific tags
  * @returns {string} Sanitized HTML
  */
 export function sanitizeHtml(input, options = {}) {
-    if (typeof input !== 'string') {
-      return '';
-    }
-  
-    // Basic HTML sanitization (remove script tags, event handlers, etc.)
-    let sanitized = input
-      // Remove script tags
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      // Remove event handlers
-      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-      // Remove javascript: protocol
-      .replace(/javascript\s*:/gi, '')
-      // Remove data: protocol for potential XSS
-      .replace(/data:text\/html/gi, '');
-  
-    // Additional options
-    if (options.stripTags) {
-      // Remove all HTML tags
-      sanitized = sanitized.replace(/<[^>]*>/g, '');
-    }
-  
-    if (options.allowedTags) {
-      // Only allow specific tags
-      const allowedTagsRegex = new RegExp(
-        `<(?!\/?(?:${options.allowedTags.join('|')})\s*\/?>)[^>]+>`, 
+  if (typeof input !== 'string') {
+    return '';
+  }
+
+  // Option to strip all tags
+  if (options.stripAllTags) {
+    return input.replace(/<[^>]*>/g, '');
+  }
+
+  let sanitized = input
+    // Remove script tags
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    // Remove event handlers
+    .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+    // Remove dangerous protocols
+    .replace(/javascript\s*:/gi, '')
+    .replace(/data\s*:/gi, '');
+
+  // Filter to allowed tags if specified
+  if (Array.isArray(options.allowedTags) && options.allowedTags.length > 0) {
+    try {
+      const allowedPattern = options.allowedTags.join('|');
+      const tagPattern = new RegExp(
+        `<(?!\/?(?:${allowedPattern})\\b)[^>]+>`,
         'gi'
       );
-      sanitized = sanitized.replace(allowedTagsRegex, '');
+      sanitized = sanitized.replace(tagPattern, '');
+    } catch (e) {
+      // If regex fails, fall back to removing all tags
+      sanitized = sanitized.replace(/<[^>]*>/g, '');
     }
-  
-    return sanitized;
   }
-  
-  /**
-   * Escapes special characters in a string
-   * @param {string} input - String to escape
-   * @returns {string} Escaped string
-   */
-  export function escapeString(input) {
-    if (typeof input !== 'string') {
-      return '';
-    }
-  
-    const escapeMap = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#x27;',
-      '/': '&#x2F;'
-    };
-  
-    return input.replace(/[&<>"'/]/g, (char) => escapeMap[char]);
+
+  return sanitized;
+}
+
+/**
+ * Sanitizes a filename to prevent path traversal attacks
+ * @param {string} filename - Filename to sanitize
+ * @returns {string} Sanitized filename
+ */
+export function sanitizeFilename(filename) {
+  if (typeof filename !== 'string') {
+    return '';
   }
-  
-  /**
-   * Escapes HTML for safe display
-   * @param {string} input - HTML string to escape
-   * @returns {string} Escaped HTML
-   */
-  export function escapeHtml(input) {
-    return escapeString(input);
-  }
-  
-  /**
-   * Sanitizes an object by escaping all string values
-   * @param {Object} obj - Object to sanitize
-   * @returns {Object} Sanitized object
-   */
-  export function sanitizeObject(obj) {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj;
-    }
-  
-    const sanitized = {};
-    
-    for (const [key, value] of Object.entries(obj)) {
-      if (typeof value === 'string') {
-        sanitized[key] = escapeString(value);
-      } else if (typeof value === 'object' && value !== null) {
-        sanitized[key] = sanitizeObject(value);
-      } else {
-        sanitized[key] = value;
-      }
-    }
-  
-    return sanitized;
-  }
-  
-  /**
-   * Removes potentially dangerous characters from filenames
-   * @param {string} filename - Filename to sanitize
-   * @returns {string} Sanitized filename
-   */
-  export function sanitizeFilename(filename) {
-    if (typeof filename !== 'string') {
-      return '';
-    }
-  
-    // Remove path traversal attempts
-    let sanitized = filename.replace(/\.\./g, '');
-    
-    // Remove special characters (keep alphanumeric, dots, dashes, underscores)
-    sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '');
-    
-    // Limit length
-    if (sanitized.length > 255) {
-      const ext = sanitized.substring(sanitized.lastIndexOf('.'));
-      const name = sanitized.substring(0, sanitized.lastIndexOf('.'));
-      sanitized = name.substring(0, 255 - ext.length) + ext;
-    }
-  
-    return sanitized;
-  }
+
+  // Remove path traversal sequences and limit to safe characters
+  const sanitized = filename
+    .replace(/\.\./g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '');
+
+  return sanitized.slice(0, 255);
+}
