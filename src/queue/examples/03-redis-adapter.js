@@ -7,6 +7,8 @@
  * - Redis-specific features (pause/resume queue)
  * - Job progress tracking
  * - Cleaning up old jobs
+ *
+ * run: node 03-redis-adapter.js
  */
 
 import { initQueue, getQueue, closeQueue } from '@voilajs/appkit/queue';

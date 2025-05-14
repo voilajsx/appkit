@@ -6,6 +6,8 @@
  * - Add jobs to a queue
  * - Process jobs with a simple processor
  * - Handle job completion and failure
+ *
+ * Run: node 01-basic-usage.js
  */
 
 import { initQueue, getQueue, closeQueue } from '@voilajs/appkit/queue';

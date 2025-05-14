@@ -12,6 +12,8 @@
  * - PostgreSQL installed and running
  * - Database created with appropriate permissions
  * - pg package installed: npm install pg
+ *
+ * run: node 04-database-adapter.js
  */
 
 import { initQueue, getQueue, closeQueue } from '@voilajs/appkit/queue';
@@ -22,8 +24,7 @@ async function main() {
     console.log('Initializing queue with PostgreSQL adapter...');
 
     // Connection details - update these to match your PostgreSQL setup
-    const connectionString =
-      'postgresql://postgres:postgres@localhost:5432/appkit_queue_demo';
+    const connectionString = 'postgresql://krishnateja@localhost:5432/authmini';
 
     await initQueue('database', {
       databaseType: 'postgres',

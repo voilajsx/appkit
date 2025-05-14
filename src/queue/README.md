@@ -127,7 +127,7 @@ await queue.cleanUp('emails', 24 * 60 * 60 * 1000, 'completed');
 ```javascript
 // Initialize with PostgreSQL adapter
 await initQueue('database', {
-  type: 'postgres',
+  databaseType: 'postgres',
   connectionString: 'postgresql://user:pass@localhost/db',
   pollInterval: 1000,
 });
@@ -260,7 +260,7 @@ await initQueue('redis', {
 ```javascript
 await initQueue('database', {
   // Database type and connection
-  type: 'postgres', // 'postgres' or 'mysql'
+  databaseType: 'postgres', // 'postgres' or 'mysql'
   connectionString: 'postgresql://user:password@localhost/dbname',
 
   // Connection pool settings
@@ -485,6 +485,18 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 - Job cleanup strategy
 - Recurring job for daily reports
 ```
+
+## 📋 Examples
+
+The module includes several examples to help you get started with common queue
+scenarios:
+
+| Example                                                                                                                 | Description                      | Key Features                                          |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------- |
+| [01-basic-usage.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/01-basic-usage.js)                   | Introduction to queue basics     | Job creation, processing, error handling              |
+| [02-advanced-job-options.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/02-advanced-job-options.js) | Advanced job configuration       | Priorities, delayed jobs, retry strategies            |
+| [03-redis-adapter.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/03-redis-adapter.js)               | Using Redis for production queue | Redis connection, progress tracking, queue operations |
+| [04-database-adapter.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/04-database-adapter.js)         | Database-backed persistent queue | PostgreSQL integration, metrics, recurring jobs       |
 
 ## 🛡️ Security Best Practices
 

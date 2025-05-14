@@ -6,6 +6,8 @@
  * - Delayed jobs
  * - Custom retry strategies
  * - Job event handling
+ *
+ * Run: node 02-advanced-job-options.js
  */
 
 import { initQueue, getQueue, closeQueue } from '@voilajs/appkit/queue';
