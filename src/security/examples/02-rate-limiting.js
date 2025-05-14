@@ -4,7 +4,7 @@
  * This example demonstrates how to protect API endpoints
  * from abuse using rate limiting middleware.
  *
- * Run: node rate-limiting.js
+ * Run: node 02-rate-limiting.js
  */
 
 import express from 'express';

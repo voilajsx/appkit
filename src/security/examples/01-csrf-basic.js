@@ -4,7 +4,7 @@
  * This example demonstrates how to implement CSRF tokens in forms
  * to prevent cross-site request forgery attacks.
  *
- * Run: node csrf-basic.js
+ * Run: node 01-csrf-basic.js
  */
 
 import express from 'express';

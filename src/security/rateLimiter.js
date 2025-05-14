@@ -1,6 +1,7 @@
 /**
- * @voilajs/appkit - Rate limiting middleware
- * @module @voilajs/appkit/security/rateLimiter
+ * Rate Limiting middleware - @voilajs/appkit Security Module
+ *
+ * Provides rate limiting functionality to protect routes from abuse.
  */
 
 // In-memory store for rate limiting
@@ -70,11 +71,33 @@ export function createRateLimiter(options) {
 
     // Check limit
     if (record.count > max) {
-      return res.status(429).json({
+      // Set status code to 429 Too Many Requests
+      res.status(429);
+
+      // Response data
+      const responseData = {
         error: 'Too Many Requests',
         message,
         retryAfter: Math.ceil((record.resetTime - now) / 1000),
-      });
+      };
+
+      // Support different response methods
+      if (typeof res.json === 'function') {
+        // Express-style response
+        res.json(responseData);
+      } else if (typeof res.send === 'function') {
+        // Alternative response method
+        res.send(responseData);
+      } else if (typeof res.end === 'function') {
+        // Node.js http response
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(responseData));
+      } else {
+        // Last resort if no response methods are available
+        // Don't try to send a response, just stop the middleware chain
+      }
+
+      return;
     }
 
     next();

@@ -6,7 +6,7 @@
  * - Rate limiting for API endpoints
  * - Input sanitization for user content
  *
- * Run: node complete-app.js
+ * Run: node 04-complete-app.js
  */
 
 import express from 'express';
@@ -85,6 +85,9 @@ app.get('/', (req, res) => {
         `<div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
       <h4>${msg.username}</h4>
       <div>${msg.message}</div>
+      <div style="margin-top: 5px; font-size: 0.8em; color: #666;">
+        <strong>Sanitization Applied:</strong> Scripts, event handlers, and unsafe HTML removed
+      </div>
     </div>`
     )
     .join('');
@@ -189,7 +192,7 @@ app.post('/message', (req, res) => {
   // Sanitize user input
   const safeUsername = escapeString(username);
   const safeMessage = sanitizeHtml(message, {
-    allowedTags: ['b', 'i', 'em', 'strong', 'a', 'p'],
+    allowedTags: ['b', 'i', 'em', 'strong', 'p'],
   });
 
   // Store message

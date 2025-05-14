@@ -4,7 +4,7 @@
  * This example demonstrates how to safely handle user input
  * to prevent XSS and injection attacks.
  *
- * Run: node sanitization.js
+ * Run: node 03-sanitization.js
  */
 
 import express from 'express';
@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
         ${comment.content}
       </div>
       <div style="margin-top: 5px; font-size: 0.8em; color: #666;">
-        <strong>Original Input:</strong> <code>${comment.original}</code>
+        <strong>Original Input:</strong> <code>${escapeString(comment.original)}</code>
       </div>
     </div>`
     )
@@ -92,6 +92,21 @@ app.get('/', (req, res) => {
         <code>&lt;a href="javascript:alert('XSS')"&gt;Click me&lt;/a&gt;</code>
       </div>
       
+      <h2>Sanitization Implementation:</h2>
+      <pre style="background: #f5f5f5; padding: 10px;">
+// The @voilajs/appkit/security sanitizeHtml function:
+// 1. Removes all &lt;script&gt; tags
+// 2. Removes event handlers (onclick, onerror, etc.)
+// 3. Removes javascript: protocol
+// 4. Optionally strips all tags
+// 5. Optionally filters to allow only specific tags
+
+// Example usage:
+const safeHtml = sanitizeHtml(userInput, {
+  allowedTags: ['b', 'i', 'em', 'strong', 'p']
+});
+      </pre>
+      
       <h2>Comments:</h2>
       ${commentsList || '<p>No comments yet.</p>'}
     </body>
@@ -109,9 +124,9 @@ app.post('/comment', (req, res) => {
   // 1. Sanitize username (escape all HTML)
   const safeUsername = escapeString(username);
 
-  // 2. Sanitize content (allow some HTML tags but remove scripts and events)
+  // 2. Sanitize content using the imported sanitizeHtml function
   const safeContent = sanitizeHtml(content, {
-    allowedTags: ['b', 'i', 'em', 'strong', 'a', 'p'],
+    allowedTags: ['b', 'i', 'em', 'strong', 'p'],
   });
 
   // Store sanitized comment
@@ -134,7 +149,7 @@ app.post('/upload', (req, res) => {
 
   res.send(`
     <h1>Filename Sanitization Result</h1>
-    <p><strong>Original filename:</strong> ${filename}</p>
+    <p><strong>Original filename:</strong> ${escapeString(filename)}</p>
     <p><strong>Sanitized filename:</strong> ${safeFilename}</p>
     <a href="/">Back to examples</a>
   `);

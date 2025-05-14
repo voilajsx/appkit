@@ -236,13 +236,13 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 
 For complete, working examples, check our examples folder:
 
-- [Basic CSRF Protection](https://github.com/voilajs/appkit/blob/main/src/security/examples/csrf-basic.js) -
+- [Basic CSRF Protection](https://github.com/voilajs/appkit/blob/main/src/security/examples/01-csrf-basic.js) -
   How to implement CSRF tokens in forms
-- [Rate Limiting API](https://github.com/voilajs/appkit/blob/main/src/security/examples/rate-limiting.js) -
+- [Rate Limiting API](https://github.com/voilajs/appkit/blob/main/src/security/examples/02-rate-limiting.js) -
   Protecting API endpoints from abuse
-- [Input Sanitization](https://github.com/voilajs/appkit/blob/main/src/security/examples/sanitization.js) -
+- [Input Sanitization](https://github.com/voilajs/appkit/blob/main/src/security/examples/03-sanitization.js) -
   Safely handling user input
-- [Complete Security Example](https://github.com/voilajs/appkit/blob/main/src/security/examples/complete-app.js) -
+- [Complete Security Example](https://github.com/voilajs/appkit/blob/main/src/security/examples/04-complete-app.js) -
   All security features working together
 
 ## 🛡️ Security Best Practices
