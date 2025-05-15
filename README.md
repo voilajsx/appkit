@@ -27,7 +27,7 @@ Fastify, Koa, or vanilla Node.js, `@voilajs/appkit` integrates seamlessly.
 ## Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ## Modules Overview
@@ -76,7 +76,7 @@ logger.info('Application initialized');
 
 ## Getting Started
 
-1. Install the package: `npm install @voilajs/appkit`
+1. Install the package: `npm install @voilajsx/appkit`
 2. Import the desired modules.
 3. Use the key methods as shown in the modules overview table.
 4. Refer to detailed explanations below for all methods and further
