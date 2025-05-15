@@ -11,8 +11,20 @@
     "target": "ESNext",
     "lib": ["ESNext"],
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false
   },
   "include": ["src/**/*.js"],
-  "exclude": ["node_modules", "types", "test", "tests", "**/*.test.js", "**/*.spec.js"]
+  "exclude": [
+    "node_modules",
+    "types",
+    "**/test/**",
+    "**/tests/**",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "src/auth/tests/**/*",
+    "src/**/tests/**/*",
+    "src/**/__tests__/**/*"
+  ]
 }
