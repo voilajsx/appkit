@@ -66,10 +66,10 @@
   "files": [
     "types/",
     "src/**/*.js",
+    "!src/**/*.md",
     "!src/**/docs/**",
     "!src/**/tests/**",
     "!src/**/examples/**",
-    "!src/**/*.md",
     "README.md",
     "LICENSE"
   ],
@@ -174,13 +174,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/voilajs/appkit.git"
+    "url": "git+https://github.com/voilajsx/appkit.git"
   },
   "bugs": {
-    "url": "https://github.com/voilajs/appkit/issues"
+    "url": "https://github.com/voilajsx/appkit/issues"
   },
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://github.com/voilajs/appkit#readme"
+  "homepage": "https://github.com/voilajsx/appkit#readme"
 }
