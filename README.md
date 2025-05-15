@@ -8,11 +8,11 @@ building blocks for modern applications.
 
 ## Introduction
 
-`@voilajs/appkit` is a modular toolkit designed to simplify Node.js development
+`@voilajsx/appkit` is a modular toolkit designed to simplify Node.js development
 with independent, reusable utilities for common application tasks. Each of the
 13 modules is standalone, allowing developers to use only what they need while
 maintaining a consistent, intuitive API. Whether you're building with Express,
-Fastify, Koa, or vanilla Node.js, `@voilajs/appkit` integrates seamlessly.
+Fastify, Koa, or vanilla Node.js, `@voilajsx/appkit` integrates seamlessly.
 
 ### Key Principles
 
@@ -108,7 +108,7 @@ and integrate with any Node.js framework.
 **Resources**:
 
 - [Auth README](/src/auth/README.md)
-- [Developer Reference](/docs/auth/developer_reference.md)
+- [Developer Reference](/src/auth/docs/DEVELOPER_REFERENCE.md)
 
 ### TenantDB
 
@@ -137,7 +137,7 @@ creation or migration.
 **Resources**:
 
 - [TenantDB README](/src/tenantdb/README.md)
-- [Developer Reference](/docs/tenantdb/developer_reference.md)
+- [Developer Reference](/src/tenantdb/docs/DEVELOPER_REFERENCE.md)
 
 ### Cache
 
@@ -170,7 +170,7 @@ expiration, implement cache-aside patterns, and namespace caches for isolation.
 **Resources**:
 
 - [Cache README](/src/cache/README.md)
-- [Developer Reference](/docs/cache/developer_reference.md)
+- [Developer Reference](/src/cache/docs/DEVELOPER_REFERENCE.md)
 
 ### Events
 
@@ -198,7 +198,7 @@ processing, manage event history, and integrate with custom event stores.
 **Resources**:
 
 - [Events README](/src/events/README.md)
-- [Developer Reference](/docs/events/developer_reference.md)
+- [Developer Reference](/src/events/docs/DEVELOPER_REFERENCE.md)
 
 ### Security
 
@@ -222,7 +222,7 @@ enforce rate limits, and ensure safe file handling.
 **Resources**:
 
 - [Security README](/src/security/README.md)
-- [Developer Reference](/docs/security/developer_reference.md)
+- [Developer Reference](/src/security/docs/DEVELOPER_REFERENCE.md)
 
 ### Error
 
@@ -255,7 +255,7 @@ middleware, format API error responses, and validate requests.
 **Resources**:
 
 - [Error README](/src/error/README.md)
-- [Developer Reference](/docs/error/developer_reference.md)
+- [Developer Reference](/src/error/docs/DEVELOPER_REFERENCE.md)
 
 ### Logging
 
@@ -281,7 +281,7 @@ contextual loggers, and manage log lifecycle.
 **Resources**:
 
 - [Logging README](/src/logging/README.md)
-- [Developer Reference](/docs/logging/developer_reference.md)
+- [Developer Reference](/src/logging/docs/DEVELOPER_REFERENCE.md)
 
 ### Storage
 
@@ -309,7 +309,7 @@ and organize file storage with metadata and directories.
 **Resources**:
 
 - [Storage README](/src/storage/README.md)
-- [Developer Reference](/docs/storage/developer_reference.md)
+- [Developer Reference](/src/storage/docs/DEVELOPER_REFERENCE.md)
 
 ### Email
 
@@ -332,7 +332,7 @@ connections, and integrate with queue systems for async sending.
 **Resources**:
 
 - [Email README](/src/email/README.md)
-- [Developer Reference](/docs/email/developer_reference.md)
+- [Developer Reference](/src/email/docs/DEVELOPER_REFERENCE.md)
 
 ### Queue
 
@@ -358,7 +358,7 @@ lifecycle for scalable task management.
 **Resources**:
 
 - [Queue README](/src/queue/README.md)
-- [Developer Reference](/docs/queue/developer_reference.md)
+- [Developer Reference](/src/queue/docs/DEVELOPER_REFERENCE.md)
 
 ### Config
 
@@ -386,7 +386,7 @@ variables, and manage dynamic configuration updates.
 **Resources**:
 
 - [Config README](/src/config/README.md)
-- [Developer Reference](/docs/config/developer_reference.md)
+- [Developer Reference](/src/config/docs/DEVELOPER_REFERENCE.md)
 
 ### Validation
 
@@ -410,7 +410,7 @@ extend schemas for custom rules.
 **Resources**:
 
 - [Validation README](/src/validation/README.md)
-- [Developer Reference](/docs/validation/developer_reference.md)
+- [Developer Reference](/src/validation/docs/DEVELOPER_REFERENCE.md)
 
 ### Utils
 
@@ -447,7 +447,7 @@ data, and manage async tasks.
 **Resources**:
 
 - [Utils README](/src/utils/README.md)
-- [Developer Reference](/docs/utils/developer_reference.md)
+- [Developer Reference](/src/utils/docs/DEVELOPER_REFERENCE.md)
 
 ## Contributing
 
@@ -458,13 +458,8 @@ details.
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## Support
-
-- 📧 Email: kt@voilacode.com
-- 🐛 Issues: [GitHub Issues](https://github.com/voilajs/appkit/issues)
-
 ---
 
-<p align="center">
+<p >
   Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
 </p>
