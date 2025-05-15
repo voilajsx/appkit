@@ -38,3 +38,4 @@ app.listen(3000, () => {
   logger.info('Server started on port 3000');
   console.log('Visit http://localhost:3000');
 });
+

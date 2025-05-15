@@ -24,10 +24,23 @@ export class StorageProvider {
    * @param {Buffer|Stream} file - File content
    * @param {string} path - Storage path
    * @param {Object} [options] - Upload options
+   * @param {Function} [onProgress] - Progress callback (percent: number) => void
    * @returns {Promise<{url: string, size: number, etag?: string}>} Upload result
    */
-  async upload(file, path, options = {}) {
+  async upload(file, path, options = {}, onProgress = null) {
     throw new Error('upload() must be implemented by subclass');
+  }
+
+  /**
+   * Uploads a large file using multipart upload
+   * @param {Buffer|Stream|string} file - File content or path to file
+   * @param {string} path - Storage path
+   * @param {Object} [options] - Upload options
+   * @param {Function} [onProgress] - Progress callback (percent: number) => void
+   * @returns {Promise<{url: string, size: number, etag?: string}>} Upload result
+   */
+  async uploadLarge(file, path, options = {}, onProgress = null) {
+    throw new Error('uploadLarge() must be implemented by subclass');
   }
 
   /**
@@ -37,6 +50,15 @@ export class StorageProvider {
    */
   async download(path) {
     throw new Error('download() must be implemented by subclass');
+  }
+
+  /**
+   * Downloads a file as a stream
+   * @param {string} path - Storage path
+   * @returns {Promise<Stream>} Readable stream
+   */
+  async downloadStream(path) {
+    throw new Error('downloadStream() must be implemented by subclass');
   }
 
   /**
@@ -104,5 +126,81 @@ export class StorageProvider {
    */
   async move(source, destination) {
     throw new Error('move() must be implemented by subclass');
+  }
+
+  /**
+   * Creates a directory
+   * @param {string} path - Directory path
+   * @returns {Promise<boolean>} Success status
+   */
+  async createDirectory(path) {
+    throw new Error('createDirectory() must be implemented by subclass');
+  }
+
+  /**
+   * Detects content type from file extension
+   * @param {string} path - File path
+   * @returns {string} Content type
+   */
+  detectContentType(path) {
+    const extension = path.split('.').pop().toLowerCase();
+
+    const mimeTypes = {
+      // Images
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      ico: 'image/x-icon',
+
+      // Documents
+      pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ppt: 'application/vnd.ms-powerpoint',
+      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+
+      // Web
+      html: 'text/html',
+      htm: 'text/html',
+      css: 'text/css',
+      js: 'application/javascript',
+      json: 'application/json',
+      xml: 'application/xml',
+
+      // Text
+      txt: 'text/plain',
+      md: 'text/markdown',
+      csv: 'text/csv',
+
+      // Archives
+      zip: 'application/zip',
+      rar: 'application/vnd.rar',
+      tar: 'application/x-tar',
+      gz: 'application/gzip',
+
+      // Audio
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+
+      // Video
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+      avi: 'video/x-msvideo',
+      mov: 'video/quicktime',
+
+      // Fonts
+      ttf: 'font/ttf',
+      otf: 'font/otf',
+      woff: 'font/woff',
+      woff2: 'font/woff2',
+    };
+
+    return mimeTypes[extension] || 'application/octet-stream';
   }
 }

@@ -1,16 +1,47 @@
-// src/utils/index.js
+/**
+ * @voilajs/appkit - Utility module
+ * @module @voilajs/appkit/utils
+ */
 
 // Object utilities
-export { pick, omit, deepMerge } from './object.js';
+export {
+  pick,
+  omit,
+  deepMerge,
+  deepClone,
+  get,
+  set,
+  has,
+  flatten,
+  unflatten,
+  isEqual,
+  isEmpty,
+  defaults,
+  mapKeys,
+  mapValues,
+  groupBy,
+  keyBy,
+} from './object.js';
 
 // String utilities
 export {
   capitalize,
   camelCase,
   snakeCase,
+  kebabCase,
+  pascalCase,
+  titleCase,
   generateId,
-  truncate,
+  generateUuid,
   slugify,
+  truncate,
+  padStart,
+  padEnd,
+  template,
+  escapeHtml,
+  unescapeHtml,
+  escapeRegExp,
+  maskString,
 } from './string.js';
 
 // Date utilities
@@ -20,7 +51,7 @@ export {
   addDays,
   addMonths,
   addYears,
-  subDays, // This was missing and causing the error
+  subDays,
   subMonths,
   subYears,
   dateDiff,
@@ -42,5 +73,8 @@ export {
   throttle,
   mapAsync,
   filterAsync,
+  allSettled,
+  raceWithTimeout,
+  deferred,
   createQueue,
 } from './async.js';
