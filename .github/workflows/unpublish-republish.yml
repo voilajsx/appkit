@@ -1,0 +1,40 @@
+name: Unpublish and Republish to npm
+
+on:
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  unpublish-and-republish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          registry-url: "https://registry.npmjs.org/"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # STEP 1: Completely remove the package
+      - name: Unpublish entire package
+        run: npm unpublish @voilajsx/appkit --force
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Optional: Add a small delay to ensure npm registry processes the unpublish
+      - name: Wait for npm registry
+        run: sleep 10
+
+      # STEP 2: Build your package
+      - name: Production build
+        run: npm run build:prod
+
+      # STEP 3: Republish the package
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
