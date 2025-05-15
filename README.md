@@ -461,5 +461,5 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 <p >
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development.
 </p>
