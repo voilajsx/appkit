@@ -5,6 +5,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import dotenv from 'dotenv'; // Add dotenv dependency
 import { ConfigError } from './errors.js';
 import { validateConfig } from './validator.js';
 
@@ -12,6 +13,25 @@ import { validateConfig } from './validator.js';
 let configStore = {};
 let configOptions = {};
 let envCache = {};
+
+// Load .env files early
+loadDotEnvFiles();
+
+/**
+ * Loads .env files for different environments
+ * @private
+ */
+function loadDotEnvFiles() {
+  // Load base .env file
+  dotenv.config();
+  
+  // Load environment-specific .env file
+  const env = process.env.NODE_ENV || 'development';
+  dotenv.config({ path: `.env.${env}` });
+  
+  // Load local overrides (not committed to version control)
+  dotenv.config({ path: '.env.local' });
+}
 
 /**
  * Loads configuration from file or object
@@ -121,8 +141,6 @@ async function loadFromFile(filePath) {
     case '.js':
     case '.mjs':
       return loadJavaScript(absolutePath);
-    case '.env':
-      return parseDotEnv(content);
     default:
       throw new ConfigError(
         `Unsupported configuration file type: ${ext}`,
@@ -169,42 +187,6 @@ async function loadJavaScript(filePath) {
 }
 
 /**
- * Parses .env file content
- * @private
- * @param {string} content - .env file content
- * @returns {Object} Parsed environment variables
- */
-function parseDotEnv(content) {
-  const result = {};
-  const lines = content.split('\n');
-
-  for (let line of lines) {
-    line = line.trim();
-
-    // Skip empty lines and comments
-    if (!line || line.startsWith('#')) continue;
-
-    const equalIndex = line.indexOf('=');
-    if (equalIndex === -1) continue;
-
-    const key = line.substring(0, equalIndex).trim();
-    let value = line.substring(equalIndex + 1).trim();
-
-    // Remove quotes if present
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    result[key] = value;
-  }
-
-  return result;
-}
-
-/**
  * Merges configuration with defaults
  * @private
  * @param {Object} config - Configuration object
@@ -222,42 +204,14 @@ function mergeWithDefaults(config, defaults) {
  * @returns {Object} Merged configuration
  */
 function mergeWithEnv(config) {
+  // Start with current config
   const result = { ...config };
-
-  // Map environment variables to config paths
-  const envMappings = {
-    PORT: 'server.port',
-    HOST: 'server.host',
-    NODE_ENV: 'environment',
-    LOG_LEVEL: 'logging.level',
-    DATABASE_URL: 'database.url',
-    REDIS_URL: 'redis.url',
-    API_KEY: 'api.key',
-    SECRET_KEY: 'security.secretKey',
-  };
-
-  // Apply environment variables
-  for (const [envKey, configPath] of Object.entries(envMappings)) {
-    const envValue = process.env[envKey];
-    if (envValue !== undefined) {
-      setNestedValue(result, configPath, envValue);
-      envCache[envKey] = envValue;
-    }
-  }
-
-  // Allow custom environment variable prefix
-  const prefix = config.envPrefix || 'APP_';
+  
+  // Cache environment variables for faster access
   for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith(prefix)) {
-      const configKey = key
-        .substring(prefix.length)
-        .toLowerCase()
-        .replace(/_/g, '.');
-      setNestedValue(result, configKey, value);
-      envCache[key] = value;
-    }
+    envCache[key] = value;
   }
-
+  
   return result;
 }
 
@@ -429,6 +383,9 @@ export function getEnv(key, defaultValue) {
  * @returns {Promise<Object>} Reloaded configuration
  */
 export async function reloadConfig(filePath) {
+  // Reload .env files first
+  loadDotEnvFiles();
+  
   if (!filePath && !configOptions.lastPath) {
     throw new ConfigError(
       'No configuration file path provided',
