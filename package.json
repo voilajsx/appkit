@@ -82,7 +82,10 @@
     "format": "prettier --write 'src/**/*.js'",
     "build:types": "tsc",
     "prepublishOnly": "npm test && npm run build:types",
-    "version": "npm test"
+    "version": "npm test",
+    "build:docs": "node scripts/build-docs.js",
+    "deploy:docs": "node scripts/build-docs.js && node scripts/deploy-docs.js",
+    "preview:docs": "npx serve gh-pages"
   },
   "keywords": [
     "nodejs",

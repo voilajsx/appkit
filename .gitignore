@@ -41,6 +41,7 @@ Thumbs.db
 # Build files
 dist/
 build/
+scripts/
 
 # Temporary files
 temp/
