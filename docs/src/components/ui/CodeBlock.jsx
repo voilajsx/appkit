@@ -169,6 +169,7 @@ function CodeBlock({
     (className?.startsWith('language-') ? className.replace('language-', '') : 'text');
   
   return (
+    <div className="code-block">
     <div className={`group relative my-6 rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border border-gray-700' : 'border border-indigo-100'} ${className}`}>
       {/* Optional file name or language badge */}
       {(fileName || showLanguageBadge) && (
@@ -256,6 +257,7 @@ function CodeBlock({
           )}
         </button>
       )}
+    </div>
     </div>
   );
 }

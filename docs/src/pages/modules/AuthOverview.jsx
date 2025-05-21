@@ -851,7 +851,7 @@ app.get('/admin', auth, adminOnly, (req, res) => {
             <h4 className="text-xl font-semibold mb-3">Sample Prompt: Complex Authorization</h4>
             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-sm text-gray-800 dark:text-gray-200 mb-2">
               Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a complex authorization system using @voilajsx/appkit/auth with:
-              <br/>- Hierarchical role structure (admin > manager > user)
+              <br/>- Hierarchical role structure (admin : manager : user)
               <br/>- Resource-based permissions (users can only access their own data)
               <br/>- Team-based access control
               <br/>- Audit logging for all authentication and authorization events

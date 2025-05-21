@@ -5,9 +5,12 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './styles/globals.css';
 
-// Set the basename based on environment
-// This aligns with your Vite config
-const basename = import.meta.env.PROD ? '/appkit/' : '/';
+// Get the base URL from Vite's environment variables
+// Vite automatically provides this, matching what you set in vite.config.js
+const basename = import.meta.env.BASE_URL;
+
+// Debug logging - you can remove this after confirming it works
+console.log('Base URL for routing:', basename);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
