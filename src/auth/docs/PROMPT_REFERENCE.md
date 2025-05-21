@@ -1,4 +1,4 @@
-# @voilajs/appkit/auth - LLM API Reference
+# @voilajsx/appkit/auth - LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.
@@ -288,5 +288,5 @@ function setupRoutes(app) {
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">voilajsx Team</a> — powering modern web development.
 </p>

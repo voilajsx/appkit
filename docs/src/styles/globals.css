@@ -1,0 +1,263 @@
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Global CSS for @voilajs/appkit documentation site
+ */
+
+:root {
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-200: #bae6fd;
+  --color-primary-300: #7dd3fc;
+  --color-primary-400: #38bdf8;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+  
+  /* VoilaJS brand colors */
+  --color-voila-blue: #4263eb;
+  --color-voila-purple: #7048e8;
+  --color-voila-orange: #f76707;
+
+  /* Font settings */
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-code: 'Fira Code', 'JetBrains Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --font-heading: 'Söhne', 'Inter', system-ui, sans-serif;
+  --font-logo: 'Raleway', 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+    line-height: 1.6;
+  }
+  
+  .logo {
+    font-family: var(--font-logo);
+  }
+  
+  /* Code styling */
+  code, pre, kbd {
+    font-family: var(--font-code);
+    font-variant-ligatures: normal;
+  }
+  
+  /* Inline code */
+  :not(pre) > code {
+    @apply bg-gray-100 dark:bg-gray-800 text-voila-blue dark:text-blue-400 px-1.5 py-0.5 rounded text-sm font-medium;
+  }
+  
+  /* Common heading styles - removed margins/paddings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+    font-family: var(--font-heading);
+    line-height: 1.2;
+  }
+  
+  h1 {
+    @apply text-4xl md:text-5xl;
+  }
+  
+  h2 {
+    @apply text-3xl md:text-4xl;
+  }
+  
+  h3 {
+    @apply text-2xl md:text-3xl;
+  }
+  
+  h4 {
+    @apply text-xl md:text-2xl;
+  }
+  
+  p {
+    @apply mb-4;
+  }
+  
+  ul, ol {
+    @apply pl-6 mb-6;
+  }
+  
+  li {
+    @apply mb-2;
+  }
+  
+  ul > li {
+    @apply list-disc;
+  }
+  
+  ol > li {
+    @apply list-decimal;
+  }
+  
+  p{
+    margin-bottom: 0px;
+  }
+  /* Links */
+  a:not([class]) {
+    @apply text-voila-blue hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+  
+  /* Focus outlines for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-blue-500;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-500;
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .font-code {
+    font-family: var(--font-code);
+  }
+}
+
+/* Container padding adjustments */
+@layer components {
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  .transition-default {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .code-block pre {
+    font-family: var(--font-code) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+  }
+}
+
+/* Dark mode adjustments */
+.dark .prose {
+  @apply prose-invert;
+}
+
+/* Table styling */
+.prose table {
+  @apply w-full my-8 text-sm border-collapse;
+}
+
+.prose thead {
+  @apply bg-gray-50 dark:bg-gray-800;
+}
+
+.prose th {
+  @apply px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300;
+}
+
+.prose td {
+  @apply px-4 py-3 border-t border-gray-200 dark:border-gray-700;
+}
+
+.prose tr:nth-child(even) {
+  @apply bg-gray-50 dark:bg-gray-800/50;
+}
+
+@keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+  
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  .sidebar-list, .sidebar-sublist {
+    list-style: none !important;
+    margin: 0 !important;
+    padding-left: 0.25rem !important;
+  }
+  
+  .sidebar-list-item, .sidebar-sublist-item {
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .sidebar-list-item::before, .sidebar-sublist-item::before,
+  .sidebar-list-item::marker, .sidebar-sublist-item::marker {
+    content: none !important;
+    display: none !important;
+  }
+  
+  .sidebar-link, .sidebar-sublink, .sidebar-module-button {
+    text-decoration: none !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  .sidebar-link.active, .sidebar-sublink.active, .sidebar-module-button.active {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    color: #3b82f6 !important;
+    font-weight: 500 !important;
+  }
+  
+  .dark .sidebar-link.active, .dark .sidebar-sublink.active, .dark .sidebar-module-button.active {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    color: #93c5fd !important;
+  }
+
+  @media (min-width: 768px){
+    h3{
+      font-size: 1.2rem;
+      line-height: 2.25rem;
+    }
+  }

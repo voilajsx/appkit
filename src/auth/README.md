@@ -1,11 +1,11 @@
-# @voilajs/appkit - Auth Module 🔐
+# @voilajsx/appkit - Auth Module 🔐
 
-[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > Secure, simple, and flexible authentication utilities for Node.js applications
 
-The Auth module of `@voilajs/appkit` provides robust authentication utilities
+The Auth module of `@voilajsx/appkit` provides robust authentication utilities
 including JWT token management, password hashing with bcrypt, and customizable
 middleware for protecting routes and enforcing role-based access control (RBAC).
 
@@ -33,7 +33,7 @@ The Auth module provides everything you need for modern authentication:
 ## 📦 Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ## 🏃‍♂️ Quick Start
@@ -48,7 +48,7 @@ import {
   verifyToken,
   hashPassword,
   createAuthMiddleware,
-} from '@voilajs/appkit/auth';
+} from '@voilajsx/appkit/auth';
 
 // Generate a JWT token
 const token = generateToken(
@@ -200,9 +200,9 @@ Here's where you can apply the auth module's functionality in your applications:
 ## 🤖 Code Generation with LLMs
 
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common authentication scenarios using the `@voilajs/appkit/auth` module.
+for common authentication scenarios using the `@voilajsx/appkit/auth` module.
 We've created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md)
+[PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md)
 document that's designed specifically for LLMs to understand the module's
 capabilities and generate high-quality authentication code.
 
@@ -218,7 +218,7 @@ requirements.
 #### Basic Auth Setup
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then create a complete authentication system for an Express app using @voilajs/appkit/auth with the following features:
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then create a complete authentication system for an Express app using @voilajsx/appkit/auth with the following features:
 - User registration with password hashing
 - Login with JWT token generation
 - Middleware for protected routes
@@ -228,7 +228,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Custom Authentication Flow
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a secure authentication flow for a React Native mobile app using @voilajs/appkit/auth that includes:
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a secure authentication flow for a React Native mobile app using @voilajsx/appkit/auth that includes:
 - Token storage in secure storage
 - Token refresh mechanism
 - Biometric authentication integration
@@ -238,7 +238,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Complex Authorization
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a complex authorization system using @voilajs/appkit/auth with:
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a complex authorization system using @voilajsx/appkit/auth with:
 - Hierarchical role structure (admin > manager > user)
 - Resource-based permissions (users can only access their own data)
 - Team-based access control
@@ -249,13 +249,13 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 
 For complete, working examples, check our examples folder:
 
-- [Password Basics](https://github.com/voilajs/appkit/blob/main/src/auth/examples/01-password-basics.js) -
+- [Password Basics](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/01-password-basics.js) -
   How to hash and verify passwords
-- [JWT Basics](https://github.com/voilajs/appkit/blob/main/src/auth/examples/02-jwt-basics.js) -
+- [JWT Basics](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/02-jwt-basics.js) -
   Working with JWT tokens
-- [Simple Middleware](https://github.com/voilajs/appkit/blob/main/src/auth/examples/03-simple-middleware.js) -
+- [Simple Middleware](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/03-simple-middleware.js) -
   Protecting routes with middleware
-- [Complete Demo App](https://github.com/voilajs/appkit/blob/main/src/auth/examples/auth-demo-app) -
+- [Complete Demo App](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/auth-demo-app) -
   A fully functional authentication system
 
 ## 🛡️ Security Best Practices
@@ -301,27 +301,27 @@ try {
 ## 📚 Documentation Links
 
 - 📘
-  [Developer REFERENCE](https://github.com/voilajs/appkit/blob/main/src/auth/docs/DEVELOPER_REFERENCE.md) -
+  [Developer REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/DEVELOPER_REFERENCE.md) -
   Detailed implementation guide with examples
 - 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/auth/docs/API_REFERENCE.md) -
+  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
+  [LLM Code Generation REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
 
 ## 🤝 Contributing
 
 We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
+[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
 for details.
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajs)
+MIT © [VoilaJS](https://github.com/voilajsx)
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development.
 </p>

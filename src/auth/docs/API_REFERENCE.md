@@ -2,14 +2,14 @@
 
 ## Overview
 
-The `@voilajs/appkit/auth` module provides secure authentication utilities for
+The `@voilajsx/appkit/auth` module provides secure authentication utilities for
 Node.js applications, including JWT token management, password hashing, and
 middleware for route protection and role-based access control.
 
 ## Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ## Quick Start
@@ -22,7 +22,7 @@ import {
   comparePassword,
   createAuthMiddleware,
   createAuthorizationMiddleware,
-} from '@voilajs/appkit/auth';
+} from '@voilajsx/appkit/auth';
 ```
 
 ## API Reference
@@ -385,5 +385,5 @@ MIT
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">voilajsx Team</a> — powering modern web development.
 </p>

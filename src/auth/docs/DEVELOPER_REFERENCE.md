@@ -38,7 +38,7 @@ that work with any Node.js framework.
 ### Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ### Basic Import
@@ -51,7 +51,7 @@ import {
   comparePassword,
   createAuthMiddleware,
   createAuthorizationMiddleware,
-} from '@voilajs/appkit/auth';
+} from '@voilajsx/appkit/auth';
 ```
 
 ## Password Security
@@ -64,7 +64,7 @@ bcrypt.
 Use `hashPassword` to securely hash passwords before storing them:
 
 ```javascript
-import { hashPassword } from '@voilajs/appkit/auth';
+import { hashPassword } from '@voilajsx/appkit/auth';
 
 // Basic usage - uses 10 rounds by default (recommended for most apps)
 const hash = await hashPassword('myPassword123');
@@ -102,7 +102,7 @@ user volume where performance might be a concern.
 Use `comparePassword` to check if a password matches its hash:
 
 ```javascript
-import { comparePassword } from '@voilajs/appkit/auth';
+import { comparePassword } from '@voilajsx/appkit/auth';
 
 const isValid = await comparePassword('myPassword123', hash);
 if (isValid) {
@@ -136,7 +136,7 @@ if (isValid) {
 Here's a real-world example of user registration and login:
 
 ```javascript
-import { hashPassword, comparePassword } from '@voilajs/appkit/auth';
+import { hashPassword, comparePassword } from '@voilajsx/appkit/auth';
 
 // User Registration
 async function registerUser(email, password) {
@@ -202,7 +202,7 @@ authentication.
 Use `generateToken` to create JWT tokens:
 
 ```javascript
-import { generateToken } from '@voilajs/appkit/auth';
+import { generateToken } from '@voilajsx/appkit/auth';
 
 // Basic token (expires in 7 days)
 const token = generateToken(
@@ -251,7 +251,7 @@ const secureToken = generateToken(
 Use `verifyToken` to validate and decode tokens:
 
 ```javascript
-import { verifyToken } from '@voilajs/appkit/auth';
+import { verifyToken } from '@voilajsx/appkit/auth';
 
 try {
   // Verify token
@@ -299,7 +299,7 @@ Email: user@example.com
 Here's how to implement a complete token-based authentication system:
 
 ```javascript
-import { generateToken, verifyToken } from '@voilajs/appkit/auth';
+import { generateToken, verifyToken } from '@voilajsx/appkit/auth';
 
 // Configuration
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -383,7 +383,7 @@ Authentication middleware protects your routes by verifying JWT tokens.
 Create middleware with just a secret:
 
 ```javascript
-import { createAuthMiddleware } from '@voilajs/appkit/auth';
+import { createAuthMiddleware } from '@voilajsx/appkit/auth';
 import express from 'express';
 
 const app = express();
@@ -538,7 +538,7 @@ errors differently depending on the environment.
 Here's a complete example with authentication and public routes:
 
 ```javascript
-import { createAuthMiddleware, generateToken } from '@voilajs/appkit/auth';
+import { createAuthMiddleware, generateToken } from '@voilajsx/appkit/auth';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 
@@ -619,7 +619,7 @@ Authorization middleware adds role-based access control (RBAC) to your routes.
 Protect routes based on user roles:
 
 ```javascript
-import { createAuthorizationMiddleware } from '@voilajs/appkit/auth';
+import { createAuthorizationMiddleware } from '@voilajsx/appkit/auth';
 
 // Single role
 const adminOnly = createAuthorizationMiddleware(['admin']);
@@ -734,7 +734,7 @@ Here's a complete example with different access levels:
 import {
   createAuthMiddleware,
   createAuthorizationMiddleware,
-} from '@voilajs/appkit/auth';
+} from '@voilajsx/appkit/auth';
 
 // Auth middleware
 const auth = createAuthMiddleware({
@@ -815,7 +815,7 @@ import {
   comparePassword,
   createAuthMiddleware,
   createAuthorizationMiddleware,
-} from '@voilajs/appkit/auth';
+} from '@voilajsx/appkit/auth';
 
 const app = express();
 app.use(express.json());
@@ -1088,10 +1088,10 @@ and authorization components into a cohesive whole.
 ## Additional Resources
 
 - 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/auth/docs/API_REFERENCE.md) -
+  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Code Generation Reference](https://github.com/voilajs/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
+  [LLM Code Generation Reference](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
 
 ## Best Practices
@@ -1129,5 +1129,5 @@ and authorization components into a cohesive whole.
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">voilajsx Team</a> — powering modern web development.
 </p>
