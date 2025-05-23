@@ -43,7 +43,7 @@ export default defineConfig({
 
   // For GitHub Pages deployment with repository name
   // Uses environment variable to determine base path for production
-  base: '/',
+  base: '/appkit/',
 
   // Server configuration for development
   server: {

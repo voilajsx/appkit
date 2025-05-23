@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `@voilajs/appkit/logging` module provides structured logging capabilities
+The `@voilajsx/appkit/logging` module provides structured logging capabilities
 with file storage and retention for Node.js applications. It includes automatic
 log rotation, retention policies, and support for multiple log levels and
 transports.
@@ -10,13 +10,13 @@ transports.
 ## Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ## Quick Start
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 
 const logger = createLogger();
 logger.info('Application started');

@@ -1,11 +1,11 @@
-# @voilajs/appkit - Logging Module 📝
+# @voilajsx/appkit - Logging Module 📝
 
-[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > Structured logging with file storage and retention for Node.js applications
 
-The Logging module of `@voilajs/appkit` provides a simple yet powerful logging
+The Logging module of `@voilajsx/appkit` provides a simple yet powerful logging
 system with automatic file rotation, retention policies, and support for
 contextual logging through child loggers.
 
@@ -32,7 +32,7 @@ The Logging module provides everything you need for robust application logging:
 ## 📦 Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ## 🏃‍♂️ Quick Start
@@ -41,7 +41,7 @@ Import only the functions you need and start using them right away. The logging
 module provides a simple, fluent API for all your logging needs.
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 
 // Create a logger with default settings
 const logger = createLogger();
@@ -172,7 +172,7 @@ applications:
 ## 🤖 Code Generation with LLMs
 
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common logging scenarios using the `@voilajs/appkit/logging` module. We've
+for common logging scenarios using the `@voilajsx/appkit/logging` module. We've
 created a specialized
 [PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md)
 document that's designed specifically for LLMs to understand the module's
@@ -189,7 +189,7 @@ optimized, best-practice logging code tailored to your specific requirements.
 #### Basic Logging Setup
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then create a complete logging system for an Express app using @voilajs/appkit/logging with the following features:
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then create a complete logging system for an Express app using @voilajsx/appkit/logging with the following features:
 - Structured logger initialization with custom retention policies
 - Request logging middleware with request IDs
 - Error handling middleware with detailed error logging
@@ -199,7 +199,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Microservice Logging
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement a logging system for a microservice architecture using @voilajs/appkit/logging that includes:
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement a logging system for a microservice architecture using @voilajsx/appkit/logging that includes:
 - Consistent request ID propagation across services
 - Correlation IDs for tracing requests
 - Service-specific context in all logs
@@ -209,7 +209,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Advanced Logging Patterns
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement advanced logging patterns using @voilajs/appkit/logging with:
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement advanced logging patterns using @voilajsx/appkit/logging with:
 - Hierarchical loggers for different application components
 - Redaction of sensitive information
 - Performance profiling with timing measurements

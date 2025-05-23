@@ -34,14 +34,14 @@ function Home() {
             </div>
             
             {/* Main title */}
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 logo">
+            <h1 className="text-4xl md:text-6xl font-extrabold mb-6 logo">
             <span className=" text-transparent bg-clip-text bg-gradient-to-r from-voila-blue via-blue-600 to-voila-purple">
                 @voilajsx/appkit
             </span>
             </h1>
             
             {/* Description */}
-            <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed mb-10">
+            <p className="text-lg md:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed mb-10">
             A minimal, framework-agnostic Node.js toolkit providing essential building blocks for modern applications.
             </p>
             
@@ -90,11 +90,13 @@ function Home() {
 
       {/* Key features section */}
     <div className="my-16 px-4 sm:px-6 lg:px-8">
+        
         <div className="max-w-3xl mx-auto text-center mb-10">
-            <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Key Principles</h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-            Built with modern practices for real-world applications.
-            </p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Key Principles</h2>
+          <div className="w-20 h-1 bg-blue-600 dark:bg-blue-500 mx-auto mt-3 mb-6 rounded-full"></div>
+          <p className="text-lg text-gray-600 dark:text-gray-300">
+          Built with modern practices for real-world applications.
+          </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -228,7 +230,7 @@ function Home() {
 
      
     {/* Modules section */}
-    <div className="mb-16 px-4 sm:px-6 lg:px-8">
+    <div className="mb-8 mt-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Modules Overview</h2>
             <div className="w-20 h-1 bg-blue-600 dark:bg-blue-500 mx-auto mt-3 mb-6 rounded-full"></div>
@@ -240,283 +242,271 @@ function Home() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Module</th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Key Methods</th>
-                </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/auth" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
+    <thead className="bg-gray-50 dark:bg-gray-900">
+        <tr>
+            <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Module</th>
+            <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
+            <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Key Methods</th>
+        </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/auth" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
                         <span className="text-lg">🔐</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Auth</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Authentication and authorization utilities</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-mono">generateToken</code>
-                        <code className="inline-block text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-mono">verifyToken</code>
-                        <code className="inline-block text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-mono">hashPassword</code>
                     </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/tenantdb" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">🏢</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">TenantDB</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Multi-tenant database management</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md font-mono">createDb</code>
-                        <code className="inline-block text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md font-mono">forTenant</code>
-                        <code className="inline-block text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md font-mono">createTenant</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/cache" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mr-3">
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Auth</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Authentication and authorization utilities</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-mono">generateToken</code>
+                    <code className="inline-block text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-mono">verifyToken</code>
+                    <code className="inline-block text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-md font-mono">hashPassword</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/cache" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mr-3">
                         <span className="text-lg">⚡</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Cache</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Caching with in-memory or Redis strategies</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md font-mono">createCache</code>
-                        <code className="inline-block text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md font-mono">get</code>
-                        <code className="inline-block text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md font-mono">set</code>
                     </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/events" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">📡</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Events</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Pub/sub event bus for decoupled communication</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded-md font-mono">subscribe</code>
-                        <code className="inline-block text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded-md font-mono">publish</code>
-                        <code className="inline-block text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded-md font-mono">unsubscribe</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/security" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-red-50 dark:bg-red-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">🛡️</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Security</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">CSRF protection, rate limiting, and sanitization</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-2 py-1 rounded-md font-mono">createCsrfMiddleware</code>
-                        <code className="inline-block text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-2 py-1 rounded-md font-mono">createRateLimiter</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/error" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-orange-50 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">🚨</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Error</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Consistent error handling and formatting</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md font-mono">createError</code>
-                        <code className="inline-block text-xs bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md font-mono">notFoundError</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/logging" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">📝</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Logging</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Structured logging with multiple transports</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md font-mono">createLogger</code>
-                        <code className="inline-block text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md font-mono">info</code>
-                        <code className="inline-block text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md font-mono">error</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/storage" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-teal-50 dark:bg-teal-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">💾</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Storage</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">File storage abstraction for local and cloud providers</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-md font-mono">initStorage</code>
-                        <code className="inline-block text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-md font-mono">upload</code>
-                        <code className="inline-block text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-md font-mono">download</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/email" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-sky-50 dark:bg-sky-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">📧</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Email</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Template-based email sending</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 px-2 py-1 rounded-md font-mono">initEmail</code>
-                        <code className="inline-block text-xs bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 px-2 py-1 rounded-md font-mono">sendEmail</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/queue" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-rose-50 dark:bg-rose-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">⏱️</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Queue</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Background job processing</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-2 py-1 rounded-md font-mono">initQueue</code>
-                        <code className="inline-block text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-2 py-1 rounded-md font-mono">addJob</code>
-                        <code className="inline-block text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-2 py-1 rounded-md font-mono">processJob</code>
-                    </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/config" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-cyan-50 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mr-3">
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Cache</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Caching with in-memory or Redis strategies</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md font-mono">createCache</code>
+                    <code className="inline-block text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md font-mono">get</code>
+                    <code className="inline-block text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md font-mono">set</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/config" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-cyan-50 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mr-3">
                         <span className="text-lg">⚙️</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Config</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Environment-based configuration management</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md font-mono">loadConfig</code>
-                        <code className="inline-block text-xs bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md font-mono">getConfig</code>
                     </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/validation" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-lime-50 dark:bg-lime-900/30 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-lg">✓</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Validation</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Schema-based data validation</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-lime-50 dark:bg-lime-900/20 text-lime-700 dark:text-lime-300 px-2 py-1 rounded-md font-mono">createValidator</code>
-                        <code className="inline-block text-xs bg-lime-50 dark:bg-lime-900/20 text-lime-700 dark:text-lime-300 px-2 py-1 rounded-md font-mono">validate</code>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Config</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Environment-based configuration management</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md font-mono">loadConfig</code>
+                    <code className="inline-block text-xs bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md font-mono">getConfig</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/email" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-sky-50 dark:bg-sky-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">📧</span>
                     </div>
-                    </td>
-                </tr>
-                
-                <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <a href="/docs/utils" className="flex items-center group">
-                        <div className="flex-shrink-0 w-9 h-9 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-center mr-3">
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Email</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Template-based email sending</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 px-2 py-1 rounded-md font-mono">initEmail</code>
+                    <code className="inline-block text-xs bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 px-2 py-1 rounded-md font-mono">sendEmail</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/error" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-orange-50 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">🚨</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Error</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Consistent error handling and formatting</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md font-mono">createError</code>
+                    <code className="inline-block text-xs bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-md font-mono">notFoundError</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/events" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">📡</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Events</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Pub/sub event bus for decoupled communication</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded-md font-mono">subscribe</code>
+                    <code className="inline-block text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded-md font-mono">publish</code>
+                    <code className="inline-block text-xs bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 px-2 py-1 rounded-md font-mono">unsubscribe</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/logging" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">📝</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Logging</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Structured logging with multiple transports</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md font-mono">createLogger</code>
+                    <code className="inline-block text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md font-mono">info</code>
+                    <code className="inline-block text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md font-mono">error</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/queue" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-rose-50 dark:bg-rose-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">⏱️</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Queue</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Background job processing</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-2 py-1 rounded-md font-mono">initQueue</code>
+                    <code className="inline-block text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-2 py-1 rounded-md font-mono">addJob</code>
+                    <code className="inline-block text-xs bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 px-2 py-1 rounded-md font-mono">processJob</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/security" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-red-50 dark:bg-red-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">🛡️</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Security</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">CSRF protection, rate limiting, and sanitization</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-2 py-1 rounded-md font-mono">createCsrfMiddleware</code>
+                    <code className="inline-block text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 px-2 py-1 rounded-md font-mono">createRateLimiter</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/storage" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-teal-50 dark:bg-teal-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">💾</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Storage</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">File storage abstraction for local and cloud providers</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-md font-mono">initStorage</code>
+                    <code className="inline-block text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-md font-mono">upload</code>
+                    <code className="inline-block text-xs bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-md font-mono">download</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/tenantdb" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">🏢</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">TenantDB</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Multi-tenant database management</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md font-mono">createDb</code>
+                    <code className="inline-block text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md font-mono">forTenant</code>
+                    <code className="inline-block text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-md font-mono">createTenant</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/utils" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center justify-center mr-3">
                         <span className="text-lg">🔧</span>
-                        </div>
-                        <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Utils</span>
-                    </a>
-                    </td>
-                    <td className="px-6 py-4">
-                    <span className="text-gray-700 dark:text-gray-300">Helper functions for data manipulation and async tasks</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                    <div className="flex flex-wrap gap-2">
-                        <code className="inline-block text-xs bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md font-mono">pick</code>
-                        <code className="inline-block text-xs bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md font-mono">deepMerge</code>
-                        <code className="inline-block text-xs bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md font-mono">retry</code>
                     </div>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Utils</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Helper functions for data manipulation and async tasks</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md font-mono">pick</code>
+                    <code className="inline-block text-xs bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md font-mono">deepMerge</code>
+                    <code className="inline-block text-xs bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-md font-mono">retry</code>
+                </div>
+            </td>
+        </tr>
+        <tr className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td className="px-6 py-4 whitespace-nowrap">
+                <a href="/appkit/docs/validation" className="flex items-center group">
+                    <div className="flex-shrink-0 w-9 h-9 bg-lime-50 dark:bg-lime-900/30 rounded-lg flex items-center justify-center mr-3">
+                        <span className="text-lg">✓</span>
+                    </div>
+                    <span className="font-medium text-blue-600 dark:text-blue-400 group-hover:underline">Validation</span>
+                </a>
+            </td>
+            <td className="px-6 py-4">
+                <span className="text-gray-700 dark:text-gray-300">Schema-based data validation</span>
+            </td>
+            <td className="px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-2">
+                    <code className="inline-block text-xs bg-lime-50 dark:bg-lime-900/20 text-lime-700 dark:text-lime-300 px-2 py-1 rounded-md font-mono">createValidator</code>
+                    <code className="inline-block text-xs bg-lime-50 dark:bg-lime-900/20 text-lime-700 dark:text-lime-300 px-2 py-1 rounded-md font-mono">validate</code>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
             </div>
         </div>
         
@@ -531,8 +521,7 @@ function Home() {
     </div>
 
       {/* Why use section */}
-      {/* Why use section */}
-<div className="mb-16 px-4 sm:px-6 lg:px-8">
+<div className="mb-8 mt-16 px-4 sm:px-6 lg:px-8">
   <div className="max-w-3xl mx-auto text-center mb-10">
     <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Why Use AppKit?</h2>
     <div className="w-20 h-1 bg-blue-600 dark:bg-blue-500 mx-auto mt-3 mb-6 rounded-full"></div>

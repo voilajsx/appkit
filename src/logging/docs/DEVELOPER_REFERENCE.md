@@ -34,17 +34,17 @@ effectively.
 ### Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ### Basic Import
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 import {
   ConsoleTransport,
   FileTransport,
-} from '@voilajs/appkit/logging/transports';
+} from '@voilajsx/appkit/logging/transports';
 ```
 
 ## Basic Logging
@@ -55,7 +55,7 @@ metadata for better searchability and analysis.
 ### Basic Usage
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 
 // Create a logger with default settings
 const logger = createLogger();
@@ -130,7 +130,7 @@ centralized logging systems like ELK Stack or Datadog.
 ### Complete Example
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 
 // Configure logger for production
 const logger = createLogger({
@@ -228,8 +228,8 @@ consume significant disk space, potentially impacting application performance.
 ### Advanced Usage
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
-import { FileTransport } from '@voilajs/appkit/logging/transports';
+import { createLogger } from '@voilajsx/appkit/logging';
+import { FileTransport } from '@voilajsx/appkit/logging/transports';
 
 // Custom file logging configuration
 const logger = createLogger({
@@ -275,11 +275,11 @@ be preserved.
 ### Complete Example
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 import {
   ConsoleTransport,
   FileTransport,
-} from '@voilajs/appkit/logging/transports';
+} from '@voilajsx/appkit/logging/transports';
 
 // Production logging setup with multiple transports
 function createProductionLogger(service) {
@@ -427,7 +427,7 @@ through the system.
 ### Complete Example
 
 ```javascript
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 import express from 'express';
 
 const app = express();
@@ -538,7 +538,7 @@ specialized logging behavior.
 ### Basic Usage
 
 ```javascript
-import { BaseTransport } from '@voilajs/appkit/logging/transports/base';
+import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
 
 class CustomTransport extends BaseTransport {
   async log(entry) {
@@ -571,7 +571,7 @@ requirements.
 ### Advanced Usage
 
 ```javascript
-import { BaseTransport } from '@voilajs/appkit/logging/transports/base';
+import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
 
 // External service transport
 class DatadogTransport extends BaseTransport {
@@ -619,8 +619,8 @@ appropriate service without changing your application's logging code.
 ### Complete Example
 
 ```javascript
-import { BaseTransport } from '@voilajs/appkit/logging/transports/base';
-import { createLogger } from '@voilajs/appkit/logging';
+import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
+import { createLogger } from '@voilajsx/appkit/logging';
 
 // Database transport for audit logging
 class DatabaseTransport extends BaseTransport {
@@ -735,11 +735,11 @@ Here's a production-ready example showing all features working together:
 
 ```javascript
 import express from 'express';
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '@voilajsx/appkit/logging';
 import {
   ConsoleTransport,
   FileTransport,
-} from '@voilajs/appkit/logging/transports';
+} from '@voilajsx/appkit/logging/transports';
 
 // Create main application logger
 const logger = createLogger({

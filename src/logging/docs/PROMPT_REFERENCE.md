@@ -1,4 +1,4 @@
-# @voilajs/appkit/logging LLM API Reference
+# @voilajsx/appkit/logging LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.

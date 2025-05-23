@@ -62,7 +62,7 @@ function MainLayout({ children }) {
         
         {/* Main content area */}
         <main className={`flex-1 w-full transition-all duration-200`}>
-          <div className="container px-4 py-8   mx-auto">
+          <div className="container px-0 md:px-4 py-4   mx-auto">
             {children}
           </div>
         </main>
