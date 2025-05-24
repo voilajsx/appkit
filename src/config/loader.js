@@ -24,11 +24,11 @@ loadDotEnvFiles();
 function loadDotEnvFiles() {
   // Load base .env file
   dotenv.config();
-  
+
   // Load environment-specific .env file
   const env = process.env.NODE_ENV || 'development';
   dotenv.config({ path: `.env.${env}` });
-  
+
   // Load local overrides (not committed to version control)
   dotenv.config({ path: '.env.local' });
 }
@@ -48,6 +48,7 @@ export async function loadConfig(pathOrConfig, options = {}) {
     env: options.env !== false,
     watch: options.watch || false,
     interpolate: options.interpolate !== false,
+    map: options.map, // Ensure map is stored in configOptions
   };
 
   try {
@@ -65,12 +66,12 @@ export async function loadConfig(pathOrConfig, options = {}) {
       );
     }
 
-    // Merge with defaults
+    // Merge with defaults first (important for building structure)
     config = mergeWithDefaults(config, configOptions.defaults);
 
-    // Load environment variables
+    // Load environment variables using the map
     if (configOptions.env) {
-      config = mergeWithEnv(config);
+      config = mergeWithEnv(config, configOptions.map); // Pass the map here
     }
 
     // Interpolate variables
@@ -190,6 +191,7 @@ async function loadJavaScript(filePath) {
  * Merges configuration with defaults
  * @private
  * @param {Object} config - Configuration object
+ *
  * @param {Object} defaults - Default values
  * @returns {Object} Merged configuration
  */
@@ -201,17 +203,29 @@ function mergeWithDefaults(config, defaults) {
  * Merges configuration with environment variables
  * @private
  * @param {Object} config - Configuration object
+ * @param {Object} envMap - The environment variable mapping
  * @returns {Object} Merged configuration
  */
-function mergeWithEnv(config) {
-  // Start with current config
+function mergeWithEnv(config, envMap) {
   const result = { ...config };
-  
-  // Cache environment variables for faster access
+
+  // Cache all environment variables
   for (const [key, value] of Object.entries(process.env)) {
     envCache[key] = value;
   }
-  
+
+  // --- FIX: Apply mapped environment variables to the config ---
+  if (envMap) {
+    for (const [envVarName, configPath] of Object.entries(envMap)) {
+      const envValue = process.env[envVarName];
+      // Only set if the environment variable exists and is not undefined/null
+      if (envValue !== undefined) {
+        setNestedValue(result, configPath, envValue);
+      }
+    }
+  }
+  // --- END FIX ---
+
   return result;
 }
 
@@ -385,7 +399,7 @@ export function getEnv(key, defaultValue) {
 export async function reloadConfig(filePath) {
   // Reload .env files first
   loadDotEnvFiles();
-  
+
   if (!filePath && !configOptions.lastPath) {
     throw new ConfigError(
       'No configuration file path provided',
