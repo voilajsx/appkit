@@ -597,5 +597,5 @@ const decryptedSSN = decrypt(encryptedSSN, encryptionKey, aad);
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web  
 </p>
