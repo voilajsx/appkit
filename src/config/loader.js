@@ -5,7 +5,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv'; // Add dotenv dependency
+import dotenv from 'dotenv';
 import { ConfigError } from './errors.js';
 import { validateConfig } from './validator.js';
 
@@ -22,15 +22,15 @@ loadDotEnvFiles();
  * @private
  */
 function loadDotEnvFiles() {
-  // Load base .env file
+  // Load base .env file (lowest precedence)
   dotenv.config();
 
-  // Load environment-specific .env file
+  // Load environment-specific .env file, overriding base
   const env = process.env.NODE_ENV || 'development';
-  dotenv.config({ path: `.env.${env}` });
+  dotenv.config({ path: `.env.${env}`, override: true });
 
-  // Load local overrides (not committed to version control)
-  dotenv.config({ path: '.env.local' });
+  // Load local overrides (highest precedence)
+  dotenv.config({ path: '.env.local', override: true });
 }
 
 /**
@@ -40,9 +40,9 @@ function loadDotEnvFiles() {
  * @returns {Object} Loaded configuration
  */
 export async function loadConfig(pathOrConfig, options = {}) {
+  // Removed 'required' option as it's now handled solely by schema
   configOptions = {
     defaults: options.defaults || {},
-    required: options.required || [],
     validate: options.validate !== false,
     schema: options.schema,
     env: options.env !== false,
@@ -71,7 +71,7 @@ export async function loadConfig(pathOrConfig, options = {}) {
 
     // Load environment variables using the map
     if (configOptions.env) {
-      config = mergeWithEnv(config, configOptions.map); // Pass the map here
+      config = mergeWithEnv(config, configOptions.map);
     }
 
     // Interpolate variables
@@ -79,8 +79,7 @@ export async function loadConfig(pathOrConfig, options = {}) {
       config = interpolateVariables(config);
     }
 
-    // Validate required fields
-    validateRequiredFields(config, configOptions.required);
+    // Removed validateRequiredFields as schema validation handles required fields
 
     // Validate against schema if provided
     if (configOptions.validate && configOptions.schema) {
@@ -191,7 +190,6 @@ async function loadJavaScript(filePath) {
  * Merges configuration with defaults
  * @private
  * @param {Object} config - Configuration object
- *
  * @param {Object} defaults - Default values
  * @returns {Object} Merged configuration
  */
@@ -214,17 +212,15 @@ function mergeWithEnv(config, envMap) {
     envCache[key] = value;
   }
 
-  // --- FIX: Apply mapped environment variables to the config ---
+  // Apply mapped environment variables to the config
   if (envMap) {
     for (const [envVarName, configPath] of Object.entries(envMap)) {
       const envValue = process.env[envVarName];
-      // Only set if the environment variable exists and is not undefined/null
       if (envValue !== undefined) {
         setNestedValue(result, configPath, envValue);
       }
     }
   }
-  // --- END FIX ---
 
   return result;
 }
@@ -292,29 +288,7 @@ function interpolateString(str, context) {
   });
 }
 
-/**
- * Validates required fields
- * @private
- * @param {Object} config - Configuration object
- * @param {Array<string>} required - Required field paths
- */
-function validateRequiredFields(config, required) {
-  const missing = [];
-
-  for (const field of required) {
-    if (getNestedValue(config, field) === undefined) {
-      missing.push(field);
-    }
-  }
-
-  if (missing.length > 0) {
-    throw new ConfigError(
-      `Missing required configuration fields: ${missing.join(', ')}`,
-      'MISSING_REQUIRED_FIELDS',
-      { missing }
-    );
-  }
-}
+// Removed validateRequiredFields as schema validation now handles required fields
 
 /**
  * Watches configuration file for changes
@@ -410,6 +384,7 @@ export async function reloadConfig(filePath) {
   const path = filePath || configOptions.lastPath;
   configOptions.lastPath = path;
 
+  // Pass current configOptions to loadConfig for consistent reload
   return loadConfig(path, configOptions);
 }
 

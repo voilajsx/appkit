@@ -1,11 +1,12 @@
-# @voilajs/appkit - Config Module 🔧
 
-[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+# @voilajsx/appkit - Config Module 🔧
+
+[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > Robust, flexible configuration management for Node.js applications
 
-The Config module of `@voilajs/appkit` provides powerful configuration
+The Config module of `@voilajsx/appkit` provides powerful configuration
 management utilities including loading from multiple sources, validation,
 environment variable integration, and real-time configuration updates.
 
@@ -16,8 +17,8 @@ configuration:
 
 | Feature               | What it does                            | Main functions                                            |
 | --------------------- | --------------------------------------- | --------------------------------------------------------- |
-| **Config Loading**    | Load configuration from various sources | `loadConfig()`, `reloadConfig()`                          |
-| **Config Access**     | Retrieve configuration values           | `getConfig()`, `hasConfig()`, `getEnv()`                  |
+| **Config Loading** | Load configuration from various sources | `loadConfig()`, `reloadConfig()`                          |
+| **Config Access** | Retrieve configuration values           | `getConfig()`, `hasConfig()`, `getEnv()`                  |
 | **Schema Validation** | Validate configuration structure        | `validateConfig()`, `defineSchema()`, `getConfigSchema()` |
 | **Config Management** | Update and manage configuration         | `setConfig()`, `clearConfig()`                            |
 
@@ -36,8 +37,8 @@ configuration:
 ## 📦 Installation
 
 ```bash
-npm install @voilajs/appkit
-```
+npm install @voilajsx/appkit
+````
 
 ## 🏃‍♂️ Quick Start
 
@@ -46,12 +47,11 @@ module provides simple functions for loading and accessing configuration from
 various sources.
 
 ```javascript
-import { loadConfig, getConfig } from '@voilajs/appkit/config';
+import { loadConfig, getConfig } from '@voilajsx/appkit/config';
 
 // Load configuration
 const config = await loadConfig('./config.json', {
   defaults: { server: { port: 3000 } },
-  required: ['database.url'],
 });
 
 // Access configuration values
@@ -82,7 +82,6 @@ const config = await loadConfig('./config.json');
 // Load with options
 const config = await loadConfig('./config.json', {
   defaults: { server: { port: 3000 } },
-  required: ['database.url'],
   schema: 'app',
   env: true,
 });
@@ -180,7 +179,6 @@ configuration system works. Here are the customization options available:
 | Option        | Description                             | Default     | Example                            |
 | ------------- | --------------------------------------- | ----------- | ---------------------------------- |
 | `defaults`    | Default values to merge with config     | `{}`        | `{ server: { port: 3000 } }`       |
-| `required`    | Required configuration paths            | `[]`        | `['database.url', 'api.key']`      |
 | `validate`    | Whether to validate configuration       | `true`      | `false` to skip validation         |
 | `schema`      | Schema to validate against              | `undefined` | `'app'` or schema object           |
 | `env`         | Enable environment variable integration | `true`      | `false` to disable env integration |
@@ -200,9 +198,6 @@ const config = await loadConfig('./config.json', {
       level: 'info',
     },
   },
-
-  // Specify required fields
-  required: ['database.url', 'api.key'],
 
   // Enable validation against schema
   validate: true,
@@ -226,25 +221,25 @@ applications:
 
 | Category                  | Use Case                       | Description                                   | Components Used                            |
 | ------------------------- | ------------------------------ | --------------------------------------------- | ------------------------------------------ |
-| **Application Setup**     | Environment Configuration      | Load different config per environment         | `loadConfig()`, environment integration    |
+| **Application Setup** | Environment Configuration      | Load different config per environment         | `loadConfig()`, environment integration    |
 |                           | Feature Flags                  | Toggle features without code changes          | `getConfig()`, `hasConfig()`               |
 |                           | App Initialization             | Bootstrap application with correct settings   | `loadConfig()` with validation             |
-| **Runtime Management**    | Dynamic Configuration          | Update configuration during runtime           | `setConfig()`, `reloadConfig()`            |
+| **Runtime Management** | Dynamic Configuration          | Update configuration during runtime           | `setConfig()`, `reloadConfig()`            |
 |                           | Configuration Overrides        | Allow command-line or runtime overrides       | `setConfig()` with existing config         |
 |                           | Auto-reload During Development | Refresh configuration during development      | `loadConfig()` with `watch: true`          |
 | **Security & Validation** | Secret Management              | Securely access sensitive information         | `getEnv()` for environment variables       |
 |                           | Schema Validation              | Ensure configuration meets requirements       | `defineSchema()`, `validateConfig()`       |
 |                           | Type Safety                    | Prevent type errors in configuration          | Schema validation with type constraints    |
-| **Integration**           | External Service Configuration | Configure connections to external services    | Nested configuration with validation       |
+| **Integration** | External Service Configuration | Configure connections to external services    | Nested configuration with validation       |
 |                           | Database Settings              | Manage database connection parameters         | Configuration with environment integration |
 |                           | Distributed Application Config | Share configuration across service boundaries | Standardized configuration format          |
 
 ## 🤖 Code Generation with LLMs
 
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common configuration scenarios using the `@voilajs/appkit/config` module.
+for common configuration scenarios using the `@voilajsx/appkit/config` module.
 We've created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md)
+[PROMPT\_REFERENCE.md](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md)
 document that's designed specifically for LLMs to understand the module's
 capabilities and generate high-quality configuration code.
 
@@ -260,7 +255,7 @@ requirements.
 #### Basic Configuration Setup
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md and then implement a configuration system for my Express app that includes:
+Please read the API reference at [https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) and then implement a configuration system for my Express app that includes:
 - Loading from different files per environment (dev, staging, prod)
 - Schema validation for required fields
 - Environment variable integration
@@ -270,7 +265,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Advanced Configuration System
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md and then implement an advanced configuration system using @voilajs/appkit/config with:
+Please read the API reference at [https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) and then implement an advanced configuration system using @voilajsx/appkit/config with:
 - Configuration schema with nested validation
 - Custom validation rules for specific fields
 - Configuration inspector middleware for Express
@@ -280,7 +275,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Multi-environment Configuration
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md and then implement a configuration system for a microservice architecture using @voilajs/appkit/config with:
+Please read the API reference at [https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) and then implement a configuration system for a microservice architecture using @voilajsx/appkit/config with:
 - Base configuration shared across all services
 - Service-specific configuration overrides
 - Environment-specific settings (development, staging, production)
@@ -292,39 +287,39 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 
 For complete, working examples, check our examples folder:
 
-- [Basic Usage](https://github.com/voilajs/appkit/blob/main/src/config/examples/01-basic-usage.js) -
-  Loading and accessing configuration
-- [Environment Variables](https://github.com/voilajs/appkit/blob/main/src/config/examples/02-environment-variables.js) -
-  Working with environment variables
-- [Schema Validation](https://github.com/voilajs/appkit/blob/main/src/config/examples/03-schema-validation.js) -
-  Validating configuration with schemas
-- [Dynamic Config](https://github.com/voilajs/appkit/blob/main/src/config/examples/04-dynamic-config.js) -
-  Updating configuration at runtime
-- [Express App](https://github.com/voilajs/appkit/blob/main/src/config/examples/express-app.js) -
-  Using configuration in an Express application
+  - [Basic Usage](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/01-basic-usage.js) -
+    Loading and accessing configuration
+  - [Environment Variables](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/02-environment-variables.js) -
+    Working with environment variables
+  - [Schema Validation](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/03-schema-validation.js) -
+    Validating configuration with schemas
+  - [Dynamic Config](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/04-dynamic-config.js) -
+    Updating configuration at runtime
+  - [Express App](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/express-app.js) -
+    Using configuration in an Express application
 
 ## 🛡️ Configuration Best Practices
 
 Following these practices will help ensure your configuration system remains
 secure and maintainable:
 
-1. **Store secrets in environment variables**, not in configuration files
-2. **Use validation schemas** to catch configuration errors early
-3. **Implement environment-specific configs** for different stages
-   (dev/staging/prod)
-4. **Never commit sensitive configuration** to version control
-5. **Use namespaced configuration** to organize settings logically
-6. **Document your configuration schema** for team members and future reference
-7. **Implement reasonable defaults** for optional configuration
+1.  **Store secrets in environment variables**, not in configuration files
+2.  **Use validation schemas** to catch configuration errors early
+3.  **Implement environment-specific configs** for different stages
+    (dev/staging/prod)
+4.  **Never commit sensitive configuration** to version control
+5.  **Use namespaced configuration** to organize settings logically
+6.  **Document your configuration schema** for team members and future reference
+7.  **Implement reasonable defaults** for optional configuration
 
 ## 📊 Performance Considerations
 
-- **Cache frequently accessed values** rather than calling `getConfig()`
-  repeatedly
-- **Only enable file watching** in development environments
-- **Use appropriate schema complexity** based on your validation needs
-- **Consider configuration load time** in application startup
-- **Be mindful of deep nesting** in your configuration structure
+  - **Cache frequently accessed values** rather than calling `getConfig()`
+    repeatedly
+  - **Only enable file watching** in development environments
+  - **Use appropriate schema complexity** based on your validation needs
+  - **Consider configuration load time** in application startup
+  - **Be mindful of deep nesting** in your configuration structure
 
 ## 🔍 Error Handling
 
@@ -333,15 +328,13 @@ appropriately:
 
 ```javascript
 try {
-  await loadConfig('./config.json', {
-    required: ['database.url', 'api.key'],
-  });
+  await loadConfig('./config.json'); // Updated: Removed 'required' option
 } catch (error) {
   switch (error.code) {
     case 'FILE_NOT_FOUND':
       console.error('Configuration file not found. Please check the path.');
       break;
-    case 'MISSING_REQUIRED_FIELDS':
+    case 'MISSING_REQUIRED_FIELDS': // This case is still valid if schema.required fields are missing
       console.error('Missing required configuration:', error.details.missing);
       break;
     case 'VALIDATION_ERROR':
@@ -364,28 +357,30 @@ try {
 
 ## 📚 Documentation Links
 
-- 📘
-  [Developer Reference](https://github.com/voilajs/appkit/blob/main/src/config/docs/DEVELOPER_REFERENCE.md) -
-  Detailed implementation guide with examples
-- 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/config/docs/API_REFERENCE.md) -
-  Complete API documentation
-- 📙
-  [LLM Code Generation Reference](https://github.com/voilajs/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) -
-  Guide for AI/LLM code generation
+  - 📘
+    [Developer Reference](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/DEVELOPER_REFERENCE.md) -
+    Detailed implementation guide with examples
+  - 📗
+    [API Reference](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/API_REFERENCE.md) -
+    Complete API documentation
+  - 📙
+    [LLM Code Generation Reference](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) -
+    Guide for AI/LLM code generation
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
+We welcome contributions\! Please see our
+[Contributing Guide](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
 for details.
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajs)
+MIT © [VoilaJS](https://www.google.com/search?q=https://github.com/voilajsx)
 
----
+-----
 
-<p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
-</p>
+\<p align="center"\>
+Built with ❤️ in India by the \<a href="https://github.com/orgs/voilajsx/people"\>VoilaJS Team\</a\> — powering modern web development.
+\</p\>
+
+```

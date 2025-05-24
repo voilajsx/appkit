@@ -1,4 +1,5 @@
-# @voilajs/appkit/config - LLM API Reference
+
+# @voilajsx/appkit/config - LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.
@@ -7,41 +8,47 @@
 
 1. **Adhere to Code Style**:
 
-   - ESM imports, single quotes, 2-space indentation, semicolons
-   - Always include JSDoc comments for functions
+  - ESM imports, single quotes, 2-space indentation, semicolons
+  - Always include JSDoc comments for functions
 
 2. **JSDoc Format** (Required for all functions):
 
-   ```javascript
-   /**
-    * Function description
-    * @param {Type} paramName - Parameter description
-    * @returns {ReturnType} Return value description
-    * @throws {Error} Error conditions
-    */
-   ```
+  ```javascript
+  /**
+   * Function description
+   * @param {Type} paramName - Parameter description
+   * @returns {ReturnType} Return value description
+   * @throws {Error} Error conditions
+   */
+````
 
-3. **Error Handling**:
+3.  **Error Handling**:
 
-   - Use try/catch blocks for async functions
-   - Check parameters before using them
-   - Throw descriptive ConfigError instances with appropriate error codes
+<!-- end list -->
 
-4. **Framework Agnostic**:
-   - Code should work with any Node.js framework
-   - Avoid framework-specific dependencies
+  - Use try/catch blocks for async functions
+  - Check parameters before using them
+  - Throw descriptive ConfigError instances with appropriate error codes
+
+<!-- end list -->
+
+4.  **Framework Agnostic**:
+
+<!-- end list -->
+
+  - Code should work with any Node.js framework
+  - Avoid framework-specific dependencies
 
 ## Function Signatures
 
-### 1. `loadConfig`
+### 1\. `loadConfig`
 
 ```typescript
 async function loadConfig(
   pathOrConfig: string | Record<string, any>,
   options?: {
     defaults?: Record<string, any>;
-    required?: string[];
-    validate?: boolean;
+    validate?: boolean; // Updated: removed 'required' option
     schema?: string | Record<string, any>;
     env?: boolean;
     watch?: boolean;
@@ -50,69 +57,68 @@ async function loadConfig(
 ): Promise<Record<string, any>>;
 ```
 
-- Default `options`: `{}`
-- Default `options.defaults`: `{}`
-- Default `options.required`: `[]`
-- Default `options.validate`: `true`
-- Default `options.env`: `true`
-- Default `options.watch`: `false`
-- Default `options.interpolate`: `true`
-- Throws: Various `ConfigError` types with different codes
+  - Default `options`: `{}`
+  - Default `options.defaults`: `{}`
+  - Default `options.validate`: `true`
+  - Default `options.env`: `true`
+  - Default `options.watch`: `false`
+  - Default `options.interpolate`: `true`
+  - Throws: Various `ConfigError` types with different codes
 
-### 2. `setConfig`
+### 2\. `setConfig`
 
 ```typescript
 function setConfig(config: Record<string, any>): void;
 ```
 
-- Throws: `ConfigError` with code `'INVALID_CONFIG_TYPE'` if config is not an
-  object
+  - Throws: `ConfigError` with code `'INVALID_CONFIG_TYPE'` if config is not an
+    object
 
-### 3. `getConfig`
+### 3\. `getConfig`
 
 ```typescript
 function getConfig(key?: string, defaultValue?: any): any;
 ```
 
-- Returns entire config object if no key is provided
-- Returns nested value if key uses dot notation (e.g., `'server.port'`)
-- Returns `defaultValue` if the key is not found
+  - Returns entire config object if no key is provided
+  - Returns nested value if key uses dot notation (e.g., `'server.port'`)
+  - Returns `defaultValue` if the key is not found
 
-### 4. `getEnv`
+### 4\. `getEnv`
 
 ```typescript
 function getEnv(key: string, defaultValue?: any): string | undefined;
 ```
 
-- Returns the environment variable value from cache or process.env
-- Returns `defaultValue` if the environment variable is not defined
+  - Returns the environment variable value from cache or process.env
+  - Returns `defaultValue` if the environment variable is not defined
 
-### 5. `reloadConfig`
+### 5\. `reloadConfig`
 
 ```typescript
 async function reloadConfig(filePath?: string): Promise<Record<string, any>>;
 ```
 
-- If `filePath` is not provided, uses the last loaded file path
-- Throws: `ConfigError` with code `'NO_CONFIG_PATH'` if no path is available
+  - If `filePath` is not provided, uses the last loaded file path
+  - Throws: `ConfigError` with code `'NO_CONFIG_PATH'` if no path is available
 
-### 6. `hasConfig`
+### 6\. `hasConfig`
 
 ```typescript
 function hasConfig(key: string): boolean;
 ```
 
-- Returns `true` if the key exists in the configuration, `false` otherwise
+  - Returns `true` if the key exists in the configuration, `false` otherwise
 
-### 7. `clearConfig`
+### 7\. `clearConfig`
 
 ```typescript
 function clearConfig(): void;
 ```
 
-- Clears all configuration data and options
+  - Clears all configuration data and options
 
-### 8. `validateConfig`
+### 8\. `validateConfig`
 
 ```typescript
 function validateConfig(
@@ -121,30 +127,30 @@ function validateConfig(
 ): boolean;
 ```
 
-- Validates configuration against schema
-- Returns `true` if valid
-- Throws: `ConfigError` with code `'VALIDATION_ERROR'` and errors list in
-  details
+  - Validates configuration against schema
+  - Returns `true` if valid
+  - Throws: `ConfigError` with code `'VALIDATION_ERROR'` and errors list in
+    details
 
-### 9. `defineSchema`
+### 9\. `defineSchema`
 
 ```typescript
 function defineSchema(name: string, schema: Record<string, any>): void;
 ```
 
-- Throws: `ConfigError` with code `'SCHEMA_EXISTS'` if schema name is already
-  defined
+  - Throws: `ConfigError` with code `'SCHEMA_EXISTS'` if schema name is already
+    defined
 
-### 10. `getConfigSchema`
+### 10\. `getConfigSchema`
 
 ```typescript
 function getConfigSchema(name: string): Record<string, any>;
 ```
 
-- Throws: `ConfigError` with code `'SCHEMA_NOT_FOUND'` if schema name is not
-  found
+  - Throws: `ConfigError` with code `'SCHEMA_NOT_FOUND'` if schema name is not
+    found
 
-### 11. `ConfigError`
+### 11\. `ConfigError`
 
 ```typescript
 class ConfigError extends Error {
@@ -152,8 +158,8 @@ class ConfigError extends Error {
 }
 ```
 
-- Default `code`: `'CONFIG_ERROR'`
-- Default `details`: `{}`
+  - Default `code`: `'CONFIG_ERROR'`
+  - Default `details`: `{}`
 
 ## Example Implementations
 
@@ -183,14 +189,12 @@ async function loadAppConfig(env) {
       },
     };
 
-    // Required configuration fields
-    const required = ['database.url', 'api.key'];
+    // Removed: Required configuration fields (now handled by schema)
 
     // Load configuration
     const config = await loadConfig(configPath, {
       defaults,
-      required,
-      validate: true,
+      validate: true, // Updated: removed 'required' option
       schema: 'app',
       watch: env === 'development',
     });
@@ -447,17 +451,19 @@ async function initializeApp(env = process.env.NODE_ENV || 'development') {
 
 ## Code Generation Rules
 
-1. **Always use async/await** for file operations and loading
-2. **Include error handling** with specific error codes
-3. **Use environment variables** for configuration where appropriate
-4. **Follow JSDoc format** exactly as shown
-5. **Check for null/undefined** before operations
-6. **Use ConfigError** for all configuration-related errors
-7. **Support dot notation** for accessing nested configuration
-8. **Include validation** where data integrity is important
+1.  **Always use async/await** for file operations and loading
+2.  **Include error handling** with specific error codes
+3.  **Use environment variables** for configuration where appropriate
+4.  **Follow JSDoc format** exactly as shown
+5.  **Check for null/undefined** before operations
+6.  **Use ConfigError** for all configuration-related errors
+7.  **Support dot notation** for accessing nested configuration
+8.  **Include validation** where data integrity is important
 
----
+-----
 
-<p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
-</p>
+\<p align="center"\>
+Built with ❤️ in India by the \<a href="https://github.com/orgs/voilajsx/people"\>VoilaJS Team\</a\> — powering modern web development.
+\</p\>
+
+```

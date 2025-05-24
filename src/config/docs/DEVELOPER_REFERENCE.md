@@ -41,19 +41,19 @@ Node.js framework.
 ### Installation
 
 ```bash
-npm install @voilajs/appkit
-```
+npm install @voilajsx/appkit
+````
 
 ### Basic Import
 
 ```javascript
 import {
-  loadConfig,
-  getConfig,
-  validateConfig,
-  defineSchema,
-  getEnv,
-} from '@voilajs/appkit/config';
+  loadConfig,
+  getConfig,
+  validateConfig,
+  defineSchema,
+  getEnv,
+} from '@voilajsx/appkit/config';
 ```
 
 ## Loading Configuration
@@ -65,25 +65,24 @@ The config module supports loading configuration from various sources.
 Use `loadConfig` with a file path to load JSON configuration:
 
 ```javascript
-import { loadConfig } from '@voilajs/appkit/config';
+import { loadConfig } from '@voilajsx/appkit/config';
 
 // Basic usage - load from JSON file
 const config = await loadConfig('./config.json');
 
 // With defaults - provides fallback values
 const config = await loadConfig('./config.json', {
-  defaults: {
-    server: {
-      port: 3000,
-      host: 'localhost',
-    },
-  },
+  defaults: {
+    server: {
+      port: 3000,
+      host: 'localhost',
+    },
+  },
 });
 
 // With required fields - ensures critical config exists
-const config = await loadConfig('./config.json', {
-  required: ['database.url', 'api.key'],
-});
+// The 'required' option is now handled by the schema in validator.js
+const config = await loadConfig('./config.json');
 ```
 
 **Expected Output:**
@@ -91,39 +90,39 @@ const config = await loadConfig('./config.json', {
 ```javascript
 // For config.json containing:
 // {
-//   "server": {
-//     "port": 8080
-//   },
-//   "database": {
-//     "url": "mongodb://localhost/myapp"
-//   }
+//   "server": {
+//     "port": 8080
+//   },
+//   "database": {
+//     "url": "mongodb://localhost/myapp"
+//   }
 // }
 
 // Result with defaults:
 {
-  server: {
-    port: 8080,  // From config.json
-    host: 'localhost'  // From defaults
-  },
-  database: {
-    url: 'mongodb://localhost/myapp'  // From config.json
-  }
+  server: {
+    port: 8080,  // From config.json
+    host: 'localhost'  // From defaults
+  },
+  database: {
+    url: 'mongodb://localhost/myapp'  // From config.json
+  }
 }
 ```
 
 **When to use:**
 
-- **Application Configuration**: Load app settings at startup
-- **Environment-specific Configuration**: Separate configs for dev/staging/prod
-- **Default Settings**: Provide sensible defaults with override capability
-- **Required Validation**: Ensure critical configuration exists
+  - **Application Configuration**: Load app settings at startup
+  - **Environment-specific Configuration**: Separate configs for dev/staging/prod
+  - **Default Settings**: Provide sensible defaults with override capability
+  - **Required Validation**: Ensure critical configuration exists (via schema)
 
 ### From JavaScript Files
 
 JavaScript configuration files give you more flexibility:
 
 ```javascript
-import { loadConfig } from '@voilajs/appkit/config';
+import { loadConfig } from '@voilajsx/appkit/config';
 
 // Load from JavaScript module
 const config = await loadConfig('./config.js');
@@ -134,32 +133,32 @@ Your `config.js` file can export an object:
 ```javascript
 // config.js
 export default {
-  server: {
-    port: process.env.PORT || 3000,
-    host: 'localhost',
-  },
-  database: {
-    url: process.env.DATABASE_URL || 'mongodb://localhost/myapp',
-  },
-  logging: {
-    level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
-  },
+  server: {
+    port: process.env.PORT || 3000,
+    host: 'localhost',
+  },
+  database: {
+    url: process.env.DATABASE_URL || 'mongodb://localhost/myapp',
+  },
+  logging: {
+    level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
+  },
 };
 ```
 
 **When to use:**
 
-- **Dynamic Configuration**: When config needs to run code
-- **Environment Integration**: Easily use environment variables
-- **Conditional Settings**: Apply logic to determine values
-- **Configuration Composition**: Import and combine other configs
+  - **Dynamic Configuration**: When config needs to run code
+  - **Environment Integration**: Easily use environment variables
+  - **Conditional Settings**: Apply logic to determine values
+  - **Configuration Composition**: Import and combine other configs
 
 ### From .env Files
 
 Load configuration from .env files:
 
 ```javascript
-import { loadConfig } from '@voilajs/appkit/config';
+import { loadConfig } from '@voilajsx/appkit/config';
 
 // Load from .env file
 const config = await loadConfig('./.env');
@@ -178,116 +177,115 @@ LOG_LEVEL=info
 
 ```javascript
 {
-  PORT: '3000',
-  HOST: 'localhost',
-  DATABASE_URL: 'mongodb://localhost/myapp',
-  LOG_LEVEL: 'info'
+  PORT: '3000',
+  HOST: 'localhost',
+  DATABASE_URL: 'mongodb://localhost/myapp',
+  LOG_LEVEL: 'info'
 }
 ```
 
 **When to use:**
 
-- **Environment Variables**: When you prefer the .env format
-- **Simple Configurations**: For straightforward key-value pairs
-- **Local Development**: For local development settings
-- **Docker Environments**: When using with Docker compose
+  - **Environment Variables**: When you prefer the .env format
+  - **Simple Configurations**: For straightforward key-value pairs
+  - **Local Development**: For local development settings
+  - **Docker Environments**: When using with Docker compose
 
 ### From Objects
 
 You can load configuration directly from objects:
 
 ```javascript
-import { loadConfig } from '@voilajs/appkit/config';
+import { loadConfig } from '@voilajsx/appkit/config';
 
 // Load from object
 const config = await loadConfig({
-  server: {
-    port: 3000,
-    host: 'localhost',
-  },
-  database: {
-    url: 'mongodb://localhost/myapp',
-  },
+  server: {
+    port: 3000,
+    host: 'localhost',
+  },
+  database: {
+    url: 'mongodb://localhost/myapp',
+  },
 });
 ```
 
 **When to use:**
 
-- **In-memory Configuration**: When config is generated programmatically
-- **Testing**: To provide test-specific configuration
-- **CLI Tools**: When config comes from command-line arguments
-- **Dynamic Settings**: When configuration is built at runtime
+  - **In-memory Configuration**: When config is generated programmatically
+  - **Testing**: To provide test-specific configuration
+  - **CLI Tools**: When config comes from command-line arguments
+  - **Dynamic Settings**: When configuration is built at runtime
 
 ### Complete Loading Example
 
 Here's a real-world example loading configuration with all options:
 
 ```javascript
-import { loadConfig } from '@voilajs/appkit/config';
+import { loadConfig } from '@voilajsx/appkit/config';
 
 async function initializeConfig() {
-  try {
-    // Determine environment
-    const env = process.env.NODE_ENV || 'development';
+  try {
+    // Determine environment
+    const env = process.env.NODE_ENV || 'development';
 
-    // Set up configuration options
-    const options = {
-      // Default values
-      defaults: {
-        server: {
-          port: 3000,
-          host: 'localhost',
-        },
-        logging: {
-          level: 'info',
-          format: 'json',
-        },
-      },
+    // Set up configuration options
+    const options = {
+      // Default values
+      defaults: {
+        server: {
+          port: 3000,
+          host: 'localhost',
+        },
+        logging: {
+          level: 'info',
+          format: 'json',
+        },
+      },
 
-      // Required fields
-      required: ['database.url'],
+      // Removed: Required fields (now handled by schema)
 
-      // Validate against schema
-      validate: true,
-      schema: 'app',
+      // Validate against schema
+      validate: true,
+      schema: 'app',
 
-      // Environment variables integration
-      env: true,
+      // Environment variables integration
+      env: true,
 
-      // Auto-reload on file changes (dev only)
-      watch: env === 'development',
+      // Auto-reload on file changes (dev only)
+      watch: env === 'development',
 
-      // Enable variable interpolation
-      interpolate: true,
-    };
+      // Enable variable interpolation
+      interpolate: true,
+    };
 
-    // Load configuration
-    const config = await loadConfig(`./config/${env}.json`, options);
-    console.log(`Configuration loaded for ${env} environment`);
+    // Load configuration
+    const config = await loadConfig(`./config/${env}.json`, options);
+    console.log(`Configuration loaded for ${env} environment`);
 
-    return config;
-  } catch (error) {
-    console.error('Configuration loading failed:', error.message);
+    return config;
+  } catch (error) {
+    console.error('Configuration loading failed:', error.message);
 
-    // Show validation errors if available
-    if (error.code === 'VALIDATION_ERROR' && error.details?.errors) {
-      console.error('Validation errors:');
-      error.details.errors.forEach((err) => {
-        console.error(`- ${err.path}: ${err.message}`);
-      });
-    }
+    // Show validation errors if available
+    if (error.code === 'VALIDATION_ERROR' && error.details?.errors) {
+      console.error('Validation errors:');
+      error.details.errors.forEach((err) => {
+        console.error(`- ${err.path}: ${err.message}`);
+      });
+    }
 
-    throw error;
-  }
+    throw error;
+  }
 }
 ```
 
 **When to implement:**
 
-- **Application Startup**: Load configuration during app initialization
-- **Complex Configuration**: When you need multiple configuration sources
-- **Production Applications**: Ensure all required configuration exists
-- **Development Workflow**: Auto-reload during development
+  - **Application Startup**: Load configuration during app initialization
+  - **Complex Configuration**: When you need multiple configuration sources
+  - **Production Applications**: Ensure all required configuration exists
+  - **Development Workflow**: Auto-reload during development
 
 ## Accessing Configuration
 
@@ -298,7 +296,7 @@ Once loaded, you can easily access configuration values.
 Use `getConfig` to retrieve configuration values:
 
 ```javascript
-import { getConfig } from '@voilajs/appkit/config';
+import { getConfig } from '@voilajsx/appkit/config';
 
 // Get a specific value with dot notation
 const port = getConfig('server.port');
@@ -319,42 +317,42 @@ console.log('All configuration:', allConfig);
 
 **When to use:**
 
-- **Application Settings**: Access configuration throughout your app
-- **Feature Flags**: Check if features are enabled
-- **Default Values**: Provide fallbacks for optional configuration
-- **Dynamic Settings**: Access configuration that might change
+  - **Application Settings**: Access configuration throughout your app
+  - **Feature Flags**: Check if features are enabled
+  - **Default Values**: Provide fallbacks for optional configuration
+  - **Dynamic Settings**: Access configuration that might change
 
 ### Checking Existence
 
 Use `hasConfig` to check if a configuration value exists:
 
 ```javascript
-import { hasConfig } from '@voilajs/appkit/config';
+import { hasConfig } from '@voilajsx/appkit/config';
 
 // Check if a configuration value exists
 if (hasConfig('database.ssl')) {
-  console.log('SSL configuration is available');
+  console.log('SSL configuration is available');
 }
 
 // Use existence check to make decisions
 const logFormat = hasConfig('logging.format')
-  ? getConfig('logging.format')
-  : 'simple';
+  ? getConfig('logging.format')
+  : 'simple';
 ```
 
 **When to use:**
 
-- **Optional Features**: Check if optional configuration exists
-- **Conditional Logic**: Make decisions based on config presence
-- **Graceful Degradation**: Fall back gracefully when config is missing
-- **Validation**: Check for required configuration
+  - **Optional Features**: Check if optional configuration exists
+  - **Conditional Logic**: Make decisions based on config presence
+  - **Graceful Degradation**: Fall back gracefully when config is missing
+  - **Validation**: Check for required configuration
 
 ### Environment Variables
 
 Use `getEnv` to access environment variables:
 
 ```javascript
-import { getEnv } from '@voilajs/appkit/config';
+import { getEnv } from '@voilajsx/appkit/config';
 
 // Get environment variable
 const nodeEnv = getEnv('NODE_ENV', 'development');
@@ -367,58 +365,58 @@ console.log('Database URL:', dbUrl);
 
 **When to use:**
 
-- **Environment Settings**: Access environment-specific settings
-- **Secrets**: Get sensitive information from environment
-- **Runtime Configuration**: Access values that might change between runs
-- **Containerized Apps**: Get configuration injected by container platforms
+  - **Environment Settings**: Access environment-specific settings
+  - **Secrets**: Get sensitive information from environment
+  - **Runtime Configuration**: Access values that might change between runs
+  - **Containerized Apps**: Get configuration injected by container platforms
 
 ### Complete Access Example
 
 Here's a real-world example showing how to access configuration:
 
 ```javascript
-import { getConfig, hasConfig, getEnv } from '@voilajs/appkit/config';
+import { getConfig, hasConfig, getEnv } from '@voilajsx/appkit/config';
 
 function setupDatabase() {
-  // Get primary database configuration
-  const dbConfig = getConfig('database', {});
+  // Get primary database configuration
+  const dbConfig = getConfig('database', {});
 
-  // Get database URL (try environment first, then config)
-  const dbUrl = getEnv('DATABASE_URL') || dbConfig.url;
-  if (!dbUrl) {
-    throw new Error('Database URL is required');
-  }
+  // Get database URL (try environment first, then config)
+  const dbUrl = getEnv('DATABASE_URL') || dbConfig.url;
+  if (!dbUrl) {
+    throw new Error('Database URL is required');
+  }
 
-  // Determine if SSL is enabled
-  const sslEnabled = hasConfig('database.ssl')
-    ? getConfig('database.ssl')
-    : getEnv('DB_SSL') === 'true';
+  // Determine if SSL is enabled
+  const sslEnabled = hasConfig('database.ssl')
+    ? getConfig('database.ssl')
+    : getEnv('DB_SSL') === 'true';
 
-  // Get connection pool settings
-  const pool = getConfig('database.pool', {
-    min: 2,
-    max: 10,
-  });
+  // Get connection pool settings
+  const pool = getConfig('database.pool', {
+    min: 2,
+    max: 10,
+  });
 
-  console.log(`Connecting to database: ${dbUrl}`);
-  console.log(`SSL enabled: ${sslEnabled}`);
-  console.log(`Connection pool: min=${pool.min}, max=${pool.max}`);
+  console.log(`Connecting to database: ${dbUrl}`);
+  console.log(`SSL enabled: ${sslEnabled}`);
+  console.log(`Connection pool: min=${pool.min}, max=${pool.max}`);
 
-  // Return database configuration
-  return {
-    url: dbUrl,
-    ssl: sslEnabled,
-    pool,
-  };
+  // Return database configuration
+  return {
+    url: dbUrl,
+    ssl: sslEnabled,
+    pool,
+  };
 }
 ```
 
 **When to implement:**
 
-- **Service Initialization**: When setting up application services
-- **Configuration Access**: Create helper functions for common config patterns
-- **Environment Override**: Allow environment variables to override config
-- **Default Values**: Provide sensible defaults for missing configuration
+  - **Service Initialization**: When setting up application services
+  - **Configuration Access**: Create helper functions for common config patterns
+  - **Environment Override**: Allow environment variables to override config
+  - **Default Values**: Provide sensible defaults for missing configuration
 
 ## Validating Configuration
 
@@ -429,61 +427,61 @@ Validation ensures your configuration meets your application's requirements.
 Define a schema and validate configuration against it:
 
 ```javascript
-import { validateConfig } from '@voilajs/appkit/config';
+import { validateConfig } from '@voilajsx/appkit/config';
 
 // Define a simple schema
 const schema = {
-  type: 'object',
-  required: ['server', 'database'],
-  properties: {
-    server: {
-      type: 'object',
-      required: ['port'],
-      properties: {
-        port: {
-          type: 'number',
-          minimum: 1024,
-          maximum: 65535,
-        },
-        host: {
-          type: 'string',
-          default: 'localhost',
-        },
-      },
-    },
-    database: {
-      type: 'object',
-      required: ['url'],
-      properties: {
-        url: {
-          type: 'string',
-          pattern: '^mongodb://',
-        },
-      },
-    },
-  },
+  type: 'object',
+  required: ['server', 'database'],
+  properties: {
+    server: {
+      type: 'object',
+      required: ['port'],
+      properties: {
+        port: {
+          type: 'number',
+          minimum: 1024,
+          maximum: 65535,
+        },
+        host: {
+          type: 'string',
+          default: 'localhost',
+        },
+      },
+    },
+    database: {
+      type: 'object',
+      required: ['url'],
+      properties: {
+        url: {
+          type: 'string',
+          pattern: '^mongodb://',
+        },
+      },
+    },
+  },
 };
 
 // Validate configuration
 try {
-  validateConfig(config, schema);
-  console.log('Configuration is valid');
+  validateConfig(config, schema);
+  console.log('Configuration is valid');
 } catch (error) {
-  console.error('Validation failed:', error.message);
-  if (error.details?.errors) {
-    error.details.errors.forEach((err) => {
-      console.error(`- ${err.path}: ${err.message}`);
-    });
-  }
+  console.error('Validation failed:', error.message);
+  if (error.details?.errors) {
+    error.details.errors.forEach((err) => {
+      console.error(`- ${err.path}: ${err.message}`);
+    });
+  }
 }
 ```
 
 **When to use:**
 
-- **Application Startup**: Validate configuration at startup
-- **Type Checking**: Ensure values have the correct type
-- **Range Validation**: Check numerical constraints
-- **Pattern Matching**: Validate string formats
+  - **Application Startup**: Validate configuration at startup
+  - **Type Checking**: Ensure values have the correct type
+  - **Range Validation**: Check numerical constraints
+  - **Pattern Matching**: Validate string formats
 
 ### Predefined Schemas
 
@@ -491,61 +489,61 @@ Define reusable schemas with `defineSchema`:
 
 ```javascript
 import {
-  defineSchema,
-  getConfigSchema,
-  validateConfig,
-} from '@voilajs/appkit/config';
+  defineSchema,
+  getConfigSchema,
+  validateConfig,
+} from '@voilajsx/appkit/config';
 
 // Define server schema
 defineSchema('server', {
-  type: 'object',
-  required: ['port'],
-  properties: {
-    port: {
-      type: 'number',
-      minimum: 1024,
-      maximum: 65535,
-    },
-    host: {
-      type: 'string',
-      default: 'localhost',
-    },
-  },
+  type: 'object',
+  required: ['port'],
+  properties: {
+    port: {
+      type: 'number',
+      minimum: 1024,
+      maximum: 65535,
+    },
+    host: {
+      type: 'string',
+      default: 'localhost',
+    },
+  },
 });
 
 // Define database schema
 defineSchema('database', {
-  type: 'object',
-  required: ['url'],
-  properties: {
-    url: {
-      type: 'string',
-    },
-    ssl: {
-      type: 'boolean',
-      default: false,
-    },
-  },
+  type: 'object',
+  required: ['url'],
+  properties: {
+    url: {
+      type: 'string',
+    },
+    ssl: {
+      type: 'boolean',
+      default: false,
+    },
+  },
 });
 
 // Define app schema with references
 defineSchema('app', {
-  type: 'object',
-  required: ['server', 'database'],
-  properties: {
-    server: { $ref: 'server' },
-    database: { $ref: 'database' },
-    logging: {
-      type: 'object',
-      properties: {
-        level: {
-          type: 'string',
-          enum: ['error', 'warn', 'info', 'debug'],
-          default: 'info',
-        },
-      },
-    },
-  },
+  type: 'object',
+  required: ['server', 'database'],
+  properties: {
+    server: { $ref: 'server' },
+    database: { $ref: 'database' },
+    logging: {
+      type: 'object',
+      properties: {
+        level: {
+          type: 'string',
+          enum: ['error', 'warn', 'info', 'debug'],
+          default: 'info',
+        },
+      },
+    },
+  },
 });
 
 // Get schema and validate
@@ -555,135 +553,135 @@ validateConfig(config, appSchema);
 
 **When to use:**
 
-- **Modular Validation**: Split schemas into reusable components
-- **Complex Schemas**: Build complex schemas from simpler ones
-- **Consistent Validation**: Use the same schema across your application
-- **Self-documenting Configuration**: Schemas document expected configuration
+  - **Modular Validation**: Split schemas into reusable components
+  - **Complex Schemas**: Build complex schemas from simpler ones
+  - **Consistent Validation**: Use the same schema across your application
+  - **Self-documenting Configuration**: Schemas document expected configuration
 
 ### Custom Validation
 
 Add custom validation logic:
 
 ```javascript
-import { defineSchema, validateConfig } from '@voilajs/appkit/config';
+import { defineSchema, validateConfig } from '@voilajsx/appkit/config';
 
 // Schema with custom validation
 const schema = {
-  type: 'object',
-  properties: {
-    cache: {
-      type: 'object',
-      properties: {
-        ttl: {
-          type: 'number',
-          minimum: 0,
-        },
-        checkPeriod: {
-          type: 'number',
-        },
-      },
-      // Custom validation function
-      validate: (value, path) => {
-        if (value.checkPeriod && value.ttl && value.checkPeriod > value.ttl) {
-          return 'checkPeriod must be less than or equal to ttl';
-        }
-        return true;
-      },
-    },
-  },
+  type: 'object',
+  properties: {
+    cache: {
+      type: 'object',
+      properties: {
+        ttl: {
+          type: 'number',
+          minimum: 0,
+        },
+        checkPeriod: {
+          type: 'number',
+        },
+      },
+      // Custom validation function
+      validate: (value, path) => {
+        if (value.checkPeriod && value.ttl && value.checkPeriod > value.ttl) {
+          return 'checkPeriod must be less than or equal to ttl';
+        }
+        return true;
+      },
+    },
+  },
 };
 
 try {
-  validateConfig(config, schema);
-  console.log('Cache configuration is valid');
+  validateConfig(config, schema);
+  console.log('Cache configuration is valid');
 } catch (error) {
-  console.error('Invalid cache configuration:', error.message);
+  console.error('Invalid cache configuration:', error.message);
 }
 ```
 
 **When to use:**
 
-- **Complex Rules**: Validate relationships between fields
-- **Context-dependent Validation**: Rules that depend on other values
-- **Custom Types**: Validate custom data structures
-- **Format Validation**: Check specific string formats
+  - **Complex Rules**: Validate relationships between fields
+  - **Context-dependent Validation**: Rules that depend on other values
+  - **Custom Types**: Validate custom data structures
+  - **Format Validation**: Check specific string formats
 
 ### Complete Validation Example
 
 Here's a real-world example of configuration validation:
 
 ```javascript
-import { defineSchema, validateConfig } from '@voilajs/appkit/config';
+import { defineSchema, validateConfig } from '@voilajsx/appkit/config';
 
 function setupValidation() {
-  // Define server schema
-  defineSchema('server', {
-    type: 'object',
-    required: ['port'],
-    properties: {
-      port: {
-        type: 'number',
-        minimum: 1,
-        maximum: 65535,
-      },
-      host: {
-        type: 'string',
-        default: 'localhost',
-      },
-    },
-  });
+  // Define server schema
+  defineSchema('server', {
+    type: 'object',
+    required: ['port'],
+    properties: {
+      port: {
+        type: 'number',
+        minimum: 1,
+        maximum: 65535,
+      },
+      host: {
+        type: 'string',
+        default: 'localhost',
+      },
+    },
+  });
 
-  // Define database schema
-  defineSchema('database', {
-    type: 'object',
-    required: ['url'],
-    properties: {
-      url: {
-        type: 'string',
-        pattern: '^(postgres|mongodb|mysql)://',
-      },
-      ssl: {
-        type: 'boolean',
-        default: false,
-      },
-    },
-  });
+  // Define database schema
+  defineSchema('database', {
+    type: 'object',
+    required: ['url'],
+    properties: {
+      url: {
+        type: 'string',
+        pattern: '^(postgres|mongodb|mysql)://',
+      },
+      ssl: {
+        type: 'boolean',
+        default: false,
+      },
+    },
+  });
 
-  // Define app schema
-  defineSchema('app', {
-    type: 'object',
-    required: ['server', 'database'],
-    properties: {
-      server: { $ref: 'server' },
-      database: { $ref: 'database' },
-      logging: {
-        type: 'object',
-        properties: {
-          level: {
-            type: 'string',
-            enum: ['error', 'warn', 'info', 'debug'],
-            default: 'info',
-          },
-          format: {
-            type: 'string',
-            enum: ['json', 'text'],
-            default: 'json',
-          },
-        },
-      },
-    },
-  });
+  // Define app schema
+  defineSchema('app', {
+    type: 'object',
+    required: ['server', 'database'],
+    properties: {
+      server: { $ref: 'server' },
+      database: { $ref: 'database' },
+      logging: {
+        type: 'object',
+        properties: {
+          level: {
+            type: 'string',
+            enum: ['error', 'warn', 'info', 'debug'],
+            default: 'info',
+          },
+          format: {
+            type: 'string',
+            enum: ['json', 'text'],
+            default: 'json',
+          },
+        },
+      },
+    },
+  });
 
-  console.log('Validation schemas defined');
+  console.log('Validation schemas defined');
 }
 ```
 
 **When to implement:**
 
-- **Application Initialization**: Set up schemas during app initialization
-- **Module Configuration**: Validate configuration for specific modules
-- **API Parameters**: Validate incoming API configuration
-- **User Settings**: Validate user preferences
+  - **Application Initialization**: Set up schemas during app initialization
+  - **Module Configuration**: Validate configuration for specific modules
+  - **API Parameters**: Validate incoming API configuration
+  - **User Settings**: Validate user preferences
 
 ## Dynamic Configuration
 
@@ -694,11 +692,11 @@ The config module supports dynamic configuration updates.
 Enable automatic config reloading during development:
 
 ```javascript
-import { loadConfig } from '@voilajs/appkit/config';
+import { loadConfig } from '@voilajsx/appkit/config';
 
 // Enable watching for file changes
 const config = await loadConfig('./config.json', {
-  watch: true,
+  watch: true,
 });
 
 console.log('Configuration loaded with auto-reload enabled');
@@ -706,257 +704,247 @@ console.log('Configuration loaded with auto-reload enabled');
 
 **When to use:**
 
-- **Development Environment**: Reload configuration during development
-- **Long-running Processes**: Update configuration without restart
-- **Feature Flags**: Enable/disable features on the fly
-- **A/B Testing**: Change settings without redeployment
+  - **Development Environment**: Reload configuration during development
+  - **Long-running Processes**: Update configuration without restart
+  - **Feature Flags**: Enable/disable features on the fly
+  - **A/B Testing**: Change settings without redeployment
 
 ### Manual Updates
 
 Manually update or reload configuration:
 
 ```javascript
-import { setConfig, reloadConfig } from '@voilajs/appkit/config';
+import { setConfig, reloadConfig } from '@voilajsx/appkit/config';
 
 // Update configuration manually
 function updateConfig(updates) {
-  // Get current config
-  const current = getConfig();
+  // Get current config
+  const current = getConfig();
 
-  // Merge updates
-  const updated = { ...current, ...updates };
+  // Merge updates
+  const updated = { ...current, ...updates };
 
-  // Set new configuration
-  setConfig(updated);
+  // Set new configuration
+  setConfig(updated);
 
-  console.log('Configuration updated');
+  console.log('Configuration updated');
 }
 
 // Reload configuration from file
 async function refreshConfig() {
-  try {
-    await reloadConfig();
-    console.log('Configuration reloaded successfully');
-  } catch (error) {
-    console.error('Failed to reload config:', error.message);
-  }
+  try {
+    await reloadConfig();
+    console.log('Configuration reloaded successfully');
+  } catch (error) {
+    console.error('Failed to reload config:', error.message);
+  }
 }
 
 // Example usage
 updateConfig({
-  features: {
-    darkMode: true,
-    betaAccess: false,
-  },
+  features: {
+    darkMode: true,
+    betaAccess: false,
+  },
 });
 ```
 
 **When to use:**
 
-- **User Preferences**: Update configuration based on user actions
-- **Runtime Changes**: Modify configuration at runtime
-- **Admin Actions**: Allow administrators to update settings
-- **Rollback**: Revert to previously known good configuration
+  - **User Preferences**: Update configuration based on user actions
+  - **Runtime Changes**: Modify configuration at runtime
+  - **Admin Panels**: Allow admins to modify settings
+  - **Rollback**: Revert to previously known good configuration
 
 ### Complete Dynamic Example
 
 Here's a real-world example of dynamic configuration:
 
 ```javascript
-import { getConfig, setConfig, reloadConfig } from '@voilajs/appkit/config';
+import { getConfig, setConfig, reloadConfig } from '@voilajsx/appkit/config';
 
 function createConfigManager() {
-  // Track configuration history
-  const history = [];
+  // Track configuration history
+  const history = [];
 
-  return {
-    // Get current configuration
-    getCurrent() {
-      return getConfig();
-    },
+  return {
+    // Get current configuration
+    getCurrent() {
+      return getConfig();
+    },
 
-    // Update configuration
-    update(path, value) {
-      // Save current state to history
-      history.push(getConfig());
+    // Update configuration
+    update(path, value) {
+      // Save current state to history
+      history.push(getConfig());
 
-      // Get current config
-      const current = getConfig();
+      // Get current config
+      const current = getConfig();
 
-      // Build new configuration with update
-      const updated = { ...current };
-      const keys = path.split('.');
-      let target = updated;
+      // Build new configuration with update
+      const updated = { ...current };
+      const keys = path.split('.');
+      let target = updated;
 
-      // Navigate to the appropriate nesting level
-      for (let i = 0; i < keys.length - 1; i++) {
-        if (!target[keys[i]]) {
-          target[keys[i]] = {};
-        }
-        target = target[keys[i]];
-      }
+      // Navigate to the appropriate nesting level
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!target[keys[i]]) {
+          target[keys[i]] = {};
+        }
+        target = target[keys[i]];
+      }
 
-      // Set the value
-      target[keys[keys.length - 1]] = value;
+      // Set the value
+      target[keys[keys.length - 1]] = value;
 
-      // Update configuration
-      setConfig(updated);
+      // Update configuration
+      setConfig(updated);
 
-      console.log(`Updated configuration: ${path} = ${JSON.stringify(value)}`);
-      return updated;
-    },
+      console.log(`Updated configuration: ${path} = ${JSON.stringify(value)}`);
+      return updated;
+    },
 
-    // Reload from file
-    async reload() {
-      // Save current state to history
-      history.push(getConfig());
+    // Reload from file
+    async reload() {
+      // Save current state to history
+      history.push(getConfig());
 
-      try {
-        const config = await reloadConfig();
-        console.log('Configuration reloaded from file');
-        return config;
-      } catch (error) {
-        console.error('Reload failed:', error.message);
-        throw error;
-      }
-    },
+      try {
+        const config = await reloadConfig();
+        console.log('Configuration reloaded from file');
+        return config;
+      } catch (error) {
+        console.error('Reload failed:', error.message);
+        throw error;
+      }
+    },
 
-    // Revert to previous configuration
-    revert() {
-      if (history.length === 0) {
-        console.log('No previous configuration to revert to');
-        return getConfig();
-      }
+    // Revert to previous configuration
+    revert() {
+      if (history.length === 0) {
+        console.log('No previous configuration to revert to');
+        return getConfig();
+      }
 
-      const previous = history.pop();
-      setConfig(previous);
+      const previous = history.pop();
+      setConfig(previous);
 
-      console.log('Reverted to previous configuration');
-      return previous;
-    },
-  };
+      console.log('Reverted to previous configuration');
+      return previous;
+    },
+  };
 }
 ```
 
-**When to implement:**
-
-- **Configuration UI**: Backend for configuration interfaces
-- **Admin Panels**: Allow admins to modify settings
-- **Undo Functionality**: Revert configuration changes
-- **Periodic Refresh**: Reload configuration periodically
-
-## Complete Integration Example
-
-Here's a complete Express application example integrating configuration:
+### Complete Express App Integration
 
 ```javascript
 import express from 'express';
 import {
-  loadConfig,
-  getConfig,
-  defineSchema,
-  validateConfig,
-  getEnv,
-} from '@voilajs/appkit/config';
+  loadConfig,
+  getConfig,
+  defineSchema,
+  validateConfig,
+  getEnv,
+} from '@voilajsx/appkit/config';
 
 // Initialize application with configuration
 async function initApp() {
-  try {
-    // Define configuration schema
-    defineSchema('app', {
-      type: 'object',
-      properties: {
-        server: {
-          type: 'object',
-          required: ['port'],
-          properties: {
-            port: { type: 'number', minimum: 1, maximum: 65535 },
-            host: { type: 'string', default: 'localhost' },
-          },
-        },
-        database: {
-          type: 'object',
-          required: ['url'],
-          properties: {
-            url: { type: 'string' },
-          },
-        },
-        logging: {
-          type: 'object',
-          properties: {
-            level: {
-              type: 'string',
-              enum: ['error', 'warn', 'info', 'debug'],
-              default: 'info',
-            },
-          },
-        },
-      },
-    });
+  try {
+    // Define configuration schema
+    defineSchema('app', {
+      type: 'object',
+      properties: {
+        server: {
+          type: 'object',
+          required: ['port'],
+          properties: {
+            port: { type: 'number', minimum: 1, maximum: 65535 },
+            host: { type: 'string', default: 'localhost' },
+          },
+        },
+        database: {
+          type: 'object',
+          required: ['url'],
+          properties: {
+            url: { type: 'string' },
+          },
+        },
+        logging: {
+          type: 'object',
+          properties: {
+            level: {
+              type: 'string',
+              enum: ['error', 'warn', 'info', 'debug'],
+              default: 'info',
+            },
+          },
+        },
+      },
+    });
 
-    // Determine environment
-    const env = getEnv('NODE_ENV', 'development');
+    // Determine environment
+    const env = getEnv('NODE_ENV', 'development');
 
-    // Load configuration
-    await loadConfig(`./config/${env}.json`, {
-      defaults: {
-        server: {
-          port: 3000,
-          host: 'localhost',
-        },
-        logging: {
-          level: env === 'production' ? 'warn' : 'debug',
-        },
-      },
-      required: ['database.url'],
-      schema: 'app',
-      watch: env === 'development',
-    });
+    // Load configuration
+    await loadConfig(`./config/${env}.json`, {
+      defaults: {
+        server: {
+          port: 3000,
+          host: 'localhost',
+        },
+        logging: {
+          level: env === 'production' ? 'warn' : 'debug',
+        },
+      },
+      schema: 'app',
+      watch: env === 'development',
+    });
 
-    console.log(`Configuration loaded for ${env} environment`);
+    console.log(`Configuration loaded for ${env} environment`);
 
-    // Create Express app
-    const app = express();
+    // Create Express app
+    const app = express();
 
-    // Add config middleware
-    app.use((req, res, next) => {
-      req.config = {
-        get: (key, defaultValue) => getConfig(key, defaultValue),
-      };
-      next();
-    });
+    // Add config middleware
+    app.use((req, res, next) => {
+      req.config = {
+        get: (key, defaultValue) => getConfig(key, defaultValue),
+      };
+      next();
+    });
 
-    // Define routes
-    app.get('/', (req, res) => {
-      res.json({
-        message: 'Config server running',
-        env: env,
-      });
-    });
+    // Define routes
+    app.get('/', (req, res) => {
+      res.json({
+        message: 'Config server running',
+        env: env,
+      });
+    });
 
-    app.get('/config', (req, res) => {
-      // Only return safe configuration (omit secrets)
-      const safeConfig = {
-        server: getConfig('server'),
-        logging: getConfig('logging'),
-      };
+    app.get('/config', (req, res) => {
+      // Only return safe configuration (omit secrets)
+      const safeConfig = {
+        server: getConfig('server'),
+        logging: getConfig('logging'),
+      };
 
-      res.json(safeConfig);
-    });
+      res.json(safeConfig);
+    });
 
-    // Start server
-    const port = getConfig('server.port');
-    const host = getConfig('server.host');
+    // Start server
+    const port = getConfig('server.port');
+    const host = getConfig('server.host');
 
-    app.listen(port, host, () => {
-      console.log(`Server running at http://${host}:${port}`);
-    });
+    app.listen(port, host, () => {
+      console.log(`Server running at http://${host}:${port}`);
+    });
 
-    return app;
-  } catch (error) {
-    console.error('Application initialization failed:', error.message);
-    process.exit(1);
-  }
+    return app;
+  } catch (error) {
+    console.error('Application initialization failed:', error.message);
+    process.exit(1);
+  }
 }
 
 // Start the application
@@ -965,45 +953,47 @@ initApp();
 
 ## Additional Resources
 
-- 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/config/docs/API_REFERENCE.md) -
-  Complete API documentation
-- 📙
-  [LLM Code Generation Reference](https://github.com/voilajs/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) -
-  Guide for AI/LLM code generation
+  - 📗
+      [API Reference](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/API_REFERENCE.md) -
+      Complete API documentation
+  - 📙
+      [LLM Code Generation Reference](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) -
+      Guide for AI/LLM code generation
 
 ## Best Practices
 
 ### 🔐 Security
 
-- Store secrets in environment variables, not configuration files
-- Never commit sensitive information to version control
-- Use different configuration files for different environments
-- Validate configuration to prevent injection attacks
+  - Store secrets in environment variables, not configuration files
+  - Never commit sensitive information to version control
+  - Use different configuration files for different environments
+  - Validate configuration to prevent injection attacks
 
 ### 🏗️ Architecture
 
-- Keep configuration modular and focused
-- Define clear schemas for each configuration section
-- Use references for shared schema components
-- Separate configuration loading from usage
+  - Keep configuration modular and focused
+  - Define clear schemas for each configuration section
+  - Use references for shared schema components
+  - Separate configuration loading from usage
 
 ### 🚀 Performance
 
-- Only enable file watching in development environments
-- Cache configuration access for frequently used values
-- Use shallow configuration hierarchies for faster access
-- Minimize configuration reloading in production
+  - Only enable file watching in development environments
+  - Cache configuration access for frequently used values
+  - Use shallow configuration hierarchies for faster access
+  - Minimize configuration reloading in production
 
 ### 👥 User Experience
 
-- Provide clear error messages for configuration issues
-- Document expected configuration structure
-- Implement graceful fallbacks for missing configuration
-- Make configuration changes easy to revert
+  - Provide clear error messages for configuration issues
+  - Document expected configuration structure
+  - Implement graceful fallbacks for missing configuration
+  - Make configuration changes easy to revert
 
----
+-----
 
-<p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
-</p>
+\<p align="center"\>
+  Built with ❤️ in India by the \<a href="https://github.com/orgs/voilajsx/people"\>VoilaJS Team\</a\> — powering modern web development.
+\</p\>
+
+```
