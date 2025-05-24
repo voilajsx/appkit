@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Security module
- * @module @voilajs/appkit/security
+ * @voilajsx/appkit - Security module
+ * @module @voilajsx/appkit/security
  */
 
 export {
@@ -10,3 +10,4 @@ export {
 } from './csrf.js';
 export { createRateLimiter } from './rateLimiter.js';
 export { sanitizeHtml, escapeString, sanitizeFilename } from './sanitizer.js';
+export { generateEncryptionKey, encrypt, decrypt } from './encryption.js';

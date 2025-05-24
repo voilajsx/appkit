@@ -144,6 +144,10 @@
   "creator": "Krishna Teja GS",
   "license": "MIT",
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/session": "^11.1.0",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.5.0",
     "express-session": "^1.18.1",

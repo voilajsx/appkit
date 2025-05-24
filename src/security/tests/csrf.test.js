@@ -1,5 +1,5 @@
 /**
- * CSRF Protection Tests - @voilajs/appkit Security Module
+ * CSRF Protection Tests - @voilajsx/appkit Security Module
  *
  * These tests verify that the CSRF protection functions
  * correctly generate and validate tokens.

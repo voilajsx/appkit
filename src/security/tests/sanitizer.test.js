@@ -1,5 +1,5 @@
 /**
- * Sanitization Tests - @voilajs/appkit Security Module
+ * Sanitization Tests - @voilajsx/appkit Security Module
  *
  * These tests verify that the sanitization functions correctly
  * clean user input to prevent XSS and other injection attacks.

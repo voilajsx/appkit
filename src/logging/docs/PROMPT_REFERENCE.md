@@ -1,35 +1,31 @@
-# @voilajsx/appkit/logging LLM API Reference
+# `@voilajsx/appkit/logging` LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.
 
 ## LLM Code Generation Guidelines
 
-1. **Adhere to Code Style**:
+1.  **Adhere to Code Style**:
+    - ESM imports, single quotes, 2-space indentation, semicolons
+    - Always include JSDoc comments for functions
+2.  **JSDoc Format** (Required for all functions):
 
-   - ESM imports, single quotes, 2-space indentation, semicolons
-   - Always include JSDoc comments for functions
+    ```javascript
+    /**
+     * Function description
+     * @param {Type} paramName - Parameter description
+     * @returns {ReturnType} Return value description
+     * @throws {Error} Error conditions
+     */
+    ```
 
-2. **JSDoc Format** (Required for all functions):
-
-   ```javascript
-   /**
-    * Function description
-    * @param {Type} paramName - Parameter description
-    * @returns {ReturnType} Return value description
-    * @throws {Error} Error conditions
-    */
-   ```
-
-3. **Error Handling**:
-
-   - Use try/catch blocks for async functions
-   - Check parameters before using them
-   - Return standardized error objects
-
-4. **Framework Agnostic**:
-   - Implementation should work with any framework
-   - Middleware patterns should be adaptable
+3.  **Error Handling**:
+    - Use try/catch blocks for async functions
+    - Check parameters before using them
+    - Return standardized error objects
+4.  **Framework Agnostic**:
+    - Implementation should work with any framework
+    - Middleware patterns should be adaptable
 
 ## Function Signatures
 
@@ -39,7 +35,7 @@
 function createLogger(options?: {
   level?: 'error' | 'warn' | 'info' | 'debug';
   defaultMeta?: Record<string, any>;
-  transports?: Transport[];
+  transports?: BaseTransport[]; // Updated from Transport[]
   enableFileLogging?: boolean;
   dirname?: string;
   filename?: string;
@@ -52,7 +48,7 @@ function createLogger(options?: {
 - Default `enableFileLogging`: `true`
 - Default `dirname`: `'logs'`
 - Default `filename`: `'app.log'`
-- Default `retentionDays`: `5`
+- Default `retentionDays`: `7`
 - Default `maxSize`: `10485760` (10MB)
 
 ### Logger Methods
@@ -93,7 +89,8 @@ class FileTransport {
 ```
 
 - ConsoleTransport defaults: `colorize: true`, `prettyPrint: false`
-- FileTransport defaults: Same as createLogger defaults
+- FileTransport defaults: `dirname: 'logs'`, `filename: 'app.log'`,
+  `retentionDays: 7`, `maxSize: 10485760` (10MB), `datePattern: 'YYYY-MM-DD'`
 
 ## Example Implementations
 
@@ -141,6 +138,9 @@ function logMessage(logger, message, metadata = {}) {
  * @returns {Function} Express middleware
  */
 function createRequestLogger(logger) {
+  // Dummy generateId for example purposes
+  const generateId = () => Math.random().toString(36).substring(2, 15);
+
   return (req, res, next) => {
     const startTime = Date.now();
 
@@ -222,6 +222,9 @@ function createErrorLogger(logger) {
  * @returns {Object} Child logger
  */
 function createOperationLogger(baseLogger, operation, context = {}) {
+  // Dummy generateId for example purposes
+  const generateId = () => Math.random().toString(36).substring(2, 15);
+
   return baseLogger.child({
     operation,
     operationId: generateId(),
@@ -237,6 +240,18 @@ function createOperationLogger(baseLogger, operation, context = {}) {
  * @returns {Promise<Object>} Updated user
  */
 async function updateUser(logger, userId, data) {
+  // Dummy db object for example
+  const db = {
+    users: {
+      update: async (id, userData) => {
+        // Simulate a database update
+        return new Promise((resolve) =>
+          setTimeout(() => resolve({ id, ...userData }), 50)
+        );
+      },
+    },
+  };
+
   const opLogger = createOperationLogger(logger, 'updateUser', {
     userId,
   });
@@ -264,9 +279,19 @@ async function updateUser(logger, userId, data) {
 ### Production Logger Configuration
 
 ```javascript
+import {
+  ConsoleTransport,
+  FileTransport,
+} from '@voilajsx/appkit/logging/transports';
+import { createLogger } from '@voilajsx/appkit/logging';
+import os from 'os'; // For os.hostname()
+
 /**
  * Creates production-ready logger configuration
  * @param {Object} options - Configuration options
+ * @param {string} [options.service='api'] - Service name for default metadata
+ * @param {string} [options.logDir='/var/log/app'] - Directory for general logs
+ * @param {string} [options.errorLogDir='/var/log/app/errors'] - Directory for error-specific logs
  * @returns {Object} Logger instance
  */
 function createProductionLogger(options = {}) {
@@ -306,6 +331,8 @@ function createProductionLogger(options = {}) {
       service,
       environment: 'production',
       version: process.env.APP_VERSION,
+      hostname: os.hostname(), // Added hostname to default meta
+      pid: process.pid, // Added pid to default meta
     },
     transports,
   });
@@ -315,9 +342,21 @@ function createProductionLogger(options = {}) {
 ### Log Rotation and Retention
 
 ```javascript
+import { createLogger } from '@voilajsx/appkit/logging';
+import {
+  ConsoleTransport,
+  FileTransport,
+} from '@voilajsx/appkit/logging/transports';
+import fs from 'fs';
+import path from 'path';
+
 /**
  * Creates logger with custom rotation settings
  * @param {Object} options - Logger options
+ * @param {'error' | 'warn' | 'info' | 'debug'} [options.level='info'] - Minimum log level
+ * @param {string} [options.dirname='logs'] - Directory for log files
+ * @param {number} [options.retentionDays=14] - Days to retain log files
+ * @param {number} [options.maxSize=10485760] - Maximum file size in bytes before rotation (10MB)
  * @returns {Object} Logger instance
  */
 function createRotatingLogger(options = {}) {
@@ -345,15 +384,14 @@ function createRotatingLogger(options = {}) {
  * @returns {Promise<Object>} Directory statistics
  */
 async function monitorLogDirectory(logger, dirname = 'logs') {
-  const fs = require('fs').promises;
-  const path = require('path');
+  const fsPromises = fs.promises; // Use fs.promises directly
 
   try {
-    const files = await fs.readdir(dirname);
+    const files = await fsPromises.readdir(dirname);
     let totalSize = 0;
 
     for (const file of files) {
-      const stats = await fs.stat(path.join(dirname, file));
+      const stats = await fsPromises.stat(path.join(dirname, file));
       totalSize += stats.size;
     }
 
@@ -389,22 +427,40 @@ async function monitorLogDirectory(logger, dirname = 'logs') {
 /**
  * Ensures logs are flushed before process exit
  * @param {Object} logger - Logger instance
+ * @param {Object} [server] - Optional HTTP server instance to close before logging shutdown
  */
-function setupGracefulShutdown(logger) {
+function setupGracefulShutdown(logger, server = null) {
   const handleShutdown = async (signal) => {
     logger.info('Shutdown signal received', { signal });
 
     try {
+      // If an HTTP server is provided, close it first
+      if (server && typeof server.close === 'function') {
+        await new Promise((resolve, reject) => {
+          server.close((err) => {
+            if (err) {
+              logger.error('Error closing HTTP server:', {
+                error: err.message,
+                stack: err.stack,
+              });
+              return reject(err);
+            }
+            logger.info('HTTP server closed successfully.');
+            resolve();
+          });
+        });
+      }
+
       // Flush all pending logs
       await logger.flush();
 
       // Close all transports
       await logger.close();
 
-      logger.info('Logger shutdown complete');
+      logger.info('Logger shutdown complete. Exiting process.');
       process.exit(0);
     } catch (error) {
-      console.error('Error during logger shutdown:', error);
+      console.error('Critical error during graceful shutdown:', error); // Use console.error for final critical messages
       process.exit(1);
     }
   };
@@ -414,11 +470,15 @@ function setupGracefulShutdown(logger) {
 
   // Handle uncaught exceptions
   process.on('uncaughtException', async (error) => {
-    logger.error('Uncaught exception', {
-      error: error.message,
-      stack: error.stack,
-    });
+    logger.error(
+      'Uncaught exception detected. Initiating emergency shutdown.',
+      {
+        error: error.message,
+        stack: error.stack,
+      }
+    );
 
+    // Attempt to flush and close logger, but prepare for forced exit
     await logger.flush();
     await logger.close();
     process.exit(1);
@@ -436,40 +496,38 @@ function setupGracefulShutdown(logger) {
  */
 function createAuditLogger(baseLogger) {
   const auditLogger = baseLogger.child({
-    audit: true,
+    audit: true, // Flag to indicate an audit log for custom transports
   });
 
   return {
     /**
      * Logs user action for audit trail
-     * @param {string} action - Action performed
-     * @param {string} userId - User ID
-     * @param {Object} details - Action details
+     * @param {string} action - Action performed (e.g., 'UserLoggedIn', 'PasswordChange')
+     * @param {string} userId - User ID related to the action
+     * @param {Object} [details={}] - Additional details about the action (e.g., { ip: '...', userAgent: '...' })
      */
     logUserAction(action, userId, details = {}) {
       auditLogger.info('User action', {
         action,
         userId,
-        details,
-        timestamp: new Date().toISOString(),
-        ip: details.ip,
-        userAgent: details.userAgent,
+        ...details, // Merge details directly
+        timestamp: new Date().toISOString(), // Logger automatically adds timestamp, but explicitly adding for audit clarity
       });
     },
 
     /**
      * Logs data access for compliance
-     * @param {string} resource - Resource accessed
-     * @param {string} userId - User ID
-     * @param {Object} context - Access context
+     * @param {string} resource - Resource accessed (e.g., 'CustomerData', 'FinancialRecords')
+     * @param {string} userId - User ID who accessed the resource
+     * @param {Object} [context={}] - Access context (e.g., { operation: 'read', query: '...' })
      */
     logDataAccess(resource, userId, context = {}) {
       auditLogger.info('Data access', {
         resource,
         userId,
         operation: context.operation || 'read',
-        timestamp: new Date().toISOString(),
-        ...context,
+        ...context, // Merge context directly
+        timestamp: new Date().toISOString(), // Logger automatically adds timestamp, but explicitly adding for audit clarity
       });
     },
   };
@@ -478,12 +536,13 @@ function createAuditLogger(baseLogger) {
 
 ## Code Generation Rules
 
-1. Always use `createLogger()` with an options object when configuration is
-   needed
-2. Use child loggers for request/operation-specific context
-3. Include timestamp in metadata for audit trails
-4. Implement proper error handling with try/catch blocks
-5. Close logger instances during graceful shutdown
-6. Use appropriate log levels based on severity
-7. Sanitize sensitive data before logging
-8. Configure file retention based on compliance requirements
+1.  Always use `createLogger()` with an options object when configuration is
+    needed
+2.  Use child loggers for request/operation-specific context
+3.  Include timestamp in metadata for audit trails (if needed for audit-specific
+    transports, otherwise `createLogger` handles it)
+4.  Implement proper error handling with try/catch blocks
+5.  Close logger instances during graceful shutdown
+6.  Use appropriate log levels based on severity
+7.  Sanitize sensitive data before logging
+8.  Configure file retention based on compliance requirements

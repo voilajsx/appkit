@@ -1,4 +1,4 @@
-# @voilajs/appkit/security - LLM API Reference
+# @voilajsx/appkit/security - LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.
@@ -108,6 +108,44 @@ function sanitizeHtml(
 ```typescript
 function sanitizeFilename(filename: string): string;
 ```
+
+### 8. `generateEncryptionKey`
+
+```typescript
+function generateEncryptionKey(lengthBytes?: number): string;
+```
+
+- Default `lengthBytes`: `32` (256-bit key for AES-256)
+- Returns: Hexadecimal string
+- Throws: `'Key length must be a positive number'`
+
+### 9. `encrypt`
+
+```typescript
+function encrypt(
+  plaintext: string | Buffer,
+  key: string | Buffer,
+  associatedData?: Buffer
+): string;
+```
+
+- Returns: Combined hex string (IV:ciphertext:authTag)
+- Throws: `'Plaintext cannot be empty'`, `'Invalid key length'`,
+  `'Associated data must be a Buffer'`
+
+### 10. `decrypt`
+
+```typescript
+function decrypt(
+  encryptedData: string,
+  key: string | Buffer,
+  associatedData?: Buffer
+): string;
+```
+
+- Returns: Decrypted plaintext as UTF-8 string
+- Throws: `'Invalid encrypted data format'`, `'Authentication failed'`,
+  `'Invalid key length'`
 
 ## Example Implementations
 
@@ -238,11 +276,117 @@ function sanitizeUserInput(input) {
 }
 ```
 
+### Data Encryption
+
+```javascript
+/**
+ * Sets up encryption utilities for an application
+ * @returns {Object} Encryption utilities
+ */
+function setupEncryption() {
+  // Generate or load encryption key
+  const encryptionKey = process.env.ENCRYPTION_KEY || generateEncryptionKey();
+
+  /**
+   * Encrypts sensitive user data
+   * @param {Object} userData - User data to encrypt
+   * @param {string} userContext - Context for associated data
+   * @returns {Object} Object with encrypted fields
+   */
+  function encryptUserData(userData, userContext) {
+    const aad = Buffer.from(userContext, 'utf8');
+
+    return {
+      id: userData.id,
+      email: userData.email, // Keep searchable fields unencrypted
+      name: userData.name,
+
+      // Encrypt sensitive fields
+      ssn: userData.ssn ? encrypt(userData.ssn, encryptionKey, aad) : null,
+      phone: userData.phone
+        ? encrypt(userData.phone, encryptionKey, aad)
+        : null,
+      address: userData.address
+        ? encrypt(JSON.stringify(userData.address), encryptionKey, aad)
+        : null,
+    };
+  }
+
+  /**
+   * Decrypts user data
+   * @param {Object} encryptedData - Encrypted user data
+   * @param {string} userContext - Context for associated data
+   * @returns {Object} Object with decrypted fields
+   */
+  function decryptUserData(encryptedData, userContext) {
+    const aad = Buffer.from(userContext, 'utf8');
+
+    try {
+      return {
+        id: encryptedData.id,
+        email: encryptedData.email,
+        name: encryptedData.name,
+
+        // Decrypt sensitive fields
+        ssn: encryptedData.ssn
+          ? decrypt(encryptedData.ssn, encryptionKey, aad)
+          : null,
+        phone: encryptedData.phone
+          ? decrypt(encryptedData.phone, encryptionKey, aad)
+          : null,
+        address: encryptedData.address
+          ? JSON.parse(decrypt(encryptedData.address, encryptionKey, aad))
+          : null,
+      };
+    } catch (error) {
+      console.error('Decryption failed:', error.message);
+      throw new Error('Failed to decrypt user data');
+    }
+  }
+
+  /**
+   * Encrypts configuration secrets
+   * @param {Object} config - Configuration object
+   * @returns {Object} Configuration with encrypted secrets
+   */
+  function encryptConfigSecrets(config) {
+    const encryptedConfig = { ...config };
+
+    // Encrypt database password
+    if (config.database?.password) {
+      encryptedConfig.database.password = encrypt(
+        config.database.password,
+        encryptionKey,
+        Buffer.from('db_config', 'utf8')
+      );
+    }
+
+    // Encrypt API keys
+    if (config.apiKeys) {
+      encryptedConfig.apiKeys = {};
+      Object.entries(config.apiKeys).forEach(([service, key]) => {
+        const aad = Buffer.from(`api_${service}`, 'utf8');
+        encryptedConfig.apiKeys[service] = encrypt(key, encryptionKey, aad);
+      });
+    }
+
+    return encryptedConfig;
+  }
+
+  return {
+    encryptUserData,
+    decryptUserData,
+    encryptConfigSecrets,
+    encryptionKey,
+  };
+}
+```
+
 ### Complete Security Configuration
 
 ```javascript
 /**
- * Configures security middleware for an Express app
+ * Configures comprehensive security middleware for an Express app
  * @param {Object} app - Express app
  */
 function configureSecurityMiddleware(app) {
@@ -256,9 +400,35 @@ function configureSecurityMiddleware(app) {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
       },
     })
   );
+
+  // Rate limiting configuration
+  const generalLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // General requests per window
+    message: 'Too many requests, please try again later.',
+  });
+
+  const authLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Auth attempts per window
+    message: 'Too many authentication attempts, please try again later.',
+    keyGenerator: (req) => `${req.body.username || 'anonymous'}:${req.ip}`,
+  });
+
+  const apiLimiter = createRateLimiter({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 1000, // API requests per hour
+    keyGenerator: (req) => req.headers['x-api-key'] || req.ip,
+  });
+
+  // Apply rate limiters
+  app.use('/auth/', authLimiter);
+  app.use('/api/', apiLimiter);
+  app.use(generalLimiter);
 
   // CSRF protection
   const csrf = createCsrfMiddleware();
@@ -272,19 +442,20 @@ function configureSecurityMiddleware(app) {
 
   // Generate CSRF tokens for templates
   app.use((req, res, next) => {
-    res.locals.csrfToken = generateCsrfToken(req.session);
+    if (req.session) {
+      res.locals.csrfToken = generateCsrfToken(req.session);
+    }
     next();
   });
 
-  // Rate limiting
-  const apiLimiter = createRateLimiter({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per IP per 15 minutes
-  });
+  // Setup encryption utilities
+  const { encryptUserData, decryptUserData } = setupEncryption();
 
-  app.use('/api/', apiLimiter);
+  // Add encryption utilities to app locals for easy access
+  app.locals.encrypt = encryptUserData;
+  app.locals.decrypt = decryptUserData;
 
-  // Error handler for CSRF errors
+  // Error handler for security-related errors
   app.use((err, req, res, next) => {
     if (err.code === 'EBADCSRFTOKEN') {
       return res.status(403).json({
@@ -292,22 +463,139 @@ function configureSecurityMiddleware(app) {
         message: 'Please refresh the page and try again',
       });
     }
+
+    if (err.status === 429) {
+      return res.status(429).json({
+        error: 'Rate limit exceeded',
+        message: 'Too many requests, please try again later',
+        retryAfter: err.retryAfter,
+      });
+    }
+
     next(err);
   });
+}
+
+/**
+ * Creates a secure user registration handler
+ * @param {Object} encryptionUtils - Encryption utilities
+ * @returns {Function} Express route handler
+ */
+function createSecureUserRegistration(encryptionUtils) {
+  return async (req, res) => {
+    try {
+      const { email, name, ssn, phone, address } = req.body;
+
+      // Validate and sanitize inputs
+      const sanitizedData = {
+        email: escapeString(email?.toLowerCase().trim() || ''),
+        name: escapeString(name?.trim() || ''),
+        ssn: ssn?.replace(/\D/g, '') || '', // Remove non-digits
+        phone: phone?.replace(/\D/g, '') || '', // Remove non-digits
+        address: address || null,
+      };
+
+      // Validate required fields
+      if (!sanitizedData.email || !sanitizedData.name) {
+        return res.status(400).json({
+          error: 'Missing required fields',
+          message: 'Email and name are required',
+        });
+      }
+
+      // Generate user ID and encrypt sensitive data
+      const userId = `user_${Date.now()}`;
+      const encryptedUser = encryptionUtils.encryptUserData(
+        sanitizedData,
+        userId
+      );
+
+      // Save user to database (implementation depends on your database)
+      await saveUserToDatabase(encryptedUser);
+
+      // Return success without sensitive data
+      res.status(201).json({
+        message: 'User registered successfully',
+        user: {
+          id: userId,
+          email: sanitizedData.email,
+          name: sanitizedData.name,
+        },
+      });
+    } catch (error) {
+      console.error('User registration error:', error);
+      res.status(500).json({
+        error: 'Registration failed',
+        message: 'Please try again later',
+      });
+    }
+  };
 }
 ```
 
 ## Code Generation Rules
 
-1. **Check inputs**: Always validate all function parameters
-2. **Handle special cases**: Consider empty strings, null values, etc.
-3. **Avoid sync operations** for file system or network operations
-4. **Use environment variables** for configuration
-5. **Follow security best practices** in examples
-6. **Include proper error handling** in all examples
+1. **Always validate inputs**: Check all function parameters before using them
+2. **Handle edge cases**: Consider empty strings, null values, undefined
+3. **Use environment variables**: For secrets, keys, and configuration
+4. **Include proper error handling**: Use try/catch blocks appropriately
+5. **Follow security best practices**: Never expose sensitive data in responses
+6. **Use JSDoc comments**: Document all functions with proper JSDoc format
+7. **Encryption context**: Always use Associated Data (AAD) for context-bound
+   encryption
+8. **Key management**: Never hardcode encryption keys, always use environment
+   variables
+9. **Sanitize all inputs**: Apply appropriate sanitization for the context
+   (display, storage, filename)
+10. **Rate limiting strategy**: Apply different limits for different types of
+    operations
+
+## Security Implementation Patterns
+
+### Pattern 1: Form Protection
+
+```javascript
+// Always combine CSRF protection with input sanitization
+const csrf = createCsrfMiddleware();
+app.use(csrf);
+
+app.post('/submit', (req, res) => {
+  const sanitizedData = {
+    title: escapeString(req.body.title),
+    content: sanitizeHtml(req.body.content, { allowedTags: ['p', 'b', 'i'] }),
+  };
+  // Process sanitized data
+});
+```
+
+### Pattern 2: API Protection
+
+```javascript
+// Layer multiple protections for APIs
+const apiLimiter = createRateLimiter({ windowMs: 60000, max: 100 });
+app.use('/api', apiLimiter);
+
+// Use different sanitization for API responses
+app.get('/api/search', (req, res) => {
+  const query = escapeString(req.query.q || '');
+  // Return sanitized results
+});
+```
+
+### Pattern 3: Sensitive Data Handling
+
+```javascript
+// Always encrypt sensitive data with context
+const userContext = `user_${userId}`;
+const aad = Buffer.from(userContext, 'utf8');
+const encryptedSSN = encrypt(ssn, encryptionKey, aad);
+
+// Decrypt with matching context
+const decryptedSSN = decrypt(encryptedSSN, encryptionKey, aad);
+```
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
 </p>

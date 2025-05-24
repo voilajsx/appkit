@@ -33,17 +33,17 @@ Creates a new logger instance with optional file storage.
 
 ##### Parameters
 
-| Name                        | Type               | Required | Default                             | Description                                                                   |
-| --------------------------- | ------------------ | -------- | ----------------------------------- | ----------------------------------------------------------------------------- |
-| `options`                   | `Object`           | No       | `{}`                                | Configuration options for the logger                                          |
-| `options.level`             | `string`           | No       | `'info'`                            | Minimum log level to output. One of: `'error'`, `'warn'`, `'info'`, `'debug'` |
-| `options.defaultMeta`       | `Object`           | No       | `{}`                                | Default metadata to include in all log entries                                |
-| `options.transports`        | `Array<Transport>` | No       | `[ConsoleTransport, FileTransport]` | Array of transport instances                                                  |
-| `options.enableFileLogging` | `boolean`          | No       | `true`                              | Enable or disable file logging                                                |
-| `options.dirname`           | `string`           | No       | `'logs'`                            | Directory for log files                                                       |
-| `options.filename`          | `string`           | No       | `'app.log'`                         | Base filename for log files                                                   |
-| `options.retentionDays`     | `number`           | No       | `5`                                 | Number of days to retain log files                                            |
-| `options.maxSize`           | `number`           | No       | `10485760`                          | Maximum file size in bytes before rotation (10MB)                             |
+| Name                        | Type                   | Required | Default                             | Description                                                                   |
+| :-------------------------- | :--------------------- | :------- | :---------------------------------- | :---------------------------------------------------------------------------- |
+| `options`                   | `Object`               | No       | `{}`                                | Configuration options for the logger                                          |
+| `options.level`             | `string`               | No       | `'info'`                            | Minimum log level to output. One of: `'error'`, `'warn'`, `'info'`, `'debug'` |
+| `options.defaultMeta`       | `Object`               | No       | `{}`                                | Default metadata to include in all log entries                                |
+| `options.transports`        | `Array<BaseTransport>` | No       | `[ConsoleTransport, FileTransport]` | Array of transport instances                                                  |
+| `options.enableFileLogging` | `boolean`              | No       | `true`                              | Enable or disable file logging                                                |
+| `options.dirname`           | `string`               | No       | `'logs'`                            | Directory for log files                                                       |
+| `options.filename`          | `string`               | No       | `'app.log'`                         | Base filename for log files                                                   |
+| `options.retentionDays`     | `number`               | No       | `7`                                 | Number of days to retain log files                                            |
+| `options.maxSize`           | `number`               | No       | `10485760`                          | Maximum file size in bytes before rotation (10MB)                             |
 
 ##### Returns
 
@@ -82,7 +82,7 @@ Logs an informational message.
 ##### Parameters
 
 | Name      | Type     | Required | Default | Description                    |
-| --------- | -------- | -------- | ------- | ------------------------------ |
+| :-------- | :------- | :------- | :------ | :----------------------------- |
 | `message` | `string` | Yes      | -       | Log message                    |
 | `meta`    | `Object` | No       | `{}`    | Additional metadata to include |
 
@@ -105,7 +105,7 @@ Logs an error message.
 ##### Parameters
 
 | Name      | Type     | Required | Default | Description                                 |
-| --------- | -------- | -------- | ------- | ------------------------------------------- |
+| :-------- | :------- | :------- | :------ | :------------------------------------------ |
 | `message` | `string` | Yes      | -       | Error message                               |
 | `meta`    | `Object` | No       | `{}`    | Additional metadata including error details |
 
@@ -132,7 +132,7 @@ Logs a warning message.
 ##### Parameters
 
 | Name      | Type     | Required | Default | Description         |
-| --------- | -------- | -------- | ------- | ------------------- |
+| :-------- | :------- | :------- | :------ | :------------------ |
 | `message` | `string` | Yes      | -       | Warning message     |
 | `meta`    | `Object` | No       | `{}`    | Additional metadata |
 
@@ -158,7 +158,7 @@ Logs a debug message.
 ##### Parameters
 
 | Name      | Type     | Required | Default | Description         |
-| --------- | -------- | -------- | ------- | ------------------- |
+| :-------- | :------- | :------- | :------ | :------------------ |
 | `message` | `string` | Yes      | -       | Debug message       |
 | `meta`    | `Object` | No       | `{}`    | Additional metadata |
 
@@ -185,7 +185,7 @@ Creates a child logger with additional context.
 ##### Parameters
 
 | Name       | Type     | Required | Default | Description                                            |
-| ---------- | -------- | -------- | ------- | ------------------------------------------------------ |
+| :--------- | :------- | :------- | :------ | :----------------------------------------------------- |
 | `bindings` | `Object` | Yes      | -       | Additional context for all logs from this child logger |
 
 ##### Returns
@@ -260,7 +260,7 @@ new ConsoleTransport(options?)
 ##### Parameters
 
 | Name                  | Type      | Required | Default  | Description                          |
-| --------------------- | --------- | -------- | -------- | ------------------------------------ |
+| :-------------------- | :-------- | :------- | :------- | :----------------------------------- |
 | `options`             | `Object`  | No       | `{}`     | Configuration options                |
 | `options.level`       | `string`  | No       | `'info'` | Minimum log level for this transport |
 | `options.colorize`    | `boolean` | No       | `true`   | Enable colored output                |
@@ -290,12 +290,12 @@ new FileTransport(options?)
 ##### Parameters
 
 | Name                    | Type     | Required | Default        | Description                          |
-| ----------------------- | -------- | -------- | -------------- | ------------------------------------ |
+| :---------------------- | :------- | :------- | :------------- | :----------------------------------- |
 | `options`               | `Object` | No       | `{}`           | Configuration options                |
 | `options.level`         | `string` | No       | `'info'`       | Minimum log level for this transport |
 | `options.dirname`       | `string` | No       | `'logs'`       | Directory for log files              |
 | `options.filename`      | `string` | No       | `'app.log'`    | Base filename for log files          |
-| `options.retentionDays` | `number` | No       | `5`            | Days to retain log files             |
+| `options.retentionDays` | `number` | No       | `7`            | Days to retain log files             |
 | `options.maxSize`       | `number` | No       | `10485760`     | Max file size in bytes (10MB)        |
 | `options.datePattern`   | `string` | No       | `'YYYY-MM-DD'` | Date format for filenames            |
 
@@ -321,7 +321,7 @@ flow.
 ### Common Error Scenarios
 
 | Error Type      | Description                   | Handling                                                 |
-| --------------- | ----------------------------- | -------------------------------------------------------- |
+| :-------------- | :---------------------------- | :------------------------------------------------------- |
 | File Permission | Cannot write to log directory | Logs warning to console, continues with other transports |
 | Disk Full       | No space for log files        | Automatically stops file logging, continues with console |
 | Transport Error | Custom transport fails        | Isolates error to specific transport, others continue    |
@@ -341,15 +341,19 @@ try {
 }
 ```
 
+---
+
 ## Security Considerations
 
-1. **Sensitive Data**: Never log passwords, API keys, or personally identifiable
-   information
-2. **File Permissions**: Ensure log directories have appropriate permissions
-3. **Log Retention**: Configure retention policies to comply with data
-   regulations
-4. **Error Details**: Avoid logging sensitive error details in production
-5. **Metadata Sanitization**: Sanitize user input before including in logs
+1.  **Sensitive Data**: Never log passwords, API keys, or personally
+    identifiable information
+2.  **File Permissions**: Ensure log directories have appropriate permissions
+3.  **Log Retention**: Configure retention policies to comply with data
+    regulations
+4.  **Error Details**: Avoid logging sensitive error details in production
+5.  **Metadata Sanitization**: Sanitize user input before including in logs
+
+---
 
 ## TypeScript Support
 
@@ -360,7 +364,7 @@ IDE support:
 interface LoggerOptions {
   level?: 'error' | 'warn' | 'info' | 'debug';
   defaultMeta?: Record<string, any>;
-  transports?: Transport[];
+  transports?: BaseTransport[]; // Updated from 'Transport[]'
   enableFileLogging?: boolean;
   dirname?: string;
   filename?: string;
@@ -379,16 +383,20 @@ interface Logger {
 }
 ```
 
+---
+
 ## Performance Tips
 
-1. **Log Levels**: Use appropriate log levels to reduce I/O in production
-2. **Async Operations**: The file transport uses async writes to minimize
-   blocking
-3. **Batch Logging**: Log aggregated results rather than individual operations
-   in loops
-4. **Child Loggers**: Use child loggers instead of repeating metadata
-5. **File Size**: Configure `maxSize` to prevent excessive file sizes
-6. **Retention**: Set appropriate `retentionDays` to manage disk usage
+1.  **Log Levels**: Use appropriate log levels to reduce I/O in production
+2.  **Async Operations**: The file transport uses async writes to minimize
+    blocking
+3.  **Batch Logging**: Log aggregated results rather than individual operations
+    in loops
+4.  **Child Loggers**: Use child loggers instead of repeating metadata
+5.  **File Size**: Configure `maxSize` to prevent excessive file sizes
+6.  **Retention**: Set appropriate `retentionDays` to manage disk usage
+
+---
 
 ## License
 
@@ -397,5 +405,5 @@ MIT
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
 </p>

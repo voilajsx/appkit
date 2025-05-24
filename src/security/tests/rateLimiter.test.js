@@ -1,63 +1,50 @@
 /**
- * Rate Limiter Tests - @voilajs/appkit Security Module
+ * Rate Limiter Tests - @voilajsx/appkit Security Module
  *
- * These tests verify that the rate limiting functionality
- * correctly limits requests based on configuration.
+ * FINAL FIXED VERSION - Handles global store cleanup
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRateLimiter } from '../rateLimiter.js';
 
-describe('Rate Limiter', () => {
+describe('Rate Limiter (Unit Tests)', () => {
   let clock;
-  let reqMock;
-  let resMock;
-  let nextMock;
 
   beforeEach(() => {
-    // Setup fake timer for time-based tests
     clock = vi.useFakeTimers();
-
-    // Mock Express request object
-    reqMock = {
-      ip: '127.0.0.1',
-      connection: { remoteAddress: '127.0.0.1' },
-      headers: {},
-    };
-
-    // Mock Express response object with proper json method
-    resMock = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
-      setHeader: vi.fn(),
-    };
-
-    // Mock next middleware function
-    nextMock = vi.fn();
   });
 
   afterEach(() => {
-    // Restore timers
     vi.useRealTimers();
+  });
 
-    // Clear all mocks
-    vi.resetAllMocks();
+  const createMocks = () => ({
+    req: {
+      ip: '127.0.0.1',
+      connection: { remoteAddress: '127.0.0.1' },
+      headers: {},
+    },
+    res: {
+      statusCode: null,
+      json: vi.fn(),
+      send: vi.fn(),
+      setHeader: vi.fn(),
+      end: vi.fn(),
+    },
+    next: vi.fn(),
   });
 
   describe('createRateLimiter()', () => {
-    it('should throw error when required options are missing', () => {
-      expect(() => createRateLimiter()).toThrow(
-        'windowMs and max are required options'
-      );
-      expect(() => createRateLimiter({})).toThrow(
-        'windowMs and max are required options'
-      );
+    it('should throw error when required options are missing or invalid', () => {
+      const expectedError =
+        'createRateLimiter: `windowMs` (positive number) and `max` (non-negative number) are required options.';
+
+      expect(() => createRateLimiter()).toThrow(expectedError);
+      expect(() => createRateLimiter({})).toThrow(expectedError);
       expect(() => createRateLimiter({ windowMs: 1000 })).toThrow(
-        'windowMs and max are required options'
+        expectedError
       );
-      expect(() => createRateLimiter({ max: 5 })).toThrow(
-        'windowMs and max are required options'
-      );
+      expect(() => createRateLimiter({ max: 5 })).toThrow(expectedError);
     });
 
     it('should create middleware function when options are valid', () => {
@@ -66,132 +53,186 @@ describe('Rate Limiter', () => {
     });
 
     it('should allow requests within the rate limit', () => {
-      const middleware = createRateLimiter({ windowMs: 1000, max: 2 });
+      // Use custom store to avoid global pollution
+      const store = new Map();
+      const middleware = createRateLimiter({ windowMs: 1000, max: 2, store });
 
-      // First request should be allowed
-      middleware(reqMock, resMock, nextMock);
-      expect(nextMock).toHaveBeenCalledTimes(1);
-      expect(resMock.status).not.toHaveBeenCalled();
-
-      // Rate limit headers should be set
-      expect(resMock.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', 2);
-      expect(resMock.setHeader).toHaveBeenCalledWith(
+      // First request
+      const mocks1 = createMocks();
+      middleware(mocks1.req, mocks1.res, mocks1.next);
+      expect(mocks1.next).toHaveBeenCalledTimes(1);
+      expect(mocks1.res.statusCode).toBeNull();
+      expect(mocks1.res.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', 2);
+      expect(mocks1.res.setHeader).toHaveBeenCalledWith(
         'X-RateLimit-Remaining',
         1
       );
+
+      // Second request (still within limit)
+      const mocks2 = createMocks();
+      middleware(mocks2.req, mocks2.res, mocks2.next);
+      expect(mocks2.next).toHaveBeenCalledTimes(1);
+      expect(mocks2.res.statusCode).toBeNull();
+      expect(mocks2.res.setHeader).toHaveBeenCalledWith(
+        'X-RateLimit-Remaining',
+        0
+      );
     });
 
-    it.skip('should block requests that exceed the rate limit', () => {
-      const middleware = createRateLimiter({ windowMs: 1000, max: 2 });
+    it('should block requests that exceed the rate limit', () => {
+      // Use custom store to avoid global pollution
+      const store = new Map();
+      const middleware = createRateLimiter({ windowMs: 1000, max: 1, store });
 
-      // First request - allowed
-      middleware(reqMock, resMock, nextMock);
-      expect(nextMock).toHaveBeenCalledTimes(1);
+      // First request - should be allowed
+      const mocks1 = createMocks();
+      middleware(mocks1.req, mocks1.res, mocks1.next);
+      expect(mocks1.next).toHaveBeenCalledTimes(1);
+      expect(mocks1.res.statusCode).toBeNull();
+      expect(mocks1.res.setHeader).toHaveBeenCalledWith(
+        'X-RateLimit-Remaining',
+        0
+      );
 
-      // Second request - allowed (at limit)
-      vi.resetAllMocks();
-      middleware(reqMock, resMock, nextMock);
-      expect(nextMock).toHaveBeenCalledTimes(1);
-
-      // Third request - should be blocked
-      vi.resetAllMocks();
-
-      // Properly mock the status method to return an object with a json method
-      resMock.status.mockImplementation(() => {
-        return { json: vi.fn() };
+      // Second request - should be blocked
+      const mocks2 = createMocks();
+      middleware(mocks2.req, mocks2.res, mocks2.next);
+      expect(mocks2.next).not.toHaveBeenCalled();
+      expect(mocks2.res.statusCode).toBe(429);
+      expect(mocks2.res.json).toHaveBeenCalledWith({
+        error: 'Too Many Requests',
+        message: 'Too many requests, please try again later.',
+        retryAfter: expect.any(Number),
       });
-
-      middleware(reqMock, resMock, nextMock);
-
-      expect(nextMock).not.toHaveBeenCalled();
-      expect(resMock.status).toHaveBeenCalledWith(429);
     });
 
     it('should reset counter after window expires', () => {
-      const middleware = createRateLimiter({ windowMs: 1000, max: 2 });
+      // Use custom store to avoid global pollution
+      const store = new Map();
+      const middleware = createRateLimiter({ windowMs: 1000, max: 1, store });
 
-      // Use up the limit
-      middleware(reqMock, resMock, nextMock);
-      middleware(reqMock, resMock, nextMock);
+      // First request - allowed
+      const mocks1 = createMocks();
+      middleware(mocks1.req, mocks1.res, mocks1.next);
+      expect(mocks1.next).toHaveBeenCalledTimes(1);
 
-      // Third request - should be blocked
-      vi.resetAllMocks();
-      try {
-        middleware(reqMock, resMock, nextMock);
-        // If no error, check expectations
-        expect(nextMock).not.toHaveBeenCalled();
-        expect(resMock.status).toHaveBeenCalledWith(429);
-      } catch (error) {
-        // If error happens, make sure it's related to json
-        expect(error.message).toContain('json');
-      }
+      // Second request - blocked
+      const mocks2 = createMocks();
+      middleware(mocks2.req, mocks2.res, mocks2.next);
+      expect(mocks2.res.statusCode).toBe(429);
 
-      // Advance time past the window
+      // Advance time past window
       clock.advanceTimersByTime(1001);
 
-      // Request after window reset - should be allowed
-      vi.resetAllMocks();
-      middleware(reqMock, resMock, nextMock);
-      expect(nextMock).toHaveBeenCalled();
-      expect(resMock.status).not.toHaveBeenCalled();
+      // Third request after reset - should be allowed
+      const mocks3 = createMocks();
+      middleware(mocks3.req, mocks3.res, mocks3.next);
+      expect(mocks3.next).toHaveBeenCalledTimes(1);
+      expect(mocks3.res.statusCode).toBeNull();
     });
 
-    it('should use custom key generator if provided', () => {
-      const keyGenerator = vi.fn().mockReturnValue('custom-key');
+    it('should use custom key generator for different clients', () => {
+      const keyGenerator = vi.fn((req) => req.headers['x-custom-id'] || req.ip);
+      const store = new Map();
       const middleware = createRateLimiter({
         windowMs: 1000,
-        max: 2,
+        max: 1,
         keyGenerator,
+        store,
       });
 
-      middleware(reqMock, resMock, nextMock);
+      // Client A - first request (allowed)
+      const mocksA1 = createMocks();
+      mocksA1.req.headers['x-custom-id'] = 'clientA';
+      middleware(mocksA1.req, mocksA1.res, mocksA1.next);
+      expect(mocksA1.next).toHaveBeenCalledTimes(1);
 
-      expect(keyGenerator).toHaveBeenCalledWith(reqMock);
+      // Client B - first request (should also be allowed, different client)
+      const mocksB1 = createMocks();
+      mocksB1.req.headers['x-custom-id'] = 'clientB';
+      middleware(mocksB1.req, mocksB1.res, mocksB1.next);
+      expect(mocksB1.next).toHaveBeenCalledTimes(1);
+
+      // Client A - second request (should be blocked)
+      const mocksA2 = createMocks();
+      mocksA2.req.headers['x-custom-id'] = 'clientA';
+      middleware(mocksA2.req, mocksA2.res, mocksA2.next);
+      expect(mocksA2.next).not.toHaveBeenCalled();
+      expect(mocksA2.res.statusCode).toBe(429);
     });
 
-    it('should use custom message if provided', () => {
-      const customMessage = 'Custom rate limit exceeded message';
+    it('should use custom message when limit is exceeded', () => {
+      const customMessage = 'Custom rate limit message';
+      const store = new Map();
       const middleware = createRateLimiter({
         windowMs: 1000,
         max: 1,
         message: customMessage,
-      });
-
-      // First request - allowed
-      middleware(reqMock, resMock, nextMock);
-
-      // Second request - should be blocked with custom message
-      vi.resetAllMocks();
-      try {
-        middleware(reqMock, resMock, nextMock);
-        // If no error, check that status was called correctly
-        expect(resMock.status).toHaveBeenCalledWith(429);
-
-        // Only check the json payload if json was called successfully
-        if (resMock.json.mock.calls.length > 0) {
-          expect(resMock.json.mock.calls[0][0].message).toBe(customMessage);
-        }
-      } catch (error) {
-        // If error happens, make sure it's related to json
-        expect(error.message).toContain('json');
-      }
-    });
-
-    it('should use custom store if provided', () => {
-      const store = new Map();
-      const getSpy = vi.spyOn(store, 'get');
-      const setSpy = vi.spyOn(store, 'set');
-
-      const middleware = createRateLimiter({
-        windowMs: 1000,
-        max: 2,
         store,
       });
 
-      middleware(reqMock, resMock, nextMock);
+      // First request - allowed
+      const mocks1 = createMocks();
+      middleware(mocks1.req, mocks1.res, mocks1.next);
 
-      expect(getSpy).toHaveBeenCalled();
-      expect(setSpy).toHaveBeenCalled();
+      // Second request - blocked with custom message
+      const mocks2 = createMocks();
+      middleware(mocks2.req, mocks2.res, mocks2.next);
+      expect(mocks2.res.json).toHaveBeenCalledWith({
+        error: 'Too Many Requests',
+        message: customMessage,
+        retryAfter: expect.any(Number),
+      });
+    });
+
+    it('should use custom store', () => {
+      const customStore = new Map();
+      const middleware = createRateLimiter({
+        windowMs: 1000,
+        max: 2,
+        store: customStore,
+      });
+
+      const { req, res, next } = createMocks();
+      middleware(req, res, next);
+
+      expect(customStore.size).toBe(1);
+      expect(customStore.has('127.0.0.1')).toBe(true);
+
+      const record = customStore.get('127.0.0.1');
+      expect(record.count).toBe(1);
+      expect(record.resetTime).toBeGreaterThan(Date.now());
+    });
+
+    it('should handle max: 0 (block all requests)', () => {
+      const store = new Map();
+      const middleware = createRateLimiter({ windowMs: 1000, max: 0, store });
+
+      const { req, res, next } = createMocks();
+      middleware(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(429);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Too Many Requests',
+        message: 'Too many requests, please try again later.',
+        retryAfter: expect.any(Number),
+      });
+    });
+
+    it('should set proper rate limit headers', () => {
+      const store = new Map();
+      const middleware = createRateLimiter({ windowMs: 5000, max: 3, store });
+      const { req, res, next } = createMocks();
+
+      middleware(req, res, next);
+
+      expect(res.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', 3);
+      expect(res.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', 2);
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'X-RateLimit-Reset',
+        expect.any(Number)
+      );
     });
   });
 });

@@ -10,22 +10,25 @@ effectively.
 
 - 🚀 [Getting Started](#getting-started)
 - 📊 [Basic Logging](#basic-logging)
-  - [Basic Usage](#basic-usage)
-  - [Advanced Usage](#advanced-usage)
-  - [Complete Example](#complete-example)
+  - [Basic Usage](#basic-logging-basic-usage)
+  - [Advanced Usage](#basic-logging-advanced-usage)
+  - [Complete Example](#basic-logging-complete-example)
 - 📁 [File Storage and Rotation](#file-storage-and-rotation)
-  - [Basic Usage](#basic-usage-1)
-  - [Advanced Usage](#advanced-usage-1)
-  - [Complete Example](#complete-example-1)
+  - [Basic Usage](#file-storage-and-rotation-basic-usage)
+  - [Advanced Usage](#file-storage-and-rotation-advanced-usage)
+  - [Complete Example](#file-storage-and-rotation-complete-example)
 - 🔗 [Child Loggers](#child-loggers)
-  - [Basic Usage](#basic-usage-2)
-  - [Advanced Usage](#advanced-usage-2)
-  - [Complete Example](#complete-example-2)
+  - [Basic Usage](#child-loggers-basic-usage)
+  - [Advanced Usage](#child-loggers-advanced-usage)
+  - [Complete Example](#child-loggers-complete-example)
 - 🚛 [Custom Transports](#custom-transports)
-  - [Basic Usage](#basic-usage-3)
-  - [Advanced Usage](#advanced-usage-3)
-  - [Complete Example](#complete-example-3)
-- 🚀 [Complete Integration Example](#complete-integration-example)
+  - [Basic Usage](#custom-transports-basic-usage)
+  - [Advanced Usage](#custom-transports-advanced-usage)
+  - [Complete Example](#custom-transports-complete-example)
+- ⚙️ [Integration with Popular Frameworks](#integration-with-popular-frameworks)
+  - [Fastify](#integration-with-popular-frameworks-fastify)
+- 🚀
+  [Complete Express Integration Example](#complete-express-integration-example)
 - 📚 [Additional Resources](#additional-resources)
 - 💡 [Best Practices](#best-practices)
 
@@ -44,7 +47,7 @@ import { createLogger } from '@voilajsx/appkit/logging';
 import {
   ConsoleTransport,
   FileTransport,
-} from '@voilajsx/appkit/logging/transports';
+} from '@voilajsx/appkit/logging/transports'; // Assumes 'transports/index.js' re-exports these
 ```
 
 ## Basic Logging
@@ -52,7 +55,7 @@ import {
 The module supports four log levels (error, warn, info, debug) with structured
 metadata for better searchability and analysis.
 
-### Basic Usage
+### Basic Usage <a name="basic-logging-basic-usage"></a>
 
 ```javascript
 import { createLogger } from '@voilajsx/appkit/logging';
@@ -81,7 +84,7 @@ and analysis easier. In production environments, you might want to set the
 minimum level to 'info' to reduce log volume, while using 'debug' during
 development and troubleshooting.
 
-### Advanced Usage
+### Advanced Usage <a name="basic-logging-advanced-usage"></a>
 
 ```javascript
 // Configure logger with custom settings
@@ -127,10 +130,11 @@ architectures where you need to correlate logs across multiple services. The
 consistent metadata structure makes it easier to filter and search logs in
 centralized logging systems like ELK Stack or Datadog.
 
-### Complete Example
+### Complete Example <a name="basic-logging-complete-example"></a>
 
 ```javascript
 import { createLogger } from '@voilajsx/appkit/logging';
+import os from 'os'; // Don't forget to import os for os.hostname()
 
 // Configure logger for production
 const logger = createLogger({
@@ -165,6 +169,18 @@ function logDatabaseOperation(operation, duration, success, error = null) {
 
 // Use in application
 async function updateUser(userId, data) {
+  // Dummy db and user object for example
+  const db = {
+    users: {
+      update: async (id, userData) => {
+        return new Promise((resolve) =>
+          setTimeout(() => resolve({ id, ...userData }), 50)
+        );
+      },
+    },
+  };
+  const user = { id: 'dummy-user-id', name: 'dummy-user-name' };
+
   const startTime = Date.now();
 
   try {
@@ -176,6 +192,11 @@ async function updateUser(userId, data) {
     throw error;
   }
 }
+
+// Example usage call
+// (async () => {
+//   await updateUser('test-user-id', { email: 'test@example.com' });
+// })();
 ```
 
 **Expected Output (Success):**
@@ -201,10 +222,10 @@ tools that can alert on error rates or performance degradations.
 The module includes automatic file logging with rotation based on size and date,
 plus configurable retention policies.
 
-### Basic Usage
+### Basic Usage <a name="file-storage-and-rotation-basic-usage"></a>
 
 ```javascript
-// Default file logging (5-day retention)
+// Default file logging (7-day retention)
 const logger = createLogger();
 
 // Logs are automatically saved to:
@@ -212,24 +233,26 @@ const logger = createLogger();
 // - logs/app-2024-01-01.log.1 (rotated file)
 ```
 
-**Expected Outcome:**  
-With the default settings, log files will be:
+**Expected Outcome:** With the default settings, log files will be:
 
 1. Created in a `logs` directory in your project root
 2. Named with the current date (e.g., `app-2025-05-12.log`)
 3. Rotated when they exceed 10MB to `app-2025-05-12.log.1`,
    `app-2025-05-12.log.2`, etc.
-4. Automatically deleted after 5 days to manage disk space
+4. Automatically deleted after **7 days** to manage disk space
 
 💡 **Tip**: Monitor your log directory size and adjust retention settings based
 on your needs. In high-traffic applications, log files can grow rapidly and
 consume significant disk space, potentially impacting application performance.
 
-### Advanced Usage
+### Advanced Usage <a name="file-storage-and-rotation-advanced-usage"></a>
 
 ```javascript
 import { createLogger } from '@voilajsx/appkit/logging';
-import { FileTransport } from '@voilajsx/appkit/logging/transports';
+import {
+  ConsoleTransport,
+  FileTransport,
+} from '@voilajsx/appkit/logging/transports';
 
 // Custom file logging configuration
 const logger = createLogger({
@@ -258,8 +281,7 @@ const errorLogger = createLogger({
 });
 ```
 
-**Expected Outcome:**  
-This configuration will:
+**Expected Outcome:** This configuration will:
 
 1. Store general logs in `/var/log/myapp/api-YYYY-MM-DD.log`
 2. Rotate these files when they reach 50MB
@@ -272,7 +294,7 @@ requirements where error logs need longer retention. It's also useful for
 separating high-volume debug logs from critical error information that needs to
 be preserved.
 
-### Complete Example
+### Complete Example <a name="file-storage-and-rotation-complete-example"></a>
 
 ```javascript
 import { createLogger } from '@voilajsx/appkit/logging';
@@ -280,6 +302,8 @@ import {
   ConsoleTransport,
   FileTransport,
 } from '@voilajsx/appkit/logging/transports';
+import fs from 'fs'; // Import fs for fs.promises.stat and fs.promises.readdir
+import os from 'os'; // Import os for os.hostname()
 
 // Production logging setup with multiple transports
 function createProductionLogger(service) {
@@ -288,6 +312,7 @@ function createProductionLogger(service) {
     defaultMeta: {
       service,
       environment: 'production',
+      hostname: os.hostname(),
     },
     transports: [
       // Console for container logs
@@ -315,26 +340,34 @@ function createProductionLogger(service) {
 
 // Monitor log directory
 async function monitorLogs(logger) {
-  const stats = await fs.promises.stat('/var/log/app');
+  const logDir = '/var/log/app'; // Define the directory
+  try {
+    const stats = await fs.promises.stat(logDir);
+    const files = await fs.promises.readdir(logDir);
 
-  logger.info('Log directory statistics', {
-    size: stats.size,
-    files: await fs.promises.readdir('/var/log/app').length,
-  });
+    logger.info('Log directory statistics', {
+      size: stats.size,
+      files: files.length,
+    });
 
-  // Alert if logs are too large
-  if (stats.size > 1024 * 1024 * 1024) {
-    // 1GB
-    logger.warn('Log directory exceeds 1GB');
+    // Alert if logs are too large
+    if (stats.size > 1024 * 1024 * 1024) {
+      // 1GB
+      logger.warn('Log directory exceeds 1GB');
+    }
+  } catch (error) {
+    logger.error('Error monitoring log directory', {
+      path: logDir,
+      error: error.message,
+    });
   }
 }
 
 const logger = createProductionLogger('user-api');
-setInterval(() => monitorLogs(logger), 24 * 60 * 60 * 1000);
+// setInterval(() => monitorLogs(logger), 24 * 60 * 60 * 1000); // Uncomment for production
 ```
 
-**Expected Outcome:**  
-This production-ready setup:
+**Expected Outcome:** This production-ready setup:
 
 1. Creates separate log files for each microservice (e.g.,
    `user-api-2025-05-12.log`)
@@ -355,7 +388,7 @@ impact application availability.
 Child loggers inherit context from their parent while adding their own metadata,
 perfect for request-specific or operation-specific logging.
 
-### Basic Usage
+### Basic Usage <a name="child-loggers-basic-usage"></a>
 
 ```javascript
 const logger = createLogger();
@@ -363,7 +396,7 @@ const logger = createLogger();
 // Create child logger with additional context
 const requestLogger = logger.child({
   requestId: 'abc123',
-  userId: user.id,
+  userId: 'user-456', // Assuming user.id is 'user-456' for example
 });
 
 requestLogger.info('Processing request');
@@ -380,9 +413,36 @@ requestLogger.info('Processing request');
 log call. This not only makes your code cleaner but ensures consistent context
 in logs, improving traceability when analyzing issues.
 
-### Advanced Usage
+### Advanced Usage <a name="child-loggers-advanced-usage"></a>
 
 ```javascript
+// Dummy express imports for example
+const express = () => ({
+  use: () => {},
+  get: () => {},
+  post: () => {},
+  listen: () => {},
+});
+const app = express();
+const req = {
+  id: 'req-789',
+  method: 'GET',
+  path: '/users/123',
+  ip: '203.0.113.42',
+  get: (header) => (header === 'user-agent' ? 'Mozilla/5.0...' : undefined),
+  startTime: Date.now(),
+};
+const res = {
+  on: (event, cb) => {
+    if (event === 'finish') {
+      setTimeout(() => cb(), 100); // Simulate finish event
+    }
+  },
+  statusCode: 200,
+};
+const next = () => {};
+// End dummy express imports
+
 // Express middleware for request logging
 function requestLoggingMiddleware(logger) {
   return (req, res, next) => {
@@ -408,6 +468,11 @@ function requestLoggingMiddleware(logger) {
     next();
   };
 }
+
+// Example usage (uncomment to run)
+// import { createLogger } from '@voilajsx/appkit/logging';
+// const logger = createLogger();
+// requestLoggingMiddleware(logger)(req, res, next);
 ```
 
 **Expected Output:**
@@ -424,16 +489,42 @@ request object, you create a clean way to track the entire request lifecycle
 across all middleware and route handlers, making it easier to trace issues
 through the system.
 
-### Complete Example
+### Complete Example <a name="child-loggers-complete-example"></a>
 
 ```javascript
 import { createLogger } from '@voilajsx/appkit/logging';
-import express from 'express';
+import {
+  ConsoleTransport,
+  FileTransport,
+} from '@voilajsx/appkit/logging/transports';
+import express from 'express'; // Assuming express is installed
+import { Buffer } from 'buffer'; // Explicitly import Buffer
+import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is installed for generateId
+// Dummy User object for example
+const User = {
+  findById: async (id) => {
+    if (id === '123') return { id: '123', name: 'Test User' };
+    if (id === '999') return null;
+    throw new Error('Database error');
+  },
+  create: async (data) => {
+    return { id: uuidv4(), ...data };
+  },
+};
+const connectDatabase = async () => console.log('Database connected (dummy)');
+// End dummy imports
 
 const app = express();
+app.use(express.json()); // For req.body parsing
+
 const logger = createLogger({
   defaultMeta: { service: 'api' },
 });
+
+// Helper to generate IDs if req.id is not available
+function generateId() {
+  return uuidv4();
+}
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -445,9 +536,9 @@ app.use((req, res, next) => {
     method: req.method,
     url: req.url,
     ip: req.ip,
+    userId: req.user?.id,
   });
 
-  // Log request
   req.logger.info('Request received');
 
   // Log response
@@ -464,343 +555,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use in routes
-app.get('/users/:id', async (req, res) => {
-  const userLogger = req.logger.child({
-    operation: 'getUser',
-    userId: req.params.id,
-  });
-
-  try {
-    userLogger.debug('Fetching user from database');
-    const user = await User.findById(req.params.id);
-
-    if (!user) {
-      userLogger.warn('User not found');
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    userLogger.info('User retrieved successfully');
-    res.json(user);
-  } catch (error) {
-    userLogger.error('Error fetching user', {
-      error: error.message,
-      stack: error.stack,
-    });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-```
-
-**Expected Output (Successful Request):**
-
-```
-2025-05-12T15:10:00.000Z [INFO] Request received {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100"}
-
-2025-05-12T15:10:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
-
-2025-05-12T15:10:00.050Z [INFO] User retrieved successfully {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
-
-2025-05-12T15:10:00.055Z [INFO] Response sent {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","statusCode":200,"duration":55,"size":1024}
-```
-
-**Expected Output (Failed Request):**
-
-```
-2025-05-12T15:15:00.000Z [INFO] Request received {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100"}
-
-2025-05-12T15:15:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
-
-2025-05-12T15:15:00.030Z [WARN] User not found {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
-
-2025-05-12T15:15:00.035Z [INFO] Response sent {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","statusCode":404,"duration":35,"size":27}
-```
-
-This example demonstrates the power of nested child loggers, which are
-particularly useful in complex web applications. The pattern creates a hierarchy
-of context (request → operation) that makes it easy to:
-
-1. Track complete request lifecycles from receipt to response
-2. Associate specific operations with requests
-3. Measure performance at different stages
-4. Quickly identify problematic requests in logs
-5. See the complete request context when errors occur
-
-This approach scales well to complex applications with many routes and
-operations, maintaining consistent logging context throughout the request
-lifecycle.
-
-## Custom Transports
-
-Create custom transports to send logs to external services or implement
-specialized logging behavior.
-
-### Basic Usage
-
-```javascript
-import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
-
-class CustomTransport extends BaseTransport {
-  async log(entry) {
-    // Custom logging logic
-    console.log('Custom:', entry);
-  }
-}
-
-const logger = createLogger({
-  transports: [new CustomTransport()],
-});
-```
-
-**Expected Output:**
-
-```
-Custom: {
-  timestamp: '2025-05-12T15:20:00.000Z',
-  level: 'info',
-  message: 'Test message',
-  ...other metadata
-}
-```
-
-💡 **Tip**: Extend BaseTransport to inherit level filtering and other base
-functionality. Custom transports are ideal for integrating with specialized log
-management systems or for implementing organization-specific logging
-requirements.
-
-### Advanced Usage
-
-```javascript
-import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
-
-// External service transport
-class DatadogTransport extends BaseTransport {
-  constructor(options) {
-    super(options);
-    this.apiKey = options.apiKey;
-    this.service = options.service;
-  }
-
-  async log(entry) {
-    try {
-      await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'DD-API-KEY': this.apiKey,
-        },
-        body: JSON.stringify({
-          message: entry.message,
-          level: entry.level,
-          service: this.service,
-          ...entry,
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to send log to Datadog:', error);
-    }
-  }
-}
-```
-
-**Expected Outcome:**  
-This transport will:
-
-1. Format log entries for the Datadog API
-2. Send logs to Datadog in real-time
-3. Include service name and other metadata
-4. Catch and report any transmission errors
-
-This pattern is especially useful for organizations using centralized log
-management systems like Datadog, Splunk, or ELK Stack. By implementing custom
-transports, you can ensure logs are properly formatted and delivered to the
-appropriate service without changing your application's logging code.
-
-### Complete Example
-
-```javascript
-import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
-import { createLogger } from '@voilajsx/appkit/logging';
-
-// Database transport for audit logging
-class DatabaseTransport extends BaseTransport {
-  constructor(options) {
-    super(options);
-    this.db = options.db;
-    this.table = options.table || 'audit_logs';
-  }
-
-  async log(entry) {
-    // Only log audit events
-    if (!entry.audit) return;
-
-    try {
-      await this.db.query(
-        `INSERT INTO ${this.table} (timestamp, level, message, metadata) VALUES (?, ?, ?, ?)`,
-        [
-          new Date(entry.timestamp),
-          entry.level,
-          entry.message,
-          JSON.stringify(entry),
-        ]
-      );
-    } catch (error) {
-      console.error('Failed to save audit log:', error);
-    }
-  }
-}
-
-// Email alert transport
-class EmailAlertTransport extends BaseTransport {
-  constructor(options) {
-    super({ ...options, level: 'error' }); // Only errors
-    this.emailService = options.emailService;
-    this.alertEmail = options.alertEmail;
-  }
-
-  async log(entry) {
-    if (entry.level !== 'error') return;
-
-    try {
-      await this.emailService.send({
-        to: this.alertEmail,
-        subject: `Error Alert: ${entry.message}`,
-        text: JSON.stringify(entry, null, 2),
-      });
-    } catch (error) {
-      console.error('Failed to send email alert:', error);
-    }
-  }
-}
-
-// Usage
-const logger = createLogger({
-  transports: [
-    new ConsoleTransport(),
-    new FileTransport({
-      dirname: 'logs',
-      retentionDays: 30,
-    }),
-    new DatabaseTransport({
-      db: dbConnection,
-      table: 'audit_logs',
-    }),
-    new EmailAlertTransport({
-      emailService: emailService,
-      alertEmail: 'alerts@example.com',
-    }),
-  ],
-});
-
-// Audit logging helper
-function auditLog(action, userId, details) {
-  logger.info(action, {
-    audit: true,
-    userId,
-    details,
-    timestamp: new Date().toISOString(),
-  });
-}
-```
-
-**Expected Outcome:**  
-This multi-transport configuration:
-
-1. Outputs all logs to console and files
-2. Stores audit logs in a database table for compliance
-3. Sends email alerts for all error logs
-4. Uses a helper function to standardize audit logging
-
-The outcomes of different log types:
-
-- **Regular log**: Goes to console and file
-- **Audit log**: Goes to console, file, and database
-- **Error log**: Goes to console, file, and triggers an email alert
-
-This pattern is particularly valuable for:
-
-- **Compliance requirements**: Storing audit logs in a database for legal or
-  regulatory requirements
-- **Operations monitoring**: Sending immediate alerts for critical errors
-- **Security analysis**: Maintaining separate audit trails for security reviews
-- **Legacy system integration**: Connecting with existing logging infrastructure
-
-Such a setup provides both real-time monitoring capability and long-term audit
-trails while maintaining a clean, consistent logging API in your application
-code.
-
-## Complete Integration Example
-
-Here's a production-ready example showing all features working together:
-
-```javascript
-import express from 'express';
-import { createLogger } from '@voilajsx/appkit/logging';
-import {
-  ConsoleTransport,
-  FileTransport,
-} from '@voilajsx/appkit/logging/transports';
-
-// Create main application logger
-const logger = createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  defaultMeta: {
-    service: 'user-api',
-    environment: process.env.NODE_ENV,
-    version: process.env.APP_VERSION || '1.0.0',
-  },
-  transports: [
-    new ConsoleTransport({
-      colorize: process.env.NODE_ENV !== 'production',
-      prettyPrint: process.env.NODE_ENV === 'development',
-    }),
-    new FileTransport({
-      dirname: process.env.LOG_DIR || 'logs',
-      filename: 'app.log',
-      retentionDays: process.env.NODE_ENV === 'production' ? 30 : 7,
-      maxSize: 50 * 1024 * 1024,
-    }),
-    new FileTransport({
-      dirname: process.env.LOG_DIR || 'logs',
-      filename: 'error.log',
-      retentionDays: 90,
-      level: 'error',
-    }),
-  ],
-});
-
-const app = express();
-
-// Request logging middleware
-app.use((req, res, next) => {
-  const startTime = Date.now();
-
-  // Create request logger
-  req.logger = logger.child({
-    requestId: req.id || generateId(),
-    method: req.method,
-    path: req.path,
-    ip: req.ip,
-    userId: req.user?.id,
-  });
-
-  req.logger.info('Request started');
-
-  // Log response
-  res.on('finish', () => {
-    req.logger.info('Request completed', {
-      statusCode: res.statusCode,
-      duration: Date.now() - startTime,
-      contentLength: res.get('content-length'),
-    });
-  });
-
-  next();
-});
-
 // Error handling middleware
 app.use((err, req, res, next) => {
-  req.logger.error('Unhandled error', {
+  // Ensure req.logger exists before using it
+  const currentLogger = req.logger || logger;
+  currentLogger.error('Unhandled error', {
     error: err.message,
     stack: err.stack,
     code: err.code,
@@ -844,6 +603,32 @@ app.post('/users', async (req, res) => {
   }
 });
 
+app.get('/users/:id', async (req, res) => {
+  const operationLogger = req.logger.child({
+    operation: 'getUser',
+    userId: req.params.id,
+  });
+
+  try {
+    operationLogger.debug('Fetching user from database');
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      operationLogger.warn('User not found');
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    operationLogger.info('User retrieved successfully');
+    res.json(user);
+  } catch (error) {
+    operationLogger.error('Error fetching user', {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Application startup
 async function startApp() {
   const startTime = Date.now();
@@ -870,7 +655,12 @@ async function startApp() {
       logger.info('SIGTERM received, starting graceful shutdown');
 
       try {
-        await server.close();
+        await new Promise((resolve, reject) => {
+          server.close((err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
         logger.info('HTTP server closed');
 
         await logger.flush();
@@ -895,50 +685,740 @@ async function startApp() {
   }
 }
 
-startApp();
+// startApp(); // Uncomment to run this example directly
 ```
 
-**Expected Outcome:**  
-This comprehensive example:
+**Expected Outcome (Successful Request):**
 
-1. **Startup sequence**:
-   - Logs application startup events
-   - Captures startup duration
-   - Records system information
-2. **Request handling**:
-   - Creates a child logger for each request
-   - Tracks request duration and outcome
-   - Adds operation-specific context for specific routes
-3. **Error handling**:
-   - Captures detailed error information
-   - Tracks both expected errors (like validation) and unexpected errors
-   - Stores errors with extended retention
-4. **Graceful shutdown**:
-   - Logs the shutdown sequence
-   - Ensures all pending logs are flushed
-   - Reports any shutdown errors
+```
+2025-05-12T15:10:00.000Z [INFO] Request received {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100"}
 
-This integration shows how a well-structured logging system touches every part
-of your application lifecycle - from startup to shutdown, and every request in
-between. It provides visibility into application performance, user behavior, and
-errors while maintaining a clean separation of concerns in your code.
+2025-05-12T15:10:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
 
-The approach is particularly valuable for production applications where
-observability is critical for maintaining service reliability. By consistently
-applying this logging pattern, you create a rich foundation for monitoring,
-alerting, and troubleshooting that can help reduce mean time to resolution
-(MTTR) when issues occur.
+2025-05-12T15:10:00.050Z [INFO] User retrieved successfully {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
+
+2025-05-12T15:10:00.055Z [INFO] Response sent {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","statusCode":200,"duration":55,"size":1024}
+```
+
+**Expected Outcome (Failed Request):**
+
+```
+2025-05-12T15:15:00.000Z [INFO] Request received {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100"}
+
+2025-05-12T15:15:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
+
+2025-05-12T15:15:00.030Z [WARN] User not found {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
+
+2025-05-12T15:15:00.035Z [INFO] Response sent {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","statusCode":404,"duration":35,"size":27}
+```
+
+This example demonstrates the power of nested child loggers, which are
+particularly useful in complex web applications. The pattern creates a hierarchy
+of context (request → operation) that makes it easy to:
+
+1. Track complete request lifecycles from receipt to response
+2. Associate specific operations with requests
+3. Measure performance at different stages
+4. Quickly identify problematic requests in logs
+5. See the complete request context when errors occur
+
+This approach scales well to complex applications with many routes and
+operations, maintaining consistent logging context throughout the request
+lifecycle.
+
+## Custom Transports
+
+Create custom transports to send logs to external services or implement
+specialized logging behavior.
+
+### Basic Usage <a name="custom-transports-basic-usage"></a>
+
+```javascript
+import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
+import { createLogger } from '@voilajsx/appkit/logging'; // Import createLogger for example
+
+class CustomTransport extends BaseTransport {
+  async log(entry) {
+    // Custom logging logic
+    console.log('Custom:', entry);
+  }
+}
+
+const logger = createLogger({
+  transports: [new CustomTransport()],
+});
+
+// Example usage (uncomment to run)
+// logger.info('Test message for custom transport');
+```
+
+**Expected Output:**
+
+```
+Custom: {
+  timestamp: '2025-05-12T15:20:00.000Z',
+  level: 'info',
+  message: 'Test message',
+  ...other metadata
+}
+```
+
+💡 **Tip**: Extend BaseTransport to inherit level filtering and other base
+functionality. Custom transports are ideal for integrating with specialized log
+management systems or for implementing organization-specific logging
+requirements.
+
+### Advanced Usage <a name="custom-transports-advanced-usage"></a>
+
+```javascript
+import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
+import fetch from 'node-fetch'; // Assuming node-fetch is installed for examples if not browser env
+
+// External service transport
+class DatadogTransport extends BaseTransport {
+  constructor(options) {
+    super(options);
+    this.apiKey = options.apiKey;
+    this.service = options.service;
+    if (!this.apiKey) {
+      console.error('DatadogTransport: API Key is required!');
+    }
+  }
+
+  async log(entry) {
+    if (!this.apiKey) {
+      console.error('DatadogTransport: Cannot send log, API Key missing.');
+      return;
+    }
+    try {
+      await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'DD-API-KEY': this.apiKey,
+        },
+        body: JSON.stringify({
+          message: entry.message,
+          level: entry.level,
+          service: this.service,
+          ...entry, // Include all metadata
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to send log to Datadog:', error);
+    }
+  }
+}
+
+// Example usage (uncomment and provide API key)
+// import { createLogger } from '@voilajsx/appkit/logging';
+// const logger = createLogger({
+//   transports: [
+//     new DatadogTransport({
+//       apiKey: process.env.DATADOG_API_KEY,
+//       service: 'my-web-service'
+//     })
+//   ]
+// });
+// logger.info('This log should go to Datadog');
+```
+
+**Expected Outcome:** This transport will:
+
+1. Format log entries for the Datadog API
+2. Send logs to Datadog in real-time
+3. Include service name and other metadata
+4. Catch and report any transmission errors
+
+This pattern is especially useful for organizations using centralized log
+management systems like Datadog, Splunk, or ELK Stack. By implementing custom
+transports, you can ensure logs are properly formatted and delivered to the
+appropriate service without changing your application's logging code.
+
+### Complete Example <a name="custom-transports-complete-example"></a>
+
+```javascript
+import { BaseTransport } from '@voilajsx/appkit/logging/transports/base';
+import {
+  ConsoleTransport,
+  FileTransport,
+  createLogger,
+} from '@voilajsx/appkit/logging'; // Import createLogger here
+
+// Dummy database and email service for example
+const dbConnection = {
+  query: async (sql, params) => {
+    console.log('DB Query:', sql, params);
+    return new Promise((resolve) =>
+      setTimeout(() => resolve({ rows: [] }), 10)
+    );
+  },
+};
+const emailService = {
+  send: async ({ to, subject, text }) => {
+    console.log(`Email sent to ${to} with subject "${subject}"`);
+  },
+};
+// End dummy imports
+
+// Database transport for audit logging
+class DatabaseTransport extends BaseTransport {
+  constructor(options) {
+    super(options);
+    this.db = options.db;
+    this.table = options.table || 'audit_logs';
+  }
+
+  async log(entry) {
+    // Only log audit events if 'audit' flag is true in metadata
+    if (!entry.meta || !entry.meta.audit) return; // Access 'meta' property
+
+    try {
+      await this.db.query(
+        `INSERT INTO ${this.table} (timestamp, level, message, metadata) VALUES (?, ?, ?, ?)`,
+        [
+          new Date(entry.timestamp),
+          entry.level,
+          entry.message,
+          JSON.stringify(entry), // Store full entry including meta
+        ]
+      );
+    } catch (error) {
+      console.error('Failed to save audit log:', error);
+    }
+  }
+}
+
+// Email alert transport
+class EmailAlertTransport extends BaseTransport {
+  constructor(options) {
+    super({ ...options, level: 'error' }); // Only errors for this transport
+    this.emailService = options.emailService;
+    this.alertEmail = options.alertEmail;
+    if (!this.emailService || !this.alertEmail) {
+      console.error(
+        'EmailAlertTransport: emailService and alertEmail are required!'
+      );
+    }
+  }
+
+  async log(entry) {
+    // This transport only processes 'error' level messages
+    if (entry.level !== 'error') return;
+
+    if (!this.emailService || !this.alertEmail) {
+      console.error(
+        'EmailAlertTransport: Cannot send alert, service or email missing.'
+      );
+      return;
+    }
+
+    try {
+      await this.emailService.send({
+        to: this.alertEmail,
+        subject: `Error Alert: ${entry.message}`,
+        text: JSON.stringify(entry, null, 2), // Send formatted JSON of the entry
+      });
+    } catch (error) {
+      console.error('Failed to send email alert:', error);
+    }
+  }
+}
+
+// Usage
+const logger = createLogger({
+  transports: [
+    new ConsoleTransport(),
+    new FileTransport({
+      dirname: 'logs',
+      retentionDays: 30,
+    }),
+    new DatabaseTransport({
+      db: dbConnection,
+      table: 'audit_logs',
+    }),
+    new EmailAlertTransport({
+      emailService: emailService,
+      alertEmail: 'alerts@example.com',
+    }),
+  ],
+});
+
+// Audit logging helper
+function auditLog(action, userId, details) {
+  logger.info(action, {
+    audit: true, // Flag to trigger DatabaseTransport
+    userId,
+    details,
+    // timestamp: new Date().toISOString(), // Logger automatically adds timestamp
+  });
+}
+
+// Example usage (uncomment to run)
+// auditLog('UserLoggedIn', 'user-123', { ip: '192.168.1.1' });
+// logger.error('Critical process failed', { component: 'worker', pid: 1234 });
+// logger.info('Regular info message');
+```
+
+**Expected Outcome:** This multi-transport configuration:
+
+1. Outputs all logs to console and file
+2. Stores audit logs in a database table for compliance
+3. Sends email alerts for all error logs
+4. Uses a helper function to standardize audit logging
+
+The outcomes of different log types:
+
+- **Regular log**: Goes to console and file
+- **Audit log**: Goes to console, file, and database
+- **Error log**: Goes to console, file, and triggers an email alert
+
+This pattern is particularly valuable for:
+
+- **Compliance requirements**: Storing audit logs in a database for legal or
+  regulatory requirements
+- **Operations monitoring**: Sending immediate alerts for critical errors
+- **Security analysis**: Maintaining separate audit trails for security reviews
+- **Legacy system integration**: Connecting with existing logging infrastructure
+
+Such a setup provides both real-time monitoring capability and long-term audit
+trails while maintaining a clean, consistent logging API in your application
+code.
+
+## Integration with Popular Frameworks
+
+While `@voilajsx/appkit/logging` is designed to be framework-agnostic, various
+Node.js frameworks and libraries have their own conventions or expected
+interfaces for logging. To ensure seamless integration and leverage your logger
+within such frameworks, you may need to provide a small adapter object that maps
+their expected logging methods to your logger's available methods.
+
+This approach allows your core logger to remain minimal and independent, while
+still being compatible with a wide ecosystem of tools.
+
+### Fastify <a name="integration-with-popular-frameworks-fastify"></a>
+
+Fastify, by default, uses `pino` for logging and expects a logger instance with
+methods like `fatal`, `error`, `warn`, `info`, `debug`, and `trace`. Since
+`@voilajsx/appkit/logging` does not include `fatal` or `trace` by default, you
+can create a simple adapter to map these calls to your existing log levels
+(e.g., `fatal` to `error`, `trace` to `debug`).
+
+**Example File: `src/logging/examples/05-fastify-integration.js`**
+
+```javascript
+// src/logging/examples/05-fastify-integration.js
+
+import Fastify from 'fastify';
+import { createLogger } from '@voilajsx/appkit/logging'; // Using the installed package
+
+async function startFastifyApp() {
+  // 1. Initialize your @voilajsx/appkit logger
+  const appLogger = createLogger({
+    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+    dirname: 'logs',
+    filename: 'fastify-app.log',
+    retentionDays: 7, // Consistent with updated logger and README
+    maxSize: 10485760, // 10MB
+  });
+
+  // 2. Define the custom logger options for Fastify.
+  const fastifyLoggerOptions = {
+    // Crucial: Pass 'null' for the initial 'logger' option to prevent Fastify
+    // from setting up its own default pino instance for startup messages.
+    logger: null,
+
+    // Fastify still needs a 'level' to manage internal log filtering.
+    level: appLogger.level,
+
+    // The 'customFactory' is the key here. Fastify will call this
+    // to get the logger instance it will use internally (e.g., for request.log).
+    customFactory: (factoryLogLevel, factoryLogStream) => {
+      // Return an object that has all the logging methods Fastify expects.
+      // These methods will route Fastify's internal logs to your appLogger.
+      return {
+        fatal: (msg, meta) =>
+          appLogger.error(msg, { ...meta, fastifyLevel: 'fatal' }),
+        error: (msg, meta) => appLogger.error(msg, meta),
+        warn: (msg, meta) => appLogger.warn(msg, meta),
+        info: (msg, meta) => appLogger.info(msg, meta),
+        debug: (msg, meta) => appLogger.debug(msg, meta),
+        trace: (msg, meta) =>
+          appLogger.debug(msg, { ...meta, fastifyLevel: 'trace' }),
+        silent: () => {},
+        // The child method is crucial for request.log and contextual logging within Fastify
+        child: (bindings) => appLogger.child(bindings),
+      };
+    },
+  };
+
+  // 3. Initialize Fastify with your custom logger factory options
+  const fastify = Fastify({
+    ...fastifyLoggerOptions,
+  });
+
+  // Register a simple route
+  fastify.get('/', async (request, reply) => {
+    // Fastify's request.log will now use your adapter (created by customFactory)
+    request.log.info('Incoming request to root path');
+    reply.send({ hello: 'world' });
+  });
+
+  // Register a route to test internal error logging
+  fastify.get('/error', async (request, reply) => {
+    request.log.error('Simulating an error in /error route');
+    throw new Error('This is an intentional error from Fastify route');
+  });
+
+  // Start the server
+  try {
+    await fastify.listen({ port: 3000 });
+    // You can still use your direct appLogger instance for application-level logs
+    appLogger.info('Fastify server listening on port 3000');
+  } catch (err) {
+    // If an error occurs during Fastify startup, its log instance (your adapter) will be used.
+    fastify.log.error(err);
+    process.exit(1);
+  }
+
+  return fastify; // Return the fastify instance for shutdown
+}
+
+// Global variable to hold Fastify instance for shutdown
+let fastifyInstance;
+
+// Start the application
+startFastifyApp()
+  .then((instance) => {
+    fastifyInstance = instance;
+  })
+  .catch((err) => {
+    console.error('Failed to start Fastify app:', err);
+    process.exit(1);
+  });
+
+// Graceful shutdown handling
+// Declare appLogger in a scope accessible by the cleanup handlers
+let appLoggerForShutdown; // A separate reference for the logger in the outer scope
+const cleanupAndExit = async () => {
+  console.log('Initiating graceful shutdown...');
+
+  // 1. Close Fastify server
+  if (fastifyInstance) {
+    try {
+      console.log('Attempting to close Fastify server...');
+      await fastifyInstance.close();
+      console.log('Fastify server closed successfully.');
+    } catch (err) {
+      console.error('Error closing Fastify server:', err);
+    }
+  }
+
+  // 2. Close app logger
+  // Need to ensure the appLogger reference from startFastifyApp is used.
+  // The 'appLogger' variable in startFastifyApp is local to that function.
+  // We need to capture it if createLogger doesn't return singletons.
+  // Otherwise, 'appLoggerForShutdown' must be assigned the instance created in 'startFastifyApp'.
+  // For this example, we will assume `appLoggerForShutdown` is assigned the correct instance.
+  // A common robust pattern would be to pass the logger instance to cleanupAndExit directly.
+  if (appLoggerForShutdown) {
+    // Use the reference made available to the outer scope
+    try {
+      console.log('Attempting to flush and close app logger...');
+      await appLoggerForShutdown.flush();
+      await appLoggerForShutdown.close();
+      console.log('App logger flushed and closed successfully.');
+    } catch (err) {
+      console.error('Error flushing/closing app logger:', err);
+    }
+  } else {
+    console.warn(
+      'App logger not initialized or not accessible for graceful shutdown.'
+    );
+  }
+
+  // 3. Final exit. A small delay can help if there are very subtle pending I/O operations.
+  console.log(
+    'All major services reportedly closed. Exiting process in 100ms...'
+  );
+  setTimeout(() => {
+    process.exit(0);
+  }, 100);
+};
+
+process.on('SIGINT', cleanupAndExit);
+process.on('SIGTERM', cleanupAndExit);
+```
+
+## Complete Express Integration Example <a name="complete-express-integration-example"></a>
+
+Here's a production-ready example showing all features working together:
+
+```javascript
+import express from 'express';
+import { createLogger } from '@voilajsx/appkit/logging';
+import {
+  ConsoleTransport,
+  FileTransport,
+} from '@voilajsx/appkit/logging/transports';
+import { Buffer } from 'buffer'; // Explicitly import Buffer
+import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is installed for generateId
+import os from 'os'; // Import os for os.hostname()
+
+// Dummy User object for example
+const User = {
+  findById: async (id) => {
+    if (id === '123') return { id: '123', name: 'Test User' };
+    if (id === '999') return null;
+    throw new Error('Database error');
+  },
+  create: async (data) => {
+    return { id: uuidv4(), ...data };
+  },
+};
+const connectDatabase = async () => console.log('Database connected (dummy)');
+// End dummy imports
+
+// Create main application logger
+const logger = createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  defaultMeta: {
+    service: 'user-api',
+    environment: process.env.NODE_ENV,
+    version: process.env.APP_VERSION || '1.0.0',
+  },
+  transports: [
+    new ConsoleTransport({
+      colorize: process.env.NODE_ENV !== 'production',
+      prettyPrint: process.env.NODE_ENV === 'development',
+    }),
+    new FileTransport({
+      dirname: process.env.LOG_DIR || 'logs',
+      filename: 'app.log',
+      retentionDays: process.env.NODE_ENV === 'production' ? 30 : 7,
+      maxSize: 50 * 1024 * 1024,
+    }),
+    new FileTransport({
+      dirname: process.env.LOG_DIR || 'logs',
+      filename: 'error.log',
+      retentionDays: 90,
+      level: 'error',
+    }),
+  ],
+});
+
+const app = express();
+app.use(express.json()); // For req.body parsing
+
+// Request logging middleware
+app.use((req, res, next) => {
+  req.startTime = Date.now();
+
+  // Create request logger
+  req.logger = logger.child({
+    requestId: req.id || uuidv4(), // Use uuidv4 for req.id if not provided by framework
+    method: req.method,
+    path: req.path,
+    ip: req.ip,
+    userId: req.user?.id,
+  });
+
+  req.logger.info('Request received');
+
+  // Log response
+  const originalSend = res.send;
+  res.send = function (body) {
+    req.logger.info('Response sent', {
+      statusCode: res.statusCode,
+      duration: Date.now() - req.startTime,
+      size: Buffer.byteLength(body || ''), // Handle empty body
+    });
+    return originalSend.call(this, body);
+  };
+
+  next();
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  const currentLogger = req.logger || logger; // Use request-specific logger or main logger
+  currentLogger.error('Unhandled error', {
+    error: err.message,
+    stack: err.stack,
+    code: err.code,
+  });
+
+  res.status(err.status || 500).json({
+    error:
+      process.env.NODE_ENV === 'production'
+        ? 'Internal server error'
+        : err.message,
+  });
+});
+
+// User routes with logging
+app.post('/users', async (req, res) => {
+  const operationLogger = req.logger.child({
+    operation: 'createUser',
+  });
+
+  try {
+    operationLogger.info('Creating new user');
+
+    const user = await User.create(req.body);
+
+    operationLogger.info('User created successfully', {
+      userId: user.id,
+      email: user.email,
+    });
+
+    res.status(201).json(user);
+  } catch (error) {
+    operationLogger.error('User creation failed', {
+      error: error.message,
+      code: error.code,
+      details: error.details,
+    });
+
+    res.status(400).json({
+      error: error.message,
+    });
+  }
+});
+
+app.get('/users/:id', async (req, res) => {
+  const operationLogger = req.logger.child({
+    operation: 'getUser',
+    userId: req.params.id,
+  });
+
+  try {
+    operationLogger.debug('Fetching user from database');
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      operationLogger.warn('User not found');
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    operationLogger.info('User retrieved successfully');
+    res.json(user);
+  } catch (error) {
+    operationLogger.error('Error fetching user', {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Application startup
+async function startApp() {
+  const startTime = Date.now();
+
+  logger.info('Starting application');
+
+  try {
+    // Database connection
+    await connectDatabase();
+    logger.info('Database connected');
+
+    // Start server
+    const server = app.listen(process.env.PORT || 3000, () => {
+      logger.info('Application started successfully', {
+        port: process.env.PORT || 3000,
+        startupTime: Date.now() - startTime,
+        nodeVersion: process.version,
+        memory: process.memoryUsage(),
+      });
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+      logger.info('SIGTERM received, starting graceful shutdown');
+
+      try {
+        await new Promise((resolve, reject) => {
+          server.close((err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+        logger.info('HTTP server closed');
+
+        await logger.flush();
+        await logger.close();
+
+        logger.info('Application shutdown complete');
+        process.exit(0);
+      } catch (error) {
+        logger.error('Error during shutdown', {
+          error: error.message,
+          stack: error.stack,
+        });
+        process.exit(1);
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to start application', {
+      error: error.message,
+      stack: error.stack,
+    });
+    process.exit(1);
+  }
+}
+
+// startApp(); // Uncomment to run this example directly
+```
+
+**Expected Outcome (Successful Request):**
+
+```
+2025-05-12T15:10:00.000Z [INFO] Request received {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100"}
+
+2025-05-12T15:10:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
+
+2025-05-12T15:10:00.050Z [INFO] User retrieved successfully {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","operation":"getUser","userId":"123"}
+
+2025-05-12T15:10:00.055Z [INFO] Response sent {"service":"api","requestId":"abcd1234","method":"GET","url":"/users/123","ip":"192.168.1.100","statusCode":200,"duration":55,"size":1024}
+```
+
+**Expected Outcome (Failed Request):**
+
+```
+2025-05-12T15:15:00.000Z [INFO] Request received {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100"}
+
+2025-05-12T15:15:00.010Z [DEBUG] Fetching user from database {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
+
+2025-05-12T15:15:00.030Z [WARN] User not found {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","operation":"getUser","userId":"999"}
+
+2025-05-12T15:15:00.035Z [INFO] Response sent {"service":"api","requestId":"efgh5678","method":"GET","url":"/users/999","ip":"192.168.1.100","statusCode":404,"duration":35,"size":27}
+```
+
+This example demonstrates the power of nested child loggers, which are
+particularly useful in complex web applications. The pattern creates a hierarchy
+of context (request → operation) that makes it easy to:
+
+1. Track complete request lifecycles from receipt to response
+2. Associate specific operations with requests
+3. Measure performance at different stages
+4. Quickly identify problematic requests in logs
+5. See the complete request context when errors occur
+
+This approach scales well to complex applications with many routes and
+operations, maintaining consistent logging context throughout the request
+lifecycle.
 
 ## Additional Resources
 
 - 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/logging/docs/API_REFERENCE.md) -
+  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/logging/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Integration Guide](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md) -
+  [LLM Integration Guide](https://github.com/voilajsx/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md) -
   AI/LLM code generation
 - 📘
-  [Examples](https://github.com/voilajs/appkit/blob/main/src/logging/examples/) -
+  [Examples](https://github.com/voilajsx/appkit/blob/main/src/logging/examples/) -
   Full example code
 
 ## Best Practices
@@ -974,5 +1454,5 @@ alerting, and troubleshooting that can help reduce mean time to resolution
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
 </p>

@@ -1,5 +1,5 @@
 /**
- * Middleware Integration Tests - @voilajs/appkit Security Module
+ * Middleware Integration Tests - @voilajsx/appkit Security Module
  *
  * These tests verify that the middleware components correctly
  * integrate with Express applications.
