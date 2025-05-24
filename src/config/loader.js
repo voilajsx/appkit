@@ -69,9 +69,9 @@ export async function loadConfig(pathOrConfig, options = {}) {
     // Merge with defaults first (important for building structure)
     config = mergeWithDefaults(config, configOptions.defaults);
 
-    // Load environment variables using the map
+    // Load environment variables using the map and schema for coercion
     if (configOptions.env) {
-      config = mergeWithEnv(config, configOptions.map);
+      config = mergeWithEnv(config, configOptions.map, configOptions.schema);
     }
 
     // Interpolate variables
@@ -198,13 +198,14 @@ function mergeWithDefaults(config, defaults) {
 }
 
 /**
- * Merges configuration with environment variables
+ * Merges configuration with environment variables and performs type coercion based on schema.
  * @private
  * @param {Object} config - Configuration object
  * @param {Object} envMap - The environment variable mapping
- * @returns {Object} Merged configuration
+ * @param {Object} schema - The validation schema for type coercion.
+ * @returns {Object} Merged configuration with coerced values.
  */
-function mergeWithEnv(config, envMap) {
+function mergeWithEnv(config, envMap, schema) {
   const result = { ...config };
 
   // Cache all environment variables
@@ -212,17 +213,75 @@ function mergeWithEnv(config, envMap) {
     envCache[key] = value;
   }
 
-  // Apply mapped environment variables to the config
+  // Apply mapped environment variables to the config with type coercion
   if (envMap) {
     for (const [envVarName, configPath] of Object.entries(envMap)) {
       const envValue = process.env[envVarName];
+
       if (envValue !== undefined) {
-        setNestedValue(result, configPath, envValue);
+        let coercedValue = envValue;
+
+        // Type Coercion based on schema
+        if (schema) {
+          const schemaProp = getNestedSchemaProperty(schema, configPath);
+          if (schemaProp && schemaProp.type) {
+            const expectedType = Array.isArray(schemaProp.type) ? schemaProp.type[0] : schemaProp.type;
+
+            switch (expectedType) {
+              case 'number':
+                if (!isNaN(parseFloat(envValue)) && isFinite(envValue)) {
+                  coercedValue = parseFloat(envValue);
+                } else {
+                  console.warn(`[ConfigLoader] Env var '${envVarName}' expected to be 'number', but received non-numeric string '${envValue}'. Keeping as string.`);
+                }
+                break;
+              case 'boolean':
+                if (envValue.toLowerCase() === 'true') {
+                  coercedValue = true;
+                } else if (envValue.toLowerCase() === 'false') {
+                  coercedValue = false;
+                } else {
+                  console.warn(`[ConfigLoader] Env var '${envVarName}' expected to be 'boolean', but received non-boolean string '${envValue}'. Keeping as string.`);
+                }
+                break;
+              // Add other type coercions if needed (e.g., array, object from JSON string)
+            }
+          }
+        }
+        setNestedValue(result, configPath, coercedValue);
       }
     }
   }
 
   return result;
+}
+
+/**
+ * Helper to get nested schema property definition.
+ * @private
+ * @param {Object} currentSchema - The current part of the schema object.
+ * @param {string} path - The dot-notation path to the property.
+ * @returns {Object|undefined} The schema definition for the property or undefined if not found.
+ */
+function getNestedSchemaProperty(currentSchema, path) {
+  const keys = path.split('.');
+  let tempSchema = currentSchema;
+
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (tempSchema && tempSchema.properties && tempSchema.properties[key]) {
+      tempSchema = tempSchema.properties[key];
+    } else if (tempSchema && tempSchema.$ref) {
+      // A more robust appkit would have a schema resolver here.
+      // For this direct file modification, assuming schema passed is already fully resolved.
+      console.warn(`[ConfigLoader] Cannot resolve $ref in schema path for '${path}'. Direct $ref resolution needed for complex schemas.`);
+      return undefined;
+    }
+    else {
+      return undefined; // Path not found in schema
+    }
+  }
+  return tempSchema;
 }
 
 /**
