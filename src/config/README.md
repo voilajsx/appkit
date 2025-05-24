@@ -238,7 +238,7 @@ applications:
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
 for common configuration scenarios using the `@voilajsx/appkit/config` module.
 We've created a specialized
-[PROMPT_REFERENCE.md](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md)
+[PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md)
 document that's designed specifically for LLMs to understand the module's
 capabilities and generate high-quality configuration code.
 
@@ -363,7 +363,7 @@ try {
   [API Reference](https://github.com/voilajsx/appkit/blob/main/src/config/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Code Generation Reference](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) -
+  [LLM Code Generation Reference](https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
 
 ## 🤝 Contributing

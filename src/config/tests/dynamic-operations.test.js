@@ -1,5 +1,6 @@
 /**
  * Dynamic configuration tests for the config module
+ * @file src/config/tests/dynamic-operations.test.js
  */
 
 import { describe, it, beforeEach, afterEach, expect } from 'vitest';

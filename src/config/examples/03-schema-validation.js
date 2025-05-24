@@ -1,5 +1,5 @@
 /**
- * Schema Validation - @voilajs/appkit Config Module
+ * Schema Validation - @voilajsx/appkit Config Module
  *
  * Simple example of schema validation
  * No external dependencies needed - just run it!
@@ -7,14 +7,24 @@
  * Run: node 03-schema-validation.js
  */
 
-import { defineSchema, validateConfig } from '@voilajs/appkit/config';
+import {
+  defineSchema,
+  validateConfig,
+  clearConfig,
+} from '@voilajsx/appkit/config'; // Corrected import and added clearConfig
 
 async function demo() {
+  // This line is useful for ensuring a clean slate for the example,
+  // especially in environments where module state might persist.
+  clearConfig();
+
   console.log('=== Schema Validation Demo ===\n');
 
-  // 1. Define a simple schema
+  // 1. Define a simple schema with a UNIQUE NAME
   console.log('1. Defining a schema...');
-  defineSchema('server', {
+  // Changed 'server' to 'demoServerSchema' to avoid conflicts
+  defineSchema('demoServerSchema', {
+    // <--- Changed schema name here
     type: 'object',
     required: ['port'],
     properties: {
@@ -37,7 +47,8 @@ async function demo() {
   };
 
   try {
-    validateConfig(validConfig, 'server');
+    // Validate against the new schema name
+    validateConfig(validConfig, 'demoServerSchema'); // <--- Changed schema name here
     console.log('✓ Configuration is valid');
   } catch (error) {
     console.error('✗ Validation failed:', error.message);
@@ -50,7 +61,8 @@ async function demo() {
   };
 
   try {
-    validateConfig(invalidConfig, 'server');
+    // Validate against the new schema name
+    validateConfig(invalidConfig, 'demoServerSchema'); // <--- Changed schema name here
     console.log('✓ Configuration is valid');
   } catch (error) {
     console.log('✗ Validation failed as expected');

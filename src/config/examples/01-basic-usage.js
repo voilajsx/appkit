@@ -1,5 +1,5 @@
 /**
- * Basic Usage - @voilajs/appkit Config Module
+ * Basic Usage - @voilajsx/appkit Config Module
  *
  * Simple example showing basic config operations
  * No external dependencies needed - just run it!
@@ -7,7 +7,7 @@
  * Run: node 01-basic-usage.js
  */
 
-import { loadConfig, getConfig } from '@voilajs/appkit/config';
+import { loadConfig, getConfig } from '@voilajsx/appkit/config'; // Corrected import
 
 async function demo() {
   console.log('=== Basic Config Demo ===\n');

@@ -1,5 +1,5 @@
 /**
- * Dynamic Config - @voilajs/appkit Config Module
+ * Dynamic Config - @voilajsx/appkit Config Module
  *
  * Shows how to update configuration dynamically
  * No external dependencies needed - just run it!
@@ -12,7 +12,7 @@ import {
   getConfig,
   hasConfig,
   clearConfig,
-} from '@voilajs/appkit/config';
+} from '@voilajsx/appkit/config'; // Corrected import
 
 async function demo() {
   console.log('=== Dynamic Config Demo ===\n');

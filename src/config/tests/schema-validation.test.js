@@ -1,5 +1,6 @@
 /**
  * Schema validation tests for the config module
+ * @file src/config/tests/schema-validation.test.js
  */
 
 import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest';

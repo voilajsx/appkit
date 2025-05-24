@@ -1,21 +1,28 @@
 /**
  * Variable interpolation tests for the config module
+ * @file src/config/tests/variable-interpolation.test.js
  */
 
 import { describe, it, beforeEach, afterEach, expect } from 'vitest';
 import { loadConfig, getConfig, clearConfig } from '../index.js';
 
 describe('Config Variable Interpolation', () => {
-  // Clear config after each test
-  afterEach(() => {
+  // Save original environment
+  const originalEnv = { ...process.env };
+
+  // Clear config and set specific env after each test
+  beforeEach(() => {
     clearConfig();
+    process.env.NODE_ENV = 'testing'; // Ensure consistent env for interpolation tests
+  });
+
+  // Restore original environment
+  afterEach(() => {
+    process.env = { ...originalEnv };
   });
 
   describe('interpolate option', () => {
     it('should interpolate variables in configuration', async () => {
-      // Set environment variables for testing
-      process.env.NODE_ENV = 'testing';
-
       await loadConfig(
         {
           server: {
@@ -28,7 +35,7 @@ describe('Config Variable Interpolation', () => {
             name: 'myapp',
             url: 'mongodb://localhost/${database.name}',
           },
-          environment: '${env.NODE_ENV}',
+          environment: '${env.NODE_ENV}', // Should resolve to 'testing'
         },
         {
           interpolate: true,
@@ -36,22 +43,15 @@ describe('Config Variable Interpolation', () => {
       );
 
       // Check if interpolation matches expected values
-      // Using toContain for more flexibility in case the implementation
-      // slightly differs but still contains the relevant parts
       const endpoint = getConfig('endpoint');
-      expect(endpoint).toContain('http://');
-      expect(endpoint).toContain('example.com');
-      expect(endpoint).toContain('8080/api');
+      expect(endpoint).toBe('http://example.com:8080/api'); // Expect full resolution
 
       const dbUrl = getConfig('database.url');
-      expect(dbUrl).toContain('mongodb://localhost/');
-      expect(dbUrl).toContain('myapp');
+      expect(dbUrl).toBe('mongodb://localhost/myapp'); // Expect full resolution
 
-      // Environment variables may vary depending on the implementation
+      // Environment variables should be strictly resolved
       const env = getConfig('environment');
-      if (env) {
-        expect(['testing', '${env.NODE_ENV}'].includes(env)).toBe(true);
-      }
+      expect(env).toBe('testing'); // Stricter check
     });
 
     it('should not interpolate when option is disabled', async () => {
@@ -86,8 +86,7 @@ describe('Config Variable Interpolation', () => {
 
       // Missing variables should remain as is
       const url = getConfig('url');
-      expect(url).toContain('https://example.com/');
-      expect(url).toContain('${missing.variable}');
+      expect(url).toBe('https://example.com/${missing.variable}'); // Expect exact string with unresolved part
     });
 
     it('should interpolate arrays and nested objects', async () => {
@@ -110,23 +109,14 @@ describe('Config Variable Interpolation', () => {
       // Check array values
       const paths = getConfig('paths');
       expect(Array.isArray(paths)).toBe(true);
+      expect(paths).toEqual([
+        'https://example.com/api',
+        'https://example.com/admin',
+      ]); // Expect full resolution
 
-      // At least one of the array items should contain the base URL
-      expect(paths.some((path) => path.includes('https://example.com/'))).toBe(
-        true
-      );
-
-      // Check nested path (implementation-dependent, so being flexible)
+      // Check nested path (expect full resolution)
       const deepPath = getConfig('nested.deep.path');
-      if (deepPath) {
-        // Either fully resolved or partially resolved or unresolved
-        const possibleValues = [
-          'https://example.com/nested/deep',
-          '${base}/nested/deep',
-          '${nested.path}/deep',
-        ];
-        expect(possibleValues.includes(deepPath)).toBe(true);
-      }
+      expect(deepPath).toBe('https://example.com/nested/deep'); // Expect full resolution
     });
 
     it('should handle nested interpolation', async () => {
@@ -142,18 +132,9 @@ describe('Config Variable Interpolation', () => {
         }
       );
 
-      // Check if greeting contains the name parts
-      // Implementation-dependent, so being flexible
+      // Check if greeting contains the full resolved name
       const greeting = getConfig('greeting');
-      expect(greeting).toContain('Hello');
-
-      // Either fully resolved, partially resolved, or unresolved
-      const expected = [
-        'Hello, John Doe!',
-        'Hello, ${firstName} ${lastName}!',
-        'Hello, ${fullName}!',
-      ];
-      expect(expected.includes(greeting)).toBe(true);
+      expect(greeting).toBe('Hello, John Doe!'); // Expect full resolution
     });
   });
 });
