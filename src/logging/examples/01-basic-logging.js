@@ -6,7 +6,7 @@
  * Run: node 01-basic-logging.js
  */
 
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '../logger.js';
 
 // Create a logger
 const logger = createLogger();

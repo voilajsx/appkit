@@ -1,21 +1,10 @@
 /**
- * @voilajs/appkit - Logger implementation
- * @module @voilajs/appkit/logging/logger
+ * @voilajsx/appkit - Logger implementation
+ * @module @voilajsx/appkit/logging/logger
  */
 
 import { ConsoleTransport } from './transports/console.js';
 import { FileTransport } from './transports/file.js';
-
-/**
- * Log levels enumeration
- * @enum {number}
- */
-const LogLevels = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  debug: 3,
-};
 
 /**
  * @typedef {'error'|'warn'|'info'|'debug'} LogLevel
@@ -30,6 +19,14 @@ const LogLevels = {
  */
 
 /**
+ * @interface BaseTransport
+ * @description Interface for custom logging transports.
+ * @property {(entry: LogEntry) => void} log - Method to log an entry.
+ * @property {() => Promise<void>} [flush] - Optional method to flush any buffered logs.
+ * @property {() => Promise<void>} [close] - Optional method to close the transport and release resources.
+ */
+
+/**
  * @typedef {Object} LoggerOptions
  * @property {LogLevel} [level='info'] - Minimum log level
  * @property {Object<string, any>} [defaultMeta] - Default metadata included in all logs
@@ -37,9 +34,20 @@ const LogLevels = {
  * @property {boolean} [enableFileLogging=true] - Enable file logging
  * @property {string} [dirname='logs'] - Directory for log files
  * @property {string} [filename='app.log'] - Base filename for logs
- * @property {number} [retentionDays=5] - Days to retain log files
+ * @property {number} [retentionDays=7] - Days to retain log files
  * @property {number} [maxSize=10485760] - Maximum file size before rotation
  */
+
+/**
+ * Log levels enumeration
+ * @enum {number}
+ */
+const LogLevels = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  debug: 3,
+};
 
 /**
  * Logger class
@@ -79,6 +87,7 @@ export class Logger {
         new FileTransport({
           filename: options.filename,
           dirname: options.dirname,
+          // These options will be applied by FileTransport itself if undefined
           retentionDays: options.retentionDays,
           maxSize: options.maxSize,
         })
@@ -137,7 +146,7 @@ export class Logger {
     return new Logger({
       level: this.level,
       defaultMeta: { ...this.defaultMeta, ...bindings },
-      transports: this.transports,
+      transports: this.transports, // Child loggers share transport instances
     });
   }
 

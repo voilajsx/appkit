@@ -8,7 +8,7 @@
  */
 
 import express from 'express';
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '../logger.js';
 
 const app = express();
 const logger = createLogger();
@@ -38,4 +38,3 @@ app.listen(3000, () => {
   logger.info('Server started on port 3000');
   console.log('Visit http://localhost:3000');
 });
-

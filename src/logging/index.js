@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Logging module
- * @module @voilajs/appkit/logging
+ * @voilajsx/appkit - Logging module
+ * @module @voilajsx/appkit/logging
  */
 
 // Main exports file

@@ -6,7 +6,7 @@
  * Run: node 03-file-config.js
  */
 
-import { createLogger } from '@voilajs/appkit/logging';
+import { createLogger } from '../logger.js';
 
 // Custom file settings
 const logger = createLogger({

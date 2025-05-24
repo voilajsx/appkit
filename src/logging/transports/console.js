@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Console transport
- * @module @voilajs/appkit/logging/transports/console
+ * @voilajsx/appkit - Console transport
+ * @module @voilajsx/appkit/logging/transports/console
  */
 
 import { BaseTransport } from './base.js';
@@ -43,7 +43,7 @@ export class ConsoleTransport extends BaseTransport {
     if (this.prettyPrint) {
       output = this.prettyFormat(entry);
     } else {
-      output = this.format(entry);
+      output = this.format(entry); // Uses format method from BaseTransport
     }
 
     // Apply colors if enabled
@@ -77,6 +77,7 @@ export class ConsoleTransport extends BaseTransport {
     let formatted = `${timestamp} ${this.getLevelLabel(level)} ${message}`;
 
     if (Object.keys(meta).length > 0) {
+      // Pretty print JSON metadata with 2-space indentation
       formatted += '\n' + JSON.stringify(meta, null, 2);
     }
 
@@ -114,6 +115,6 @@ export class ConsoleTransport extends BaseTransport {
       debug: '🐛 DEBUG',
     };
 
-    return labels[level] || level.toUpperCase();
+    return labels[level] || String(level).toUpperCase(); // Ensure level is string for .toUpperCase()
   }
 }

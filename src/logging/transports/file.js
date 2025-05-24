@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - File transport for logging
- * @module @voilajs/appkit/logging/transports/file
+ * @voilajsx/appkit - File transport for logging
+ * @module @voilajsx/appkit/logging/transports/file
  */
 
 import fs from 'fs';
@@ -17,7 +17,7 @@ import { BaseTransport } from './base.js';
  * @property {string} [dirname='logs'] - Directory for log files
  * @property {string} [filename='app.log'] - Base filename for logs
  * @property {number} [maxSize=10485760] - Maximum file size before rotation (10MB default)
- * @property {number} [retentionDays=5] - Days to retain log files
+ * @property {number} [retentionDays=7] - Days to retain log files
  * @property {string} [datePattern='YYYY-MM-DD'] - Date pattern for filename
  */
 
@@ -26,73 +26,45 @@ import { BaseTransport } from './base.js';
  * @extends BaseTransport
  */
 export class FileTransport extends BaseTransport {
-  /**
-   * Creates a new FileTransport instance
-   * @param {FileTransportOptions & TransportOptions} [options={}] - File transport options
-   */
   constructor(options = {}) {
     super(options);
-
-    // Configuration with smart defaults
     this.dirname = options.dirname || 'logs';
     this.filename = options.filename || 'app.log';
-    this.maxSize = options.maxSize || 10 * 1024 * 1024; // 10MB default
-    this.retentionDays = options.retentionDays ?? 5; // 5 days default
+    this.maxSize = options.maxSize || 10 * 1024 * 1024;
+    this.retentionDays = options.retentionDays ?? 7;
     this.datePattern = options.datePattern || 'YYYY-MM-DD';
-
-    // State
     this.currentSize = 0;
     this.currentDate = this.getCurrentDate();
     this.stream = null;
-
-    // Initialize
     this.ensureDirectoryExists();
     this.createStream();
     this.setupRetentionCleanup();
   }
 
-  /**
-   * Ensures log directory exists
-   * @private
-   * @returns {void}
-   */
   ensureDirectoryExists() {
-    if (!fs.existsSync(this.dirname)) {
-      fs.mkdirSync(this.dirname, { recursive: true });
+    try {
+      if (!fs.existsSync(this.dirname)) {
+        fs.mkdirSync(this.dirname, { recursive: true });
+      }
+    } catch (error) {
+      console.error('Error creating log directory:', error);
     }
   }
 
-  /**
-   * Gets current date string for filename
-   * @private
-   * @returns {string} Formatted date
-   */
   getCurrentDate() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 
-  /**
-   * Gets current log filename
-   * @private
-   * @returns {string} Current log filename
-   */
   getCurrentFilename() {
     const base = path.basename(this.filename, path.extname(this.filename));
     const ext = path.extname(this.filename);
     return `${base}-${this.currentDate}${ext}`;
   }
 
-  /**
-   * Creates write stream for current log file
-   * @private
-   * @returns {void}
-   */
   createStream() {
     const filename = this.getCurrentFilename();
     const filepath = path.join(this.dirname, filename);
-
-    // Get current file size if it exists
     try {
       if (fs.existsSync(filepath)) {
         const stats = fs.statSync(filepath);
@@ -101,101 +73,104 @@ export class FileTransport extends BaseTransport {
         this.currentSize = 0;
       }
     } catch (error) {
+      console.error('Error checking file size:', error);
       this.currentSize = 0;
     }
-
-    // Create write stream in append mode
-    this.stream = fs.createWriteStream(filepath, { flags: 'a' });
-
-    this.stream.on('error', (error) => {
-      console.error('Log file write error:', error);
-    });
+    if (this.stream) {
+      try {
+        this.stream.end();
+      } catch (error) {
+        console.error('Error closing existing stream:', error);
+      }
+    }
+    try {
+      this.stream = fs.createWriteStream(filepath, { flags: 'a' });
+      this.stream.on('error', (error) => {
+        console.error('Log file write error:', error);
+        this.stream = null;
+      });
+    } catch (error) {
+      console.error('Error creating write stream:', error);
+      this.stream = null;
+    }
   }
 
-  /**
-   * Rotates log file if needed
-   * @private
-   * @returns {void}
-   */
-  checkRotation() {
+  async checkRotation() {
     const currentDate = this.getCurrentDate();
-
-    // Date-based rotation
     if (currentDate !== this.currentDate) {
-      this.rotate();
+      await this.rotate();
       return;
     }
-
-    // Size-based rotation
     if (this.currentSize >= this.maxSize) {
-      this.rotateSizeBased();
+      await this.rotateSizeBased();
     }
   }
 
-  /**
-   * Performs date-based rotation
-   * @private
-   * @returns {void}
-   */
-  rotate() {
+  async rotate() {
     if (this.stream) {
-      this.stream.end();
+      await new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.warn('Stream close during rotate timed out after 5000ms');
+          resolve();
+        }, 5000);
+        this.stream.on('error', (error) => {
+          console.error('Stream error during rotate:', error);
+          clearTimeout(timeout);
+          resolve();
+        });
+        this.stream.end(() => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
     }
-
     this.currentDate = this.getCurrentDate();
     this.currentSize = 0;
     this.createStream();
   }
 
-  /**
-   * Performs size-based rotation
-   * @private
-   * @returns {void}
-   */
-  rotateSizeBased() {
+  async rotateSizeBased() {
     if (this.stream) {
-      this.stream.end();
+      await new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.warn(
+            'Stream close during size-based rotate timed out after 5000ms'
+          );
+          resolve();
+        }, 5000);
+        this.stream.on('error', (error) => {
+          console.error('Stream error during size-based rotate:', error);
+          clearTimeout(timeout);
+          resolve();
+        });
+        this.stream.end(() => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
     }
-
     const filename = this.getCurrentFilename();
     const filepath = path.join(this.dirname, filename);
-
     try {
-      // Check if file exists before rotation
       if (!fs.existsSync(filepath)) {
-        // File doesn't exist, just create new stream
         this.currentSize = 0;
         this.createStream();
         return;
       }
-
-      // Find next available rotation number
       let rotation = 1;
       while (fs.existsSync(`${filepath}.${rotation}`)) {
         rotation++;
       }
-
-      // Rename current file
-      fs.renameSync(filepath, `${filepath}.${rotation}`);
+      await fs.promises.rename(filepath, `${filepath}.${rotation}`);
     } catch (error) {
       console.error('Error during file rotation:', error);
     }
-
-    // Create new stream
     this.currentSize = 0;
     this.createStream();
   }
 
-  /**
-   * Sets up retention cleanup
-   * @private
-   * @returns {void}
-   */
   setupRetentionCleanup() {
-    // Run cleanup on startup
     this.cleanOldLogs();
-
-    // Run cleanup daily
     this.cleanupInterval = setInterval(
       () => {
         this.cleanOldLogs();
@@ -204,32 +179,26 @@ export class FileTransport extends BaseTransport {
     );
   }
 
-  /**
-   * Cleans old log files based on retention policy
-   * @private
-   * @returns {Promise<void>}
-   */
   async cleanOldLogs() {
-    if (this.retentionDays <= 0) return; // Retention disabled
-
+    if (this.retentionDays <= 0) return;
     try {
       const files = await fs.promises.readdir(this.dirname);
       const now = Date.now();
       const maxAge = this.retentionDays * 24 * 60 * 60 * 1000;
-
       for (const file of files) {
-        // Only process log files that match our filename pattern
         const base = path.basename(this.filename, path.extname(this.filename));
         if (!file.startsWith(base)) {
           continue;
         }
-
         const filepath = path.join(this.dirname, file);
-        const stats = await fs.promises.stat(filepath);
-
-        if (now - stats.mtimeMs > maxAge) {
-          await fs.promises.unlink(filepath);
-          console.log(`Deleted old log file: ${file}`);
+        try {
+          const stats = await fs.promises.stat(filepath);
+          if (now - stats.mtimeMs > maxAge) {
+            await fs.promises.unlink(filepath);
+            console.log(`Deleted old log file: ${file}`);
+          }
+        } catch (error) {
+          console.error(`Error processing log file ${file}:`, error);
         }
       }
     } catch (error) {
@@ -237,55 +206,91 @@ export class FileTransport extends BaseTransport {
     }
   }
 
-  /**
-   * Logs entry to file
-   * @param {LogEntry} entry - Log entry
-   * @returns {void}
-   */
-  log(entry) {
+  async log(entry) {
     try {
-      this.checkRotation();
-
+      await this.checkRotation();
+      if (!this.stream || !this.stream.writable) {
+        console.warn('No writable stream, recreating...');
+        this.createStream();
+      }
       const line = JSON.stringify(entry) + '\n';
       const size = Buffer.byteLength(line);
-
-      this.stream.write(line);
-      this.currentSize += size;
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          console.warn('Log write timed out after 5000ms');
+          resolve();
+        }, 5000);
+        this.stream.write(line, (error) => {
+          clearTimeout(timeout);
+          if (error) {
+            console.error('Error writing to log file:', error);
+            this.stream = null;
+            resolve();
+          } else {
+            this.currentSize += size;
+            resolve();
+          }
+        });
+      });
     } catch (error) {
       console.error('Error logging to file:', error);
     }
   }
 
-  /**
-   * Flushes any pending writes
-   * @returns {Promise<void>}
-   */
   flush() {
     return new Promise((resolve) => {
       if (this.stream && this.stream.writable) {
-        this.stream.once('drain', resolve);
-        this.stream.write('');
+        if (this.stream.writableLength === 0) {
+          console.log(
+            'FileTransport flush: write buffer empty, no flush needed'
+          );
+          resolve();
+        } else {
+          const timeout = setTimeout(() => {
+            console.warn('FileTransport flush timed out after 5000ms');
+            resolve();
+          }, 5000);
+          this.stream.once('drain', () => {
+            console.log('FileTransport flush: drain event emitted');
+            clearTimeout(timeout);
+            resolve();
+          });
+          this.stream.write('');
+        }
       } else {
+        console.log('FileTransport flush: no stream or not writable');
         resolve();
       }
     });
   }
 
-  /**
-   * Closes the transport
-   * @returns {Promise<void>}
-   */
   close() {
     return new Promise((resolve) => {
       if (this.cleanupInterval) {
+        console.log('FileTransport close: clearing cleanup interval');
         clearInterval(this.cleanupInterval);
+        this.cleanupInterval = null;
       }
-
       if (this.stream) {
+        const timeout = setTimeout(() => {
+          console.warn('FileTransport close timed out after 5000ms');
+          this.stream = null;
+          resolve();
+        }, 5000);
+        this.stream.on('error', (error) => {
+          console.error('FileTransport stream error during close:', error);
+          clearTimeout(timeout);
+          this.stream = null;
+          resolve();
+        });
         this.stream.end(() => {
+          console.log('FileTransport close: end event emitted');
+          clearTimeout(timeout);
+          this.stream = null;
           resolve();
         });
       } else {
+        console.log('FileTransport close: no stream');
         resolve();
       }
     });

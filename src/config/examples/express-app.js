@@ -12,7 +12,20 @@
  */
 
 import express from 'express';
-import { loadConfig, getConfig, defineSchema } from '@voilajsx/appkit/config'; // Corrected import and added defineSchema
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * Runs the Express app demo.
+ *
+ * This demo loads a configuration from a default object and environment
+ * variables, creates an Express app, defines two routes, and starts the server.
+ *
+ * The first route returns a JSON object with the app name and a welcome
+ * message. The second route returns the entire configuration object.
+ *
+ * Finally, the demo logs the server's URL and the app name to the console,
+ * along with instructions for trying out the two routes.
+ */
+/*******  a9a91d62-8144-469e-9591-df2983e6e01c  *******/import { loadConfig, getConfig, defineSchema } from '@voilajsx/appkit/config'; // Corrected import and added defineSchema
 
 async function demo() {
   console.log('=== Express App Config Demo ===\n');

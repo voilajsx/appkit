@@ -1,7 +1,7 @@
-# @voilajsx/appkit - Logging Module 📝
+# `@voilajsx/appkit` - Logging Module 📝
 
-[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[](https://www.npmjs.com/package/@voilajsx/appkit)
+[](https://github.com/voilajsx/appkit/blob/main/LICENSE)
 
 > Structured logging with file storage and retention for Node.js applications
 
@@ -9,16 +9,20 @@ The Logging module of `@voilajsx/appkit` provides a simple yet powerful logging
 system with automatic file rotation, retention policies, and support for
 contextual logging through child loggers.
 
+---
+
 ## Module Overview
 
 The Logging module provides everything you need for robust application logging:
 
 | Feature                | What it does                            | Main functions                                                       |
-| ---------------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| :--------------------- | :-------------------------------------- | :------------------------------------------------------------------- |
 | **Logger Creation**    | Initialize loggers with various options | `createLogger()`                                                     |
 | **Log Levels**         | Log messages at appropriate severity    | `logger.info()`, `logger.error()`, `logger.warn()`, `logger.debug()` |
 | **Contextual Logging** | Add context to all related log messages | `logger.child()`                                                     |
 | **File Management**    | Store logs with rotation and retention  | File storage configuration options                                   |
+
+---
 
 ## 🚀 Features
 
@@ -29,11 +33,15 @@ The Logging module provides everything you need for robust application logging:
 - **🎨 Pretty Console Output** - Colored and formatted console logs
 - **📦 Zero Configuration** - Works out of the box with sensible defaults
 
+---
+
 ## 📦 Installation
 
 ```bash
 npm install @voilajsx/appkit
 ```
+
+---
 
 ## 🏃‍♂️ Quick Start
 
@@ -57,6 +65,8 @@ const requestLogger = logger.child({ requestId: 'abc123' });
 requestLogger.info('Processing request');
 ```
 
+---
+
 ## 📖 Core Functions
 
 ### Logger Creation and Management
@@ -66,7 +76,7 @@ Loggers handle the details of log formatting, storage, and management so you can
 focus on recording important events.
 
 | Function         | Purpose                                    | When to use                                |
-| ---------------- | ------------------------------------------ | ------------------------------------------ |
+| :--------------- | :----------------------------------------- | :----------------------------------------- |
 | `createLogger()` | Creates a new logger instance with options | Application startup, module initialization |
 | `logger.child()` | Creates a child logger with added context  | Request handling, operation tracking       |
 
@@ -91,7 +101,7 @@ These methods let you log messages at different severity levels, helping you
 categorize information and filter logs based on importance.
 
 | Function         | Purpose                              | When to use                                 |
-| ---------------- | ------------------------------------ | ------------------------------------------- |
+| :--------------- | :----------------------------------- | :------------------------------------------ |
 | `logger.error()` | Logs errors and critical issues      | Exceptions, fatal errors, security breaches |
 | `logger.warn()`  | Logs warnings and potential problems | Deprecation notices, approaching limits     |
 | `logger.info()`  | Logs normal operational information  | Startup events, normal operations           |
@@ -121,6 +131,8 @@ logger.debug('Cache operation details', {
 });
 ```
 
+---
+
 ## 🔧 Configuration Options
 
 The examples above show basic usage, but you have much more control over how the
@@ -129,14 +141,13 @@ logging system works. Here are the customization options available:
 ### Logger Creation Options
 
 | Option              | Description                    | Default           | Example                                  |
-| ------------------- | ------------------------------ | ----------------- | ---------------------------------------- |
+| :------------------ | :----------------------------- | :---------------- | :--------------------------------------- |
 | `level`             | Minimum log level to record    | `'info'`          | `'debug'`, `'info'`, `'warn'`, `'error'` |
 | `dirname`           | Directory for log files        | `'logs'`          | `'app/logs'`, `'/var/log/myapp'`         |
 | `filename`          | Base name for log files        | `'app.log'`       | `'server.log'`, `'api.log'`              |
 | `retentionDays`     | Days to keep log files         | `7`               | `30`, `90`, `365`                        |
 | `maxSize`           | Max file size before rotation  | `10485760` (10MB) | `52428800` (50MB)                        |
 | `enableFileLogging` | Whether to write logs to files | `true`            | `false` (console only)                   |
-| `customFormat`      | Custom formatter function      | `undefined`       | Function for custom formatting           |
 
 ```javascript
 // Logger with custom configuration
@@ -150,13 +161,15 @@ const logger = createLogger({
 });
 ```
 
+---
+
 ## 💡 Common Use Cases
 
 Here's where you can apply the logging module's functionality in your
 applications:
 
 | Category            | Use Case               | Description                                       | Components Used                                           |
-| ------------------- | ---------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| :------------------ | :--------------------- | :------------------------------------------------ | :-------------------------------------------------------- |
 | **HTTP Servers**    | Request Logging        | Log details of incoming HTTP requests             | `createLogger()`, `logger.child()`, `logger.info()`       |
 |                     | Error Tracking         | Record API errors with context                    | `logger.error()` with metadata                            |
 |                     | Performance Monitoring | Track slow requests and bottlenecks               | `logger.warn()` with timing data                          |
@@ -169,12 +182,14 @@ applications:
 | **DevOps**          | Application Startup    | Log startup configuration and environment details | `logger.info()` with startup details                      |
 |                     | Health Checks          | Record results of regular health checks           | `logger.info()` or `logger.error()` based on status       |
 
+---
+
 ## 🤖 Code Generation with LLMs
 
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
 for common logging scenarios using the `@voilajsx/appkit/logging` module. We've
 created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md)
+[PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md)
 document that's designed specifically for LLMs to understand the module's
 capabilities and generate high-quality logging code.
 
@@ -189,7 +204,7 @@ optimized, best-practice logging code tailored to your specific requirements.
 #### Basic Logging Setup
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then create a complete logging system for an Express app using @voilajsx/appkit/logging with the following features:
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then create a complete logging system for an Express app using @voilajsx/appkit/logging with the following features:
 - Structured logger initialization with custom retention policies
 - Request logging middleware with request IDs
 - Error handling middleware with detailed error logging
@@ -199,7 +214,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Microservice Logging
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement a logging system for a microservice architecture using @voilajsx/appkit/logging that includes:
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement a logging system for a microservice architecture using @voilajsx/appkit/logging that includes:
 - Consistent request ID propagation across services
 - Correlation IDs for tracing requests
 - Service-specific context in all logs
@@ -209,7 +224,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Advanced Logging Patterns
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement advanced logging patterns using @voilajsx/appkit/logging with:
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md and then implement advanced logging patterns using @voilajsx/appkit/logging with:
 - Hierarchical loggers for different application components
 - Redaction of sensitive information
 - Performance profiling with timing measurements
@@ -217,36 +232,44 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 - Log aggregation preparation for ELK stack
 ```
 
+---
+
 ## 📋 Example Code
 
 For complete, working examples, check our examples folder:
 
-- [Basic Logging](https://github.com/voilajs/appkit/blob/main/src/logging/examples/01-basic-logging.js) -
+- [Basic Logging](https://github.com/voilajsx/appkit/blob/main/src/logging/examples/01-basic-logging.js) -
   How to use different log levels and metadata
-- [Child Loggers](https://github.com/voilajs/appkit/blob/main/src/logging/examples/02-child-logger.js) -
+- [Child Loggers](https://github.com/voilajsx/appkit/blob/main/src/logging/examples/02-child-logger.js) -
   Creating context-aware child loggers
-- [File Configuration](https://github.com/voilajs/appkit/blob/main/src/logging/examples/03-file-config.js) -
+- [File Configuration](https://github.com/voilajsx/appkit/blob/main/src/logging/examples/03-file-config.js) -
   Customizing file storage options
-- [Express Integration](https://github.com/voilajs/appkit/blob/main/src/logging/examples/04-express-basic.js) -
+- [Express Integration](https://github.com/voilajsx/appkit/blob/main/src/logging/examples/04-express-basic.js) -
   Using loggers with Express.js
+- [Fastify Integration](https://github.com/voilajsx/appkit/blob/main/src/logging/examples/05-fastify-integration.js) -
+  Integrating with Fastify using a custom logger factory
+
+---
 
 ## 🛡️ Logging Best Practices
 
 Following these practices will help ensure your logging system remains effective
 and secure:
 
-1. **Use appropriate log levels** - Only log what's needed at each level to
-   avoid overwhelming logs
-2. **Never log sensitive data** - Avoid passwords, API keys, or personal
-   information in logs
-3. **Add context to logs** - Include request IDs and relevant metadata for
-   easier troubleshooting
-4. **Implement retention policies** - Delete old logs to comply with data
-   regulations
-5. **Structure your logs** - Use metadata objects rather than string
-   concatenation
-6. **Use consistent formats** - Maintain a standard logging pattern across your
-   application
+1.  **Use appropriate log levels** - Only log what's needed at each level to
+    avoid overwhelming logs
+2.  **Never log sensitive data** - Avoid passwords, API keys, or personal
+    information in logs
+3.  **Add context to logs** - Include request IDs and relevant metadata for
+    easier troubleshooting
+4.  **Implement retention policies** - Delete old logs to comply with data
+    regulations
+5.  **Structure your logs** - Use metadata objects rather than string
+    concatenation
+6.  **Use consistent formats** - Maintain a standard logging pattern across your
+    application
+
+---
 
 ## 📊 Performance Considerations
 
@@ -255,6 +278,8 @@ and secure:
 - **Use child loggers** rather than creating new loggers to improve performance
 - **Avoid excessive logging** in high-throughput code paths
 - **Consider log batching** for very high-volume logs
+
+---
 
 ## 🔍 Error Handling
 
@@ -279,30 +304,36 @@ try {
 }
 ```
 
+---
+
 ## 📚 Documentation Links
 
 - 📘
-  [Developer Reference](https://github.com/voilajs/appkit/blob/main/src/logging/docs/DEVELOPER_REFERENCE.md) -
+  [Developer Reference](https://github.com/voilajsx/appkit/blob/main/src/logging/docs/DEVELOPER_REFERENCE.md) -
   Detailed implementation guide
 - 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/logging/docs/API_REFERENCE.md) -
+  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/logging/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Code Generation Reference](https://github.com/voilajs/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md) -
+  [LLM Code Generation Reference](https://github.com/voilajsx/appkit/blob/main/src/logging/docs/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
+
+---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
+We welcome contributions\! Please see our
+[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
 for details.
+
+---
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajs)
+MIT © [VoilaJSX](https://github.com/voilajsx)
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+Built with ❤️ in India by the <a href="[suspicious link removed]">VoilaJSX Team</a> — powering modern web development.
 </p>

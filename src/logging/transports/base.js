@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Base transport interface
- * @module @voilajs/appkit/logging/transports/base
+ * @voilajsx/appkit - Base transport interface
+ * @module @voilajsx/appkit/logging/transports/base
  */
 
 /**
@@ -40,7 +40,9 @@ export class BaseTransport {
   }
 
   /**
-   * Formats log entry
+   * Formats log entry into a human-readable string.
+   * Note: Some transports (like FileTransport) might use their own
+   * formatting (e.g., JSON.stringify) for machine readability.
    * @param {LogEntry} entry - Log entry
    * @returns {string} Formatted entry
    */
