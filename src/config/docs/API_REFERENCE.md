@@ -1,10 +1,9 @@
-
 # Configuration Module API Reference
 
 ## Overview
 
-The `@voilajsx/appkit/config` module provides robust configuration management for
-Node.js applications, including configuration loading from multiple sources,
+The `@voilajsx/appkit/config` module provides robust configuration management
+for Node.js applications, including configuration loading from multiple sources,
 validation, environment variable integration, and real-time configuration
 updates.
 
@@ -12,23 +11,23 @@ updates.
 
 ```bash
 npm install @voilajsx/appkit
-````
+```
 
 ## Quick Start
 
 ```javascript
 import {
-  loadConfig,
-  getConfig,
-  validateConfig,
-  defineSchema,
-  getEnv,
+  loadConfig,
+  getConfig,
+  validateConfig,
+  defineSchema,
+  getEnv,
 } from '@voilajsx/appkit/config';
 
 // Load configuration
 const config = await loadConfig('./config.json', {
-  defaults: { server: { port: 3000 } },
-  schema: 'app',
+  defaults: { server: { port: 3000 } },
+  schema: 'app',
 });
 
 // Access configuration values
@@ -42,45 +41,53 @@ const apiKey = getConfig('api.key');
 
 #### loadConfig(pathOrConfig, options)
 
-Loads configuration from a file path or object.
+Loads configuration from a file path or object. When `options.env` is `true` and
+a `options.schema` is provided, `loadConfig` will automatically attempt to
+coerce string values from environment variables to match the types (`number`,
+`boolean`) defined in the schema.
 
 ##### Parameters
 
-| Name                  | Type             | Required | Default | Description                                                |
-| --------------------- | ---------------- | -------- | ------- | ---------------------------------------------------------- |
-| `pathOrConfig`        | `string\|Object` | Yes      | -       | File path or configuration object                          |
-| `options`             | `Object`         | No       | `{}`    | Configuration options                                      |
-| `options.defaults`    | `Object`         | No       | `{}`    | Default values to merge with loaded configuration          |
-| `options.validate`    | `boolean`        | No       | `true`  | Whether to validate configuration                          |
-| `options.schema`      | `string\|Object` | No       | -       | Schema name or schema object for validation                |
-| `options.env`         | `boolean`        | No       | `true`  | Whether to integrate with environment variables            |
-| `options.watch`       | `boolean`        | No       | `false` | Whether to watch for file changes and reload automatically |
-| `options.interpolate` | `boolean`        | No       | `true`  | Whether to interpolate variables like `${var}`             |
+| Name                  | Type             | Required | Default | Description                                                                                                     |
+| --------------------- | ---------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `pathOrConfig`        | `string\|Object` | Yes      | -       | File path or configuration object                                                                               |
+| `options`             | `Object`         | No       | `{}`    | Configuration options                                                                                           |
+| `options.defaults`    | `Object`         | No       | `{}`    | Default values to merge with loaded configuration                                                               |
+| `options.validate`    | `boolean`        | No       | `true`  | Whether to validate configuration                                                                               |
+| `options.schema`      | `string\|Object` | No       | -       | Schema name or schema object for validation. **Used for automatic type coercion of `env` variables.**           |
+| `options.env`         | `boolean`        | No       | `true`  | Whether to integrate with environment variables. **Enables automatic type coercion when `schema` is provided.** |
+| `options.watch`       | `boolean`        | No       | `false` | Whether to watch for file changes and reload automatically                                                      |
+| `options.interpolate` | `boolean`        | No       | `true`  | Whether to interpolate variables like `${var}`                                                                  |
 
 ##### Returns
 
-  - `Promise<Object>` - The loaded configuration object
+- `Promise<Object>` - The loaded configuration object (with values coerced to
+  schema-defined types where applicable)
 
 ##### Throws
 
-  - `ConfigError` - If configuration file not found
-  - `ConfigError` - If JSON parsing fails
-  - `ConfigError` - If required fields are missing
-  - `ConfigError` - If validation fails
-  - `ConfigError` - For other loading errors
+- `ConfigError` - If configuration file not found
+- `ConfigError` - If JSON parsing fails
+- `ConfigError` - If required fields are missing
+- `ConfigError` - If validation fails
+- `ConfigError` - For other loading errors
 
 ##### Example
 
 ```javascript
-// Load JSON configuration
+// Load JSON configuration with environment variable integration and schema-based type coercion
+// If process.env.SERVER_PORT is "8080" and schema.server.port is type: 'number',
+// config.server.port will be the number 8080.
 const config = await loadConfig('./config.json', {
-  defaults: {
-    server: {
-      port: 3000,
-      host: 'localhost',
-    },
-  },
-  watch: true,
+  defaults: {
+    server: {
+      port: 3000,
+      host: 'localhost',
+    },
+  },
+  schema: 'app', // Assuming 'app' schema defines types like 'number' and 'boolean'
+  env: true, // Essential to enable env var integration
+  watch: true,
 });
 
 // Load from JavaScript module
@@ -88,12 +95,12 @@ const config = await loadConfig('./config.js');
 
 // Load from object
 const config = await loadConfig({
-  server: { port: 4000 },
-  database: { url: 'mongodb://localhost:27017/myapp' },
+  server: { port: 4000 },
+  database: { url: 'mongodb://localhost:27017/myapp' },
 });
 ```
 
------
+---
 
 #### setConfig(config)
 
@@ -107,18 +114,18 @@ Sets the configuration store directly.
 
 ##### Throws
 
-  - `ConfigError` - If `config` is not an object
+- `ConfigError` - If `config` is not an object
 
 ##### Example
 
 ```javascript
 setConfig({
-  server: { port: 3000 },
-  database: { url: 'mongodb://localhost/myapp' },
+  server: { port: 3000 },
+  database: { url: 'mongodb://localhost/myapp' },
 });
 ```
 
------
+---
 
 #### getConfig(key, defaultValue)
 
@@ -133,13 +140,13 @@ Gets a configuration value by key using dot notation.
 
 ##### Returns
 
-  - If `key` is provided: The value at that path, or `defaultValue` if not found
-  - If no `key` is provided: The entire configuration object
+- If `key` is provided: The value at that path, or `defaultValue` if not found
+- If no `key` is provided: The entire configuration object
 
 ##### Example
 
 ```javascript
-// Get a specific value
+// Get a specific value (will be coerced to number if schema defines it)
 const port = getConfig('server.port', 3000);
 
 // Get a nested object
@@ -149,7 +156,7 @@ const database = getConfig('database');
 const allConfig = getConfig();
 ```
 
------
+---
 
 #### getEnv(key, defaultValue)
 
@@ -164,19 +171,19 @@ Gets an environment variable value.
 
 ##### Returns
 
-  - `string` - The environment variable value, or `defaultValue` if not defined
+- `string` - The environment variable value, or `defaultValue` if not defined
 
 ##### Example
 
 ```javascript
 // Get NODE_ENV or use 'development' as default
-const environment = getEnv('NODE_ENV', 'development');
+const environment = getEnv('NODE_ENV', 'development'); // This still returns the raw string value
 
-// Get database URL with no default
-const dbUrl = getEnv('DATABASE_URL');
+// Get database URL with fallback
+const dbUrl = getEnv('DATABASE_URL', 'mongodb://localhost/myapp');
 ```
 
------
+---
 
 #### reloadConfig(filePath)
 
@@ -190,26 +197,26 @@ Reloads configuration from the specified file or the last loaded file.
 
 ##### Returns
 
-  - `Promise<Object>` - The reloaded configuration object
+- `Promise<Object>` - The reloaded configuration object
 
 ##### Throws
 
-  - `ConfigError` - If no file path is provided and no previous path exists
-  - `ConfigError` - If file not found or other loading errors occur
+- `ConfigError` - If no file path is provided and no previous path exists
+- `ConfigError` - If file not found or other loading errors occur
 
 ##### Example
 
 ```javascript
 try {
-  // Reload from the same file that was last loaded
-  const config = await reloadConfig();
-  console.log('Configuration reloaded successfully');
+  // Reload from the same file that was last loaded
+  const config = await reloadConfig();
+  console.log('Configuration reloaded successfully');
 } catch (error) {
-  console.error('Failed to reload config:', error.message);
+  console.error('Failed to reload config:', error.message);
 }
 ```
 
------
+---
 
 #### hasConfig(key)
 
@@ -223,18 +230,18 @@ Checks if a configuration key exists.
 
 ##### Returns
 
-  - `boolean` - `true` if the key exists, `false` otherwise
+- `boolean` - `true` if the key exists, `false` otherwise
 
 ##### Example
 
 ```javascript
 // Check if a configuration key exists
 if (hasConfig('database.ssl')) {
-  console.log('SSL configuration is defined');
+  console.log('SSL configuration is defined');
 }
 ```
 
------
+---
 
 #### clearConfig()
 
@@ -247,7 +254,7 @@ Clears all configuration data and options.
 clearConfig();
 ```
 
------
+---
 
 ### Configuration Validation
 
@@ -264,48 +271,48 @@ Validates a configuration object against a schema.
 
 ##### Returns
 
-  - `boolean` - `true` if configuration is valid
+- `boolean` - `true` if configuration is valid
 
 ##### Throws
 
-  - `ConfigError` - If validation fails, with details in the error object
+- `ConfigError` - If validation fails, with details in the error object
 
 ##### Example
 
 ```javascript
 // Validate against a schema object
 try {
-  validateConfig(config, {
-    type: 'object',
-    required: ['server.port'],
-    properties: {
-      server: {
-        type: 'object',
-        properties: {
-          port: {
-            type: 'number',
-            minimum: 1024,
-            maximum: 65535,
-          },
-        },
-      },
-    },
-  });
-  console.log('Configuration is valid');
+  validateConfig(config, {
+    type: 'object',
+    required: ['server.port'],
+    properties: {
+      server: {
+        type: 'object',
+        properties: {
+          port: {
+            type: 'number',
+            minimum: 1024,
+            maximum: 65535,
+          },
+        },
+      },
+    },
+  });
+  console.log('Configuration is valid');
 } catch (error) {
-  console.error('Validation failed:', error.details.errors);
+  console.error('Validation failed:', error.details.errors);
 }
 
 // Validate against a predefined schema
 try {
-  validateConfig(config, 'app');
-  console.log('App configuration is valid');
+  validateConfig(config, 'app');
+  console.log('App configuration is valid');
 } catch (error) {
-  console.error('Validation failed:', error.details.errors);
+  console.error('Validation failed:', error.details.errors);
 }
 ```
 
------
+---
 
 #### defineSchema(name, schema)
 
@@ -320,34 +327,34 @@ Defines a named schema for later use.
 
 ##### Throws
 
-  - `ConfigError` - If a schema with the given name already exists
+- `ConfigError` - If a schema with the given name already exists
 
 ##### Example
 
 ```javascript
 // Define a server schema
 defineSchema('server', {
-  type: 'object',
-  required: ['port'],
-  properties: {
-    host: { type: 'string', default: 'localhost' },
-    port: { type: 'number', minimum: 1, maximum: 65535 },
-  },
+  type: 'object',
+  required: ['port'],
+  properties: {
+    host: { type: 'string', default: 'localhost' },
+    port: { type: 'number', minimum: 1, maximum: 65535 },
+  },
 });
 
 // Define an app schema that references the server schema
 defineSchema('app', {
-  type: 'object',
-  required: ['server'],
-  properties: {
-    name: { type: 'string' },
-    version: { type: 'string' },
-    server: { $ref: 'server' },
-  },
+  type: 'object',
+  required: ['server'],
+  properties: {
+    name: { type: 'string' },
+    version: { type: 'string' },
+    server: { $ref: 'server' },
+  },
 });
 ```
 
------
+---
 
 #### getConfigSchema(name)
 
@@ -361,11 +368,11 @@ Retrieves a previously defined schema.
 
 ##### Returns
 
-  - `Object` - The schema definition
+- `Object` - The schema definition
 
 ##### Throws
 
-  - `ConfigError` - If no schema with the given name exists
+- `ConfigError` - If no schema with the given name exists
 
 ##### Example
 
@@ -375,7 +382,7 @@ const serverSchema = getConfigSchema('server');
 console.log(serverSchema);
 ```
 
------
+---
 
 ### Error Handling
 
@@ -396,17 +403,17 @@ Custom error class for configuration-related errors.
 
 ```javascript
 try {
-  await loadConfig('./nonexistent.json');
+  await loadConfig('./nonexistent.json');
 } catch (error) {
-  if (error.name === 'ConfigError') {
-    console.error(`Configuration error (${error.code}): ${error.message}`);
-    if (error.details && error.details.errors) {
-      // Print validation errors
-      error.details.errors.forEach((err) => {
-        console.error(`- ${err.path}: ${err.message}`);
-      });
-    }
-  }
+  if (error.name === 'ConfigError') {
+    console.error(`Configuration error (${error.code}): ${error.message}`);
+    if (error.details && error.details.errors) {
+      // Print validation errors
+      error.details.errors.forEach((err) => {
+        console.error(`- ${err.path}: ${err.message}`);
+      });
+    }
+  }
 }
 ```
 
@@ -417,16 +424,15 @@ recommended to wrap calls in try-catch blocks:
 
 ```javascript
 try {
-  const config = await loadConfig('./config.json');
+  const config = await loadConfig('./config.json');
 } catch (error) {
-  console.error('Configuration loading failed:', error.message);
-  // Handle specific error types
-  if (error.code === 'FILE_NOT_FOUND') {
-    // Handle file not found
-  } else if (error.code === 'VALIDATION_ERROR') {
-    // Handle validation errors
-    console.error('Validation errors:', error.details.errors);
-  }
+  console.error('Configuration loading failed:', error.message); // Handle specific error types
+  if (error.code === 'FILE_NOT_FOUND') {
+    // Handle file not found
+  } else if (error.code === 'VALIDATION_ERROR') {
+    // Handle validation errors
+    console.error('Validation errors:', error.details.errors);
+  }
 }
 ```
 
@@ -445,19 +451,19 @@ try {
 
 ## Security Considerations
 
-1.  **Secret Management**: Never store sensitive information like API keys or
-       database credentials directly in configuration files that might be committed
+1.  **Secret Management**: Never store sensitive information like API keys or   
+    database credentials directly in configuration files that might be committed
        to version control
-2.  **Environment Variables**: Use environment variables for sensitive
-       configuration in production
+2.  **Environment Variables**: Use environment variables for sensitive   
+    configuration in production
 3.  **Validation**: Always validate configuration to prevent unexpected runtime
        errors
-4.  **File Permissions**: Set appropriate file permissions for configuration
-       files containing sensitive information
-5.  **Schema References**: Be cautious with circular schema references that might
-       cause stack overflows
-6.  **Interpolation**: Be aware that interpolation could potentially expose
-       sensitive values in logs or error messages
+4.  **File Permissions**: Set appropriate file permissions for configuration   
+    files containing sensitive information
+5.  **Schema References**: Be cautious with circular schema references that
+    might    cause stack overflows
+6.  **Interpolation**: Be aware that interpolation could potentially expose   
+    sensitive values in logs or error messages
 
 ## TypeScript Support
 
@@ -468,43 +474,44 @@ use JSDoc type annotations.
 ```typescript
 // Example type declarations
 interface ConfigOptions {
-  defaults?: Record<string, any>;
-  schema?: string | Record<string, any>;
-  validate?: boolean;
-  env?: boolean;
-  watch?: boolean;
-  interpolate?: boolean;
+  defaults?: Record<string, any>;
+  schema?: string | Record<string, any>;
+  validate?: boolean;
+  env?: boolean;
+  watch?: boolean;
+  interpolate?: boolean;
 }
 
 interface SchemaDefinition {
-  type: string | string[];
-  required?: string[];
-  properties?: Record<string, SchemaDefinition>;
-  // ... other schema properties
+  type: string | string[];
+  required?: string[];
+  properties?: Record<string, SchemaDefinition>; // ... other schema properties
 }
 ```
 
 ## Performance Tips
 
-1.  **Caching**: The module internally caches environment variables to avoid
-       repeated lookups
-2.  **File Watching**: Only enable `watch` option when needed, as it consumes
-       resources
-3.  **Schema Complexity**: Complex schemas with deep nesting can impact
-       validation performance
-4.  **Interpolation**: Disable interpolation for large configurations if not
-       needed
-5.  **Predefined Schemas**: Use predefined schemas where possible to avoid
-       redundant schema definitions
+1.  **Caching**: The module internally caches environment variables to avoid   
+    repeated lookups
+2.  **File Watching**: Only enable `watch` option when needed, as it consumes   
+    resources
+3.  **Schema Complexity**: Complex schemas with deep nesting can impact   
+    validation performance
+4.  **Interpolation**: Disable interpolation for large configurations if not   
+    needed
+5.  **Predefined Schemas**: Use predefined schemas where possible to avoid   
+    redundant schema definitions
 
 ## License
 
 MIT
 
------
+---
 
-\<p align="center"\>
-  Built with ❤️ in India by the \<a href="https://github.com/orgs/voilajsx/people"\>VoilaJS Team\</a\> — powering modern web development.
-\</p\>
+\<p align="center"\>   Built with ❤️ in India by the \<a
+href="https://github.com/orgs/voilajsx/people"\>VoilaJS Team\</a\> — powering
+modern web development. \</p\>
+
+```
 
 ```
