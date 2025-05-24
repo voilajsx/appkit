@@ -6,6 +6,7 @@
 .prettierrc
 .github/
 vitest.config.js
+gh-pages
 
 # Test files
 coverage/
