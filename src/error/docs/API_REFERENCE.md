@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `@voilajs/appkit/error` module provides comprehensive error handling
+The `@voilajsx/appkit/error` module provides comprehensive error handling
 utilities for Node.js applications, including standardized error types,
 consistent error formatting, middleware for Express applications, and async
 error handling.
@@ -10,7 +10,7 @@ error handling.
 ## Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ## Quick Start
@@ -22,7 +22,7 @@ import {
   notFoundError,
   createErrorHandler,
   asyncHandler,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // Create specific error types
 throw validationError({ email: 'Invalid email format' });
@@ -102,7 +102,7 @@ Base error class for all application errors.
 ##### Example
 
 ```javascript
-import { AppError, ErrorTypes } from '@voilajs/appkit/error';
+import { AppError, ErrorTypes } from '@voilajsx/appkit/error';
 
 const error = new AppError(
   ErrorTypes.CONFLICT,
@@ -146,7 +146,7 @@ Creates a custom application error with appropriate status code.
 ##### Example
 
 ```javascript
-import { createError, ErrorTypes } from '@voilajs/appkit/error';
+import { createError, ErrorTypes } from '@voilajsx/appkit/error';
 
 throw createError(ErrorTypes.BAD_REQUEST, 'Invalid query parameters', {
   param: 'sort',
@@ -177,7 +177,7 @@ Creates a validation error for invalid user input.
 ##### Example
 
 ```javascript
-import { validationError } from '@voilajs/appkit/error';
+import { validationError } from '@voilajsx/appkit/error';
 
 throw validationError({
   email: 'Invalid email format',
@@ -209,7 +209,7 @@ Creates a not found error for when a resource doesn't exist.
 ##### Example
 
 ```javascript
-import { notFoundError } from '@voilajs/appkit/error';
+import { notFoundError } from '@voilajsx/appkit/error';
 
 throw notFoundError('User', '123456');
 // Error message: "User not found"
@@ -239,7 +239,7 @@ Creates an authentication error for invalid credentials.
 ##### Example
 
 ```javascript
-import { authenticationError } from '@voilajs/appkit/error';
+import { authenticationError } from '@voilajsx/appkit/error';
 
 throw authenticationError('Invalid token');
 ```
@@ -267,7 +267,7 @@ Creates an authorization error for insufficient permissions.
 ##### Example
 
 ```javascript
-import { authorizationError } from '@voilajs/appkit/error';
+import { authorizationError } from '@voilajsx/appkit/error';
 
 throw authorizationError('Admin access required');
 ```
@@ -296,7 +296,7 @@ Creates a conflict error for resource conflicts.
 ##### Example
 
 ```javascript
-import { conflictError } from '@voilajs/appkit/error';
+import { conflictError } from '@voilajsx/appkit/error';
 
 throw conflictError('Email already registered', { email: 'user@example.com' });
 ```
@@ -325,7 +325,7 @@ Creates a bad request error for invalid input.
 ##### Example
 
 ```javascript
-import { badRequestError } from '@voilajs/appkit/error';
+import { badRequestError } from '@voilajsx/appkit/error';
 
 throw badRequestError('Invalid date format', {
   field: 'startDate',
@@ -357,7 +357,7 @@ Creates a rate limit error when request limits are exceeded.
 ##### Example
 
 ```javascript
-import { rateLimitError } from '@voilajs/appkit/error';
+import { rateLimitError } from '@voilajsx/appkit/error';
 
 throw rateLimitError('Too many login attempts', {
   retryAfter: 60,
@@ -388,7 +388,7 @@ Creates a service unavailable error when service is temporarily down.
 ##### Example
 
 ```javascript
-import { serviceUnavailableError } from '@voilajs/appkit/error';
+import { serviceUnavailableError } from '@voilajsx/appkit/error';
 
 throw serviceUnavailableError('Database connection failed');
 ```
@@ -417,7 +417,7 @@ Creates an internal server error for unexpected errors.
 ##### Example
 
 ```javascript
-import { internalError } from '@voilajs/appkit/error';
+import { internalError } from '@voilajsx/appkit/error';
 
 throw internalError('Unexpected data format', {
   receivedType: typeof data,
@@ -448,7 +448,7 @@ consistent format.
 ##### Example
 
 ```javascript
-import { formatErrorResponse } from '@voilajs/appkit/error';
+import { formatErrorResponse } from '@voilajsx/appkit/error';
 
 const error = new Error('Something went wrong');
 const formattedError = formatErrorResponse(error);
@@ -490,7 +490,7 @@ appropriate responses.
 
 ```javascript
 import express from 'express';
-import { createErrorHandler } from '@voilajs/appkit/error';
+import { createErrorHandler } from '@voilajsx/appkit/error';
 
 const app = express();
 
@@ -538,7 +538,7 @@ them to the error middleware.
 
 ```javascript
 import express from 'express';
-import { asyncHandler } from '@voilajs/appkit/error';
+import { asyncHandler } from '@voilajsx/appkit/error';
 
 const app = express();
 
@@ -580,7 +580,7 @@ Creates a middleware to handle 404 errors for undefined routes.
 
 ```javascript
 import express from 'express';
-import { notFoundHandler, createErrorHandler } from '@voilajs/appkit/error';
+import { notFoundHandler, createErrorHandler } from '@voilajsx/appkit/error';
 
 const app = express();
 
@@ -616,7 +616,7 @@ Sets up a global handler for unhandled promise rejections.
 ##### Example
 
 ```javascript
-import { handleUnhandledRejections } from '@voilajs/appkit/error';
+import { handleUnhandledRejections } from '@voilajsx/appkit/error';
 
 // With default logger
 handleUnhandledRejections();
@@ -652,7 +652,7 @@ Sets up a global handler for uncaught exceptions.
 ##### Example
 
 ```javascript
-import { handleUncaughtExceptions } from '@voilajs/appkit/error';
+import { handleUncaughtExceptions } from '@voilajsx/appkit/error';
 
 // With default logger
 handleUncaughtExceptions();
@@ -692,7 +692,7 @@ Creates middleware to validate request body against a schema.
 ```javascript
 import express from 'express';
 import Joi from 'joi';
-import { validateRequest } from '@voilajs/appkit/error';
+import { validateRequest } from '@voilajsx/appkit/error';
 
 const app = express();
 app.use(express.json());

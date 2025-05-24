@@ -1,11 +1,11 @@
-# @voilajs/appkit - Error Module 🚨
+# @voilajsx/appkit - Error Module 🚨
 
-[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > Comprehensive, consistent error handling for Node.js applications
 
-The Error module of `@voilajs/appkit` provides standardized error types,
+The Error module of `@voilajsx/appkit` provides standardized error types,
 consistent error formatting, middleware for Express applications, and utilities
 for handling async errors. It helps you build robust applications with clean,
 predictable error handling.
@@ -37,7 +37,7 @@ predictable error handling.
 ## 📦 Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ## 🏃‍♂️ Quick Start
@@ -57,7 +57,7 @@ import {
   internalError,
   createErrorHandler,
   asyncHandler,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 const app = express();
 app.use(express.json());
@@ -110,7 +110,7 @@ These utilities help categorize and standardize errors in your application.
 | `AppError`   | Base error class for application errors | Creating custom application errors     |
 
 ```javascript
-import { ErrorTypes, AppError } from '@voilajs/appkit/error';
+import { ErrorTypes, AppError } from '@voilajsx/appkit/error';
 
 // Using ErrorTypes
 const error = new AppError(
@@ -149,7 +149,7 @@ import {
   conflictError,
   badRequestError,
   rateLimitError,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // Validation error
 throw validationError({
@@ -189,7 +189,7 @@ import {
   createErrorHandler,
   notFoundHandler,
   asyncHandler,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 const app = express();
 
@@ -214,7 +214,7 @@ app.use(createErrorHandler());
 ```javascript
 import Koa from 'koa';
 import Router from '@koa/router';
-import { createError, notFoundError } from '@voilajs/appkit/error';
+import { createError, notFoundError } from '@voilajsx/appkit/error';
 
 const app = new Koa();
 const router = new Router();
@@ -252,7 +252,7 @@ Manage uncaught errors at the application level.
 import {
   handleUnhandledRejections,
   handleUncaughtExceptions,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // Set up global handlers
 handleUncaughtExceptions();
@@ -264,7 +264,7 @@ handleUnhandledRejections();
 ### Error Handler Options
 
 ```javascript
-import { createErrorHandler } from '@voilajs/appkit/error';
+import { createErrorHandler } from '@voilajsx/appkit/error';
 
 const errorHandler = createErrorHandler({
   // Custom logger function
@@ -284,7 +284,7 @@ const errorHandler = createErrorHandler({
 ### AppError Options
 
 ```javascript
-import { AppError, ErrorTypes } from '@voilajs/appkit/error';
+import { AppError, ErrorTypes } from '@voilajsx/appkit/error';
 
 const error = new AppError(
   ErrorTypes.CONFLICT, // Error type
@@ -314,7 +314,7 @@ const error = new AppError(
 ## 🤖 Code Generation with LLMs
 
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common error handling scenarios using the `@voilajs/appkit/error` module.
+for common error handling scenarios using the `@voilajsx/appkit/error` module.
 We've created a specialized
 [PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md)
 document that's designed specifically for LLMs to understand the module's
@@ -325,7 +325,7 @@ capabilities and generate high-quality error handling code.
 #### Basic Error Handling
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then create a complete error handling system for an Express app using @voilajs/appkit/error with the following features:
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then create a complete error handling system for an Express app using @voilajsx/appkit/error with the following features:
 - Centralized error handling
 - Async route protection
 - Field validation for user registration
@@ -335,7 +335,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Custom Error System
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then implement a custom error handling system for a REST API using @voilajs/appkit/error that includes:
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then implement a custom error handling system for a REST API using @voilajsx/appkit/error that includes:
 - Custom error types for your application domain
 - Environment-specific error formatting
 - Integration with a logging service
@@ -345,7 +345,7 @@ Please read the API reference at https://github.com/voilajs/appkit/blob/main/src
 #### Error Handling for Auth System
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and create comprehensive error handling for an authentication system using @voilajs/appkit/error with:
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and create comprehensive error handling for an authentication system using @voilajsx/appkit/error with:
 - Login failure handling
 - Token validation errors
 - Rate limiting errors
@@ -404,7 +404,7 @@ import {
   asyncHandler,
   notFoundError,
   validationError,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // With asyncHandler (recommended)
 app.get(

@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Error module
- * @module @voilajs/appkit/error
+ * @voilajsx/appkit - Error module
+ * @module @voilajsx/appkit/error
  */
 
 // Main exports file with all available functions

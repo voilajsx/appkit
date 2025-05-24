@@ -1,5 +1,5 @@
 /**
- * Express Integration - @voilajs/appkit Error Module
+ * Express Integration - @voilajsx/appkit Error Module
  *
  * This example demonstrates using error handlers with Express
  *
@@ -16,7 +16,7 @@ import {
   validationError,
   notFoundError,
   authenticationError,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 function startServer() {
   console.log('=== Express Integration Demo ===\n');

@@ -43,7 +43,7 @@ utilities that work with any Node.js framework.
 ### Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
 ### Basic Import
@@ -56,7 +56,7 @@ import {
   createErrorHandler,
   asyncHandler,
   ErrorTypes,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 ```
 
 ## Error Types
@@ -68,7 +68,7 @@ The module provides standardized error types with appropriate HTTP status codes.
 Use the `ErrorTypes` enum for consistent error categorization:
 
 ```javascript
-import { ErrorTypes } from '@voilajs/appkit/error';
+import { ErrorTypes } from '@voilajsx/appkit/error';
 
 // Available error types
 ErrorTypes.VALIDATION; // 400
@@ -99,7 +99,7 @@ categorize errors in your application.
 The `AppError` class provides a base for all application errors:
 
 ```javascript
-import { AppError, ErrorTypes } from '@voilajs/appkit/error';
+import { AppError, ErrorTypes } from '@voilajsx/appkit/error';
 
 // Create a custom error
 const error = new AppError(
@@ -127,7 +127,7 @@ console.log(error.details); // { userId: '123' }
 Here's a real-world example using different error types:
 
 ```javascript
-import { ErrorTypes, AppError } from '@voilajs/appkit/error';
+import { ErrorTypes, AppError } from '@voilajsx/appkit/error';
 
 // Function that returns different error types
 function processRequest(req) {
@@ -175,7 +175,7 @@ The module provides convenient factory functions to create standardized errors.
 Use the `createError` function for generic errors:
 
 ```javascript
-import { createError, ErrorTypes } from '@voilajs/appkit/error';
+import { createError, ErrorTypes } from '@voilajsx/appkit/error';
 
 // Create a basic error
 const error = createError(ErrorTypes.BAD_REQUEST, 'Invalid parameters', {
@@ -205,7 +205,7 @@ appropriate status code.
 Use `validationError` for input validation failures:
 
 ```javascript
-import { validationError } from '@voilajs/appkit/error';
+import { validationError } from '@voilajsx/appkit/error';
 
 // Form validation example
 function validateForm(data) {
@@ -250,7 +250,7 @@ import {
   notFoundError,
   authenticationError,
   authorizationError,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // Resource not found
 throw notFoundError('User', '123');
@@ -283,7 +283,7 @@ import {
   notFoundError,
   authorizationError,
   validationError,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // User update function with error handling
 async function updateUser(userId, data, currentUser) {
@@ -326,7 +326,7 @@ Use `createErrorHandler` to set up error handling middleware:
 
 ```javascript
 import express from 'express';
-import { createErrorHandler } from '@voilajs/appkit/error';
+import { createErrorHandler } from '@voilajsx/appkit/error';
 
 const app = express();
 
@@ -353,7 +353,7 @@ HTTP responses.
 Customize error logging with a custom logger:
 
 ```javascript
-import { createErrorHandler } from '@voilajs/appkit/error';
+import { createErrorHandler } from '@voilajsx/appkit/error';
 
 // Custom logger
 function customLogger(error) {
@@ -382,7 +382,7 @@ const errorHandler = createErrorHandler({
 Adjust error handling based on the environment:
 
 ```javascript
-import { createErrorHandler } from '@voilajs/appkit/error';
+import { createErrorHandler } from '@voilajsx/appkit/error';
 
 // Create environment-specific handler
 const errorHandler = createErrorHandler({
@@ -423,7 +423,7 @@ A complete error handling setup for Express:
 
 ```javascript
 import express from 'express';
-import { createErrorHandler, notFoundHandler } from '@voilajs/appkit/error';
+import { createErrorHandler, notFoundHandler } from '@voilajsx/appkit/error';
 
 const app = express();
 app.use(express.json());
@@ -461,7 +461,7 @@ Use `asyncHandler` to wrap async route handlers:
 
 ```javascript
 import express from 'express';
-import { asyncHandler } from '@voilajs/appkit/error';
+import { asyncHandler } from '@voilajsx/appkit/error';
 
 const app = express();
 
@@ -499,7 +499,7 @@ Errors in async functions are caught and passed to the error middleware.
 `asyncHandler` automatically propagates errors to the error middleware:
 
 ```javascript
-import { asyncHandler, notFoundError } from '@voilajs/appkit/error';
+import { asyncHandler, notFoundError } from '@voilajsx/appkit/error';
 
 // Using asyncHandler with custom errors
 app.get(
@@ -535,7 +535,7 @@ import {
   notFoundError,
   validationError,
   createErrorHandler,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 const app = express();
 app.use(express.json());
@@ -589,7 +589,7 @@ Handle uncaught errors at the application level.
 Set up handlers for unhandled promise rejections:
 
 ```javascript
-import { handleUnhandledRejections } from '@voilajs/appkit/error';
+import { handleUnhandledRejections } from '@voilajsx/appkit/error';
 
 // Basic handler
 handleUnhandledRejections();
@@ -622,7 +622,7 @@ development, exits in production.
 Handle uncaught exceptions:
 
 ```javascript
-import { handleUncaughtExceptions } from '@voilajs/appkit/error';
+import { handleUncaughtExceptions } from '@voilajsx/appkit/error';
 
 // Basic handler
 handleUncaughtExceptions();
@@ -660,7 +660,7 @@ Setting up global error handling:
 import {
   handleUncaughtExceptions,
   handleUnhandledRejections,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // Create logger
 const logger = {
@@ -711,7 +711,7 @@ import {
   authenticationError,
   handleUncaughtExceptions,
   handleUnhandledRejections,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // Initialize Express
 const app = express();

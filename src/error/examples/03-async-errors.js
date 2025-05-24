@@ -1,5 +1,5 @@
 /**
- * Async Error Handling - @voilajs/appkit Error Module
+ * Async Error Handling - @voilajsx/appkit Error Module
  *
  * This example demonstrates handling errors in async functions
  *
@@ -14,7 +14,7 @@ import {
   notFoundError,
   validationError,
   createErrorHandler,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 // Simulated database functions with artificial delays
 async function findUser(id) {

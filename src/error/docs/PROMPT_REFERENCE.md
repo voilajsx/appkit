@@ -1,4 +1,4 @@
-# @voilajs/appkit/error - LLM API Reference
+# @voilajsx/appkit/error - LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.

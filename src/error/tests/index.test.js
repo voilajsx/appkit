@@ -1,5 +1,5 @@
 /**
- * Tests for @voilajs/appkit/error - Module Exports
+ * Tests for @voilajsx/appkit/error - Module Exports
  */
 
 import { describe, it, expect } from 'vitest';

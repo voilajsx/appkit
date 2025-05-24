@@ -1,5 +1,5 @@
 /**
- * Global Error Handlers - @voilajs/appkit Error Module
+ * Global Error Handlers - @voilajsx/appkit Error Module
  *
  * This example demonstrates setting up global error handlers
  * for uncaught exceptions and unhandled promise rejections.
@@ -12,7 +12,7 @@
 import {
   handleUncaughtExceptions,
   handleUnhandledRejections,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 function demo() {
   console.log('=== Global Error Handlers Demo ===\n');

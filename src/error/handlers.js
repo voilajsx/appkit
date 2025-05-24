@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Error handling utilities
- * @module @voilajs/appkit/error/handlers
+ * @voilajsx/appkit - Error handling utilities
+ * @module @voilajsx/appkit/error/handlers
  */
 
 import { AppError, ErrorTypes } from './errors.js';

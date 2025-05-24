@@ -1,5 +1,5 @@
 /**
- * Basic Error Creation - @voilajs/appkit Error Module
+ * Basic Error Creation - @voilajsx/appkit Error Module
  *
  * This example demonstrates creating different types of errors
  * No external dependencies needed - just run it!
@@ -20,7 +20,7 @@ import {
   rateLimitError,
   serviceUnavailableError,
   internalError,
-} from '@voilajs/appkit/error';
+} from '@voilajsx/appkit/error';
 
 function demo() {
   console.log('=== Error Creation Demo ===\n');

@@ -1,5 +1,5 @@
 /**
- * Tests for @voilajs/appkit/error - Error Types and Classes
+ * Tests for @voilajsx/appkit/error - Error Types and Classes
  */
 
 import { describe, it, expect } from 'vitest';
