@@ -286,15 +286,15 @@ Please read the API reference at [https://github.com/voilajsx/appkit/blob/main/s
 
 For complete, working examples, check our examples folder:
 
-- [Basic Usage](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/01-basic-usage.js) -
+- [Basic Usage](https://github.com/voilajsx/appkit/blob/main/src/config/examples/01-basic-usage.js) -
   Loading and accessing configuration
-- [Environment Variables](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/02-environment-variables.js) -
+- [Environment Variables](https://github.com/voilajsx/appkit/blob/main/src/config/examples/02-environment-variables.js) -
   Working with environment variables
-- [Schema Validation](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/03-schema-validation.js) -
+- [Schema Validation](https://github.com/voilajsx/appkit/blob/main/src/config/examples/03-schema-validation.js) -
   Validating configuration with schemas
-- [Dynamic Config](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/04-dynamic-config.js) -
+- [Dynamic Config](https://github.com/voilajsx/appkit/blob/main/src/config/examples/04-dynamic-config.js) -
   Updating configuration at runtime
-- [Express App](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/examples/express-app.js) -
+- [Express App](https://github.com/voilajsx/appkit/blob/main/src/config/examples/express-app.js) -
   Using configuration in an Express application
 
 ## 🛡️ Configuration Best Practices
@@ -357,10 +357,10 @@ try {
 ## 📚 Documentation Links
 
 - 📘
-  [Developer Reference](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/DEVELOPER_REFERENCE.md) -
+  [Developer Reference](https://github.com/voilajsx/appkit/blob/main/src/config/docs/DEVELOPER_REFERENCE.md) -
   Detailed implementation guide with examples
 - 📗
-  [API Reference](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/API_REFERENCE.md) -
+  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/config/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
   [LLM Code Generation Reference](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md) -
@@ -369,19 +369,15 @@ try {
 ## 🤝 Contributing
 
 We welcome contributions\! Please see our
-[Contributing Guide](https://www.google.com/search?q=https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
+[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
 for details.
 
 ## 📄 License
 
-MIT © [VoilaJS](https://www.google.com/search?q=https://github.com/voilajsx)
+MIT © [VoilaJS](https://github.com/voilajsx)
 
 ---
 
-\<p align="center"\> Built with ❤️ in India by the \<a
-href="https://github.com/orgs/voilajsx/people"\>VoilaJS Team\</a\> — powering
-modern web development. \</p\>
-
-```
-
-```
+<p align="center"> Built with ❤️ in India by the <a
+href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering
+modern web development. </p>
