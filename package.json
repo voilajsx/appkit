@@ -144,7 +144,6 @@
   "creator": "Krishna Teja GS",
   "license": "MIT",
   "dependencies": {
-    "@voilajsx/appkit": "github:voilajsx/appkit",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.5.0",
     "express-session": "^1.18.1",
