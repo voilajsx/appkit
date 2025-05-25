@@ -1,4 +1,4 @@
-# @voilajs/appkit/queue - LLM API Reference
+# @voilajsx/appkit/validation - LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.
@@ -27,7 +27,7 @@
    - Use try/catch blocks for async functions
    - Check parameters before using them
    - Throw descriptive error messages
-   - Handle adapter-specific errors gracefully
+   - Handle validation errors gracefully
 
 4. **Framework Agnostic**:
    - Code should work with any Node.js framework
@@ -35,546 +35,1003 @@
 
 ## Function Signatures
 
-### 1. Core Functions
+### 1. Core Validation Functions
 
-#### `initQueue`
-
-```typescript
-async function initQueue(
-  adapter: string,
-  config?: {
-    // Memory adapter options
-    // Redis adapter options
-    redis?:
-      | string
-      | {
-          host?: string;
-          port?: number;
-          password?: string;
-          tls?: boolean;
-        };
-    defaultJobOptions?: {
-      priority?: number;
-      delay?: number;
-      attempts?: number;
-      backoff?: {
-        type: 'exponential' | 'fixed' | 'linear';
-        delay: number;
-        maxDelay?: number;
-      };
-      removeOnComplete?: boolean;
-      removeOnFail?: boolean;
-    };
-    // Database adapter options
-    databaseType?: 'postgres' | 'mysql';
-    connectionString?: string;
-    connectionPool?: {
-      max?: number;
-      idleTimeoutMillis?: number;
-    };
-    tableName?: string;
-    pollInterval?: number;
-  }
-): Promise<QueueAdapter>;
-```
-
-#### `getQueue`
+#### `validate`
 
 ```typescript
-function getQueue(): QueueAdapter;
-```
-
-#### `closeQueue`
-
-```typescript
-async function closeQueue(): Promise<void>;
-```
-
-### 2. QueueAdapter Interface Methods
-
-#### `addJob`
-
-```typescript
-async function addJob<T = any>(
-  queue: string,
+function validate<T = any>(
   data: T,
+  schema: object,
   options?: {
-    priority?: number;
-    delay?: number;
-    maxAttempts?: number;
-    backoff?: {
-      type: 'exponential' | 'fixed' | 'linear';
-      delay: number;
-      maxDelay?: number;
-    };
-    removeOnComplete?: boolean;
-    removeOnFail?: boolean;
+    abortEarly?: boolean;
+    allowUnknown?: boolean;
+    stripUnknown?: boolean;
+    context?: object;
+    strict?: boolean;
+  }
+): {
+  valid: boolean;
+  errors: Array<{
+    path: string;
+    message: string;
+    code: string;
+    value: any;
+  }>;
+  value: T;
+};
+```
+
+#### `validateAsync`
+
+```typescript
+async function validateAsync<T = any>(
+  data: T,
+  schema: object,
+  options?: {
+    abortEarly?: boolean;
+    allowUnknown?: boolean;
+    stripUnknown?: boolean;
+    context?: object;
+    strict?: boolean;
+    timeout?: number;
   }
 ): Promise<{
-  id: string;
-  queue: string;
-  status: string;
+  valid: boolean;
+  errors: Array<{
+    path: string;
+    message: string;
+    code: string;
+    value: any;
+  }>;
+  value: T;
 }>;
 ```
 
-#### `processJobs`
+#### `createValidator`
 
 ```typescript
-async function processJobs<T = any>(
-  queue: string,
-  processor: (job: {
-    id: string;
-    queue: string;
-    data: T;
-    options: any;
-    status: string;
-    attempts: number;
-    maxAttempts: number;
-    [key: string]: any;
-  }) => Promise<any>,
+function createValidator<T = any>(
+  schema: object,
   options?: {
-    concurrency?: number;
-    onCompleted?: (jobId: string, result: any) => void;
-    onFailed?: (jobId: string, error: Error) => void;
-    onProgress?: (jobId: string, progress: number) => void;
+    abortEarly?: boolean;
+    allowUnknown?: boolean;
+    stripUnknown?: boolean;
+    context?: object;
+    strict?: boolean;
   }
-): Promise<void>;
+): (data: T) => {
+  valid: boolean;
+  errors: Array<{
+    path: string;
+    message: string;
+    code: string;
+    value: any;
+  }>;
+  value: T;
+};
 ```
 
-#### `getJob`
+### 2. Core Sanitization Functions
+
+#### `sanitize`
 
 ```typescript
-async function getJob(
-  queue: string,
-  jobId: string
-): Promise<{
-  id: string;
-  queue: string;
-  data: any;
-  options: any;
-  status: string;
-  attempts: number;
-  maxAttempts: number;
-  progress?: number;
-  result?: any;
-  error?: string;
-  createdAt: Date;
-  startedAt?: Date;
-  completedAt?: Date;
-  failedAt?: Date;
-} | null>;
+function sanitize<T = any>(
+  data: T,
+  rules: object | Array<object> | ((data: T) => T)
+): T;
 ```
 
-#### `updateJob`
+#### `sanitizeString`
 
 ```typescript
-async function updateJob(
-  queue: string,
-  jobId: string,
-  update: Record<string, any>
-): Promise<boolean>;
+function sanitizeString(
+  input: string,
+  rules?: {
+    trim?: boolean;
+    lowercase?: boolean;
+    uppercase?: boolean;
+    capitalize?: boolean;
+    titleCase?: boolean;
+    escape?: boolean;
+    unescape?: boolean;
+    stripTags?: boolean;
+    truncate?: number;
+    slug?: boolean;
+    alphanumeric?: boolean;
+    alpha?: boolean;
+    numeric?: boolean;
+    email?: boolean;
+    url?: boolean;
+    replace?: { [pattern: string]: string };
+    remove?: string | string[];
+    normalize?: boolean | string;
+    whitespace?: 'single' | 'remove';
+    linebreaks?: 'unix' | 'windows' | 'remove';
+  }
+): string;
 ```
 
-#### `removeJob`
+#### `sanitizeHtml`
 
 ```typescript
-async function removeJob(queue: string, jobId: string): Promise<boolean>;
+function sanitizeHtml(
+  input: string,
+  options?: {
+    allowedTags?: string[];
+    allowedAttributes?: { [tag: string]: string[] };
+    allowedSchemes?: string[];
+    stripEmpty?: boolean;
+    maxLength?: number;
+    allowDataAttributes?: boolean;
+    allowClassNames?: boolean;
+  }
+): string;
 ```
 
-#### `getQueueInfo`
+#### `sanitizeNumber`
 
 ```typescript
-async function getQueueInfo(queue: string): Promise<{
-  name: string;
-  total: number;
-  pending: number;
-  processing: number;
-  completed: number;
-  failed: number;
-  delayed: number;
-}>;
+function sanitizeNumber(
+  input: any,
+  rules?: {
+    default?: number;
+    integer?: boolean;
+    round?: 'ceil' | 'floor' | 'round';
+    min?: number;
+    max?: number;
+    clamp?: boolean;
+    precision?: number;
+    positive?: boolean;
+    negative?: boolean;
+    absolute?: boolean;
+    finite?: boolean;
+  }
+): number;
 ```
 
-#### `clearQueue`
+#### `sanitizeArray`
 
 ```typescript
-async function clearQueue(queue: string): Promise<boolean>;
+function sanitizeArray(
+  input: any,
+  rules?: {
+    parse?: boolean;
+    delimiter?: string;
+    compact?: boolean;
+    flatten?: boolean | number;
+    unique?: boolean;
+    uniqueBy?: string | ((item: any) => any);
+    items?: object;
+    skipInvalid?: boolean;
+    filter?: (item: any, index: number) => boolean;
+    sort?: boolean | string | ((a: any, b: any) => number);
+    reverse?: boolean;
+    limit?: number;
+    offset?: number;
+  }
+): any[];
 ```
 
-#### `stop`
+#### `sanitizeObject`
 
 ```typescript
-async function stop(): Promise<void>;
+function sanitizeObject(
+  input: any,
+  rules?: {
+    parse?: boolean;
+    defaults?: object;
+    pick?: string[];
+    omit?: string[];
+    rename?: { [oldKey: string]: string };
+    properties?: { [key: string]: object };
+    skipInvalid?: boolean;
+    filter?: (value: any, key: string) => boolean;
+    mapKeys?: (key: string, value: any) => string;
+    mapValues?: (value: any, key: string) => any;
+    removeEmpty?: boolean;
+    maxProperties?: number;
+  }
+): object;
 ```
 
-### 3. Memory Adapter Specific Methods
-
-#### `getJobsByStatus`
+#### `createSanitizer`
 
 ```typescript
-async function getJobsByStatus(
-  queue: string,
-  status: string,
-  limit?: number
-): Promise<any[]>;
+function createSanitizer<T = any>(
+  rules: object | Array<object> | ((data: T) => T)
+): (data: T) => T;
 ```
 
-#### `retryJob`
+### 3. Built-in Validators
+
+#### `validateString`
 
 ```typescript
-async function retryJob(queue: string, jobId: string): Promise<boolean>;
+function validateString(
+  input: string,
+  rules?: {
+    required?: boolean;
+    minLength?: number;
+    maxLength?: number;
+    exactLength?: number;
+    pattern?: RegExp;
+    enum?: string[];
+    startsWith?: string;
+    endsWith?: string;
+    contains?: string;
+    alphanumeric?: boolean;
+    alpha?: boolean;
+    numeric?: boolean;
+    uppercase?: boolean;
+    lowercase?: boolean;
+    email?: boolean;
+    url?: boolean;
+    uuid?: boolean;
+    slug?: boolean;
+    hexColor?: boolean;
+    base64?: boolean;
+    json?: boolean;
+    custom?: (value: string) => boolean | string;
+  }
+): boolean;
 ```
 
-### 4. Redis Adapter Specific Methods
-
-#### `pauseQueue`
+#### `validateNumber`
 
 ```typescript
-async function pauseQueue(queue: string, isLocal?: boolean): Promise<void>;
+function validateNumber(
+  input: number,
+  rules?: {
+    required?: boolean;
+    min?: number;
+    max?: number;
+    exclusiveMin?: number;
+    exclusiveMax?: number;
+    integer?: boolean;
+    positive?: boolean;
+    negative?: boolean;
+    nonZero?: boolean;
+    finite?: boolean;
+    multipleOf?: number;
+    precision?: number;
+    enum?: number[];
+    custom?: (value: number) => boolean | string;
+  }
+): boolean;
 ```
 
-#### `resumeQueue`
+#### `validateEmail`
 
 ```typescript
-async function resumeQueue(queue: string, isLocal?: boolean): Promise<void>;
+function validateEmail(
+  email: string,
+  options?: {
+    allowInternational?: boolean;
+    allowSmtpUTF8?: boolean;
+    maxLength?: number;
+    blacklistDomains?: string[];
+    whitelistDomains?: string[];
+    requireTld?: boolean;
+    allowLocal?: boolean;
+  }
+): boolean;
 ```
 
-#### `getFailedJobs`
+#### `validateUrl`
 
 ```typescript
-async function getFailedJobs(
-  queue: string,
-  start?: number,
-  end?: number
-): Promise<any[]>;
+function validateUrl(
+  url: string,
+  options?: {
+    protocols?: string[];
+    requireTld?: boolean;
+    requireProtocol?: boolean;
+    allowLocal?: boolean;
+    allowPort?: boolean;
+    allowQuery?: boolean;
+    allowFragment?: boolean;
+    maxLength?: number;
+  }
+): boolean;
 ```
 
-#### `getJobs`
+#### `validatePhone`
 
 ```typescript
-async function getJobs(
-  queue: string,
-  type: 'active' | 'waiting' | 'delayed' | 'completed' | 'failed',
-  start?: number,
-  end?: number
-): Promise<any[]>;
+function validatePhone(
+  phone: string,
+  options?: {
+    country?: string;
+    format?: 'e164' | 'national' | 'international' | 'any';
+    allowExtensions?: boolean;
+    minLength?: number;
+    maxLength?: number;
+  }
+): boolean;
 ```
 
-#### `cleanUp`
+### 4. Common Sanitizers
+
+#### `sanitizeEmail`
 
 ```typescript
-async function cleanUp(
-  queue: string,
-  grace?: number,
-  status?: 'completed' | 'failed' | 'all',
-  limit?: number
-): Promise<number>;
+function sanitizeEmail(email: string): string;
 ```
 
-### 5. Database Adapter Specific Methods
-
-#### `getFailedJobs`
+#### `sanitizeUsername`
 
 ```typescript
-async function getFailedJobs(queue: string, limit?: number): Promise<any[]>;
+function sanitizeUsername(username: string): string;
 ```
 
-#### `getJobsByStatus`
+#### `sanitizePassword`
 
 ```typescript
-async function getJobsByStatus(
-  queue: string,
-  status: string,
-  limit?: number
-): Promise<any[]>;
+function sanitizePassword(password: string): string;
 ```
 
-#### `cleanupOldJobs`
+#### `sanitizePhone`
 
 ```typescript
-async function cleanupOldJobs(queue: string, daysOld?: number): Promise<number>;
+function sanitizePhone(
+  phone: string,
+  options?: { format?: 'e164' | 'national'; country?: string }
+): string;
 ```
 
-#### `getProcessingMetrics`
+#### `sanitizeUrl`
 
 ```typescript
-async function getProcessingMetrics(
-  queue: string,
-  timeSpan?: number
-): Promise<{
-  totalProcessed: number;
-  avgProcessingTime: number;
-  minProcessingTime: number;
-  maxProcessingTime: number;
-}>;
+function sanitizeUrl(url: string): string;
 ```
 
-#### `createRecurringJob`
+#### `sanitizeSlug`
 
 ```typescript
-async function createRecurringJob(
-  queue: string,
-  data: any,
-  options: Record<string, any>,
-  cronExpression: string
-): Promise<{
-  id: string;
-  queue: string;
-  status: string;
-  cronExpression: string;
-}>;
+function sanitizeSlug(slug: string): string;
+```
+
+#### `sanitizeSearch`
+
+```typescript
+function sanitizeSearch(query: string): string;
+```
+
+#### `sanitizeTags`
+
+```typescript
+function sanitizeTags(
+  tags: string | string[],
+  options?: { maxTags?: number; maxLength?: number; delimiter?: string }
+): string[];
+```
+
+### 5. Schema Functions
+
+#### `commonSchemas`
+
+```typescript
+const commonSchemas: {
+  email: object;
+  password: object;
+  username: object;
+  phone: object;
+  url: object;
+  id: object;
+  uuid: object;
+  slug: object;
+  tags: object;
+  date: object;
+  integer: object;
+  positiveInteger: object;
+  percentage: object;
+  address: object;
+  coordinates: object;
+  timeRange: object;
+  pagination: object;
+  searchQuery: object;
+  fileUpload: object;
+  creditCard: object;
+  postalCode: object;
+  hexColor: object;
+  ipAddress: object;
+  macAddress: object;
+  domain: object;
+  filename: object;
+};
+```
+
+#### `createSchema`
+
+```typescript
+function createSchema(definition: object): object;
+```
+
+#### `mergeSchemas`
+
+```typescript
+function mergeSchemas(...schemas: object[]): object;
+```
+
+#### `extendSchema`
+
+```typescript
+function extendSchema(baseSchema: object, extension: object): object;
+```
+
+### 6. Error Handling
+
+#### `ValidationError`
+
+```typescript
+class ValidationError extends Error {
+  constructor(
+    message: string,
+    errors: Array<{
+      path: string;
+      message: string;
+      code: string;
+      value: any;
+    }>
+  );
+  getMessages(): string[];
+  getFieldErrors(field: string): Array<object>;
+  hasFieldErrors(field: string): boolean;
+  getErrorsByCode(code: string): Array<object>;
+  toJSON(): object;
+}
 ```
 
 ## Example Implementations
 
-### Example 1: Basic Queue Setup
+### Example 1: Basic User Registration Validation
 
 ```javascript
 /**
- * Sets up a job queue with in-memory adapter
- * @returns {Promise<QueueAdapter>} Queue adapter
+ * Validates user registration data
+ * @param {Object} userData - User registration data
+ * @returns {Object} Validation result with clean data
+ * @throws {ValidationError} If validation fails in strict mode
  */
-async function setupQueue() {
-  try {
-    await initQueue('memory');
-    const queue = getQueue();
-
-    // Process jobs
-    queue.processJobs(
-      'emails',
-      async (job) => {
-        console.log(`Processing email to: ${job.data.to}`);
-        // Send email implementation...
-        return { sent: true, timestamp: new Date() };
-      },
-      {
-        concurrency: 3,
-      }
-    );
-
-    console.log('Queue initialized and processing');
-    return queue;
-  } catch (error) {
-    console.error('Failed to setup queue:', error.message);
-    throw error;
-  }
-}
-```
-
-### Example 2: Adding Jobs
-
-```javascript
-/**
- * Sends a welcome email by adding it to the queue
- * @param {string} email - User email
- * @param {string} name - User name
- * @returns {Promise<Object>} Job info
- */
-async function queueWelcomeEmail(email, name) {
-  if (!email) {
-    throw new Error('Email is required');
+function validateUserRegistration(userData) {
+  if (!userData || typeof userData !== 'object') {
+    throw new Error('User data must be an object');
   }
 
   try {
-    const queue = getQueue();
-
-    const job = await queue.addJob(
-      'emails',
-      {
-        to: email,
-        subject: 'Welcome to our platform!',
-        template: 'welcome',
-        data: { name },
-      },
-      {
-        priority: 10, // High priority
-        maxAttempts: 5,
-        backoff: {
-          type: 'exponential',
-          delay: 5000,
-          maxDelay: 60000,
+    // Define schema
+    const schema = {
+      type: 'object',
+      required: ['username', 'email', 'password'],
+      properties: {
+        username: {
+          type: 'string',
+          minLength: 3,
+          maxLength: 20,
+          pattern: /^[a-zA-Z0-9_]+$/,
         },
-      }
-    );
-
-    console.log(`Welcome email queued for ${email}, job ID: ${job.id}`);
-    return job;
-  } catch (error) {
-    console.error(`Failed to queue welcome email for ${email}:`, error.message);
-    throw error;
-  }
-}
-```
-
-### Example 3: Monitoring Queue Status
-
-```javascript
-/**
- * Gets queue statistics and health information
- * @param {string} queueName - Queue name
- * @returns {Promise<Object>} Queue statistics and health info
- */
-async function getQueueStats(queueName) {
-  if (!queueName) {
-    throw new Error('Queue name is required');
-  }
-
-  try {
-    const queue = getQueue();
-    const stats = await queue.getQueueInfo(queueName);
-
-    // Calculate health metrics
-    const health = {
-      status: stats.failed > stats.total * 0.5 ? 'unhealthy' : 'healthy',
-      utilization: stats.processing / (stats.pending + stats.processing + 0.1), // Avoid division by zero
-      failureRate: stats.failed / (stats.total || 1),
+        email: {
+          type: 'string',
+          email: true,
+          maxLength: 255,
+        },
+        password: {
+          type: 'string',
+          minLength: 8,
+          pattern:
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+        },
+        firstName: { type: 'string', minLength: 1, maxLength: 50 },
+        lastName: { type: 'string', minLength: 1, maxLength: 50 },
+      },
+      additionalProperties: false,
     };
+
+    // Sanitize first
+    const cleanData = sanitize(userData, {
+      username: { trim: true, lowercase: true },
+      email: { trim: true, lowercase: true },
+      firstName: { trim: true, capitalize: true },
+      lastName: { trim: true, capitalize: true },
+    });
+
+    // Then validate
+    const result = validate(cleanData, schema, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    if (!result.valid) {
+      const error = new ValidationError(
+        'User registration validation failed',
+        result.errors
+      );
+      throw error;
+    }
 
     return {
-      stats,
-      health,
+      success: true,
+      data: result.value,
+      message: 'User data is valid',
     };
   } catch (error) {
-    console.error(`Failed to get queue stats for ${queueName}:`, error.message);
+    console.error('User registration validation error:', error.message);
     throw error;
   }
 }
 ```
 
-### Example 4: Queue Management Functions
+### Example 2: API Request Sanitization and Validation
 
 ```javascript
 /**
- * Sets up a production-ready Redis queue
- * @param {string} redisUrl - Redis connection URL
- * @returns {Promise<QueueAdapter>} Queue adapter
+ * Creates a middleware for Express.js that sanitizes and validates API requests
+ * @param {Object} schema - Validation schema
+ * @param {Object} sanitizationRules - Sanitization rules
+ * @returns {Function} Express middleware function
  */
-async function setupRedisQueue(redisUrl) {
-  if (!redisUrl) {
-    throw new Error('Redis URL is required');
+function createValidationMiddleware(schema, sanitizationRules = {}) {
+  if (!schema || typeof schema !== 'object') {
+    throw new Error('Schema is required and must be an object');
   }
 
-  try {
-    await initQueue('redis', {
-      redis: redisUrl,
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: true,
-      },
-    });
+  const validator = createValidator(schema, {
+    abortEarly: false,
+    stripUnknown: true,
+  });
 
-    const queue = getQueue();
+  const sanitizer =
+    Object.keys(sanitizationRules).length > 0
+      ? createSanitizer(sanitizationRules)
+      : null;
 
-    // Set up event handlers
-    const processingOptions = {
-      concurrency: 5,
-      onCompleted: (jobId, result) => {
-        console.log(`Job ${jobId} completed with result:`, result);
-      },
-      onFailed: (jobId, error) => {
-        console.error(`Job ${jobId} failed:`, error.message);
-      },
-    };
+  return (req, res, next) => {
+    try {
+      // Sanitize request data if rules provided
+      const dataToValidate = sanitizer ? sanitizer(req.body) : req.body;
 
-    // Setup processors for different queues
-    queue.processJobs('emails', emailProcessor, processingOptions);
-    queue.processJobs(
-      'notifications',
-      notificationProcessor,
-      processingOptions
-    );
-    queue.processJobs('reports', reportGenerator, {
-      ...processingOptions,
-      concurrency: 2,
-    });
+      // Validate the data
+      const result = validator(dataToValidate);
 
-    // Set up periodic cleanup
-    setInterval(
-      async () => {
-        try {
-          const removed = await queue.cleanUp(
-            'emails',
-            24 * 60 * 60 * 1000,
-            'completed'
-          );
-          console.log(`Cleaned up ${removed} completed email jobs`);
-        } catch (error) {
-          console.error('Cleanup failed:', error.message);
-        }
-      },
-      6 * 60 * 60 * 1000
-    ); // Run every 6 hours
-
-    return queue;
-  } catch (error) {
-    console.error('Failed to setup Redis queue:', error.message);
-    throw error;
-  }
-}
-```
-
-### Example 5: Working with Database Queue
-
-```javascript
-/**
- * Sets up a database queue with PostgreSQL
- * @param {string} connectionString - Database connection string
- * @returns {Promise<QueueAdapter>} Queue adapter
- */
-async function setupDatabaseQueue(connectionString) {
-  if (!connectionString) {
-    throw new Error('Database connection string is required');
-  }
-
-  try {
-    await initQueue('database', {
-      databaseType: 'postgres',
-      connectionString,
-      connectionPool: {
-        max: 20,
-        idleTimeoutMillis: 30000,
-      },
-      tableName: 'job_queue',
-      pollInterval: 1000,
-    });
-
-    const queue = getQueue();
-
-    // Process email jobs
-    queue.processJobs(
-      'emails',
-      async (job) => {
-        console.log(`Processing email job ${job.id}`);
-        // Email sending implementation...
-
-        // Update progress (database adapter supports this)
-        await queue.updateJob('emails', job.id, {
-          progress: 100,
-          result: { sent: true, timestamp: new Date() },
+      if (result.valid) {
+        req.validatedData = result.value;
+        next();
+      } else {
+        // Format errors for API response
+        const fieldErrors = {};
+        result.errors.forEach((error) => {
+          if (!fieldErrors[error.path]) {
+            fieldErrors[error.path] = [];
+          }
+          fieldErrors[error.path].push({
+            message: error.message,
+            code: error.code,
+            value: error.value,
+          });
         });
 
-        return { success: true };
-      },
-      {
-        concurrency: 5,
+        res.status(400).json({
+          error: 'Validation failed',
+          message: 'Please check your input and try again',
+          fields: fieldErrors,
+        });
       }
-    );
+    } catch (error) {
+      console.error('Validation middleware error:', error.message);
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Validation processing failed',
+      });
+    }
+  };
+}
+```
 
-    // Set up recurring job for reports
-    await queue.createRecurringJob(
-      'reports',
-      { type: 'daily-summary' },
-      { priority: 5 },
-      '0 0 * * *' // Run daily at midnight
-    );
+### Example 3: Async Validation with Database Checks
 
-    return queue;
+```javascript
+/**
+ * Validates user data with async database uniqueness checks
+ * @param {Object} userData - User data to validate
+ * @param {Object} database - Database connection object
+ * @returns {Promise<Object>} Validation result
+ * @throws {ValidationError} If validation fails
+ */
+async function validateUserWithAsyncChecks(userData, database) {
+  if (!userData || typeof userData !== 'object') {
+    throw new Error('User data must be an object');
+  }
+
+  if (!database) {
+    throw new Error('Database connection is required');
+  }
+
+  try {
+    const schema = {
+      type: 'object',
+      required: ['username', 'email'],
+      properties: {
+        username: {
+          type: 'string',
+          minLength: 3,
+          maxLength: 20,
+          asyncValidator: async (username) => {
+            const exists = await database.users.findOne({ username });
+            return exists ? 'Username is already taken' : true;
+          },
+        },
+        email: {
+          type: 'string',
+          email: true,
+          asyncValidator: async (email) => {
+            const exists = await database.users.findOne({ email });
+            return exists ? 'Email is already registered' : true;
+          },
+        },
+      },
+    };
+
+    // Sanitize data first
+    const cleanData = sanitize(userData, {
+      username: { trim: true, lowercase: true },
+      email: { trim: true, lowercase: true },
+    });
+
+    // Perform async validation
+    const result = await validateAsync(cleanData, schema, {
+      timeout: 5000, // 5 second timeout
+      abortEarly: false,
+    });
+
+    if (!result.valid) {
+      throw new ValidationError('Async validation failed', result.errors);
+    }
+
+    return {
+      success: true,
+      data: result.value,
+      message: 'User data validated successfully',
+    };
   } catch (error) {
-    console.error('Failed to setup database queue:', error.message);
+    console.error('Async validation error:', error.message);
+    throw error;
+  }
+}
+```
+
+### Example 4: Content Sanitization for Blog Posts
+
+```javascript
+/**
+ * Sanitizes and validates blog post content
+ * @param {Object} postData - Blog post data
+ * @returns {Object} Sanitized and validated post data
+ * @throws {Error} If validation fails
+ */
+function sanitizeBlogPost(postData) {
+  if (!postData || typeof postData !== 'object') {
+    throw new Error('Post data must be an object');
+  }
+
+  try {
+    // Define sanitization rules
+    const sanitizationRules = {
+      title: {
+        trim: true,
+        titleCase: true,
+        stripTags: true,
+        truncate: 100,
+      },
+      content: {
+        // Will be handled by sanitizeHtml separately
+      },
+      excerpt: {
+        stripTags: true,
+        truncate: 300,
+        whitespace: 'single',
+      },
+      tags: {
+        compact: true,
+        unique: true,
+        items: { slug: true },
+        limit: 10,
+      },
+      author: {
+        trim: true,
+        capitalize: true,
+        stripTags: true,
+      },
+    };
+
+    // Sanitize basic fields
+    const sanitizedPost = sanitize(postData, sanitizationRules);
+
+    // Sanitize HTML content separately with specific rules
+    if (sanitizedPost.content) {
+      sanitizedPost.content = sanitizeHtml(sanitizedPost.content, {
+        allowedTags: [
+          'p',
+          'br',
+          'strong',
+          'em',
+          'b',
+          'i',
+          'u',
+          'h1',
+          'h2',
+          'h3',
+          'h4',
+          'h5',
+          'h6',
+          'ul',
+          'ol',
+          'li',
+          'blockquote',
+          'pre',
+          'code',
+          'a',
+          'img',
+        ],
+        allowedAttributes: {
+          a: ['href', 'title', 'target'],
+          img: ['src', 'alt', 'title', 'width', 'height'],
+          pre: ['class'],
+          code: ['class'],
+        },
+        allowedSchemes: ['http', 'https', 'mailto'],
+        stripEmpty: true,
+        maxLength: 50000,
+      });
+    }
+
+    // Validate the sanitized data
+    const schema = {
+      type: 'object',
+      required: ['title', 'content'],
+      properties: {
+        title: { type: 'string', minLength: 5, maxLength: 100 },
+        content: { type: 'string', minLength: 50 },
+        excerpt: { type: 'string', maxLength: 300 },
+        tags: {
+          type: 'array',
+          maxItems: 10,
+          items: { type: 'string', minLength: 2, maxLength: 30 },
+        },
+        author: { type: 'string', minLength: 1, maxLength: 100 },
+      },
+    };
+
+    const validationResult = validate(sanitizedPost, schema);
+
+    if (!validationResult.valid) {
+      throw new ValidationError(
+        'Blog post validation failed',
+        validationResult.errors
+      );
+    }
+
+    return {
+      success: true,
+      data: validationResult.value,
+      message: 'Blog post sanitized and validated successfully',
+    };
+  } catch (error) {
+    console.error('Blog post sanitization error:', error.message);
+    throw error;
+  }
+}
+```
+
+### Example 5: Data Import Validation Pipeline
+
+```javascript
+/**
+ * Validates and processes bulk data import
+ * @param {Array} dataArray - Array of data objects to validate
+ * @param {Object} schema - Validation schema
+ * @param {Object} sanitizationRules - Sanitization rules
+ * @returns {Promise<Object>} Processing results
+ */
+async function processBulkDataImport(
+  dataArray,
+  schema,
+  sanitizationRules = {}
+) {
+  if (!Array.isArray(dataArray)) {
+    throw new Error('Data must be an array');
+  }
+
+  if (!schema || typeof schema !== 'object') {
+    throw new Error('Schema is required and must be an object');
+  }
+
+  try {
+    const validator = createValidator(schema, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    const sanitizer =
+      Object.keys(sanitizationRules).length > 0
+        ? createSanitizer(sanitizationRules)
+        : null;
+
+    const results = {
+      total: dataArray.length,
+      valid: [],
+      invalid: [],
+      processed: 0,
+    };
+
+    // Process each item
+    for (let i = 0; i < dataArray.length; i++) {
+      try {
+        const item = dataArray[i];
+
+        // Sanitize if rules provided
+        const cleanItem = sanitizer ? sanitizer(item) : item;
+
+        // Validate
+        const validationResult = validator(cleanItem);
+
+        if (validationResult.valid) {
+          results.valid.push({
+            index: i,
+            data: validationResult.value,
+          });
+        } else {
+          results.invalid.push({
+            index: i,
+            data: item,
+            errors: validationResult.errors,
+          });
+        }
+
+        results.processed++;
+
+        // Log progress for large datasets
+        if (results.processed % 1000 === 0) {
+          console.log(`Processed ${results.processed}/${results.total} items`);
+        }
+      } catch (error) {
+        results.invalid.push({
+          index: i,
+          data: dataArray[i],
+          errors: [
+            {
+              path: 'root',
+              message: error.message,
+              code: 'PROCESSING_ERROR',
+              value: dataArray[i],
+            },
+          ],
+        });
+        results.processed++;
+      }
+    }
+
+    console.log(
+      `Bulk validation complete: ${results.valid.length} valid, ${results.invalid.length} invalid`
+    );
+
+    return {
+      success: true,
+      results,
+      summary: {
+        totalProcessed: results.processed,
+        validCount: results.valid.length,
+        invalidCount: results.invalid.length,
+        successRate:
+          ((results.valid.length / results.total) * 100).toFixed(2) + '%',
+      },
+    };
+  } catch (error) {
+    console.error('Bulk data import error:', error.message);
+    throw error;
+  }
+}
+```
+
+### Example 6: Schema Composition and Reuse
+
+```javascript
+/**
+ * Creates reusable schemas using composition patterns
+ * @returns {Object} Collection of reusable schemas
+ */
+function createReusableSchemas() {
+  try {
+    // Base schemas
+    const timestampSchema = createSchema({
+      properties: {
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
+    });
+
+    const auditSchema = createSchema({
+      properties: {
+        createdBy: { type: 'string', minLength: 1 },
+        updatedBy: { type: 'string', minLength: 1 },
+        version: { type: 'number', minimum: 1 },
+      },
+    });
+
+    // User schemas
+    const baseUserSchema = createSchema({
+      type: 'object',
+      required: ['username', 'email'],
+      properties: {
+        username: commonSchemas.username,
+        email: commonSchemas.email,
+        firstName: { type: 'string', minLength: 1, maxLength: 50 },
+        lastName: { type: 'string', minLength: 1, maxLength: 50 },
+      },
+    });
+
+    const fullUserSchema = mergeSchemas(
+      baseUserSchema,
+      timestampSchema,
+      auditSchema
+    );
+
+    const adminUserSchema = extendSchema(fullUserSchema, {
+      required: ['role', 'permissions'],
+      properties: {
+        role: { type: 'string', enum: ['admin', 'super_admin'] },
+        permissions: {
+          type: 'array',
+          items: { type: 'string' },
+          minItems: 1,
+        },
+      },
+    });
+
+    // Product schemas
+    const baseProductSchema = createSchema({
+      type: 'object',
+      required: ['name', 'price'],
+      properties: {
+        name: { type: 'string', minLength: 1, maxLength: 100 },
+        description: { type: 'string', maxLength: 1000 },
+        price: { type: 'number', minimum: 0 },
+        category: {
+          type: 'string',
+          enum: ['electronics', 'clothing', 'books', 'home', 'sports'],
+        },
+      },
+    });
+
+    const fullProductSchema = mergeSchemas(baseProductSchema, timestampSchema, {
+      properties: {
+        tags: commonSchemas.tags,
+        images: {
+          type: 'array',
+          maxItems: 5,
+          items: commonSchemas.url,
+        },
+      },
+    });
+
+    return {
+      users: {
+        base: baseUserSchema,
+        full: fullUserSchema,
+        admin: adminUserSchema,
+      },
+      products: {
+        base: baseProductSchema,
+        full: fullProductSchema,
+      },
+      common: {
+        timestamp: timestampSchema,
+        audit: auditSchema,
+      },
+    };
+  } catch (error) {
+    console.error('Schema creation error:', error.message);
     throw error;
   }
 }
@@ -582,19 +1039,24 @@ async function setupDatabaseQueue(connectionString) {
 
 ## Code Generation Rules
 
-1. **Always use async/await** for asynchronous operations
-2. **Include error handling** with try/catch blocks
-3. **Validate parameters** before using them
+1. **Always use async/await** for asynchronous validation operations
+2. **Include comprehensive error handling** with try/catch blocks
+3. **Validate function parameters** before processing
 4. **Include detailed JSDoc comments** for all functions
 5. **Use const and let** appropriately, avoid var
-6. **Follow function signatures** exactly as provided
-7. **Include logging** for important operations and errors
-8. **Handle edge cases** like empty queues, missing jobs, etc.
-9. **Use environment variables** for sensitive configuration
+6. **Follow TypeScript function signatures** exactly as provided
+7. **Include meaningful logging** for validation operations and errors
+8. **Handle edge cases** like null/undefined values, empty objects/arrays
+9. **Use environment variables** for sensitive configuration like database URLs
 10. **Prefer named exports** for better import experience
+11. **Sanitize before validating** to ensure data cleanliness and security
+12. **Use ValidationError class** for structured error handling
+13. **Leverage commonSchemas** for standard data types
+14. **Create reusable validators and sanitizers** for better performance
+15. **Format validation errors** appropriately for API responses
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
 </p>
