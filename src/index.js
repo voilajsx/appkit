@@ -1,11 +1,11 @@
 /**
- * @voilajs/appkit - A minimal, framework-agnostic Node.js application toolkit
+ * @voilajsx/appkit - A minimal, framework-agnostic Node.js application toolkit
  * Main library entry point
  *
  * This file re-exports all public APIs from individual modules, providing a
  * consolidated access point to the entire library functionality.
  *
- * @module @voilajs/appkit
+ * @module @voilajsx/appkit
  */
 
 // Export all modules as namespaces
@@ -17,6 +17,7 @@ export * as security from './security/index.js';
 export * as error from './error/index.js';
 export * as logging from './logging/index.js';
 export * as storage from './storage/index.js';
+export * as session from './session/index.js';
 export * as email from './email/index.js';
 export * as queue from './queue/index.js';
 export * as config from './config/index.js';
