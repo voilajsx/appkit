@@ -1,5 +1,5 @@
 /**
- * JWT Basics - @voilajs/appkit Auth Module
+ * JWT Basics - @voilajsx/appkit Auth Module
  *
  * Simple example showing JWT token generation and verification
  * No external dependencies needed - just run it!
@@ -7,7 +7,7 @@
  * Run: node 02-jwt-basics.js
  */
 
-import { generateToken, verifyToken } from '@voilajs/appkit/auth';
+import { generateToken, verifyToken } from '../index.js';
 
 function demo() {
   console.log('=== JWT Token Demo ===\n');

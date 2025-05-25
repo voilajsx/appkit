@@ -1,5 +1,5 @@
 /**
- * Password functionality tests for @voilajs/appkit auth module
+ * Password functionality tests for @voilajsx/appkit auth module
  * Tests password hashing and comparison features
  */
 

@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Password hashing utilities
- * @module @voilajs/appkit/auth/password
+ * @voilajsx/appkit - Password hashing utilities
+ * @module @voilajsx/appkit/auth/password
  */
 
 import bcrypt from 'bcrypt';

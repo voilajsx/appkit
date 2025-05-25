@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - JWT utilities
- * @module @voilajs/appkit/auth/jwt
+ * @voilajsx/appkit - JWT utilities
+ * @module @voilajsx/appkit/auth/jwt
  */
 
 import jwt from 'jsonwebtoken';
@@ -19,21 +19,21 @@ export function generateToken(payload, options) {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Payload must be an object');
   }
-  
+
   if (!options?.secret) {
     throw new Error('JWT secret is required');
   }
 
   const {
     secret,
-    expiresIn = '7d',  // Changed from '1h' to '7d' for better UX
-    algorithm = 'HS256'
+    expiresIn = '7d', // Changed from '1h' to '7d' for better UX
+    algorithm = 'HS256',
   } = options;
 
   try {
     return jwt.sign(payload, secret, {
       expiresIn,
-      algorithm
+      algorithm,
     });
   } catch (error) {
     throw new Error(`Failed to generate token: ${error.message}`);
@@ -53,19 +53,16 @@ export function verifyToken(token, options) {
   if (!token || typeof token !== 'string') {
     throw new Error('Token must be a string');
   }
-  
+
   if (!options?.secret) {
     throw new Error('JWT secret is required');
   }
 
-  const {
-    secret,
-    algorithms = ['HS256']
-  } = options;
+  const { secret, algorithms = ['HS256'] } = options;
 
   try {
     return jwt.verify(token, secret, {
-      algorithms
+      algorithms,
     });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

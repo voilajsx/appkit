@@ -1,5 +1,5 @@
 /**
- * JWT functionality tests for @voilajs/appkit auth module
+ * JWT functionality tests for @voilajsx/appkit auth module
  * Tests token generation and verification features
  */
 

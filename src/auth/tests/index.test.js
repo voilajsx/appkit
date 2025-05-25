@@ -1,5 +1,5 @@
 /**
- * Main module export tests for @voilajs/appkit auth module
+ * Main module export tests for @voilajsx/appkit auth module
  * Tests that all functions are properly exported
  */
 

@@ -1,5 +1,5 @@
 /**
- * Integration tests for @voilajs/appkit auth module
+ * Integration tests for @voilajsx/appkit auth module
  * Tests complete authentication workflows
  */
 

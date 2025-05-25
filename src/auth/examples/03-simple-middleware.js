@@ -1,5 +1,5 @@
 /**
- * Simple Middleware - @voilajs/appkit Auth Module
+ * Simple Middleware - @voilajsx/appkit Auth Module
  *
  * Basic example showing how auth middleware works
  * Minimal Express server with protected routes
@@ -8,7 +8,7 @@
  */
 
 import express from 'express';
-import { createAuthMiddleware, generateToken } from '@voilajs/appkit/auth';
+import { createAuthMiddleware, generateToken } from '@voilajsx/appkit/auth';
 
 const app = express();
 const secret = 'my-secret-key';

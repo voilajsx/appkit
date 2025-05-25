@@ -1,5 +1,5 @@
 /**
- * Password Basics - @voilajs/appkit Auth Module
+ * Password Basics - @voilajsx/appkit Auth Module
  *
  * Simple example showing password hashing and comparison
  * No external dependencies needed - just run it!
@@ -7,7 +7,7 @@
  * Run: node 01-password-basics.js
  */
 
-import { hashPassword, comparePassword } from '@voilajs/appkit/auth';
+import { hashPassword, comparePassword } from '../index.js';
 
 async function demo() {
   console.log('=== Password Hashing Demo ===\n');

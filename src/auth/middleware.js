@@ -1,6 +1,6 @@
 /**
- * @voilajs/appkit - Authentication middleware
- * @module @voilajs/appkit/auth/middleware
+ * @voilajsx/appkit - Authentication middleware
+ * @module @voilajsx/appkit/auth/middleware
  */
 
 import { verifyToken } from './jwt.js';
@@ -25,30 +25,30 @@ export function createAuthMiddleware(options) {
     if (authHeader?.startsWith('Bearer ')) {
       return authHeader.slice(7);
     }
-    
+
     // 2. Check cookies (for web apps)
     if (req.cookies?.token) {
       return req.cookies.token;
     }
-    
+
     // 3. Check query params (for special cases like email links)
     if (req.query?.token) {
       return req.query.token;
     }
-    
+
     return null;
   };
 
   const {
     getToken = defaultGetToken,
     secret,
-    onError = defaultAuthErrorHandler
+    onError = defaultAuthErrorHandler,
   } = options;
 
   return async (req, res, next) => {
     try {
       const token = getToken(req);
-      
+
       if (!token) {
         throw new Error('No token provided');
       }
@@ -74,9 +74,7 @@ export function createAuthorizationMiddleware(allowedRoles, options = {}) {
     throw new Error('allowedRoles must be a non-empty array');
   }
 
-  const {
-    getRoles = defaultGetRoles
-  } = options;
+  const { getRoles = defaultGetRoles } = options;
 
   return async (req, res, next) => {
     try {
@@ -85,13 +83,13 @@ export function createAuthorizationMiddleware(allowedRoles, options = {}) {
       }
 
       const userRoles = getRoles(req);
-      
+
       if (!userRoles || userRoles.length === 0) {
         throw new Error('No roles found for user');
       }
 
-      const hasRole = userRoles.some(role => allowedRoles.includes(role));
-      
+      const hasRole = userRoles.some((role) => allowedRoles.includes(role));
+
       if (!hasRole) {
         throw new Error('Insufficient permissions');
       }
@@ -100,7 +98,7 @@ export function createAuthorizationMiddleware(allowedRoles, options = {}) {
     } catch (error) {
       res.status(403).json({
         error: 'Authorization failed',
-        message: error.message
+        message: error.message,
       });
     }
   };
@@ -113,40 +111,40 @@ export function createAuthorizationMiddleware(allowedRoles, options = {}) {
 function defaultAuthErrorHandler(error, req, res) {
   // Map technical errors to user-friendly messages
   const errorResponses = {
-    'No token provided': { 
-      status: 401, 
-      message: 'Authentication required' 
+    'No token provided': {
+      status: 401,
+      message: 'Authentication required',
     },
-    'Token has expired': { 
-      status: 401, 
-      message: 'Your session has expired. Please sign in again.' 
+    'Token has expired': {
+      status: 401,
+      message: 'Your session has expired. Please sign in again.',
     },
-    'Invalid token': { 
-      status: 401, 
-      message: 'Invalid authentication. Please sign in again.' 
+    'Invalid token': {
+      status: 401,
+      message: 'Invalid authentication. Please sign in again.',
     },
-    'jwt malformed': { 
-      status: 401, 
-      message: 'Invalid authentication. Please sign in again.' 
+    'jwt malformed': {
+      status: 401,
+      message: 'Invalid authentication. Please sign in again.',
     },
-    'jwt signature is required': { 
-      status: 401, 
-      message: 'Invalid authentication. Please sign in again.' 
+    'jwt signature is required': {
+      status: 401,
+      message: 'Invalid authentication. Please sign in again.',
     },
-    'invalid signature': { 
-      status: 401, 
-      message: 'Invalid authentication. Please sign in again.' 
-    }
+    'invalid signature': {
+      status: 401,
+      message: 'Invalid authentication. Please sign in again.',
+    },
   };
 
   const errorResponse = errorResponses[error.message] || {
     status: 401,
-    message: 'Authentication failed'
+    message: 'Authentication failed',
   };
 
   res.status(errorResponse.status).json({
     error: 'Authentication failed',
-    message: errorResponse.message
+    message: errorResponse.message,
   });
 }
 

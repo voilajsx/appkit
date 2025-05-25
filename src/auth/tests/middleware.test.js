@@ -1,5 +1,5 @@
 /**
- * Middleware functionality tests for @voilajs/appkit auth module
+ * Middleware functionality tests for @voilajsx/appkit auth module
  * Tests authentication and authorization middleware
  */
 
