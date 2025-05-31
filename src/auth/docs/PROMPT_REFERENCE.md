@@ -1,35 +1,63 @@
 # @voilajsx/appkit/auth - LLM API Reference
 
-> **Note**: Implementation is in JavaScript. TypeScript signatures are for
-> clarity only.
+**Note**: Implementation is in JavaScript. TypeScript signatures are for
+reference only.
 
 ## LLM Code Generation Guidelines
 
-1. **Adhere to Code Style**:
-
-   - ESM imports, single quotes, 2-space indentation, semicolons
-   - Always include JSDoc comments for functions
-
-2. **JSDoc Format** (Required for all functions):
+1. **File Header Comments** (Required for all files):
 
    ```javascript
    /**
-    * Function description
+    * Brief description of what the file does
+    * @module @voilajsx/appkit/auth
+    * @file path/to/filename.js
+    */
+   ```
+
+2. **Function JSDoc** (Required for all functions):
+
+   ```javascript
+   /**
+    * One clear sentence describing what the function does
     * @param {Type} paramName - Parameter description
     * @returns {ReturnType} Return value description
     * @throws {Error} Error conditions
     */
    ```
 
-3. **Error Handling**:
+3. **Code Style**:
 
+   - ESM imports, single quotes, 2-space indentation, semicolons
+   - Focus on reduced file size and clean code
+
+4. **Comment Guidelines**:
+
+   - **File headers**: Always include with description, module, and file path
+   - **Function docs**: One clear sentence describing the purpose
+   - **Inline comments**: Only for complex logic that's confusing or hard to
+     understand
+   - **No basic comments**: Avoid obvious comments like `// Hash password`
+     before `hashPassword()`
+   - **Focus on minimal file size**: Comment only when necessary for
+     understanding
+
+5. **Secrets and Configuration**:
+
+   - Use simple hardcoded secrets for basic examples (`'your-secret-key'`)
+   - Use environment variables only in complete application examples
+     (`process.env.JWT_SECRET`)
+
+6. **Database References**:
+
+   - If database is needed, use generic `db` object (e.g.,
+     `db.findUserByEmail()`, `db.createUser()`)
+   - Don't import or define `db` - assume it's available in scope
+   - Keep database operations simple and generic
+
+7. **Error Handling**:
    - Use try/catch blocks for async functions
-   - Check parameters before using them
    - Throw descriptive error messages
-
-4. **Framework Agnostic**:
-   - Code should work with any Node.js framework
-   - Middleware patterns should be adaptable
 
 ## Function Signatures
 
@@ -113,9 +141,21 @@ function createAuthorizationMiddleware(
 
 ```javascript
 /**
- * Registers a new user
- * @param {string} email - User email
- * @param {string} password - User password
+ * User authentication utilities with registration and login
+ * @module @voilajsx/appkit/auth
+ * @file examples/basic-auth.js
+ */
+
+import {
+  hashPassword,
+  comparePassword,
+  generateToken,
+} from '@voilajsx/appkit/auth';
+
+/**
+ * Registers a new user with hashed password
+ * @param {string} email - User email address
+ * @param {string} password - Plain text password
  * @returns {Promise<Object>} User token and ID
  * @throws {Error} If registration fails
  */
@@ -129,18 +169,18 @@ async function registerUser(email, password) {
 
   const token = generateToken(
     { userId: user.id, email, roles: user.roles },
-    { secret: process.env.JWT_SECRET }
+    { secret: 'your-secret-key' }
   );
 
   return { token, userId: user.id };
 }
 
 /**
- * Authenticates a user
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<string>} Authentication token
- * @throws {Error} If credentials invalid
+ * Authenticates user with email and password
+ * @param {string} email - User email address
+ * @param {string} password - Plain text password
+ * @returns {Promise<string>} JWT authentication token
+ * @throws {Error} If credentials are invalid
  */
 async function loginUser(email, password) {
   const user = await db.findUserByEmail(email);
@@ -155,7 +195,7 @@ async function loginUser(email, password) {
 
   return generateToken(
     { userId: user.id, email, roles: user.roles },
-    { secret: process.env.JWT_SECRET }
+    { secret: 'your-secret-key' }
   );
 }
 ```
@@ -164,31 +204,36 @@ async function loginUser(email, password) {
 
 ```javascript
 /**
- * Validates a JWT token
+ * JWT token validation and management utilities
+ * @module @voilajsx/appkit/auth
+ * @file examples/token-management.js
+ */
+
+import { generateToken, verifyToken } from '@voilajsx/appkit/auth';
+
+/**
+ * Validates a JWT token and returns result
  * @param {string} token - JWT token to validate
- * @returns {Object} Validation result
+ * @returns {Object} Validation result with payload or error
  */
 function validateToken(token) {
   try {
-    const payload = verifyToken(token, { secret: process.env.JWT_SECRET });
+    const payload = verifyToken(token, { secret: 'your-secret-key' });
     return { valid: true, payload };
   } catch (error) {
-    return {
-      valid: false,
-      error: error.message,
-    };
+    return { valid: false, error: error.message };
   }
 }
 
 /**
- * Creates password reset token
- * @param {string} email - User email
- * @returns {string} Reset token
+ * Creates a password reset token with short expiration
+ * @param {string} email - User email address
+ * @returns {string} Time-limited reset token
  */
 function createResetToken(email) {
   return generateToken(
     { email, purpose: 'password-reset' },
-    { secret: process.env.JWT_SECRET, expiresIn: '1h' }
+    { secret: 'your-secret-key', expiresIn: '1h' }
   );
 }
 ```
@@ -197,23 +242,32 @@ function createResetToken(email) {
 
 ```javascript
 /**
- * Creates Express authentication middleware
- * @returns {Function} Authentication middleware
+ * Express authentication and authorization middleware setup
+ * @module @voilajsx/appkit/auth
+ * @file examples/middleware-setup.js
+ */
+
+import {
+  createAuthMiddleware,
+  createAuthorizationMiddleware,
+} from '@voilajsx/appkit/auth';
+
+/**
+ * Creates configured authentication middleware
+ * @returns {Function} Express authentication middleware
  */
 function createAuth() {
   return createAuthMiddleware({
-    secret: process.env.JWT_SECRET,
+    secret: 'your-secret-key',
     getToken: (req) => {
-      // Authorization header
+      // Check multiple token sources in priority order
       const auth = req.headers.authorization;
       if (auth?.startsWith('Bearer ')) {
         return auth.slice(7);
       }
-      // Cookie
       if (req.cookies?.token) {
         return req.cookies.token;
       }
-      // Query parameter
       if (req.query?.token) {
         return req.query.token;
       }
@@ -229,9 +283,9 @@ function createAuth() {
 }
 
 /**
- * Creates role-based middleware
- * @param {string[]} roles - Required roles
- * @returns {Function} Authorization middleware
+ * Creates role-based authorization middleware
+ * @param {string[]} roles - Required roles for access
+ * @returns {Function} Express authorization middleware
  */
 function createRoleAuth(roles) {
   return createAuthorizationMiddleware(roles, {
@@ -244,14 +298,23 @@ function createRoleAuth(roles) {
 
 ```javascript
 /**
- * Protected route handler
- * @param {Object} app - Express app
+ * Complete Express application with authentication routes
+ * @module @voilajsx/appkit/auth
+ * @file examples/complete-app.js
+ */
+
+import express from 'express';
+import { registerUser, loginUser } from './auth-functions.js';
+
+/**
+ * Sets up authentication routes on Express app
+ * @param {Object} app - Express application instance
  */
 function setupRoutes(app) {
   const auth = createAuth();
   const adminOnly = createRoleAuth(['admin']);
 
-  // Public route
+  // Public registration endpoint
   app.post('/auth/register', async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -262,13 +325,13 @@ function setupRoutes(app) {
     }
   });
 
-  // Protected route
+  // Protected user profile endpoint
   app.get('/api/profile', auth, async (req, res) => {
     const user = await db.findUserById(req.user.userId);
     res.json({ user });
   });
 
-  // Admin route
+  // Admin-only users list endpoint
   app.get('/api/admin/users', auth, adminOnly, async (req, res) => {
     const users = await db.getAllUsers();
     res.json({ users });
@@ -278,12 +341,18 @@ function setupRoutes(app) {
 
 ## Code Generation Rules
 
-1. **Always use async/await** for password functions
-2. **Include error handling** in all examples
-3. **Use environment variables** for secrets
-4. **Follow JSDoc format** exactly as shown
-5. **Check for null/undefined** before operations
-6. **Return standardized responses** in middleware
+1. **Always include file header** with description, @module, and @file tags
+2. **Use JSDoc for all functions** with one clear sentence descriptions
+3. **Add inline comments** only for complex logic that needs explanation
+4. **Use async/await** for all password and database functions
+5. **Include comprehensive error handling** with try/catch blocks
+6. **Use simple secrets** for basic examples ('your-secret-key')
+7. **Use environment variables** only in complete application examples
+   (process.env.JWT_SECRET)
+8. **Use generic db object** for database operations without imports
+9. **Return consistent response formats** in API endpoints
+10. **Focus on minimal file size** - avoid unnecessary comments
+11. **Follow ESM import style** with single quotes and semicolons
 
 ---
 

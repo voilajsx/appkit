@@ -1,6 +1,8 @@
 /**
- * Main module export tests for @voilajsx/appkit auth module
- * Tests that all functions are properly exported
+ * Tests for main exports of @voilajsx/appkit auth module.
+ * Ensures all expected functions are exported and no unexpected exports exist.
+ *
+ * @file src/auth/tests/index.test.js
  */
 
 import { describe, it, expect } from 'vitest';

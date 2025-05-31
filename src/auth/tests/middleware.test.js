@@ -1,6 +1,8 @@
 /**
  * Middleware functionality tests for @voilajsx/appkit auth module
  * Tests authentication and authorization middleware
+ *
+ * @file src/auth/tests/middleware.test.js
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

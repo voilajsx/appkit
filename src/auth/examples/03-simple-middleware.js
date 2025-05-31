@@ -5,6 +5,7 @@
  * Minimal Express server with protected routes
  *
  * Run: node 03-simple-middleware.js
+ * @file src/auth/examples/03-simple-middleware.js
  */
 
 import express from 'express';

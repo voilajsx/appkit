@@ -5,6 +5,7 @@
  * with a simple in-memory database
  *
  * Run: node server.js
+ * @file src/auth/examples/auth-demo-app/server.js
  */
 
 import express from 'express';
@@ -16,7 +17,7 @@ import {
   hashPassword,
   comparePassword,
   createAuthMiddleware,
-} from '@voilajs/appkit/auth';
+} from '@voilajsx/appkit/auth';
 
 const app = express();
 const PORT = 3000;

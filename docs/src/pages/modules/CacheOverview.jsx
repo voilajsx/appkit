@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import CodeBlock from '@/components/ui/CodeBlock';
 import { useLocation } from 'react-router-dom';
-import Mermaid from 'react-mermaid2';
 
 /**
  * Cache Module Overview page for @voilajs/appkit documentation

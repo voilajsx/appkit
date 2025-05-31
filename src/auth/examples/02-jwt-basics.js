@@ -5,6 +5,7 @@
  * No external dependencies needed - just run it!
  *
  * Run: node 02-jwt-basics.js
+ * @file src/auth/examples/02-jwt-basics.js
  */
 
 import { generateToken, verifyToken } from '../index.js';

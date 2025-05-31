@@ -1,6 +1,8 @@
 /**
  * Integration tests for @voilajsx/appkit auth module
  * Tests complete authentication workflows
+ *
+ * @file src/auth/tests/integration.test.js
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';

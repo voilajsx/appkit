@@ -5,6 +5,7 @@
  * No external dependencies needed - just run it!
  *
  * Run: node 01-password-basics.js
+ * @file src/auth/examples/01-password-basics.js
  */
 
 import { hashPassword, comparePassword } from '../index.js';

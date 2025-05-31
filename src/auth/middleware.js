@@ -1,41 +1,40 @@
 /**
  * @voilajsx/appkit - Authentication middleware
  * @module @voilajsx/appkit/auth/middleware
+ * @file src/auth/middleware.js
+ *
+ * Middleware utilities for authentication and authorization using JWT.
+ * Includes middleware to verify JWT tokens and restrict access by user roles.
  */
 
 import { verifyToken } from './jwt.js';
 
 /**
- * Creates authentication middleware
- * @param {Object} options - Middleware options
- * @param {Function} [options.getToken] - Function to extract token from request
- * @param {string} options.secret - JWT secret key
- * @param {Function} [options.onError] - Custom error handler
- * @returns {Function} Express middleware function
+ * Creates authentication middleware.
+ *
+ * @param {Object} options - Middleware options.
+ * @param {Function} [options.getToken] - Function to extract token from request (default checks headers, cookies, query).
+ * @param {string} options.secret - JWT secret key used for token verification.
+ * @param {Function} [options.onError] - Custom error handler called on auth failure.
+ * @returns {Function} Express middleware function.
  */
 export function createAuthMiddleware(options) {
   if (!options?.secret) {
     throw new Error('JWT secret is required');
   }
 
-  // Smart default: check Authorization header, then cookies, then query
+  // Default token extraction: Authorization header -> cookies -> query params
   const defaultGetToken = (req) => {
-    // 1. Check Authorization header (most common)
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       return authHeader.slice(7);
     }
-
-    // 2. Check cookies (for web apps)
     if (req.cookies?.token) {
       return req.cookies.token;
     }
-
-    // 3. Check query params (for special cases like email links)
     if (req.query?.token) {
       return req.query.token;
     }
-
     return null;
   };
 
@@ -63,11 +62,12 @@ export function createAuthMiddleware(options) {
 }
 
 /**
- * Creates authorization middleware
- * @param {string[]} allowedRoles - Array of allowed roles
- * @param {Object} [options={}] - Middleware options
- * @param {Function} [options.getRoles] - Function to extract roles from request
- * @returns {Function} Express middleware function
+ * Creates authorization middleware to restrict access based on user roles.
+ *
+ * @param {string[]} allowedRoles - Array of roles allowed to access the route.
+ * @param {Object} [options={}] - Middleware options.
+ * @param {Function} [options.getRoles] - Function to extract roles from the request (defaults to `req.user.roles`).
+ * @returns {Function} Express middleware function.
  */
 export function createAuthorizationMiddleware(allowedRoles, options = {}) {
   if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
@@ -105,11 +105,11 @@ export function createAuthorizationMiddleware(allowedRoles, options = {}) {
 }
 
 /**
- * Default error handler for auth middleware
+ * Default error handler for authentication middleware.
+ *
  * @private
  */
 function defaultAuthErrorHandler(error, req, res) {
-  // Map technical errors to user-friendly messages
   const errorResponses = {
     'No token provided': {
       status: 401,
@@ -149,7 +149,8 @@ function defaultAuthErrorHandler(error, req, res) {
 }
 
 /**
- * Default function to extract roles from request
+ * Default function to extract roles from the request user object.
+ *
  * @private
  */
 function defaultGetRoles(req) {

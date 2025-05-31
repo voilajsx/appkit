@@ -1,6 +1,8 @@
 /**
  * Password functionality tests for @voilajsx/appkit auth module
  * Tests password hashing and comparison features
+ *
+ * @file src/auth/tests/password.test.js
  */
 
 import { describe, it, expect } from 'vitest';

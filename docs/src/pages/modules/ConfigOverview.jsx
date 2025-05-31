@@ -1,1496 +1,866 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import CodeBlock from '@/components/ui/CodeBlock';
 
+// Debounce utility for scroll handling
+const debounce = (func, wait) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+};
+
 /**
- * Config Module Overview page for @voilajsx/appkit documentation
- * Provides detailed information about the Config module
+ * Config Module Documentation
+ * A comprehensive, developer-friendly guide to using @voilajsx/appkit's Config module.
  */
 function ConfigOverview() {
-  const [activeSection, setActiveSection] = useState('introduction');
+  const [activeSection, setActiveSection] = useState('getting-started');
+  const location = useLocation();
 
-  // Update active section based on scroll position
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = [
-        'introduction',
-        'module-overview',
-        'features',
-        'installation',
-        'quick-start',
-        'config-loading',
-        'config-access',
-        'schema-validation',
-        'configuration-options',
-        'use-cases',
-        'code-generation',
-        'example-code',
-        'best-practices',
-        'performance',
-        'error-handling',
-        'documentation'
-      ];
-      
+  // Table of Contents
+  const sections = useMemo(
+    () => [
+      { name: 'Getting Started', id: 'getting-started' },
+      { name: 'Core Concepts', id: 'core-concepts' },
+      { name: 'Installation', id: 'installation' },
+      { name: 'Basic Usage', id: 'basic-usage' },
+      { name: 'Configuration Options', id: 'configuration-options' },
+      { name: 'Accessing Configs', id: 'accessing-configs' },
+      { name: 'Schema Validation', id: 'schema-validation' },
+      { name: 'Common Use Cases', id: 'use-cases' },
+      { name: 'Advanced Features', id: 'advanced-features' },
+      { name: 'Performance Tips', id: 'performance-tips' },
+      { name: 'Best Practices', id: 'best-practices' },
+      { name: 'Error Handling', id: 'error-handling' },
+      { name: 'Futher Reading', id: 'further-reading' },
+    ],
+    []
+  );
+
+  // Scroll handler for TOC highlighting
+  const handleScroll = useCallback(
+    debounce(() => {
       for (const section of sections) {
-        const element = document.getElementById(section);
+        const element = document.getElementById(section.id);
         if (!element) continue;
-        
+
         const rect = element.getBoundingClientRect();
-        if (rect.top <= 100 && rect.bottom >= 100) {
-          setActiveSection(section);
+        if (rect.top <= 120 && rect.bottom >= 120) {
+          setActiveSection(section.id);
+          window.history.replaceState(null, '', `#${section.id}`);
           break;
         }
       }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial check
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
+    }, 100),
+    [sections]
+  );
 
-  // Handle clicking on TOC links
-  const scrollToSection = (sectionId) => {
+  // Smooth scroll to section
+  const scrollToSection = useCallback((sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
       window.scrollTo({
-        top: element.offsetTop - 80, // Account for header
-        behavior: 'smooth'
+        top: element.offsetTop - 80,
+        behavior: 'smooth',
       });
       setActiveSection(sectionId);
+      window.history.replaceState(null, '', `#${sectionId}`);
     }
-  };
+  }, []);
+
+  // Handle hash navigation
+  useEffect(() => {
+    if (location.hash) {
+      const sectionId = location.hash.replace('#', '');
+      scrollToSection(sectionId);
+    }
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [location.hash, handleScroll, scrollToSection]);
 
   return (
-    <div className="flex flex-col lg:flex-row">
-      {/* Main content area */}
-      <div className="w-full lg:w-3/4 p-3 lg:pr-16">
-        {/* Page header */}
-        <div className="flex items-center mb-2">
-          <span className="text-4xl mr-4">🔧</span>
-          <h1 className="text-4xl font-bold">Config Module</h1>
-        </div>
-        
-        <div className="flex space-x-2 mb-6">
-          <a href="https://www.npmjs.com/package/@voilajsx/appkit" target="_blank" rel="noopener noreferrer" className="inline-block">
-            <img src="https://img.shields.io/npm/v/@voilajsx/appkit.svg" alt="npm version" />
-          </a>
-          <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" className="inline-block">
-            <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" />
-          </a>
-        </div>
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Main Content */}
+      <div className="w-full lg:w-3/4 p-8 lg:pr-16">
+        <header className="mb-10">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+            <span className="mr-3" aria-hidden="true">🔧</span> Config Module
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">
+            Simplify and secure your Node.js application’s configuration management.
+          </p>
+          <div className="flex space-x-3 mt-4">
+            <a
+              href="https://www.npmjs.com/package/@voilajsx/appkit"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="npm package"
+            >
+              <img src="https://img.shields.io/npm/v/@voilajsx/appkit.svg" alt="npm version" />
+            </a>
+            <a
+              href="https://opensource.org/licenses/MIT"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="MIT License"
+            >
+              <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" />
+            </a>
+          </div>
+        </header>
 
-        {/* Introduction section */}
-        <section id="introduction" className="mb-12 scroll-mt-20">
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400 rounded mb-6">
-            <p className="text-blue-800 dark:text-blue-200 text-lg font-medium">
-              Robust, flexible configuration management for Node.js applications
+        {/* Getting Started */}
+        <section id="getting-started" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Getting Started</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            The <code>@voilajsx/appkit</code> Config module is your go-to tool for managing settings in Node.js applications. Whether you’re setting up a small API or a complex microservices system, this module makes it easy to load, validate, and access configurations from various sources like JSON files, environment variables, or JavaScript objects. It’s designed to be as intuitive as possible, with a simple configuration system, with flexibility for advanced use cases.
+          </p>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Why use the Config module? It saves you from the headache of juggling settings across development, staging, and production environments. It ensures your configs are valid before your app starts, supports dynamic updates during development, and integrates seamlessly with environment variables for secure secret management.
+          </p>
+          <ul className="list-disc pl-5 mb-4 text-gray-700 dark:text-gray-300">
+            <li>Load configs from multiple formats (JSON, YAML, .env).</li>
+            <li>Validate settings with JSON schemas to prevent errors.</li>
+            <li>Override configs with environment variables for flexibility.</li>
+            <li>Enable auto-reload for rapid development.</li>
+            <li>Use dot-notation for easy access to nested settings.</li>
+          </ul>
+          <p className="text-gray-700 dark:text-gray-300">
+            Ready to dive in?{' '}
+            <button
+              onClick={() => scrollToSection('installation')}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Start with Installation
+            </button>
+            .
+          </p>
+        </section>
+
+        {/* Core Concepts */}
+        <section id="core-concepts" className="mb-12 scroll-mt-20">
+          <h2 className="text-2xl font-bold mb-4">Core Concepts</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Before diving into the code, let’s cover the essential ideas behind the Config module. Grasping these will help you manage your app’s settings with ease:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {[
+              {
+                title: 'Centralized Settings',
+                desc: 'The Config module keeps all your app’s settings, like database or API details, in one place. This makes it simple to access and update them without digging through your code.',
+              },
+              {
+                title: 'Environment Flexibility',
+                desc: 'Your app may need different settings for development, testing, or production. The module uses environment variables to adapt settings based on where your app is running.',
+              },
+              {
+                title: 'Dynamic Updates',
+                desc: 'Need to change a setting while your app is live? The Config module lets you update settings on the fly, offering flexibility for real-time adjustments.',
+              },
+              {
+                title: 'Safe Defaults',
+                desc: 'Missing a setting? The module provides default values to keep your app running smoothly, preventing crashes due to undefined configurations.',
+              },
+            ].map((concept, index) => (
+              <div
+                key={index}
+                className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700"
+              >
+                <h3 className="text-lg font-semibold mb-2">{concept.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{concept.desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-700 dark:text-gray-300">
+            These concepts make configuration management straightforward and reliable. In the next sections, we’ll show you how to apply them with practical examples.
+          </p>
+        </section>
+        {/* Installation */}
+        <section id="installation" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Installation</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Setting up the Config module is straightforward. You’ll need Node.js 14 or higher and a package manager like npm, yarn, or pnpm. Follow these steps to get started.
+          </p>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Step 1: Install the Package</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Run the following command in your project directory:
+            </p>
+            <CodeBlock
+              code="npm install @voilajsx/appkit"
+              language="bash"
+              showCopyButton={true}
+            />
+          </div>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Step 2: Import the Module</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Import the Config module in your JavaScript or TypeScript file:
+            </p>
+            <CodeBlock
+              code="import { loadConfig, getConfig } from '@voilajsx/appkit/config';"
+              language="javascript"
+              showCopyButton={true}
+            />
+           <p className="text-gray-700 dark:text-gray-300 mt-2">
+  For CommonJS, use:{' '}
+  <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm">
+    const &#123; loadConfig, getConfig &#125; = require('@voilajsx/appkit/config');
+  </code>
+</p>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Step 3: Prepare Your Config</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              Create a configuration file (e.g., <code>config.json</code>) or use environment variables to store your settings. We’ll cover this in the next section.
             </p>
           </div>
-          
-          <p className="mb-4">
-            The Config module of <code>@voilajsx/appkit</code> provides powerful configuration
-            management utilities including loading from multiple sources, validation,
-            environment variable integration, and real-time configuration updates.
+          <p className="text-gray-700 dark:text-gray-300 mt-4">
+            That’s all you need to start! Let’s move on to using the module.
           </p>
         </section>
 
-        {/* Module Overview section */}
-        <section id="module-overview" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">Module Overview</h2>
-          
-          <p className="mb-6">
-            The Config module provides everything you need for robust application configuration:
+        {/* Basic Usage */}
+        <section id="basic-usage" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Basic Usage</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Let’s walk through a simple example to load a configuration file and access its values. This is perfect for getting started and understanding the core features of the Config module.
           </p>
-          
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Feature
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    What it does
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Main functions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">Config Loading</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Load configuration from various sources</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>loadConfig()</code>, <code>reloadConfig()</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">Config Access</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Retrieve configuration values</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>getConfig()</code>, <code>hasConfig()</code>, <code>getEnv()</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">Schema Validation</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Validate configuration structure</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>validateConfig()</code>, <code>defineSchema()</code>, <code>getConfigSchema()</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">Config Management</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Update and manage configuration</td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>setConfig()</code>, <code>clearConfig()</code>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Step 1: Create a Config File</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Create a file named <code>config.json</code> in your project root:
+            </p>
+            <CodeBlock
+              code={`
+{
+  "server": {
+    "host": "localhost",
+    "port": 3000
+  },
+  "database": {
+    "url": "mysql://user:pass@localhost/db",
+    "pool": 10
+  }
+}
+              `}
+              language="json"
+              showCopyButton={true}
+            />
           </div>
-        </section>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Step 2: Load the Config</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Load the config file and set defaults or required fields:
+            </p>
+            <CodeBlock
+              code={`
+import { loadConfig, getConfig } from '@voilajsx/appkit/config';
 
-        {/* Features section */}
-        <section id="features" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">🚀 Features</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">📁</span>
-                Multiple Sources
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Load configuration from JSON, JavaScript, or .env files, unifying your 
-                config sources.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">✅</span>
-                Schema Validation
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Validate your configuration against schemas to ensure correctness and 
-                prevent runtime errors.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">🔄</span>
-                Environment Integration
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Automatically integrate with environment variables to override configuration
-                based on environment.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">🔍</span>
-                Variable Interpolation
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Reference values within your configuration for more dynamic and reusable
-                configuration files.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">👀</span>
-                Auto-Reload
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Watch for file changes and reload configuration automatically during development.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">🛡️</span>
-                Type Safety
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Strong typing support with JSDoc annotations for better developer experience
-                and fewer errors.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">🎯</span>
-                Framework Agnostic
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Works with any Node.js application, regardless of the framework you're using.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Installation section */}
-        <section id="installation" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">📦 Installation</h2>
-          
-          <p className="mb-4">
-            Install the package using your preferred package manager:
-          </p>
-          
-          <CodeBlock 
-            code="npm install @voilajsx/appkit" 
-            language="bash"
-            showCopyButton={true}
-          />
-        </section>
-
-        {/* Quick Start section */}
-        <section id="quick-start" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">🏃‍♂️ Quick Start</h2>
-          
-          <p className="mb-4">
-            Import only the functions you need and start using them right away. The Config
-            module provides simple functions for loading and accessing configuration from
-            various sources.
-          </p>
-          
-          <CodeBlock 
-            code={`import { loadConfig, getConfig } from '@voilajsx/appkit/config';
-
-// Load configuration
-const config = await loadConfig('./config.json', {
-  defaults: { server: { port: 3000 } },
-  required: ['database.url'],
+// Load the configuration
+await loadConfig('./config.json', {
+  defaults: {
+    server: { port: 8080, host: '0.0.0.0' }
+  },
+  required: ['database.url']
 });
 
-// Access configuration values
+// Access values
 const port = getConfig('server.port'); // 3000
 const dbUrl = getConfig('database.url');
-console.log(\`Server running on port \${port}\`);`}
-            language="javascript"
-            showCopyButton={true}
-          />
+console.log(\`Server running on \${port}, DB: \${dbUrl}\`);
+              `}
+              language="javascript"
+              showCopyButton={true}
+            />
+          </div>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">What’s Happening?</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              The <code>loadConfig</code> function reads <code>config.json</code>, merges it with defaults, and checks for required fields. If <code>database.url</code> is missing, it throws an error. The <code>getConfig</code> function retrieves values using dot-notation, making it easy to access nested settings.
+            </p>
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 mt-4">
+            This is the foundation of the Config module. Next, we’ll explore how to customize its behavior.
+          </p>
         </section>
 
-        {/* Config Loading section */}
-        <section id="config-loading" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">Configuration Loading</h2>
-          
-          <p className="mb-4">
-            These utilities enable you to load configuration from various sources and
-            formats. You can combine configuration from files, objects, and environment
-            variables into a single, unified configuration store.
+        {/* Configuration Options */}
+        <section id="configuration-options" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Configuration Options</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            The Config module is highly customizable. You can load configs from multiple sources, override settings with environment variables, and enable features like auto-reload. Here’s a detailed look at the options available for <code>loadConfig</code>.
           </p>
-          
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Function
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Purpose
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    When to use
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>loadConfig()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Loads configuration from source with options
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Application startup, initial configuration loading
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>setConfig()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Sets configuration directly in memory
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Manual configuration updates, testing
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>reloadConfig()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Reloads configuration from previous file
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Configuration refresh, handling file changes
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>clearConfig()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Clears all configuration
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Testing, resetting application state
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Available Options</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-gray-200 dark:border-gray-700 rounded-lg">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Option</th>
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Description</th>
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Default</th>
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Example</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tr>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white"><code>defaults</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Fallback values for missing settings</td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>{JSON.stringify({  }, null, 2)}</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>{JSON.stringify({ server: { port: 8080, host: '0.0.0.0' } }, null, 2)}</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white"><code>required</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Settings that must exist</td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>[]</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>['database.url']</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white"><code>env</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Enable environment variable overrides</td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>true</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>false</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white"><code>watch</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Reload configs on file changes</td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>false</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>true</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white"><code>interpolate</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Enable variable interpolation</td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>true</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>false</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white"><code>schema</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">Schema for validation</td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>undefined</code></td>
+                    <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300"><code>'app'</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          
-          <CodeBlock 
-            code={`// Load from JSON file
-const config = await loadConfig('./config.json');
+          <div className="mt-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Example: Custom Configuration</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Load a config with all options:
+            </p>
+            <CodeBlock
+              code={`
+import { loadConfig } from '@voilajsx/appkit/config';
 
-// Load with options
-const config = await loadConfig('./config.json', {
-  defaults: { server: { port: 3000 } },
-  required: ['database.url'],
-  schema: 'app',
+await loadConfig('./config.json', {
+  defaults: {
+    server: { port: 3000, host: 'localhost' },
+    logging: { level: 'info' }
+  },
+  required: ['database.url', 'api.key'],
   env: true,
+  watch: process.env.NODE_ENV === 'development',
+  interpolate: true,
+  schema: 'app'
 });
-
-// Set configuration programmatically
-setConfig({ server: { port: 4000 } });
-
-// Reload configuration from file
-await reloadConfig();
-
-// Clear all configuration
-clearConfig();`}
-            language="javascript"
-            showCopyButton={true}
-          />
+              `}
+              language="javascript"
+              showCopyButton={true}
+            />
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 mt-4">
+            These options let you tailor the Config module to your needs, from simple apps to complex systems.
+          </p>
         </section>
 
-        {/* Config Access section */}
-        <section id="config-access" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">Configuration Access</h2>
-          
-          <p className="mb-4">
-            These functions let you retrieve configuration values and check for their
-            existence. They provide a simple, dot-notation syntax for accessing nested
-            properties.
+        {/* Accessing Configs */}
+        <section id="accessing-configs" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Accessing Configs</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Once your configs are loaded, accessing them is a breeze with dot-notation. The module provides several functions to retrieve settings, check their existence, or fetch environment variables directly.
           </p>
-          
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Function
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Purpose
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    When to use
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>getConfig()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Retrieves configuration value by path
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Reading configuration values throughout your app
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>hasConfig()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Checks if configuration path exists
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Feature flags, conditional functionality
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>getEnv()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Gets environment variable with fallback
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Accessing environment-specific settings
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Key Functions</h3>
+            <ul className="list-disc pl-5 text-gray-700 dark:text-gray-300">
+              <li><code>getConfig(path, default)</code>: Get a config value, with an optional fallback.</li>
+              <li><code>hasConfig(path)</code>: Check if a config path exists.</li>
+              <li><code>getEnv(name, default)</code>: Get an environment variable, with a fallback.</li>
+            </ul>
           </div>
-          
-          <CodeBlock 
-            code={`// Get a specific value
-const port = getConfig('server.port');
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Example: Accessing Settings</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Here’s how to use these functions:
+            </p>
+            <CodeBlock
+              code={`
+import { getConfig, hasConfig, getEnv } from '@voilajsx/appkit/config';
 
-// Get with default fallback
-const timeout = getConfig('api.timeout', 5000);
+// Get a single value
+const port = getConfig('server.port', 3000); // 3000 or fallback
 
-// Get a nested section
-const database = getConfig('database');
+// Get a nested object
+const db = getConfig('database'); // { url: '...', pool: 10 }
 
-// Check if configuration exists
-if (hasConfig('features.darkMode')) {
+// Check for a setting (great for feature flags)
+if (hasConfig('features.darkMode') && getConfig('features.darkMode')) {
   enableDarkMode();
 }
 
-// Get environment variable
-const nodeEnv = getEnv('NODE_ENV', 'development');`}
-            language="javascript"
-            showCopyButton={true}
-          />
+// Get an environment variable
+const nodeEnv = getEnv('NODE_ENV', 'development');
+              `}
+              language="javascript"
+              showCopyButton={true}
+            />
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 mt-4">
+            Dot-notation simplifies accessing nested settings, and fallbacks ensure your app doesn’t crash if a value is missing. Use <code>hasConfig</code> for conditional logic, like enabling optional features.
+          </p>
         </section>
 
-        {/* Schema Validation section */}
-        <section id="schema-validation" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">Schema Validation</h2>
-          
-          <p className="mb-4">
-            These utilities provide configuration validation against JSON Schema-like
-            definitions. They ensure your configuration meets the expected structure and
-            types before your application uses it.
+        {/* Schema Validation */}
+        <section id="schema-validation" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Schema Validation</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Schema validation ensures your configs are correct before your app runs. This prevents runtime errors from missing or invalid settings, like a missing database URL or an invalid port number. 
           </p>
-          
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Function
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Purpose
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    When to use
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>validateConfig()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Validates configuration against schema
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Ensuring configuration correctness
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>defineSchema()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Defines a named schema for later use
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Creating reusable validation schemas
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>getConfigSchema()</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Retrieves a previously defined schema
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Reusing schemas across the application
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">How It Works</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Define a schema using <code>defineSchema</code>, then pass it to <code>loadConfig</code>. The module checks your config against the schema and throws an error if it doesn’t match.
+            </p>
+            <ol className="list-decimal pl-5 text-gray-700 dark:text-gray-300">
+              <li>Define a schema with types, required fields, and constraints.</li>
+              <li>Load your config with the schema.</li>
+              <li>Handle validation errors if needed.</li>
+            </ol>
           </div>
-          
-          <CodeBlock 
-            code={`// Define a schema
-defineSchema('server', {
+          <div className="">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Example: Validating a Config</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Here’s a schema for a server and database config:
+            </p>
+            <CodeBlock
+              code={`
+import { defineSchema, loadConfig } from '@voilajsx/appkit/config';
+
+// Define the schema
+defineSchema('app', {
   type: 'object',
-  required: ['port'],
+  required: ['server.port', 'database.url'],
   properties: {
-    port: {
-      type: 'number',
-      minimum: 1024,
-      maximum: 65535,
+    server: {
+      type: 'object',
+      properties: {
+        port: { type: 'number', minimum: 1024, maximum: 65535 },
+        host: { type: 'string', default: 'localhost' }
+      }
     },
-    host: {
-      type: 'string',
-      default: 'localhost',
-    },
-  },
+    database: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', format: 'uri' },
+        pool: { type: 'number', minimum: 1, maximum: 100 }
+      }
+    }
+  }
 });
 
-// Validate configuration
+// Load with validation
 try {
-  validateConfig(config, 'server');
-  console.log('Configuration is valid');
+  await loadConfig('./config.json', { schema: 'app' });
+  console.log('Config is valid!');
 } catch (error) {
   console.error('Validation failed:', error.details.errors);
 }
-
-// Get a defined schema
-const serverSchema = getConfigSchema('server');`}
-            language="javascript"
-            showCopyButton={true}
-          />
-        </section>
-
-        {/* Configuration Options section */}
-        <section id="configuration-options" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">🔧 Configuration Options</h2>
-          
-          <p className="mb-4">
-            The examples above show basic usage, but you have much more control over how the
-            configuration system works. Here are the customization options available:
+              `}
+              language="javascript"
+              showCopyButton={true}
+            />
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 mt-4">
+            Validation ensures your app starts with correct settings. Use it for critical configs like database connections or API endpoints.
           </p>
-          
-          <h3 className="text-xl font-semibold mb-3">Loading Options</h3>
-          
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Option
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Description
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Default
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Example
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>defaults</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Default values to merge with config
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>{}</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code></code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>required</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Required configuration paths
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>[]</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>['database.url', 'api.key']</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>validate</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Whether to validate configuration
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>true</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>false</code> to skip validation
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>schema</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Schema to validate against
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>undefined</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>'app'</code> or schema object
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>env</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Enable environment variable integration
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>true</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>false</code> to disable env integration
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>watch</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Watch for file changes
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>false</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>true</code> to enable auto-reloading
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white">
-                    <code>interpolate</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Enable variable interpolation
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>true</code>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>false</code> to disable interpolation
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          
-          <CodeBlock 
-            code={`// Configuration with all options
-const config = await loadConfig('./config.json', {
-  // Provide default values
-  defaults: {
-    server: {
-      port: 3000,
-      host: 'localhost',
-    },
-    logging: {
-      level: 'info',
-    },
-  },
-
-  // Specify required fields
-  required: ['database.url', 'api.key'],
-
-  // Enable validation against schema
-  validate: true,
-  schema: 'app',
-
-  // Enable environment variable integration
-  env: true,
-
-  // Enable file watching (for development)
-  watch: process.env.NODE_ENV === 'development',
-
-  // Enable variable interpolation
-  interpolate: true,
-});`}
-            language="javascript"
-            showCopyButton={true}
-          />
         </section>
 
-        {/* Use Cases section */}
-        <section id="use-cases" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">💡 Common Use Cases</h2>
-          
-          <p className="mb-4">
-            Here's where you can apply the config module's functionality in your applications:
+        {/* Common Use Cases */}
+        <section id="use-cases" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Common Use Cases</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            The Config module shines in real-world scenarios. Here are detailed examples to help you apply it effectively.
           </p>
-          
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Category
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Use Case
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Description
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600">
-                    Components Used
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white" rowSpan="3">
-                    Application Setup
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Environment Configuration
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Load different config per environment
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>loadConfig()</code>, environment integration
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Feature Flags
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Toggle features without code changes
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>getConfig()</code>, <code>hasConfig()</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    App Initialization
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Bootstrap application with correct settings
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>loadConfig()</code> with validation
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white" rowSpan="3">
-                    Runtime Management
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Dynamic Configuration
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Update configuration during runtime
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>setConfig()</code>, <code>reloadConfig()</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Configuration Overrides
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Allow command-line or runtime overrides
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>setConfig()</code> with existing config
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Auto-reload During Development
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Refresh configuration during development
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>loadConfig()</code> with <code>watch: true</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900 dark:text-white" rowSpan="3">
-                    Security & Validation
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Secret Management
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Securely access sensitive information
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>getEnv()</code> for environment variables
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Schema Validation
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Ensure configuration meets requirements
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    <code>defineSchema()</code>, <code>validateConfig()</code>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Type Safety
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Prevent type errors in configuration
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-300">
-                    Schema validation with type constraints
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="space-y-6">
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Multi-Environment Configurations</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Manage different settings for development, staging, and production environments, ensuring you have env-specific configs.
+              </p>
+              <CodeBlock
+                code={`
+import { loadConfig } from '@voilajsx/appkit/config';
+
+const env = process.env.NODE_ENV || 'development';
+await loadConfig([
+  './config/base.json', // Shared settings
+  \`./config/\${env}.json\` // Environment-specific overrides
+], {
+  defaults: { server: { port: 3000 } },
+  required: ['database.url'],
+  env: true
+});
+                `}
+                language="javascript"
+                showCopyButton={true}
+              />
+              <p className="text-gray-700 dark:text-gray-300 mt-2">
+                This loads a base config and overlays environment-specific settings, ensuring flexibility across environments.
+              </p>
+            </div>
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Feature Flags</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Toggle features dynamically without code changes, like feature flags.
+              </p>
+              <CodeBlock
+                code={`
+import { getConfig, hasConfig } from '@voilajsx/appkit/config';
+
+// config.json: { "features": { "darkMode": true, "beta": false } }
+if (hasConfig('features.darkMode') && getConfig('features.darkMode')) {
+  enableDarkMode();
+}
+
+if (hasConfig('features.beta') && getConfig('features.beta')) {
+  enableBetaFeatures();
+}
+                `}
+                language="javascript"
+                showCopyButton={true}
+              />
+              <p className="text-gray-700 dark:text-gray-300 mt-2">
+                Use feature flags to roll out new features gradually or test them in specific environments.
+              </p>
+            </div>
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Secret Management</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Securely handle sensitive data like API keys using environment variables.
+              </p>
+              <CodeBlock
+                code={`
+import { loadConfig, getEnv } from '@voilajsx/appkit/config';
+
+// .env: API_KEY=your-secret-key
+await loadConfig('./config.json', {
+  env: true, // Maps API_KEY to api.key
+  required: ['api.key']
+});
+
+const apiKey = getEnv('API_KEY', 'default-key');
+                `}
+                language="javascript"
+                showCopyButton={true}
+              />
+              <p className="text-gray-700 dark:text-gray-300 mt-2">
+                Keep secrets out of version control by using <code>.env</code> files, and validate their presence.
+              </p>
+            </div>
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">TypeScript Integration</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Use TypeScript for type-safe config access, enhancing developer experience.
+              </p>
+              <CodeBlock
+                code={`
+import { loadConfig, getConfig } from '@voilajsx/appkit/config';
+
+interface AppConfig {
+  server: { port: number; host: string };
+  database: { url: string; pool: number };
+}
+
+await loadConfig<AppConfig>('./config.json');
+
+const port = getConfig('server.port'); // Type: number
+const db = getConfig('database'); // Type: { url: string; pool: number }
+              `}
+                language="typescript"
+                showCopyButton={true}
+              />
+              <p className="text-gray-700 dark:text-gray-300 mt-2">
+                TypeScript ensures your config matches the expected structure, reducing errors and improving IDE support.
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* Code Generation section */}
-        <section id="code-generation" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">🤖 Code Generation with LLMs</h2>
-          
-          <p className="mb-6">
-            You can use large language models (LLMs) like ChatGPT or Claude to generate code
-            for common configuration scenarios using the <code>@voilajsx/appkit/config</code> module.
-            We've created a specialized
-            <a 
-              href="https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:underline mx-1"
-            >
-              PROMPT_REFERENCE.md
-            </a>
-            document that's designed specifically for LLMs to understand the module's
-            capabilities and generate high-quality configuration code.
+        {/* Advanced Features */}
+        <section id="advanced-features" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Advanced Features</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            For advanced users, the Config module offers powerful features to handle complex scenarios.
           </p>
-          
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 mb-6">
-            <h3 className="text-xl font-semibold mb-3">Sample Prompt: Basic Configuration Setup</h3>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-sm text-gray-800 dark:text-gray-200 mb-2">
-              Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md and then implement a configuration system for my Express app that includes:
-              <br/>- Loading from different files per environment (dev, staging, prod)
-              <br/>- Schema validation for required fields
-              <br/>- Environment variable integration
-              <br/>- Auto-reload during development
+          <div className="space-y-6">
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Variable Interpolation</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Reference values within your config.
+              </p>
+              <CodeBlock
+                code={`
+{
+  "baseUrl": "https://api.example.com",
+  "endpoint": "\${baseUrl}/v1/users",
+  "timeout": 5000,
+  "retryUrl": "\${endpoint}?retry=\${timeout}"
+}
+              `}
+                language="json"
+                showCopyButton={true}
+              />
+              <CodeBlock
+                code={`
+import { loadConfig, getConfig } from '@voilajsx/appkit/config';
+
+await loadConfig('./config.json', { interpolate: true });
+const endpoint = getConfig('endpoint'); // https://api.example.com/v1/users
+                `}
+                language="javascript"
+                showCopyButton={true}
+              />
+              <p className="text-gray-700 dark:text-gray-300 mt-2">
+                Interpolation simplifies dynamic configs, but disable it (<code>interpolate: false</code>) if you don’t need it to improve performance.
+              </p>
             </div>
-            <button className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center mt-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy to clipboard
-            </button>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 mb-6">
-            <h3 className="text-xl font-semibold mb-3">Sample Prompt: Advanced Configuration System</h3>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-sm text-gray-800 dark:text-gray-200 mb-2">
-              Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md and then implement an advanced configuration system using @voilajsx/appkit/config with:
-              <br/>- Configuration schema with nested validation
-              <br/>- Custom validation rules for specific fields
-              <br/>- Configuration inspector middleware for Express
-              <br/>- Centralized configuration management class
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Dynamic Config Updates</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Update configs at runtime without restarting your app.
+              </p>
+              <CodeBlock
+                code={`
+import { setConfig, reloadConfig } from '@voilajsx/appkit/config';
+
+// Update a single value
+setConfig('logging.level', 'debug');
+
+// Reload from file
+await reloadConfig('./config.json');
+                `}
+                language="javascript"
+                showCopyButton={true}
+              />
+              <p className="text-gray-700 dark:text-gray-300 mt-2">
+                Use <code>setConfig</code> for temporary changes and <code>reloadConfig</code> to refresh from the source. Be cautious with runtime updates in production.
+              </p>
             </div>
-            <button className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center mt-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy to clipboard
-            </button>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h3 className="text-xl font-semibold mb-3">Sample Prompt: Multi-environment Configuration</h3>
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-sm text-gray-800 dark:text-gray-200 mb-2">
-              Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md and then implement a configuration system for a microservice architecture using @voilajsx/appkit/config with:
-              <br/>- Base configuration shared across all services
-              <br/>- Service-specific configuration overrides
-              <br/>- Environment-specific settings (development, staging, production)
-              <br/>- Secrets management via environment variables
-              <br/>- Configuration validation for all services
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Code Generation with LLMs</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Use AI tools like Grok to generate Config module code. Refer to the{' '}
+                <a
+                  href="https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  PROMPT_REFERENCE.md
+                </a>.
+              </p>
+              <p className="text-gray-700 dark:text-gray-300">
+                Example prompt: “Generate a Node.js config system using @voilajsx/appkit with environment-specific settings and schema validation.”
+              </p>
             </div>
-            <button className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center mt-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy to clipboard
-            </button>
           </div>
         </section>
 
-        {/* Example Code section */}
-        <section id="example-code" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">📋 Example Code</h2>
-          
-          <p className="mb-6">
-            For complete, working examples, check our examples folder:
+        {/* Performance Tips */}
+        <section id="performance-tips" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Performance Tips</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Optimize your use of the Config module to keep your app running smoothly, especially in high-performance environments.
           </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold mb-2">Basic Usage</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Loading and accessing configuration from different sources.
-              </p>
-              <a 
-                href="https://github.com/voilajsx/appkit/blob/main/src/config/examples/01-basic-usage.js" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center"
-              >
-                View example
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold mb-2">Environment Variables</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Integrating with environment variables for configuration.
-              </p>
-              <a 
-                href="https://github.com/voilajsx/appkit/blob/main/src/config/examples/02-environment-variables.js" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center"
-              >
-                View example
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold mb-2">Schema Validation</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Validating configuration with JSON Schema-like validation.
-              </p>
-              <a 
-                href="https://github.com/voilajsx/appkit/blob/main/src/config/examples/03-schema-validation.js" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center"
-              >
-                View example
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold mb-2">Dynamic Config</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Updating configuration at runtime with changes and reloading.
-              </p>
-              <a 
-                href="https://github.com/voilajsx/appkit/blob/main/src/config/examples/04-dynamic-config.js" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center"
-              >
-                View example
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold mb-2">Express App</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                Complete example of using configuration in an Express application.
-              </p>
-              <a 
-                href="https://github.com/voilajsx/appkit/blob/main/src/config/examples/express-app.js" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center"
-              >
-                View example
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* Best Practices section */}
-        <section id="best-practices" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">🛡️ Configuration Best Practices</h2>
-          
-          <p className="mb-4">
-            Following these practices will help ensure your configuration system remains
-            secure and maintainable:
-          </p>
-          
-          <div className="space-y-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">1. Store secrets in environment variables</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Never commit sensitive information like API keys, database credentials, or
-                other secrets into your configuration files.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">2. Use validation schemas</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Define schemas for all critical configuration to catch errors early, preventing
-                runtime issues caused by misconfiguration.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">3. Implement environment-specific configs</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Create separate configuration files for different environments (development,
-                testing, staging, production) to manage environment-specific settings.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">4. Never commit sensitive configuration</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Use .gitignore to prevent sensitive configuration files from being committed
-                to version control. Provide templates instead.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">5. Use namespaced configuration</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Organize settings logically by grouping related configuration under namespaces
-                (e.g., database, server, logging, etc.).
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">6. Document your configuration schema</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Provide clear documentation about required settings, formats, and defaults for
-                all configuration options.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">7. Implement reasonable defaults</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Provide sensible default values for optional configuration to make your application
-                work out of the box with minimal setup.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Performance Considerations section */}
-        <section id="performance" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">📊 Performance Considerations</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">Cache frequently accessed values</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Rather than calling <code>getConfig()</code> repeatedly for the same value, store
-                frequently accessed configuration values in variables.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">Only enable file watching in development</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                File watching should only be enabled in development environments to avoid
-                unnecessary file system operations in production.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">Use appropriate schema complexity</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Use appropriate schema complexity based on your validation needs. Overly complex 
-                schemas can slow down validation unnecessarily.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">Consider configuration load time</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Loading and validating configuration contributes to application startup time. 
-                Monitor and optimize this process for faster startup.
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="font-semibold mb-1">Be mindful of deep nesting</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Deep nesting in your configuration structure can make access slower and code
-                more complex. Keep nesting to a reasonable level.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Error Handling section */}
-        <section id="error-handling" className="mb-12 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">🔍 Error Handling</h2>
-          
-          <p className="mb-4">
-            The config module provides specific error types and codes that you should handle
-            appropriately:
-          </p>
-          
-          <CodeBlock 
-            code={`try {
-  await loadConfig('./config.json', {
-    required: ['database.url', 'api.key'],
-  });
-} catch (error) {
-  switch (error.code) {
-    case 'FILE_NOT_FOUND':
-      console.error('Configuration file not found. Please check the path.');
-      break;
-    case 'MISSING_REQUIRED_FIELDS':
-      console.error('Missing required configuration:', error.details.missing);
-      break;
-    case 'VALIDATION_ERROR':
-      console.error('Configuration validation failed:');
-      error.details.errors.forEach((err) => {
-        console.error(\`- \${err.path}: \${err.message}\`);
-      });
-      break;
-    case 'JSON_PARSE_ERROR':
-      console.error('Invalid JSON in configuration file');
-      break;
-    default:
-      console.error('Configuration error:', error.message);
-  }
-
-  // Exit or use fallback configuration
-  process.exit(1);
-}`}
-            language="javascript"
-            showCopyButton={true}
-          />
-          
-          <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-500 dark:border-yellow-400 rounded">
-            <p className="text-yellow-800 dark:text-yellow-200">
-              <strong>Best Practice:</strong> Always implement proper error handling for configuration 
-              loading and validation to provide clear feedback about configuration issues and prevent 
-              your application from starting with invalid configuration.
-            </p>
-          </div>
-        </section>
-
-        {/* Documentation Links section */}
-        <section id="documentation" className="mb-6 scroll-mt-20">
-          <h2 className="text-2xl font-bold mb-4">📚 Documentation Links</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <a 
-              href="https://github.com/voilajsx/appkit/blob/main/src/config/docs/DEVELOPER_REFERENCE.md" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-            >
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">📘</span>
-                Developer Reference
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Detailed implementation guide with examples and best practices
-              </p>
-            </a>
-            
-            <a 
-              href="https://github.com/voilajsx/appkit/blob/main/src/config/docs/API_REFERENCE.md" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-            >
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">📗</span>
-                API Reference
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Complete API documentation with parameters, returns, and error details
-              </p>
-            </a>
-            
-            <a 
-              href="https://github.com/voilajsx/appkit/blob/main/src/config/docs/PROMPT_REFERENCE.md" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-            >
-              <div className="text-xl font-semibold mb-2 flex items-center">
-                <span className="text-2xl mr-2">📙</span>
-                LLM Code Generation
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Guide for using AI tools to generate configuration code
-              </p>
-            </a>
-          </div>
-          
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h3 className="text-xl font-semibold mb-3">Contributing</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              We welcome contributions! Whether you're fixing bugs, improving documentation, or 
-              proposing new features, your help is appreciated.
-            </p>
-            <a 
-              href="https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center"
-            >
-              View Contributing Guide
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          </div>
-          
-          <div className="mt-8 text-center">
-            <p className="text-gray-600 dark:text-gray-300 text-sm">
-              MIT © <a href="https://github.com/voilajsx" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">VoilaJS</a>
-            </p>
-            <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-              Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">VoilaJS Team</a> — powering modern web development.
-            </p>
-          </div>
-        </section>
-      </div>
-
-      {/* TOC column */}
-      <div className="hidden lg:block lg:w-1/4">
-        <div className="sticky" style={{ top: "5rem" }}>
           <div className="">
-            <div className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-200">On this page</div>
-            <nav className="toc">
-              <ul className="space-y-2 text-sm p-0 m-0">
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('introduction')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'introduction' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Introduction
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('module-overview')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'module-overview' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Module Overview
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('features')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'features' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Features
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('installation')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'installation' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Installation
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('quick-start')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'quick-start' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Quick Start
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('config-loading')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'config-loading' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Configuration Loading
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('config-access')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'config-access' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Configuration Access
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('schema-validation')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'schema-validation' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Schema Validation
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('configuration-options')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'configuration-options' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Configuration Options
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('use-cases')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'use-cases' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Common Use Cases
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('code-generation')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'code-generation' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Code Generation
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('example-code')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'example-code' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Example Code
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('best-practices')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'best-practices' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Configuration Best Practices
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('performance')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'performance' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Performance Considerations
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('error-handling')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'error-handling' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Error Handling
-                  </button>
-                </li>
-                <li className="list-none">
-                  <button 
-                    onClick={() => scrollToSection('documentation')}
-                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                      activeSection === 'documentation' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-medium' 
-                        : 'text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    Documentation Links
-                  </button>
-                </li>
-              </ul>
-            </nav>
+            <ul className="list-disc pl-5 text-gray-700 dark:text-gray-300">
+              <li><strong>Cache Values:</strong> Store frequently accessed configs in variables to avoid repeated <code>getConfig</code> calls.</li>
+              <li><strong>Disable Watching in Production:</strong> Set <code>watch: false</code> to avoid file system overhead.</li>
+              <li><strong>Simplify Schemas:</strong> Use minimal validation rules for non-critical settings to speed up loading.</li>
+              <li><strong>Profile Load Time:</strong> Measure config loading during startup to identify bottlenecks.</li>
+            </ul>
+            <CodeBlock
+              code={`
+import { getConfig } from '@voilajsx/appkit/config';
+
+// Cache a value
+const port = getConfig('server.port', 3000);
+// Use port directly instead of calling getConfig repeatedly
+              `}
+              language="javascript"
+              showCopyButton={true}
+            />
           </div>
-        </div>
+        </section>
+
+        {/* Best Practices */}
+        <section id="best-practices" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Best Practices</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Follow these guidelines to keep your configuration system secure, maintainable, and efficient.
+          </p>
+          <div className="">
+            <ul className="list-disc pl-5 text-gray-700 dark:text-gray-300">
+              <li><strong>Use Environment Variables for Secrets:</strong> Store API keys and database credentials in <code>.env</code> files.</li>
+              <li><strong>Validate Critical Settings:</strong> Use schemas to ensure required fields are present and correct.</li>
+              <li><strong>Separate Environments:</strong> Maintain separate config files for each environment to prevent mix-ups.</li>
+              <li><strong>Keep Configs Shallow:</strong> Limit nesting to 2-3 levels for easier access and maintenance.</li>
+              <li><strong>Document Settings:</strong> Include comments or a README explaining each config option.</li>
+              <li><strong>Test Config Loading:</strong> Verify configs load correctly in all environments during CI/CD.</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Error Handling */}
+        <section id="error-handling" className="mb-12 scroll-mt-24">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Error Handling</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Encountering issues? Here are solutions to common problems, with detailed steps to resolve them.
+          </p>
+          <div className="space-y-6">
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Config File Not Found</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                If <code>loadConfig</code> can’t find your config file, check the path and handle the error:
+              </p>
+              <CodeBlock
+                code={`
+import { loadConfig } from '@voilajsx/appkit/config';
+
+try {
+  await loadConfig('./config.json');
+} catch (error) {
+  if (error.code === 'FILE_NOT_FOUND') {
+    console.error('Config file not found:', error.message);
+    // Fallback to defaults or exit
+  }
+}
+              `}
+                language="javascript"
+                showCopyButton={true}
+              />
+            </div>
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Validation Errors</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                If validation fails, inspect the error details:
+              </p>
+              <CodeBlock
+                code={`
+import { loadConfig } from '@voilajsx/appkit/config';
+
+try {
+  await loadConfig('./config.json', { schema: 'app' });
+} catch (error) {
+  if (error.code === 'VALIDATION_ERROR') {
+    console.error('Invalid config:', error.details.errors);
+  }
+}
+              `}
+              language="javascript"
+              showCopyButton={true}
+            />
+            </div>
+            <div className="">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Missing Required Fields</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                Ensure all required fields are present:
+              </p>
+              <CodeBlock
+                code={`
+import { loadConfig } from '@voilajsx/appkit/config';
+
+try {
+  await loadConfig('./config.json', { required: ['database.url'] });
+} catch (error) {
+  if (error.code === 'MISSING_REQUIRED_FIELDS') {
+    console.error('Missing fields:', error.details.missing);
+  }
+}
+              `}
+              language="javascript"
+              showCopyButton={true}
+            />
+          </div>
+          </div>
+        </section>
+
+        
+
+        {/* Further Reading */}
+        <section id="further-reading" className="mb-12 scroll-mt-20">
+          <h2 className="text-2xl font-bold mb-4">Further Reading</h2>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Want to learn more? Check out these resources for deeper insights:
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              {
+                title: 'Developer Reference',
+                desc: 'Detailed guide with advanced configurations and examples',
+                url: 'https://github.com/voilajsx/appkit/blob/main/src/config/docs/DEVELOPER_REFERENCE.md',
+              },
+              {
+                title: 'API Reference',
+                desc: 'Complete documentation of all Auth module functions and options',
+                url: 'https://github.com/voilajsx/appkit/blob/main/src/config/docs/API_REFERENCE.md',
+              },
+              
+            ].map((link, index) => (
+              <a
+                key={index}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-lg font-semibold mb-2">{link.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{link.desc}</p>
+              </a>
+            ))}
+          </div>
+        </section>
       </div>
+
+      {/* TOC */}
+      <aside className="hidden lg:block lg:w-1/4 p-8">
+        <div className="sticky top-20">
+          <nav className="toc" aria-label="Table of contents" role="navigation">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">On This Page</h2>
+            <ul className="space-y-1 text-sm">
+              {sections.map((section) => (
+                <li key={section.id} className="list-none">
+                  <button
+                    onClick={() => scrollToSection(section.id)}
+                    className={`w-full text-left py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      activeSection === section.id
+                        ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white font-medium'
+                        : 'text-gray-600 dark:text-gray-300'
+                    }`}
+                    aria-current={activeSection === section.id ? 'true' : 'false'}
+                    aria-label={`Go to ${section.name} section`}
+                  >
+                    {section.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+      </aside>
     </div>
   );
 }

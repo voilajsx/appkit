@@ -1,19 +1,23 @@
 /**
  * @voilajsx/appkit - JWT utilities
  * @module @voilajsx/appkit/auth/jwt
+ * @file src/auth/jwt.js
+ *
+ * Functions for generating and verifying JSON Web Tokens (JWT) using `jsonwebtoken`.
  */
 
 import jwt from 'jsonwebtoken';
 
 /**
- * Generates a JWT token
- * @param {Object} payload - Token payload
- * @param {Object} options - Token options
- * @param {string} options.secret - JWT secret key
- * @param {string} [options.expiresIn='7d'] - Token expiration time
- * @param {string} [options.algorithm='HS256'] - JWT algorithm
- * @returns {string} Generated JWT token
- * @throws {Error} If payload or secret is invalid
+ * Generates a JWT token with the given payload and options.
+ *
+ * @param {Object} payload - The data to encode in the JWT payload.
+ * @param {Object} options - Token generation options.
+ * @param {string} options.secret - Secret key used to sign the token.
+ * @param {string} [options.expiresIn='7d'] - Token expiration duration (e.g., '1h', '7d').
+ * @param {string} [options.algorithm='HS256'] - Signing algorithm to use.
+ * @returns {string} Signed JWT token.
+ * @throws {Error} If payload is not an object or secret is missing.
  */
 export function generateToken(payload, options) {
   if (!payload || typeof payload !== 'object') {
@@ -26,7 +30,7 @@ export function generateToken(payload, options) {
 
   const {
     secret,
-    expiresIn = '7d', // Changed from '1h' to '7d' for better UX
+    expiresIn = '7d', // default expiration for better user experience
     algorithm = 'HS256',
   } = options;
 
@@ -41,13 +45,14 @@ export function generateToken(payload, options) {
 }
 
 /**
- * Verifies and decodes a JWT token
- * @param {string} token - JWT token to verify
- * @param {Object} options - Verification options
- * @param {string} options.secret - JWT secret key
- * @param {string[]} [options.algorithms=['HS256']] - Allowed algorithms
- * @returns {Object} Decoded token payload
- * @throws {Error} If token is invalid or expired
+ * Verifies a JWT token and returns its decoded payload.
+ *
+ * @param {string} token - The JWT token to verify.
+ * @param {Object} options - Verification options.
+ * @param {string} options.secret - Secret key used to verify the token.
+ * @param {string[]} [options.algorithms=['HS256']] - Allowed algorithms for verification.
+ * @returns {Object} Decoded token payload.
+ * @throws {Error} If token is invalid, expired, or verification fails.
  */
 export function verifyToken(token, options) {
   if (!token || typeof token !== 'string') {
@@ -61,9 +66,7 @@ export function verifyToken(token, options) {
   const { secret, algorithms = ['HS256'] } = options;
 
   try {
-    return jwt.verify(token, secret, {
-      algorithms,
-    });
+    return jwt.verify(token, secret, { algorithms });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw new Error('Token has expired');

@@ -1,6 +1,7 @@
 /**
  * @voilajsx/appkit - Authentication module
  * @module @voilajsx/appkit/auth
+ * @file src/auth/index.js
  */
 
 // Main exports file - re-exports all auth utilities

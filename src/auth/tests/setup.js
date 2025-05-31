@@ -1,6 +1,7 @@
 /**
  * Test setup and utilities for auth module tests
  * @module @voilajs/appkit/auth/tests
+ * @file src/auth/tests/setup.js
  */
 
 export const TEST_SECRET = 'test-secret-key-for-testing';

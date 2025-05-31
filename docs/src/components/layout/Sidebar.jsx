@@ -57,9 +57,11 @@ function Sidebar({ isOpen, onClose, currentModule, currentDoc }) {
   // Modules
   const modulesDocs = [
     { title: 'Auth', slug: 'auth' },
-    { title: 'Cache', slug: 'cache' },
     { title: 'Config', slug: 'config' },
-    { title: 'Logging', slug: 'logging' }
+    { title: 'Logging', slug: 'logging' },
+    { title:'Validation', slug: 'validation' },
+    { title: 'Security', slug: 'security' },
+    { title: 'Error', slug: 'error' },
   ];
   
   return (

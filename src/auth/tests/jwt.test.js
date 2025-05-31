@@ -1,6 +1,8 @@
 /**
  * JWT functionality tests for @voilajsx/appkit auth module
  * Tests token generation and verification features
+ *
+ * @file src/auth/tests/jwt.test.js
  */
 
 import { describe, it, expect, vi } from 'vitest';

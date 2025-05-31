@@ -7,6 +7,9 @@ import AuthOverview from '@/pages/modules/AuthOverview';
 import CacheOverview from '@/pages/modules/CacheOverview';
 import ConfigOverview from '@/pages/modules/ConfigOverview';
 import LoggingOverview from '@/pages/modules/LoggingOverview';
+import ValidationOverview from '@/pages/modules/ValidationOverview';
+import ErrorOveriew from '@/pages/modules/ErrorOverview';
+import SecurityOverview from '@/pages/modules/SecurityOverview';
 import Documentation from '@/pages/Documentation';
 import ModuleIndex from '@/pages/ModuleIndex';
 import DocPage from '@/pages/DocPage';
@@ -40,6 +43,9 @@ function AppRouter() {
         <Route path="cache" element={<CacheOverview />} />
         <Route path="config" element={<ConfigOverview />} />
         <Route path="logging" element={<LoggingOverview />} />
+        <Route path="security" element={<SecurityOverview />} />
+        <Route path="validation" element={<ValidationOverview />} />
+        <Route path="error" element={<ErrorOveriew />} />
         
         {/* Module index pages */}
         <Route path="auth" element={<ModuleIndex module="auth" />} />
