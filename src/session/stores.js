@@ -1,6 +1,7 @@
 /**
- * @voilajs/appkit - Session stores
- * @module @voilajs/appkit/session/stores
+ * @file src/session/stores.js
+ * @voilajsx/appkit - Session stores
+ * @module @voilajsx/appkit/session/stores
  */
 
 import fs from 'fs/promises';

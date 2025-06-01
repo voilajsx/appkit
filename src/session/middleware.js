@@ -1,6 +1,7 @@
 /**
- * @voilajs/appkit - Session middleware
- * @module @voilajs/appkit/session/middleware
+ * @file src/session/middleware.js
+ * @voilajsx/appkit - Session middleware
+ * @module @voilajsx/appkit/session/middleware
  */
 
 import { SessionManager } from './utils.js';
@@ -206,16 +207,16 @@ export function createSessionMiddleware(options = {}) {
  *
  * @example
  * // Basic usage
- * const authRequired = createSessionAuth();
+ * const authRequired = createSessionAuthMiddleware();
  * app.get('/dashboard', authRequired, handler);
  *
  * // Custom user extraction
- * const authRequired = createSessionAuth({
+ * const authRequired = createSessionAuthMiddleware({
  *   getUser: (sessionData) => sessionData.currentUser,
  *   loginUrl: '/auth/login'
  * });
  */
-export function createSessionAuth(options = {}) {
+export function createSessionAuthMiddleware(options = {}) {
   const {
     loginUrl = '/login',
     userKey = 'user',
@@ -298,17 +299,20 @@ export function createSessionAuth(options = {}) {
  *
  * @example
  * // Single role
- * const adminOnly = createSessionRoleAuth('admin');
+ * const adminOnly = createSessionAuthorizationMiddleware(['admin']);
  *
  * // Multiple roles
- * const moderatorAccess = createSessionRoleAuth(['admin', 'moderator']);
+ * const moderatorAccess = createSessionAuthorizationMiddleware(['admin', 'moderator']);
  *
  * // Custom role extraction
- * const customAuth = createSessionRoleAuth('editor', {
+ * const customAuth = createSessionAuthorizationMiddleware(['editor'], {
  *   getRoles: (user) => user.permissions.map(p => p.role)
  * });
  */
-export function createSessionRoleAuth(allowedRoles, options = {}) {
+export function createSessionAuthorizationMiddleware(
+  allowedRoles,
+  options = {}
+) {
   const rolesArray = Array.isArray(allowedRoles)
     ? allowedRoles
     : [allowedRoles];

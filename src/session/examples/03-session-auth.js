@@ -1,4 +1,5 @@
 /**
+ * @file examples/03-session-auth.js
  * Session Authentication - @voilajsx/appkit
  *
  * Simple example showing session-based authentication and authorization
@@ -8,8 +9,8 @@
 
 import {
   createSessionMiddleware,
-  createSessionAuth,
-  createSessionRoleAuth,
+  createSessionAuthMiddleware,
+  createSessionAuthorizationMiddleware,
 } from '../index.js';
 import http from 'http';
 import url from 'url';

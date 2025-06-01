@@ -1,13 +1,14 @@
 /**
- * @voilajs/appkit - Session management utilities
- * @module @voilajs/appkit/session
+ * @voilajsx/appkit - Session management utilities
+ * @module @voilajsx/appkit/session
+ * @file src/session/index.js
  */
 
 // Core middleware
 export {
   createSessionMiddleware,
-  createSessionAuth,
-  createSessionRoleAuth,
+  createSessionAuthMiddleware,
+  createSessionAuthorizationMiddleware,
 } from './middleware.js';
 
 // Session stores

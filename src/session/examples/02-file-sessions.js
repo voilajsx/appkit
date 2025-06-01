@@ -1,4 +1,5 @@
 /**
+ * @file examples/02-file-sessions.js
  * File Store Sessions - @voilajsx/appkit
  *
  * Example showing file-based session storage

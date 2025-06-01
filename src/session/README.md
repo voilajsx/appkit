@@ -14,12 +14,12 @@ and hybrid authentication systems.
 
 The Session module provides everything you need for stateful authentication:
 
-| Feature                | What it does                              | Main functions                                   |
-| ---------------------- | ----------------------------------------- | ------------------------------------------------ |
-| **Session Management** | Create and manage user sessions           | `createSessionMiddleware()`                      |
-| **Session-Based Auth** | Authenticate users with sessions          | `createSessionAuth()`, `createSessionRoleAuth()` |
-| **Flexible Storage**   | Store sessions in memory, files, or Redis | `MemoryStore`, `FileStore`, `RedisStore`         |
-| **Cookie Management**  | Secure, signed session cookies            | Built into `SessionManager`                      |
+| Feature                | What it does                              | Main functions                                                            |
+| ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
+| **Session Management** | Create and manage user sessions           | `createSessionMiddleware()`                                               |
+| **Session-Based Auth** | Authenticate users with sessions          | `createSessionAuthMiddleware()`, `createSessionAuthorizationMiddleware()` |
+| **Flexible Storage**   | Store sessions in memory, files, or Redis | `MemoryStore`, `FileStore`, `RedisStore`                                  |
+| **Cookie Management**  | Secure, signed session cookies            | Built into `SessionManager`                                               |
 
 ## 🚀 Features
 
@@ -66,6 +66,156 @@ app.get('/profile', (req, res) => {
   // Access session data
   const user = req.session.data.user;
   res.json({ user });
+});
+```
+
+## 📋 Examples
+
+The module includes several examples to help you get started with common session
+management scenarios:
+
+| Example                                                                                                          | Description                   | Key Features                                      |
+| ---------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------- |
+| [01-basic-session.js](https://github.com/voilajsx/appkit/blob/main/src/session/examples/01-basic-session.js)     | Basic session setup and usage | Session creation, data storage, session lifecycle |
+| [02-file-sessions.js](https://github.com/voilajsx/appkit/blob/main/src/session/examples/02-file-sessions.js)     | File-based session storage    | FileStore configuration, persistent sessions      |
+| [03-session-auth.js](https://github.com/voilajsx/appkit/blob/main/src/session/examples/03-session-auth.js)       | Session-based authentication  | Login/logout, protected routes, user sessions     |
+| [04-middleware-auth.js](https://github.com/voilajsx/appkit/blob/main/src/session/examples/04-middleware-auth.js) | Authentication middleware     | Role-based access, authorization middleware       |
+| [05-redis-sessions.js](https://github.com/voilajsx/appkit/blob/main/src/session/examples/05-redis-sessions.js)   | Redis session storage         | RedisStore setup, production-ready sessions       |
+
+### Example: Basic Session Usage
+
+```javascript
+// From 01-basic-session.js
+import express from 'express';
+import { createSessionMiddleware } from '@voilajsx/appkit/session';
+
+const app = express();
+app.use(express.json());
+
+// Create session middleware
+const sessionMiddleware = createSessionMiddleware({
+  secret: 'your-secret-key',
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+});
+
+app.use(sessionMiddleware);
+
+// Save data to session
+app.post('/save', async (req, res) => {
+  const { data } = req.body;
+  await req.session.save({ userData: data });
+  res.json({ message: 'Data saved to session' });
+});
+
+// Get data from session
+app.get('/data', (req, res) => {
+  const userData = req.session.data.userData;
+  res.json({ userData: userData || null });
+});
+
+// Check session status
+app.get('/status', (req, res) => {
+  res.json({
+    active: req.session.isActive(),
+    age: req.session.getAge(),
+    sessionId: req.session.id,
+  });
+});
+
+// Destroy session
+app.post('/clear', async (req, res) => {
+  await req.session.destroy();
+  res.json({ message: 'Session destroyed' });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});
+```
+
+### Example: Authentication with Middleware
+
+```javascript
+// From 04-middleware-auth.js
+import express from 'express';
+import {
+  createSessionMiddleware,
+  createSessionAuthMiddleware,
+  createSessionAuthorizationMiddleware,
+} from '@voilajsx/appkit/session';
+
+const app = express();
+app.use(express.json());
+
+// Session middleware
+const sessionMiddleware = createSessionMiddleware({
+  secret: process.env.SESSION_SECRET || 'dev-secret',
+});
+
+// Authentication middleware
+const authRequired = createSessionAuthMiddleware({
+  loginUrl: '/login',
+});
+
+// Role-based authorization
+const adminOnly = createSessionAuthorizationMiddleware(['admin']);
+
+app.use(sessionMiddleware);
+
+// Public routes
+app.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Simulate user authentication
+    const users = {
+      'admin@example.com': {
+        id: 1,
+        email: 'admin@example.com',
+        role: 'admin',
+        name: 'Admin User',
+      },
+      'user@example.com': {
+        id: 2,
+        email: 'user@example.com',
+        role: 'user',
+        name: 'Regular User',
+      },
+    };
+
+    const user = users[email];
+    if (user && password === 'password') {
+      // Save user to session
+      await req.session.save({ user });
+      res.json({
+        message: 'Login successful',
+        user: { id: user.id, email: user.email, name: user.name },
+      });
+    } else {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Protected routes
+app.get('/profile', authRequired, (req, res) => {
+  res.json({ user: req.user });
+});
+
+app.get('/admin', authRequired, adminOnly, (req, res) => {
+  res.json({ message: 'Admin access granted', user: req.user });
+});
+
+// Logout
+app.post('/logout', authRequired, async (req, res) => {
+  await req.session.destroy();
+  res.json({ message: 'Logged out successfully' });
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
 });
 ```
 
@@ -146,25 +296,28 @@ Protect your routes with session-based authentication. These middleware
 functions check for active sessions and can redirect users or return appropriate
 error responses.
 
-| Function                  | Purpose                                     | When to use                                 |
-| ------------------------- | ------------------------------------------- | ------------------------------------------- |
-| `createSessionAuth()`     | Creates session authentication middleware   | Protecting private pages and API endpoints  |
-| `createSessionRoleAuth()` | Creates role-based authorization middleware | Admin panels, premium features, permissions |
+| Function                                 | Purpose                                     | When to use                                 |
+| ---------------------------------------- | ------------------------------------------- | ------------------------------------------- |
+| `createSessionAuthMiddleware()`          | Creates session authentication middleware   | Protecting private pages and API endpoints  |
+| `createSessionAuthorizationMiddleware()` | Creates role-based authorization middleware | Admin panels, premium features, permissions |
 
 ```javascript
 import {
-  createSessionAuth,
-  createSessionRoleAuth,
+  createSessionAuthMiddleware,
+  createSessionAuthorizationMiddleware,
 } from '@voilajsx/appkit/session';
 
 // Authentication middleware
-const authRequired = createSessionAuth({
+const authRequired = createSessionAuthMiddleware({
   loginUrl: '/login', // Redirect here if not authenticated
 });
 
 // Role-based authorization
-const adminOnly = createSessionRoleAuth(['admin']);
-const moderatorAccess = createSessionRoleAuth(['admin', 'moderator']);
+const adminOnly = createSessionAuthorizationMiddleware(['admin']);
+const moderatorAccess = createSessionAuthorizationMiddleware([
+  'admin',
+  'moderator',
+]);
 
 // Apply to routes
 app.get('/dashboard', authRequired, (req, res) => {
@@ -233,20 +386,20 @@ new RedisStore(redisClient, {
 Here's where you can apply the session module's functionality in your
 applications:
 
-| Category             | Use Case             | Description                                      | Components Used                                        |
-| -------------------- | -------------------- | ------------------------------------------------ | ------------------------------------------------------ |
-| **Web Applications** | Traditional Web Apps | Server-rendered apps with login/logout           | `createSessionMiddleware()`, `createSessionAuth()`     |
-|                      | Admin Dashboards     | Management interfaces with user sessions         | `createSessionMiddleware()`, `createSessionRoleAuth()` |
-|                      | Content Management   | CMS systems with editor authentication           | All session components                                 |
-| **E-commerce**       | Shopping Carts       | Persistent cart data across page visits          | `createSessionMiddleware()`, `req.session.save()`      |
-|                      | User Accounts        | Customer login and account management            | `createSessionAuth()`, session persistence             |
-|                      | Checkout Process     | Multi-step checkout with temporary data storage  | Session data storage and retrieval                     |
-| **Hybrid Systems**   | Session + JWT        | Web interface with session, API with JWT         | Session middleware + JWT auth from auth module         |
-|                      | Multi-tenant Apps    | Different authentication per tenant              | Custom session configuration per tenant                |
-|                      | Development Tools    | Developer tools with persistent user preferences | `FileStore` for local development                      |
-| **Deployment**       | Single Server        | Simple deployments on single server              | `FileStore` for persistence                            |
-|                      | Load Balanced        | Multiple servers sharing session data            | `RedisStore` for shared state                          |
-|                      | Serverless           | Stateless functions with session-like behavior   | External storage with session utilities                |
+| Category             | Use Case             | Description                                      | Components Used                                                       |
+| -------------------- | -------------------- | ------------------------------------------------ | --------------------------------------------------------------------- |
+| **Web Applications** | Traditional Web Apps | Server-rendered apps with login/logout           | `createSessionMiddleware()`, `createSessionAuthMiddleware()`          |
+|                      | Admin Dashboards     | Management interfaces with user sessions         | `createSessionMiddleware()`, `createSessionAuthorizationMiddleware()` |
+|                      | Content Management   | CMS systems with editor authentication           | All session components                                                |
+| **E-commerce**       | Shopping Carts       | Persistent cart data across page visits          | `createSessionMiddleware()`, `req.session.save()`                     |
+|                      | User Accounts        | Customer login and account management            | `createSessionAuthMiddleware()`, session persistence                  |
+|                      | Checkout Process     | Multi-step checkout with temporary data storage  | Session data storage and retrieval                                    |
+| **Hybrid Systems**   | Session + JWT        | Web interface with session, API with JWT         | Session middleware + JWT auth from auth module                        |
+|                      | Multi-tenant Apps    | Different authentication per tenant              | Custom session configuration per tenant                               |
+|                      | Development Tools    | Developer tools with persistent user preferences | `FileStore` for local development                                     |
+| **Deployment**       | Single Server        | Simple deployments on single server              | `FileStore` for persistence                                           |
+|                      | Load Balanced        | Multiple servers sharing session data            | `RedisStore` for shared state                                         |
+|                      | Serverless           | Stateless functions with session-like behavior   | External storage with session utilities                               |
 
 ## 🤖 Code Generation with LLMs
 
@@ -384,8 +537,8 @@ app.get('/api/data', (req, res) => {
   [API Reference](https://github.com/voilajsx/appkit/blob/main/src/session/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [Framework Integration Guide](https://github.com/voilajsx/appkit/blob/main/src/session/docs/FRAMEWORKS.md) -
-  Specific examples for each framework
+  [LLM Code Generation REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/session/docs/PROMPT_REFERENCE.md) -
+  Guide for AI/LLM code generation
 
 ## 🤝 Contributing
 

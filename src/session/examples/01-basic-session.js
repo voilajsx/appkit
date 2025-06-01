@@ -1,4 +1,5 @@
 /**
+ * @file examples/01-basic-session.js
  * Basic Session - @voilajsx/appkit
  *
  * Simple example showing how to create and use sessions with HTML interface

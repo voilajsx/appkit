@@ -1,6 +1,7 @@
 /**
- * @voilajs/appkit - Session utilities
- * @module @voilajs/appkit/session/utils
+ * @file src/session/utils.js
+ * @voilajsx/appkit - Session utilities
+ * @module @voilajsx/appkit/session/utils
  */
 
 import crypto from 'crypto';
