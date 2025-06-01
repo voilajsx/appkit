@@ -11,7 +11,7 @@ import {
   validateAsync,
   createAsyncValidator,
   commonSchemas,
-  createSchema,
+  createValidationSchema,
 } from '../index.js';
 
 // Simulate database/API calls with delays
@@ -92,7 +92,7 @@ console.log('Result:', newEmailResult.valid ? '✅ Valid' : '❌ Invalid');
 console.log('\n🔄 Testing complex async validation schema...\n');
 
 // Complex schema with multiple async validators
-const userRegistrationSchema = createSchema({
+const userRegistrationSchema = createValidationSchema({
   type: 'object',
   properties: {
     email: {
@@ -303,7 +303,7 @@ allErrorsResult.errors.forEach((error, index) => {
 console.log('\n🔄 Testing mixed sync and async validation...\n');
 
 // Schema with both sync and async validation
-const mixedSchema = createSchema({
+const mixedSchema = createValidationSchema({
   type: 'object',
   properties: {
     email: {

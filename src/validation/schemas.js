@@ -70,6 +70,6 @@ export const commonSchemas = {
  * @param {Object} definition - Schema definition
  * @returns {Object} Schema object
  */
-export function createSchema(definition) {
+export function createValidationSchema(definition) {
   return { ...definition };
 }

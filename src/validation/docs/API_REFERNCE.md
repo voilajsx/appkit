@@ -425,7 +425,7 @@ console.log(result.valid); // true
 
 ---
 
-#### createSchema(definition)
+#### createValidationSchema(definition)
 
 Creates a custom validation schema.
 
@@ -442,7 +442,7 @@ Creates a custom validation schema.
 ##### Example
 
 ```javascript
-const userSchema = createSchema({
+const userSchema = createValidationSchema({
   type: 'object',
   properties: {
     name: { type: 'string', required: true },

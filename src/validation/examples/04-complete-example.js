@@ -15,7 +15,7 @@ import {
   createAsyncValidator,
   sanitize,
   commonSchemas,
-  createSchema,
+  createValidationSchema,
   isEmail,
   isUrl,
   isAlphanumeric,
@@ -55,7 +55,7 @@ console.log('='.repeat(50));
 // Step 1: Define comprehensive user registration schema
 console.log('\n📋 Step 1: Creating comprehensive registration schema...\n');
 
-const userRegistrationSchema = createSchema({
+const userRegistrationSchema = createValidationSchema({
   type: 'object',
   properties: {
     // Personal Information
@@ -386,7 +386,7 @@ console.log('  - validate() and validateAsync()');
 console.log('  - createValidator() and createAsyncValidator()');
 console.log('  - sanitize() and sanitization functions');
 console.log('  - Built-in validators (isEmail, isUrl, isAlphanumeric)');
-console.log('  - commonSchemas and createSchema()');
+console.log('  - commonSchemas and createValidationSchema()');
 console.log('  - ValidationError class with methods');
 console.log('  - utils.pipeline() for validation workflows');
 

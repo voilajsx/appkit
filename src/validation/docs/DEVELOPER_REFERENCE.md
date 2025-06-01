@@ -618,10 +618,10 @@ true
 Create your own schemas for specific needs:
 
 ```javascript
-import { createSchema, validate } from '@voilajsx/appkit/validation';
+import { createValidationSchema, validate } from '@voilajsx/appkit/validation';
 
 // Create a custom product schema
-const productSchema = createSchema({
+const productSchema = createValidationSchema({
   type: 'object',
   properties: {
     name: {

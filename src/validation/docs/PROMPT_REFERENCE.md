@@ -170,7 +170,7 @@ const commonSchemas: {
   integer: Schema; // Integer number validation
 };
 
-function createSchema(definition: Schema): Schema;
+function createValidationSchema(definition: Schema): Schema;
 ```
 
 ### 8. Error Handling
@@ -443,7 +443,7 @@ function validateRegistration(userData) {
  * @returns {Object} Schema object
  */
 function createApiSchema(definition) {
-  return createSchema({
+  return createValidationSchema({
     type: 'object',
     properties: {
       page: { type: 'number', min: 1, default: 1 },

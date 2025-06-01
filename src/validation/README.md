@@ -176,7 +176,7 @@ const passwordResult = validate('MyStr0ngP@ss!', commonSchemas.password);
 const usernameResult = validate('user123', commonSchemas.username);
 
 // Creating custom schemas
-const userSchema = createSchema({
+const userSchema = createValidationSchema({
   type: 'object',
   properties: {
     email: commonSchemas.email,
@@ -352,7 +352,7 @@ try {
 ### Schemas
 
 - `commonSchemas` - Common validation schemas
-- `createSchema(definition)` - Create custom schema
+- `createValidationSchema(definition)` - Create custom schema
 
 ### Utilities
 

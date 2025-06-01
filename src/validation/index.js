@@ -21,7 +21,7 @@ export {
   sanitizeObject,
 } from './sanitizers.js';
 
-export { commonSchemas, createSchema } from './schemas.js';
+export { commonSchemas, createValidationSchema } from './schemas.js';
 
 export { ValidationError } from './errors.js';
 

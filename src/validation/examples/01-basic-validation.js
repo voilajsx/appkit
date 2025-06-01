@@ -12,7 +12,7 @@ import {
   validate,
   createValidator,
   commonSchemas,
-  createSchema,
+  createValidationSchema,
   isEmail,
   isUrl,
   isAlphanumeric,
@@ -69,7 +69,7 @@ console.log(
 console.log('\n🔍 Creating and using custom schema...\n');
 
 // Create a custom user schema using common schemas
-const userSchema = createSchema({
+const userSchema = createValidationSchema({
   type: 'object',
   properties: {
     name: { type: 'string', required: true, minLength: 2, maxLength: 50 },
