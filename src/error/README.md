@@ -1,38 +1,33 @@
-# @voilajsx/appkit - Error Module 🚨
+# @voilajsx/appkit - Error Module ⚠️
 
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Comprehensive, consistent error handling for Node.js applications
+> Simple, consistent error handling for Node.js applications
 
-The Error module of `@voilajsx/appkit` provides standardized error types,
-consistent error formatting, middleware for Express applications, and utilities
-for handling async errors. It helps you build robust applications with clean,
-predictable error handling.
+The Error module of `@voilajsx/appkit` provides a minimal yet powerful approach
+to error handling with standardized error types, automatic HTTP status mapping,
+and zero-config middleware that works with any Express-compatible framework.
 
 ## Module Overview
 
-| Feature             | What it does                                 | Main functions                              |
-| ------------------- | -------------------------------------------- | ------------------------------------------- |
-| **Error Types**     | Define standardized error categories         | `ErrorTypes`, `AppError`                    |
-| **Error Creation**  | Create typed errors with proper status codes | `createError()`, `validationError()`, etc.  |
-| **Middleware**      | Handle errors in HTTP framework applications | `createErrorHandler()`, `notFoundHandler()` |
-| **Async Handling**  | Manage errors in async functions             | `asyncHandler()`                            |
-| **Global Handlers** | Catch uncaught errors application-wide       | `handleUnhandledRejections()`               |
+The Error module simplifies error handling with just what you need:
+
+| Feature                  | What it does                          | Main functions                     |
+| ------------------------ | ------------------------------------- | ---------------------------------- |
+| **Error Classification** | Categorize errors into 4 simple types | `ErrorTypes`, `AppError`           |
+| **Error Creation**       | Create standardized errors easily     | `validationError()`, `authError()` |
+| **Middleware**           | Handle errors automatically           | `errorHandler()`, `asyncHandler()` |
 
 ## 🚀 Features
 
-- **🚨 Standardized Error Types** - Consistent error categorization with
-  appropriate HTTP status codes
-- **🔧 Factory Functions** - Simple API for creating properly formatted errors
-- **🛡️ Framework-Agnostic Middleware** - Clean integration with Express, Koa,
-  Fastify, and other Node.js frameworks
-- **⚡ Async Error Handling** - Simple way to handle async errors without
-  try/catch blocks
-- **📊 Structured Responses** - Consistent error response format for APIs
-- **🔎 Validation Errors** - Field-specific validation messages for forms and
-  APIs
-- **🌐 Global Error Handling** - Catch unhandled rejections and exceptions
+- **🎯 4 Simple Error Types** - Covers all real-world scenarios without
+  complexity
+- **⚡ Zero Configuration** - Error handler works out of the box
+- **🔧 Auto Status Mapping** - Automatically sets correct HTTP status codes
+- **🛡️ Framework Agnostic** - Works with Express, Fastify, Koa, and more
+- **📦 Tiny Bundle Size** - Minimal overhead, maximum functionality
+- **🚀 Production Ready** - Handles common errors from popular libraries
 
 ## 📦 Installation
 
@@ -42,414 +37,275 @@ npm install @voilajsx/appkit
 
 ## 🏃‍♂️ Quick Start
 
+Import the functions you need and start handling errors consistently. The error
+handler automatically formats responses and sets appropriate status codes.
+
 ```javascript
-import express from 'express';
 import {
-  createError,
+  AppError,
+  ErrorTypes,
   validationError,
-  notFoundError,
-  authenticationError,
-  authorizationError,
-  conflictError,
-  badRequestError,
-  rateLimitError,
-  serviceUnavailableError,
-  internalError,
-  createErrorHandler,
+  errorHandler,
   asyncHandler,
 } from '@voilajsx/appkit/error';
 
-const app = express();
-app.use(express.json());
+// Create standardized errors
+throw validationError('Email is required');
+throw authError('Invalid credentials');
 
-// Create user with validation
-app.post(
-  '/users',
-  asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      throw validationError({
-        email: !email ? 'Email is required' : null,
-        password: !password ? 'Password is required' : null,
-      });
-    }
-
-    const user = await createUser({ email, password });
-    res.status(201).json(user);
-  })
-);
-
-// Get user by ID
-app.get(
-  '/users/:id',
-  asyncHandler(async (req, res) => {
-    const user = await getUserById(req.params.id);
-
-    if (!user) {
-      throw notFoundError('User', req.params.id);
-    }
-
-    res.json(user);
-  })
-);
-
-// Add error handling middleware
-app.use(createErrorHandler());
+// Use zero-config error handling
+app.use(errorHandler());
 ```
 
 ## 📖 Core Functions
 
-### Error Types
+### Error Types and Creation
 
-These utilities help categorize and standardize errors in your application.
+These utilities help you create consistent, well-structured errors across your
+application. Instead of throwing generic errors, use these standardized types
+for better error handling and API responses.
 
-| Function     | Purpose                                 | When to use                            |
-| ------------ | --------------------------------------- | -------------------------------------- |
-| `ErrorTypes` | Enumerate standard error types          | Categorizing errors, HTTP status codes |
-| `AppError`   | Base error class for application errors | Creating custom application errors     |
+| Function            | Purpose                           | When to use                                 |
+| ------------------- | --------------------------------- | ------------------------------------------- |
+| `validationError()` | Creates validation/input errors   | Invalid data, missing fields, format errors |
+| `notFoundError()`   | Creates resource not found errors | Missing users, posts, files, routes         |
+| `authError()`       | Creates authentication errors     | Login failures, invalid tokens, permissions |
+| `serverError()`     | Creates internal server errors    | Database errors, external API failures      |
 
 ```javascript
-import { ErrorTypes, AppError } from '@voilajsx/appkit/error';
+// Validation errors
+throw validationError('Email is required');
+throw validationError('Invalid age', { field: 'age', value: -5 });
 
-// Using ErrorTypes
-const error = new AppError(
-  ErrorTypes.NOT_FOUND,
-  'User not found',
-  { userId: '123' },
-  404
-);
+// Not found errors
+throw notFoundError('User not found');
+throw notFoundError(); // Uses default message
 
-console.log(error.type); // 'NOT_FOUND'
-console.log(error.statusCode); // 404
+// Auth errors
+throw authError('Invalid credentials');
+throw authError('Token expired');
+
+// Server errors
+throw serverError('Database connection failed');
 ```
 
-### Error Factory Functions
+### Error Handling Middleware
 
-Create specific error types with the right status codes and formats.
+These middleware functions automate error handling in your Express applications.
+They catch errors, format responses consistently, and handle both sync and async
+operations seamlessly.
 
-| Function                    | Purpose                                   | When to use                             |
-| --------------------------- | ----------------------------------------- | --------------------------------------- |
-| `createError()`             | Create generic typed error                | Custom error scenarios                  |
-| `validationError()`         | Create validation error with field errors | Form validation, API request validation |
-| `notFoundError()`           | Create not found error for resources      | When requested resource doesn't exist   |
-| `authenticationError()`     | Create authentication error               | Login failures, invalid tokens          |
-| `authorizationError()`      | Create permission error                   | Insufficient permissions                |
-| `conflictError()`           | Create conflict error                     | Duplicate resources, version conflicts  |
-| `badRequestError()`         | Create bad request error                  | Invalid parameters or requests          |
-| `rateLimitError()`          | Create rate limit exceeded error          | Too many requests                       |
-| `serviceUnavailableError()` | Create service unavailable error          | Service temporarily down                |
-| `internalError()`           | Create internal server error              | Unexpected server errors                |
+| Function            | Purpose                          | When to use                        |
+| ------------------- | -------------------------------- | ---------------------------------- |
+| `errorHandler()`    | Handles all errors automatically | As the last middleware in your app |
+| `asyncHandler()`    | Wraps async functions safely     | Around async route handlers        |
+| `notFoundHandler()` | Handles 404 routes               | For unmatched routes               |
 
 ```javascript
-import {
-  validationError,
-  notFoundError,
-  authenticationError,
-  conflictError,
-  badRequestError,
-  rateLimitError,
-} from '@voilajsx/appkit/error';
-
-// Validation error
-throw validationError({
-  email: 'Invalid email format',
-  password: 'Password too short',
-});
-
-// Resource not found
-throw notFoundError('User', '123');
-
-// Authentication failed
-throw authenticationError('Invalid token');
-
-// Conflict error
-throw conflictError('Email already exists', { email: 'user@example.com' });
-
-// Bad request error
-throw badRequestError('Invalid query parameters');
-
-// Rate limit error
-throw rateLimitError('Too many requests', { retryAfter: 60 });
-```
-
-### Middleware Functions
-
-Handle errors in any Node.js HTTP framework.
-
-| Function               | Purpose                                 | When to use                        |
-| ---------------------- | --------------------------------------- | ---------------------------------- |
-| `createErrorHandler()` | Create HTTP framework error middleware  | Global error handling in HTTP apps |
-| `notFoundHandler()`    | Create 404 handler for undefined routes | Catching undefined routes          |
-| `asyncHandler()`       | Wrap async functions to catch errors    | Any async HTTP route handler       |
-
-```javascript
-import express from 'express';
-import {
-  createErrorHandler,
-  notFoundHandler,
-  asyncHandler,
-} from '@voilajsx/appkit/error';
-
-const app = express();
-
-// Async route handler
+// Wrap async routes to catch errors
 app.get(
-  '/users',
+  '/users/:id',
   asyncHandler(async (req, res) => {
-    const users = await getUsers();
-    res.json(users);
+    const user = await db.findUser(req.params.id);
+    if (!user) throw notFoundError('User not found');
+    res.json({ user });
   })
 );
 
-// Add 404 handler (after all routes)
+// Handle 404s for unmatched routes
 app.use(notFoundHandler());
 
-// Add error handler (must be last)
-app.use(createErrorHandler());
-```
-
-// With Koa:
-
-```javascript
-import Koa from 'koa';
-import Router from '@koa/router';
-import { createError, notFoundError } from '@voilajsx/appkit/error';
-
-const app = new Koa();
-const router = new Router();
-
-// Adapt the error handler for Koa
-app.use(async (ctx, next) => {
-  try {
-    await next();
-  } catch (err) {
-    const error = err.statusCode ? err : createError('INTERNAL', err.message);
-    ctx.status = error.statusCode;
-    ctx.body = { error: { message: error.message, type: error.type } };
-  }
-});
-
-router.get('/users/:id', async (ctx) => {
-  const user = await getUserById(ctx.params.id);
-  if (!user) throw notFoundError('User', ctx.params.id);
-  ctx.body = user;
-});
-
-app.use(router.routes());
-```
-
-### Global Error Handlers
-
-Manage uncaught errors at the application level.
-
-| Function                      | Purpose                             | When to use                          |
-| ----------------------------- | ----------------------------------- | ------------------------------------ |
-| `handleUnhandledRejections()` | Handle unhandled promise rejections | Preventing app crashes from promises |
-| `handleUncaughtExceptions()`  | Handle uncaught exceptions          | Graceful handling of critical errors |
-
-```javascript
-import {
-  handleUnhandledRejections,
-  handleUncaughtExceptions,
-} from '@voilajsx/appkit/error';
-
-// Set up global handlers
-handleUncaughtExceptions();
-handleUnhandledRejections();
+// Handle all errors (must be last)
+app.use(errorHandler());
 ```
 
 ## 🔧 Configuration Options
 
-### Error Handler Options
+The examples above show basic usage, but you can customize error handling for
+your specific needs. Here are the available options:
+
+### Error Types
+
+| Type         | Description               | Status Code | Example Use Cases                      |
+| ------------ | ------------------------- | ----------- | -------------------------------------- |
+| `VALIDATION` | Input validation failures | 400         | Missing fields, invalid formats        |
+| `NOT_FOUND`  | Resource not found        | 404         | Missing users, invalid routes          |
+| `AUTH`       | Authentication failures   | 401         | Login errors, token validation         |
+| `SERVER`     | Internal server errors    | 500         | Database errors, external API failures |
 
 ```javascript
-import { createErrorHandler } from '@voilajsx/appkit/error';
+import { ErrorTypes } from '@voilajsx/appkit/error';
 
-const errorHandler = createErrorHandler({
-  // Custom logger function
-  logger: (error) => {
-    console.error({
-      type: error.type,
-      message: error.message,
-      timestamp: new Date().toISOString(),
-    });
-  },
-
-  // Include stack trace in development
-  includeStack: process.env.NODE_ENV !== 'production',
-});
+// Check error types
+if (error.type === ErrorTypes.VALIDATION) {
+  // Handle validation error
+}
 ```
 
-### AppError Options
+### Custom Error Details
+
+| Option    | Description                  | Default    | Example                                |
+| --------- | ---------------------------- | ---------- | -------------------------------------- |
+| `message` | Human-readable error message | _Required_ | `'Email is required'`                  |
+| `details` | Additional error information | `null`     | `{ field: 'email', code: 'REQUIRED' }` |
 
 ```javascript
-import { AppError, ErrorTypes } from '@voilajsx/appkit/error';
+validationError('Validation failed', {
+  errors: {
+    email: 'Email is required',
+    age: 'Must be at least 18',
+  },
+});
 
-const error = new AppError(
-  ErrorTypes.CONFLICT, // Error type
-  'Email already registered', // Error message
-  { email: 'user@example.com' }, // Error details (optional)
-  409 // Status code (optional)
-);
+authError('Authentication failed', {
+  reason: 'invalid_token',
+  expired: true,
+});
 ```
 
 ## 💡 Common Use Cases
 
-| Category             | Use Case                  | Description                                         | Components Used                       |
-| -------------------- | ------------------------- | --------------------------------------------------- | ------------------------------------- |
-| **API Development**  | Input Validation          | Validate API request data                           | `validationError()`, `asyncHandler()` |
-| **API Development**  | Resource Retrieval        | Handle missing resources                            | `notFoundError()`, `asyncHandler()`   |
-| **API Development**  | Global Error Handling     | Consistent error responses                          | `createErrorHandler()`                |
-| **Authentication**   | Auth Failure Handling     | Handle invalid credentials                          | `authenticationError()`               |
-| **Authentication**   | Permission Control        | Handle insufficient permissions                     | `authorizationError()`                |
-| **Data Validation**  | Form Validation           | Validate user input with field-specific errors      | `validationError()`                   |
-| **Error Management** | Async Error Handling      | Catch errors in async functions                     | `asyncHandler()`                      |
-| **Error Management** | Uncaught Error Prevention | Prevent app crashes from unhandled errors           | `handleUnhandledRejections()`         |
-| **Error Management** | Graceful Failure          | Log errors and exit gracefully on critical failures | `handleUncaughtExceptions()`          |
-| **User Experience**  | Structured Error Messages | Provide clear, actionable error messages            | `formatErrorResponse()`, `AppError`   |
-| **Logging**          | Error Tracking            | Categorize and track errors by type                 | `ErrorTypes`, custom logger           |
-| **Security**         | Context-Aware Errors      | Different errors for different environments         | Environment-specific error handling   |
+Here's where you can apply the error module's functionality in your
+applications:
+
+| Category             | Use Case              | Description                                 | Components Used                       |
+| -------------------- | --------------------- | ------------------------------------------- | ------------------------------------- |
+| **API Development**  | Input Validation      | Validate request data and return errors     | `validationError()`, `errorHandler()` |
+|                      | Resource Management   | Handle missing resources gracefully         | `notFoundError()`, `asyncHandler()`   |
+|                      | Authentication APIs   | Secure endpoints with proper error handling | `authError()`, `errorHandler()`       |
+| **Web Applications** | Route Protection      | Handle authentication in web apps           | `authError()`, `notFoundHandler()`    |
+|                      | Form Validation       | Validate user input in forms                | `validationError()`, `errorHandler()` |
+|                      | Error Pages           | Show user-friendly error pages              | All error types, `errorHandler()`     |
+| **Microservices**    | Service Communication | Handle errors between services              | `serverError()`, `asyncHandler()`     |
+|                      | Database Operations   | Handle database errors consistently         | `serverError()`, `notFoundError()`    |
+|                      | External API Calls    | Handle third-party API failures             | `serverError()`, `asyncHandler()`     |
+| **Special Cases**    | Background Jobs       | Handle errors in worker processes           | All error types                       |
 
 ## 🤖 Code Generation with LLMs
 
 You can use large language models (LLMs) like ChatGPT or Claude to generate code
 for common error handling scenarios using the `@voilajsx/appkit/error` module.
 We've created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md)
+[PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md)
 document that's designed specifically for LLMs to understand the module's
 capabilities and generate high-quality error handling code.
 
+### How to Use LLM Code Generation
+
+Simply copy one of the prompts below and share it with ChatGPT, Claude, or
+another capable LLM. The LLM will read the reference document and generate
+clean, best-practice error handling code tailored to your specific requirements.
+
 ### Sample Prompts to Try
 
-#### Basic Error Handling
+#### Basic Error Handling Setup
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then create a complete error handling system for an Express app using @voilajsx/appkit/error with the following features:
-- Centralized error handling
-- Async route protection
-- Field validation for user registration
-- Different error types for different scenarios
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then create a complete Express.js application with error handling using @voilajsx/appkit/error that includes:
+- User registration and login with proper validation errors
+- Protected routes with authentication errors
+- Database operations with not found errors
+- Global error handling middleware
 ```
 
-#### Custom Error System
+#### Advanced Error Scenarios
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then implement a custom error handling system for a REST API using @voilajsx/appkit/error that includes:
-- Custom error types for your application domain
-- Environment-specific error formatting
-- Integration with a logging service
-- Proper HTTP status codes
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then implement comprehensive error handling for a REST API using @voilajsx/appkit/error with:
+- Custom validation for complex business rules
+- Graceful handling of database connection failures
+- Proper error responses for different client types (web, mobile, API)
+- Error logging and monitoring integration
 ```
 
-#### Error Handling for Auth System
+#### Microservice Error Handling
 
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and create comprehensive error handling for an authentication system using @voilajsx/appkit/error with:
-- Login failure handling
-- Token validation errors
-- Rate limiting errors
-- Permission errors
-- User-friendly error messages
+Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md and then create error handling for a microservice architecture using @voilajsx/appkit/error that includes:
+- Service-to-service error communication
+- Circuit breaker pattern for external API calls
+- Centralized error logging across services
+- Health check endpoints with proper error responses
 ```
 
-## 📋 Examples
+## 📋 Example Code
 
-The module includes several examples to help you get started:
+For complete, working examples, check our examples folder:
 
-- [Basic Error Creation](https://github.com/voilajs/appkit/blob/main/src/error/examples/01-error-creation.js) -
-  How to create and use different error types
-- [Express Integration](https://github.com/voilajs/appkit/blob/main/src/error/examples/02-express-integration.js) -
-  How to use the error middleware with Express
-- [Async Error Handling](https://github.com/voilajs/appkit/blob/main/src/error/examples/03-async-errors.js) -
-  How to handle errors in async functions
-- [Complete API Example](https://github.com/voilajs/appkit/blob/main/src/error/examples/api-example) -
-  A complete REST API with comprehensive error handling
+- [Basic Error Handling](https://github.com/voilajsx/appkit/blob/main/src/error/examples/01-basic-errors.js) -
+  How to create and throw errors
+- [Express Middleware](https://github.com/voilajsx/appkit/blob/main/src/error/examples/02-express-middleware.js) -
+  Setting up error handling in Express
+- [Async Route Handling](https://github.com/voilajsx/appkit/blob/main/src/error/examples/03-async-routes.js) -
+  Handling errors in async operations
+- [Complete API Server](https://github.com/voilajsx/appkit/blob/main/src/error/examples/04-complete-api.js) -
+  A fully functional API with comprehensive error handling
 
-## 🛡️ Security Best Practices
+## 🛡️ Error Handling Best Practices
 
-1. **Hide Internal Details**: Never expose implementation details in production
-   error messages
-2. **Sanitize Error Messages**: Ensure error messages don't contain sensitive
-   information
-3. **Environment-Specific Behavior**: Use different error handling for
-   development vs. production
-4. **No Stack Traces in Production**: Disable `includeStack` option in
-   production environments
-5. **Input Validation**: Always validate input before processing to prevent
-   injection attacks
-6. **Consistent Error Types**: Use standard error types for consistent security
-   responses
-7. **Authentication Error Consistency**: Use the same message for all
-   authentication failures to prevent user enumeration
+Following these practices will help ensure your application handles errors
+gracefully and securely:
+
+1. **Use Specific Error Types**: Choose the most appropriate error type for
+   better debugging and user experience
+2. **Include Helpful Details**: Add context in error details to help with
+   troubleshooting
+3. **Don't Expose Sensitive Data**: Avoid including passwords, tokens, or
+   internal details in error messages
+4. **Handle Async Errors**: Always wrap async route handlers with
+   `asyncHandler()`
+5. **Log Errors Appropriately**: Log server errors for debugging but don't
+   expose stack traces to users
+6. **Provide User-Friendly Messages**: Use clear, actionable error messages that
+   help users understand what went wrong
 
 ## 📊 Performance Considerations
 
-- **Efficient Error Creation**: Create errors only when necessary to avoid
-  performance impact
-- **Async Logging**: Use asynchronous logging to prevent blocking the event loop
-- **Validation First**: Validate input early to fail fast and save processing
-  resources
-- **Selective Stack Traces**: Only capture stack traces when needed
-- **Error Reuse**: Consider caching common error responses for frequently
-  occurring errors
+- **Minimal Overhead**: Error creation and handling add negligible performance
+  impact
+- **Early Error Detection**: Fail fast with validation errors to save processing
+  time
+- **Efficient Middleware**: Error handler runs only when errors occur, not on
+  every request
+- **Stack Trace Management**: Stack traces are captured efficiently without
+  performance degradation
 
 ## 🔍 Error Handling
 
-The module provides a consistent error handling pattern:
+The module provides consistent error handling across your application:
 
 ```javascript
-import {
-  createErrorHandler,
-  asyncHandler,
-  notFoundError,
-  validationError,
-} from '@voilajsx/appkit/error';
-
-// With asyncHandler (recommended)
-app.get(
-  '/users/:id',
-  asyncHandler(async (req, res) => {
-    try {
-      const user = await getUserById(req.params.id);
-      if (!user) throw notFoundError('User', req.params.id);
-      res.json(user);
-    } catch (error) {
-      // Specific error handling
-      if (error.name === 'CastError') {
-        throw badRequestError('Invalid user ID format');
-      }
-      // Re-throw other errors for global handler
-      throw error;
-    }
-  })
-);
-
-// Global error handler
-app.use(
-  createErrorHandler({
-    logger: customLogger,
-    includeStack: process.env.NODE_ENV !== 'production',
-  })
-);
+try {
+  const user = await createUser(userData);
+} catch (error) {
+  if (error instanceof AppError) {
+    // Handle known application errors
+    console.log(`Error type: ${error.type}`);
+    console.log(`Message: ${error.message}`);
+    console.log(`Details:`, error.details);
+  } else {
+    // Handle unexpected errors
+    throw serverError('User creation failed');
+  }
+}
 ```
 
 ## 📚 Documentation Links
 
 - 📘
-  [Developer REFERENCE](https://github.com/voilajs/appkit/blob/main/src/error/docs/DEVELOPER_REFERENCE.md) -
+  [Developer REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/error/docs/DEVELOPER_REFERENCE.md) -
   Detailed implementation guide with examples
 - 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/error/docs/API_REFERENCE.md) -
+  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/error/docs/API_REFERENCE.md) -
   Complete API documentation
 - 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajs/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md) -
+  [LLM Code Generation REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/error/docs/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
 
 ## 🤝 Contributing
 
 We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
+[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
 for details.
 
 ## 📄 License
