@@ -1,6 +1,7 @@
 /**
  * @voilajsx/appkit - Sanitizers
  * @module @voilajsx/appkit/validation/sanitizers
+ * @file src/validation/sanitizers.js
  */
 
 /**

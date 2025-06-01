@@ -1,6 +1,7 @@
 /**
  * @voilajsx/appkit - Common validation schemas
  * @module @voilajsx/appkit/validation/schemas
+ * @file src/validation/schemas.js
  */
 
 /**

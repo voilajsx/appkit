@@ -1,6 +1,7 @@
 /**
  * @voilajsx/appkit - Validation errors
  * @module @voilajsx/appkit/validation/errors
+ * @file src/validation/errors.js
  */
 
 /**

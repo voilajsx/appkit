@@ -1,6 +1,7 @@
 /**
  * @voilajsx/appkit - Validators
  * @module @voilajsx/appkit/validation/validators
+ * @file src/validation/validators.js
  */
 
 import { ValidationError } from './errors.js';

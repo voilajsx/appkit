@@ -1,4 +1,4 @@
-# @voilajs/appkit/utils - LLM API Reference
+# @voilajsx/appkit/utils - LLM API Reference
 
 > **Note**: Implementation is in JavaScript. TypeScript signatures are for
 > clarity only.
