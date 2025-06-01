@@ -2,7 +2,10 @@
 
 ## Overview
 
-The `@voilajsx/appkit/validation` module provides comprehensive data validation and sanitization utilities for Node.js applications, including schema-based validation, input sanitization, and built-in validators for common data types.
+The `@voilajsx/appkit/validation` module provides comprehensive data validation
+and sanitization utilities for Node.js applications, including schema-based
+validation, async validation support, built-in sanitizers, and essential
+validator functions for common data types.
 
 ## Installation
 
@@ -15,80 +18,42 @@ npm install @voilajsx/appkit
 ```javascript
 import {
   validate,
+  validateAsync,
+  createValidator,
   sanitize,
   sanitizeString,
-  sanitizeHtml,
-  validateString,
-  validateEmail,
-  createValidator,
-  createSanitizer,
+  isEmail,
+  commonSchemas,
 } from '@voilajsx/appkit/validation';
 ```
 
 ## API Reference
 
-### Core Functions
+### Core Validation Functions
 
 #### validate(data, schema, options)
 
-Validates data against a schema definition.
+Validates data against a schema synchronously.
 
 ##### Parameters
 
-| Name                | Type     | Required | Default | Description                                                 |
-| ------------------- | -------- | -------- | ------- | ----------------------------------------------------------- |
-| `data`              | `*`      | Yes      | -       | The data to validate                                        |
-| `schema`            | `Object` | Yes      | -       | Schema definition with validation rules                     |
-| `options`           | `Object` | No       | `{}`    | Validation options                                          |
-| `options.strict`    | `boolean`| No       | `false` | Enable strict validation mode                               |
-| `options.abortEarly`| `boolean`| No       | `true`  | Stop on first validation error                              |
+| Name                 | Type      | Required | Default | Description                    |
+| -------------------- | --------- | -------- | ------- | ------------------------------ |
+| `data`               | `any`     | Yes      | -       | The data to validate           |
+| `schema`             | `Object`  | Yes      | -       | Validation schema definition   |
+| `options`            | `Object`  | No       | `{}`    | Validation options             |
+| `options.abortEarly` | `boolean` | No       | `false` | Stop validation on first error |
 
 ##### Returns
 
-- `Object` - Validation result with `{ isValid: boolean, errors: Array, data: * }`
+- `Object` - Validation result with properties:
+  - `valid` (boolean) - Whether validation passed
+  - `errors` (Array) - Array of validation errors
+  - `value` (any) - Processed/sanitized value
 
 ##### Throws
 
-- `Error` - If schema is invalid or malformed
-- `TypeError` - If arguments have incorrect types
-
-##### Example
-
-```javascript
-const userSchema = {
-  type: 'object',
-  properties: {
-    email: { type: 'string', format: 'email' },
-    age: { type: 'number', minimum: 0, maximum: 120 }
-  },
-  required: ['email']
-};
-
-const result = validate({ email: 'user@example.com', age: 25 }, userSchema);
-if (result.isValid) {
-  console.log('Valid user data');
-} else {
-  console.error('Validation errors:', result.errors);
-}
-```
-
----
-
-#### validateAsync(data, schema, options)
-
-Asynchronously validates data with support for async validation rules.
-
-##### Parameters
-
-| Name                | Type     | Required | Default | Description                                                 |
-| ------------------- | -------- | -------- | ------- | ----------------------------------------------------------- |
-| `data`              | `*`      | Yes      | -       | The data to validate                                        |
-| `schema`            | `Object` | Yes      | -       | Schema definition with validation rules                     |
-| `options`           | `Object` | No       | `{}`    | Validation options                                          |
-
-##### Returns
-
-- `Promise<Object>` - Promise resolving to validation result
+- `Error` - If validation encounters an exception
 
 ##### Example
 
@@ -96,207 +61,145 @@ Asynchronously validates data with support for async validation rules.
 const schema = {
   type: 'object',
   properties: {
-    username: {
-      type: 'string',
-      asyncValidator: async (value) => {
-        const exists = await checkUsernameExists(value);
-        return !exists || 'Username already taken';
-      }
-    }
-  }
+    name: { type: 'string', required: true, minLength: 2 },
+    age: { type: 'number', min: 0, max: 120 },
+    email: { type: 'string', email: true },
+  },
 };
 
-const result = await validateAsync({ username: 'johndoe' }, schema);
-```
-
----
-
-### Sanitization Functions
-
-#### sanitize(data, rules)
-
-Sanitizes data based on rules or a transformation function.
-
-##### Parameters
-
-| Name    | Type                | Required | Description                           |
-| ------- | ------------------- | -------- | ------------------------------------- |
-| `data`  | `*`                 | Yes      | Data to sanitize                      |
-| `rules` | `Object|Function`   | Yes      | Sanitization rules or transform function |
-
-##### Returns
-
-- `*` - Sanitized data
-
-##### Example
-
-```javascript
-const sanitized = sanitize(
-  { email: '  USER@EXAMPLE.COM  ', name: '<script>alert("xss")</script>' },
-  {
-    email: { trim: true, lowercase: true },
-    name: { stripTags: true, escape: true }
-  }
+const result = validate(
+  { name: 'John', age: 25, email: 'john@example.com' },
+  schema
 );
-// Result: { email: 'user@example.com', name: 'alert("xss")' }
+
+console.log(result.valid); // true
+console.log(result.value); // { name: 'John', age: 25, email: 'john@example.com' }
 ```
 
 ---
 
-#### sanitizeString(input, rules)
+#### validateAsync(data, schema, options)
 
-Sanitizes string values with comprehensive cleaning options.
+Validates data against a schema asynchronously, supporting async custom
+validators.
 
 ##### Parameters
 
-| Name                    | Type      | Required | Default | Description                                        |
-| ----------------------- | --------- | -------- | ------- | -------------------------------------------------- |
-| `input`                 | `string`  | Yes      | -       | String to sanitize                                 |
-| `rules`                 | `Object`  | No       | `{}`    | Sanitization rules                                 |
-| `rules.trim`            | `boolean` | No       | `true`  | Remove leading/trailing whitespace                 |
-| `rules.lowercase`       | `boolean` | No       | `false` | Convert to lowercase                               |
-| `rules.uppercase`       | `boolean` | No       | `false` | Convert to uppercase                               |
-| `rules.capitalize`      | `boolean` | No       | `false` | Capitalize first letter                            |
-| `rules.titleCase`       | `boolean` | No       | `false` | Convert to title case                              |
-| `rules.stripTags`       | `boolean` | No       | `false` | Remove HTML tags                                   |
-| `rules.escape`          | `boolean` | No       | `false` | Escape HTML entities                               |
-| `rules.truncate`        | `number`  | No       | -       | Maximum string length                              |
-| `rules.slug`            | `boolean` | No       | `false` | Create URL-friendly slug                           |
-| `rules.alphanumeric`    | `boolean` | No       | `false` | Keep only alphanumeric characters                  |
+| Name                 | Type      | Required | Default | Description                    |
+| -------------------- | --------- | -------- | ------- | ------------------------------ |
+| `data`               | `any`     | Yes      | -       | The data to validate           |
+| `schema`             | `Object`  | Yes      | -       | Validation schema definition   |
+| `options`            | `Object`  | No       | `{}`    | Validation options             |
+| `options.abortEarly` | `boolean` | No       | `false` | Stop validation on first error |
 
 ##### Returns
 
-- `string` - Sanitized string
+- `Promise<Object>` - Promise resolving to validation result with same structure
+  as `validate()`
+
+##### Throws
+
+- `Error` - If validation encounters an exception
 
 ##### Example
 
 ```javascript
-const clean = sanitizeString('  <h1>Hello World!</h1>  ', {
-  trim: true,
-  stripTags: true,
-  capitalize: true
+const schema = {
+  type: 'string',
+  validateAsync: async (value) => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return value !== 'taken' ? true : 'Value is already taken';
+  },
+};
+
+const result = await validateAsync('available', schema);
+console.log(result.valid); // true
+```
+
+---
+
+#### createValidator(schema, options)
+
+Creates a reusable validator function with pre-configured schema and options.
+
+##### Parameters
+
+| Name      | Type     | Required | Default | Description                  |
+| --------- | -------- | -------- | ------- | ---------------------------- |
+| `schema`  | `Object` | Yes      | -       | Validation schema definition |
+| `options` | `Object` | No       | `{}`    | Default validation options   |
+
+##### Returns
+
+- `Function` - Validator function that accepts (data, overrideOptions)
+
+##### Throws
+
+- `Error` - If schema is invalid
+
+##### Example
+
+```javascript
+const emailValidator = createValidator({
+  type: 'string',
+  required: true,
+  email: true,
 });
-// Result: 'Hello world!'
+
+const result = emailValidator('user@example.com');
+console.log(result.valid); // true
 ```
 
 ---
 
-#### sanitizeHtml(input, options)
+#### createAsyncValidator(schema, options)
 
-Sanitizes HTML content to prevent XSS attacks while preserving safe formatting.
+Creates a reusable async validator function with pre-configured schema and
+options.
 
 ##### Parameters
 
-| Name                        | Type       | Required | Default              | Description                                 |
-| --------------------------- | ---------- | -------- | -------------------- | ------------------------------------------- |
-| `input`                     | `string`   | Yes      | -                    | HTML content to sanitize                    |
-| `options`                   | `Object`   | No       | `{}`                 | Sanitization options                        |
-| `options.allowedTags`       | `string[]` | No       | `['p', 'br', 'b']`  | HTML tags to preserve                       |
-| `options.allowedAttributes` | `Object`   | No       | `{}`                 | Allowed attributes per tag                  |
-| `options.allowedSchemes`    | `string[]` | No       | `['http', 'https']` | Allowed URL schemes                         |
-| `options.stripEmpty`        | `boolean`  | No       | `true`              | Remove empty tags                           |
+| Name      | Type     | Required | Default | Description                  |
+| --------- | -------- | -------- | ------- | ---------------------------- |
+| `schema`  | `Object` | Yes      | -       | Validation schema definition |
+| `options` | `Object` | No       | `{}`    | Default validation options   |
 
 ##### Returns
 
-- `string` - Sanitized HTML content
+- `Function` - Async validator function that accepts (data, overrideOptions)
+
+##### Throws
+
+- `Error` - If schema is invalid
 
 ##### Example
 
 ```javascript
-const safeHtml = sanitizeHtml(
-  '<p onclick="alert(1)">Hello <script>alert("xss")</script> <b>World</b></p>',
-  {
-    allowedTags: ['p', 'b', 'i'],
-    allowedAttributes: { a: ['href'] }
-  }
-);
-// Result: '<p>Hello  <b>World</b></p>'
-```
-
----
-
-### Validation Functions
-
-#### validateString(input, rules)
-
-Validates string values against specified criteria.
-
-##### Parameters
-
-| Name                | Type       | Required | Default | Description                                   |
-| ------------------- | ---------- | -------- | ------- | --------------------------------------------- |
-| `input`             | `string`   | Yes      | -       | String to validate                            |
-| `rules`             | `Object`   | No       | `{}`    | Validation rules                              |
-| `rules.required`    | `boolean`  | No       | `false` | Field is required                             |
-| `rules.minLength`   | `number`   | No       | -       | Minimum string length                         |
-| `rules.maxLength`   | `number`   | No       | -       | Maximum string length                         |
-| `rules.pattern`     | `RegExp`   | No       | -       | Pattern to match                              |
-| `rules.enum`        | `string[]` | No       | -       | Allowed values                                |
-| `rules.alphanumeric`| `boolean`  | No       | `false` | Allow only alphanumeric characters            |
-| `rules.alpha`       | `boolean`  | No       | `false` | Allow only alphabetic characters              |
-| `rules.numeric`     | `boolean`  | No       | `false` | Allow only numeric characters                 |
-
-##### Returns
-
-- `boolean` - True if valid, false otherwise
-
-##### Example
-
-```javascript
-const isValid = validateString('user123', {
-  minLength: 3,
-  maxLength: 20,
-  alphanumeric: true
+const usernameValidator = createAsyncValidator({
+  type: 'string',
+  alphanumeric: true,
+  validateAsync: async (username) => {
+    const taken = await checkUsernameAvailability(username);
+    return taken ? 'Username is taken' : true;
+  },
 });
-// Result: true
-```
 
----
-
-#### validateNumber(input, rules)
-
-Validates numeric values against specified criteria.
-
-##### Parameters
-
-| Name                | Type      | Required | Default | Description                                   |
-| ------------------- | --------- | -------- | ------- | --------------------------------------------- |
-| `input`             | `number`  | Yes      | -       | Number to validate                            |
-| `rules`             | `Object`  | No       | `{}`    | Validation rules                              |
-| `rules.min`         | `number`  | No       | -       | Minimum value                                 |
-| `rules.max`         | `number`  | No       | -       | Maximum value                                 |
-| `rules.integer`     | `boolean` | No       | `false` | Must be an integer                            |
-| `rules.positive`    | `boolean` | No       | `false` | Must be positive                              |
-| `rules.multipleOf`  | `number`  | No       | -       | Must be multiple of this value                |
-
-##### Returns
-
-- `boolean` - True if valid, false otherwise
-
-##### Example
-
-```javascript
-const isValid = validateNumber(42, {
-  min: 0,
-  max: 100,
-  integer: true
-});
-// Result: true
+const result = await usernameValidator('john123');
 ```
 
 ---
 
 ### Built-in Validators
 
-#### validateEmail(email)
+#### isEmail(value)
 
-Validates email addresses using RFC 5322 standards.
+Validates email address format with RFC-compliant checks.
 
 ##### Parameters
 
-| Name    | Type     | Required | Description           |
-| ------- | -------- | -------- | --------------------- |
-| `email` | `string` | Yes      | Email to validate     |
+| Name    | Type     | Required | Default | Description               |
+| ------- | -------- | -------- | ------- | ------------------------- |
+| `value` | `string` | Yes      | -       | Email address to validate |
 
 ##### Returns
 
@@ -305,24 +208,21 @@ Validates email addresses using RFC 5322 standards.
 ##### Example
 
 ```javascript
-validateEmail('user@example.com'); // true
-validateEmail('invalid-email');    // false
+console.log(isEmail('user@example.com')); // true
+console.log(isEmail('invalid-email')); // false
 ```
 
 ---
 
-#### validateUrl(url, options)
+#### isUrl(value)
 
-Validates URL format and optionally checks allowed protocols.
+Validates URL format, accepting only HTTP and HTTPS protocols.
 
 ##### Parameters
 
-| Name                  | Type       | Required | Default                  | Description                    |
-| --------------------- | ---------- | -------- | ------------------------ | ------------------------------ |
-| `url`                 | `string`   | Yes      | -                        | URL to validate                |
-| `options`             | `Object`   | No       | `{}`                     | Validation options             |
-| `options.protocols`   | `string[]` | No       | `['http', 'https']`      | Allowed protocols              |
-| `options.requireTld`  | `boolean`  | No       | `true`                   | Require top-level domain       |
+| Name    | Type     | Required | Default | Description     |
+| ------- | -------- | -------- | ------- | --------------- |
+| `value` | `string` | Yes      | -       | URL to validate |
 
 ##### Returns
 
@@ -331,168 +231,474 @@ Validates URL format and optionally checks allowed protocols.
 ##### Example
 
 ```javascript
-validateUrl('https://example.com');           // true
-validateUrl('ftp://files.example.com', {
-  protocols: ['ftp', 'sftp']
-});                                          // true
+console.log(isUrl('https://example.com')); // true
+console.log(isUrl('ftp://example.com')); // false
 ```
 
 ---
 
-#### validatePhone(phone, options)
+#### isAlphanumeric(value)
 
-Validates phone numbers with support for international formats.
+Validates that string contains only letters and numbers.
 
 ##### Parameters
 
-| Name               | Type     | Required | Default | Description                           |
-| ------------------ | -------- | -------- | ------- | ------------------------------------- |
-| `phone`            | `string` | Yes      | -       | Phone number to validate              |
-| `options`          | `Object` | No       | `{}`    | Validation options                    |
-| `options.country`  | `string` | No       | -       | Country code for validation           |
-| `options.format`   | `string` | No       | -       | Expected format ('e164', 'national')  |
+| Name    | Type     | Required | Default | Description        |
+| ------- | -------- | -------- | ------- | ------------------ |
+| `value` | `string` | Yes      | -       | String to validate |
 
 ##### Returns
 
-- `boolean` - True if valid phone format
+- `boolean` - True if alphanumeric
 
 ##### Example
 
 ```javascript
-validatePhone('+1-555-123-4567');                    // true
-validatePhone('555-123-4567', { country: 'US' });    // true
+console.log(isAlphanumeric('abc123')); // true
+console.log(isAlphanumeric('abc-123')); // false
+```
+
+---
+
+### Sanitization Functions
+
+#### sanitize(data, rules)
+
+Automatically detects data type and applies appropriate sanitization rules.
+
+##### Parameters
+
+| Name    | Type    | Required  | Default | Description      |
+| ------- | ------- | --------- | ------- | ---------------- | ------------------------------------- |
+| `data`  | `any`   | Yes       | -       | Data to sanitize |
+| `rules` | `Object | Function` | Yes     | -                | Sanitization rules or custom function |
+
+##### Returns
+
+- `any` - Sanitized data
+
+##### Example
+
+```javascript
+const result = sanitize('  Hello World  ', {
+  trim: true,
+  uppercase: true,
+});
+console.log(result); // 'HELLO WORLD'
+```
+
+---
+
+#### sanitizeString(input, rules)
+
+Sanitizes string values with various transformation options.
+
+##### Parameters
+
+| Name              | Type      | Required | Default | Description                                   |
+| ----------------- | --------- | -------- | ------- | --------------------------------------------- | ------------------------------------------ |
+| `input`           | `string`  | Yes      | -       | String to sanitize                            |
+| `rules`           | `Object`  | No       | `{}`    | Sanitization rules                            |
+| `rules.trim`      | `boolean` | No       | `true`  | Remove leading/trailing whitespace            |
+| `rules.lowercase` | `boolean` | No       | `false` | Convert to lowercase                          |
+| `rules.uppercase` | `boolean` | No       | `false` | Convert to uppercase                          |
+| `rules.truncate`  | `number   | boolean` | No      | `false`                                       | Truncate to specified length (255 if true) |
+| `rules.replace`   | `Object`  | No       | `{}`    | Pattern replacements (regex patterns as keys) |
+| `rules.remove`    | `string   | Array`   | No      | `[]`                                          | Patterns to remove                         |
+
+##### Returns
+
+- `string` - Sanitized string
+
+##### Example
+
+```javascript
+const result = sanitizeString('  HELLO WORLD 123  ', {
+  trim: true,
+  lowercase: true,
+  remove: '\\d+',
+  replace: { world: 'universe' },
+});
+console.log(result); // 'hello universe '
+```
+
+---
+
+#### sanitizeNumber(input, rules)
+
+Sanitizes and converts values to numbers with constraint options.
+
+##### Parameters
+
+| Name              | Type      | Required | Default     | Description                     |
+| ----------------- | --------- | -------- | ----------- | ------------------------------- |
+| `input`           | `any`     | Yes      | -           | Value to sanitize               |
+| `rules`           | `Object`  | No       | `{}`        | Sanitization rules              |
+| `rules.default`   | `number`  | No       | `0`         | Default value for invalid input |
+| `rules.integer`   | `boolean` | No       | `false`     | Convert to integer              |
+| `rules.precision` | `number`  | No       | `undefined` | Round to decimal places         |
+| `rules.min`       | `number`  | No       | `undefined` | Minimum allowed value           |
+| `rules.max`       | `number`  | No       | `undefined` | Maximum allowed value           |
+| `rules.clamp`     | `boolean` | No       | `false`     | Clamp to min/max bounds         |
+
+##### Returns
+
+- `number` - Sanitized number
+
+##### Example
+
+```javascript
+const result = sanitizeNumber('"3.14159"', {
+  precision: 2,
+  min: 0,
+  max: 5,
+  clamp: true,
+});
+console.log(result); // 3.14
+```
+
+---
+
+#### sanitizeObject(input, rules)
+
+Sanitizes object properties with comprehensive transformation options.
+
+##### Parameters
+
+| Name                | Type      | Required | Default     | Description                                       |
+| ------------------- | --------- | -------- | ----------- | ------------------------------------------------- |
+| `input`             | `any`     | Yes      | -           | Value to sanitize (converted to object if needed) |
+| `rules`             | `Object`  | No       | `{}`        | Sanitization rules                                |
+| `rules.defaults`    | `Object`  | No       | `{}`        | Default property values                           |
+| `rules.pick`        | `Array`   | No       | `undefined` | Properties to include                             |
+| `rules.omit`        | `Array`   | No       | `undefined` | Properties to exclude                             |
+| `rules.properties`  | `Object`  | No       | `{}`        | Per-property sanitization rules                   |
+| `rules.removeEmpty` | `boolean` | No       | `false`     | Remove null/undefined/empty properties            |
+
+##### Returns
+
+- `Object` - Sanitized object
+
+##### Example
+
+```javascript
+const result = sanitizeObject(
+  { name: '  John  ', age: '25', password: 'secret' },
+  {
+    pick: ['name', 'age'],
+    properties: {
+      name: { trim: true, uppercase: true },
+      age: { integer: true },
+    },
+  }
+);
+console.log(result); // { name: 'JOHN', age: 25 }
+```
+
+---
+
+### Schema and Error Handling
+
+#### commonSchemas
+
+Pre-built validation schemas for common use cases.
+
+##### Properties
+
+| Schema     | Description     | Validation Rules                                            |
+| ---------- | --------------- | ----------------------------------------------------------- |
+| `email`    | Email address   | Required string, email format, max 254 chars                |
+| `password` | Strong password | Required string, 8-128 chars, mixed case + number + special |
+| `username` | Username        | Required alphanumeric string, 3-32 chars                    |
+| `url`      | URL             | Required string, valid URL format, max 2048 chars           |
+| `boolean`  | Boolean value   | Boolean type validation                                     |
+| `integer`  | Integer number  | Number type with integer constraint                         |
+
+##### Example
+
+```javascript
+import { commonSchemas, validate } from '@voilajsx/appkit/validation';
+
+const result = validate('user@example.com', commonSchemas.email);
+console.log(result.valid); // true
+```
+
+---
+
+#### createSchema(definition)
+
+Creates a custom validation schema.
+
+##### Parameters
+
+| Name         | Type     | Required | Default | Description              |
+| ------------ | -------- | -------- | ------- | ------------------------ |
+| `definition` | `Object` | Yes      | -       | Schema definition object |
+
+##### Returns
+
+- `Object` - Schema object
+
+##### Example
+
+```javascript
+const userSchema = createSchema({
+  type: 'object',
+  properties: {
+    name: { type: 'string', required: true },
+    age: { type: 'number', min: 0 },
+  },
+});
+```
+
+---
+
+#### ValidationError
+
+Custom error class for validation failures.
+
+##### Constructor
+
+```javascript
+new ValidationError(message, errors);
+```
+
+##### Parameters
+
+| Name      | Type     | Required | Default | Description                       |
+| --------- | -------- | -------- | ------- | --------------------------------- |
+| `message` | `string` | Yes      | -       | Error message                     |
+| `errors`  | `Array`  | No       | `[]`    | Array of validation error objects |
+
+##### Methods
+
+**getMessages()**
+
+- Returns: `Array<string>` - Formatted error messages
+
+**hasErrors()**
+
+- Returns: `boolean` - Whether any errors exist
+
+##### Example
+
+```javascript
+const error = new ValidationError('Validation failed', [
+  { path: 'email', message: 'Invalid email', type: 'email' },
+]);
+
+console.log(error.getMessages()); // ['email: Invalid email']
+console.log(error.hasErrors()); // true
 ```
 
 ---
 
 ### Utility Functions
 
-#### createValidator(schema, options)
+#### utils.pipeline(...validators)
 
-Creates a reusable validator function for a specific schema.
+Creates a validation pipeline that chains multiple validators.
 
 ##### Parameters
 
-| Name      | Type     | Required | Default | Description                    |
-| --------- | -------- | -------- | ------- | ------------------------------ |
-| `schema`  | `Object` | Yes      | -       | Validation schema              |
-| `options` | `Object` | No       | `{}`    | Default validation options     |
+| Name            | Type         | Required | Default | Description                  |
+| --------------- | ------------ | -------- | ------- | ---------------------------- |
+| `...validators` | `Function[]` | Yes      | -       | Validator functions to chain |
 
 ##### Returns
 
-- `Function` - Validator function that accepts data and returns validation result
+- `Function` - Combined async validator function
 
 ##### Example
 
 ```javascript
-const validateUser = createValidator({
-  type: 'object',
-  properties: {
-    name: { type: 'string', minLength: 1 },
-    email: { type: 'string', format: 'email' }
-  },
-  required: ['name', 'email']
-});
+import { utils, createValidator } from '@voilajsx/appkit/validation';
 
-const result = validateUser({ name: 'John', email: 'john@example.com' });
+const stringValidator = createValidator({ type: 'string', minLength: 3 });
+const emailValidator = createValidator({ type: 'string', email: true });
+
+const pipeline = utils.pipeline(stringValidator, emailValidator);
+
+const result = await pipeline('user@example.com');
+console.log(result.valid); // true
 ```
 
 ---
 
-#### createSanitizer(rules)
+## Schema Definition Format
 
-Creates a reusable sanitizer function for specific rules.
-
-##### Parameters
-
-| Name    | Type                | Required | Description                    |
-| ------- | ------------------- | -------- | ------------------------------ |
-| `rules` | `Object|Function`   | Yes      | Sanitization rules or function |
-
-##### Returns
-
-- `Function` - Sanitizer function that accepts data and returns sanitized result
-
-##### Example
+### Basic Schema Structure
 
 ```javascript
-const sanitizeUser = createSanitizer({
-  email: { trim: true, lowercase: true },
-  name: { trim: true, capitalize: true }
-});
+{
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'date' | 'null' | 'undefined',
+  required: boolean,
+  default: any | Function,
+  validate: Function,
+  validateAsync: Function
+}
+```
 
-const clean = sanitizeUser({
-  email: '  USER@EXAMPLE.COM  ',
-  name: 'john doe'
-});
-// Result: { email: 'user@example.com', name: 'John doe' }
+### String Schema Options
+
+```javascript
+{
+  type: 'string',
+  minLength: number,
+  maxLength: number,
+  pattern: RegExp | string,
+  trim: boolean,
+  email: boolean,
+  url: boolean,
+  alphanumeric: boolean
+}
+```
+
+### Number Schema Options
+
+```javascript
+{
+  type: 'number',
+  min: number,
+  max: number,
+  integer: boolean
+}
+```
+
+### Object Schema Options
+
+```javascript
+{
+  type: 'object',
+  properties: {
+    [key: string]: Schema
+  }
+}
 ```
 
 ---
 
 ## Error Handling
 
-All validation functions return structured error information when validation fails.
+### Error Types
+
+| Type           | Description                 | Thrown By               |
+| -------------- | --------------------------- | ----------------------- |
+| `required`     | Required field missing      | All validators          |
+| `type`         | Type mismatch               | Type validation         |
+| `minLength`    | String too short            | String validation       |
+| `maxLength`    | String too long             | String validation       |
+| `pattern`      | Pattern mismatch            | String validation       |
+| `email`        | Invalid email format        | Email validation        |
+| `url`          | Invalid URL format          | URL validation          |
+| `alphanumeric` | Non-alphanumeric characters | Alphanumeric validation |
+| `min`          | Number below minimum        | Number validation       |
+| `max`          | Number above maximum        | Number validation       |
+| `integer`      | Non-integer number          | Integer validation      |
+| `custom`       | Custom validation failure   | Custom validators       |
+| `asyncCustom`  | Async validation failure    | Async custom validators |
+| `exception`    | Validation exception        | Any validator           |
+| `pipeline`     | Pipeline execution error    | Pipeline utility        |
 
 ### Error Object Structure
 
 ```javascript
 {
-  isValid: false,
-  errors: [
-    {
-      field: 'email',
-      message: 'Invalid email format',
-      code: 'INVALID_FORMAT',
-      value: 'invalid-email'
-    }
-  ],
-  data: { /* processed data */ }
+  path: string,        // Field path (e.g., 'user.email')
+  message: string,     // Error message
+  type: string,        // Error type
+  value: any          // Original value that failed
 }
 ```
 
-### Common Error Codes
+---
 
-| Code               | Description                           |
-| ------------------ | ------------------------------------- |
-| `REQUIRED`         | Required field is missing             |
-| `INVALID_TYPE`     | Value has incorrect type              |
-| `INVALID_FORMAT`   | Value doesn't match expected format   |
-| `OUT_OF_RANGE`     | Value outside allowed range           |
-| `TOO_SHORT`        | String/array shorter than minimum     |
-| `TOO_LONG`         | String/array longer than maximum      |
-| `INVALID_ENUM`     | Value not in allowed enumeration      |
+## Common Validation Patterns
+
+### User Registration
+
+```javascript
+const userRegistrationSchema = {
+  type: 'object',
+  properties: {
+    email: commonSchemas.email,
+    password: commonSchemas.password,
+    username: commonSchemas.username,
+    age: { type: 'number', min: 13, max: 120 },
+    terms: {
+      type: 'boolean',
+      validate: (v) => (v === true ? true : 'Must accept terms'),
+    },
+  },
+};
+```
+
+### API Query Parameters
+
+```javascript
+const querySchema = {
+  type: 'object',
+  properties: {
+    page: { type: 'number', min: 1, default: 1 },
+    limit: { type: 'number', min: 1, max: 100, default: 10 },
+    search: { type: 'string', maxLength: 100, trim: true },
+    sort: { type: 'string', pattern: /^[a-zA-Z_]+$/ },
+  },
+};
+```
+
+### Form Input Sanitization
+
+```javascript
+const sanitizeFormData = (data) =>
+  sanitizeObject(data, {
+    properties: {
+      name: { trim: true, truncate: 50 },
+      email: { trim: true, lowercase: true },
+      phone: { remove: '[^0-9+\\-\\s()]' },
+      age: { integer: true, min: 0, max: 150, clamp: true },
+    },
+    removeEmpty: true,
+  });
+```
+
+---
 
 ## Security Considerations
 
-1. **Input Sanitization**: Always sanitize user input before validation to prevent injection attacks
-2. **HTML Content**: Use `sanitizeHtml()` for any user-generated HTML content
-3. **File Uploads**: Validate file types, sizes, and content before processing
-4. **SQL Injection**: Sanitize input used in database queries
-5. **XSS Prevention**: Escape output when rendering user content in HTML
+1. **Input Validation**: Always validate user input before processing
+2. **Sanitization**: Sanitize data to prevent injection attacks
+3. **Type Safety**: Use strict type validation for security-critical fields
+4. **Length Limits**: Set reasonable length limits to prevent DoS attacks
+5. **Pattern Matching**: Use regex patterns for format validation
+6. **Error Messages**: Don't expose sensitive information in error messages
 
 ## Performance Tips
 
-1. **Schema Caching**: Create validators once and reuse them for better performance
-2. **Early Termination**: Use `abortEarly: true` for faster validation in production
-3. **Selective Validation**: Only validate fields that have changed when possible
-4. **Async Validation**: Use `validateAsync()` only when necessary as it's slower
-5. **Batch Processing**: Validate multiple items together rather than individually
+1. **Reuse Validators**: Create validators once and reuse them
+2. **Abort Early**: Use `abortEarly: true` for performance-critical validations
+3. **Schema Caching**: Cache complex schemas to avoid recreation
+4. **Pipeline Optimization**: Order validators by performance (fast first)
+5. **Async Sparingly**: Use async validation only when necessary
 
 ## TypeScript Support
 
-The module includes TypeScript definitions for better IDE support:
+While this module is written in JavaScript, it includes comprehensive JSDoc
+comments for IDE support. TypeScript users can create declaration files:
 
 ```typescript
 interface ValidationResult<T = any> {
-  isValid: boolean;
+  valid: boolean;
   errors: ValidationError[];
-  data: T;
+  value: T;
 }
 
-interface ValidationOptions {
-  strict?: boolean;
-  abortEarly?: boolean;
+interface Schema {
+  type?: string | string[];
+  required?: boolean;
+  default?: any | (() => any);
+  validate?: (value: any) => boolean | string;
+  validateAsync?: (value: any) => Promise<boolean | string>;
 }
 ```
 

@@ -9,7 +9,6 @@
 
    - ESM imports, single quotes, 2-space indentation, semicolons
    - Always include JSDoc comments for functions
-   - Prefer async/await over callbacks or raw promises
 
 2. **JSDoc Format** (Required for all functions):
 
@@ -27,1033 +26,738 @@
    - Use try/catch blocks for async functions
    - Check parameters before using them
    - Throw descriptive error messages
-   - Handle validation errors gracefully
 
 4. **Framework Agnostic**:
    - Code should work with any Node.js framework
-   - Avoid dependencies on specific frameworks like Express
+   - Validation patterns should be adaptable
 
 ## Function Signatures
 
-### 1. Core Validation Functions
-
-#### `validate`
+### 1. `validate`
 
 ```typescript
-function validate<T = any>(
-  data: T,
-  schema: object,
+function validate(
+  data: any,
+  schema: {
+    type?: string | string[];
+    required?: boolean;
+    default?: any | (() => any);
+    validate?: (value: any) => boolean | string;
+    properties?: Record<string, Schema>;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    integer?: boolean;
+    email?: boolean;
+    url?: boolean;
+    alphanumeric?: boolean;
+    pattern?: RegExp | string;
+    trim?: boolean;
+  },
   options?: {
     abortEarly?: boolean;
-    allowUnknown?: boolean;
-    stripUnknown?: boolean;
-    context?: object;
-    strict?: boolean;
   }
 ): {
   valid: boolean;
   errors: Array<{
     path: string;
     message: string;
-    code: string;
+    type: string;
     value: any;
   }>;
-  value: T;
+  value: any;
 };
 ```
 
-#### `validateAsync`
+### 2. `validateAsync`
 
 ```typescript
-async function validateAsync<T = any>(
-  data: T,
-  schema: object,
+async function validateAsync(
+  data: any,
+  schema: Schema & {
+    validateAsync?: (value: any) => Promise<boolean | string>;
+  },
   options?: {
     abortEarly?: boolean;
-    allowUnknown?: boolean;
-    stripUnknown?: boolean;
-    context?: object;
-    strict?: boolean;
-    timeout?: number;
   }
-): Promise<{
-  valid: boolean;
-  errors: Array<{
-    path: string;
-    message: string;
-    code: string;
-    value: any;
-  }>;
-  value: T;
-}>;
+): Promise<ValidationResult>;
 ```
 
-#### `createValidator`
+### 3. `createValidator`
 
 ```typescript
-function createValidator<T = any>(
-  schema: object,
-  options?: {
-    abortEarly?: boolean;
-    allowUnknown?: boolean;
-    stripUnknown?: boolean;
-    context?: object;
-    strict?: boolean;
-  }
-): (data: T) => {
-  valid: boolean;
-  errors: Array<{
-    path: string;
-    message: string;
-    code: string;
-    value: any;
-  }>;
-  value: T;
-};
+function createValidator(
+  schema: Schema,
+  options?: { abortEarly?: boolean }
+): (data: any, overrideOptions?: ValidationOptions) => ValidationResult;
 ```
 
-### 2. Core Sanitization Functions
-
-#### `sanitize`
+### 4. `createAsyncValidator`
 
 ```typescript
-function sanitize<T = any>(
-  data: T,
-  rules: object | Array<object> | ((data: T) => T)
-): T;
+function createAsyncValidator(
+  schema: Schema,
+  options?: { abortEarly?: boolean }
+): (
+  data: any,
+  overrideOptions?: ValidationOptions
+) => Promise<ValidationResult>;
 ```
 
-#### `sanitizeString`
+### 5. Built-in Validators
 
 ```typescript
+function isEmail(value: string): boolean;
+function isUrl(value: string): boolean;
+function isAlphanumeric(value: string): boolean;
+```
+
+- **isEmail**: Validates RFC-compliant email addresses with length limits
+- **isUrl**: Validates HTTP/HTTPS URLs only, rejects other protocols
+- **isAlphanumeric**: Validates strings containing only letters and numbers
+
+### 6. Sanitization Functions
+
+```typescript
+function sanitize(data: any, rules: SanitizationRules | Function): any;
+
 function sanitizeString(
   input: string,
   rules?: {
-    trim?: boolean;
+    trim?: boolean; // Default: true
     lowercase?: boolean;
     uppercase?: boolean;
-    capitalize?: boolean;
-    titleCase?: boolean;
-    escape?: boolean;
-    unescape?: boolean;
-    stripTags?: boolean;
-    truncate?: number;
-    slug?: boolean;
-    alphanumeric?: boolean;
-    alpha?: boolean;
-    numeric?: boolean;
-    email?: boolean;
-    url?: boolean;
-    replace?: { [pattern: string]: string };
-    remove?: string | string[];
-    normalize?: boolean | string;
-    whitespace?: 'single' | 'remove';
-    linebreaks?: 'unix' | 'windows' | 'remove';
+    truncate?: number | boolean; // true = 255 chars
+    replace?: Record<string, string>; // regex patterns as keys
+    remove?: string | string[]; // regex patterns to remove
   }
 ): string;
-```
 
-#### `sanitizeHtml`
-
-```typescript
-function sanitizeHtml(
-  input: string,
-  options?: {
-    allowedTags?: string[];
-    allowedAttributes?: { [tag: string]: string[] };
-    allowedSchemes?: string[];
-    stripEmpty?: boolean;
-    maxLength?: number;
-    allowDataAttributes?: boolean;
-    allowClassNames?: boolean;
-  }
-): string;
-```
-
-#### `sanitizeNumber`
-
-```typescript
 function sanitizeNumber(
   input: any,
   rules?: {
-    default?: number;
-    integer?: boolean;
-    round?: 'ceil' | 'floor' | 'round';
+    default?: number; // Default: 0 for NaN
+    integer?: boolean; // Truncate decimals
+    precision?: number; // Round to decimal places
     min?: number;
     max?: number;
-    clamp?: boolean;
-    precision?: number;
-    positive?: boolean;
-    negative?: boolean;
-    absolute?: boolean;
-    finite?: boolean;
+    clamp?: boolean; // Enforce min/max bounds
   }
 ): number;
-```
 
-#### `sanitizeArray`
-
-```typescript
-function sanitizeArray(
-  input: any,
-  rules?: {
-    parse?: boolean;
-    delimiter?: string;
-    compact?: boolean;
-    flatten?: boolean | number;
-    unique?: boolean;
-    uniqueBy?: string | ((item: any) => any);
-    items?: object;
-    skipInvalid?: boolean;
-    filter?: (item: any, index: number) => boolean;
-    sort?: boolean | string | ((a: any, b: any) => number);
-    reverse?: boolean;
-    limit?: number;
-    offset?: number;
-  }
-): any[];
-```
-
-#### `sanitizeObject`
-
-```typescript
 function sanitizeObject(
   input: any,
   rules?: {
-    parse?: boolean;
-    defaults?: object;
-    pick?: string[];
-    omit?: string[];
-    rename?: { [oldKey: string]: string };
-    properties?: { [key: string]: object };
-    skipInvalid?: boolean;
-    filter?: (value: any, key: string) => boolean;
-    mapKeys?: (key: string, value: any) => string;
-    mapValues?: (value: any, key: string) => any;
-    removeEmpty?: boolean;
-    maxProperties?: number;
+    defaults?: Record<string, any>; // Default property values
+    pick?: string[]; // Include only these properties
+    omit?: string[]; // Exclude these properties
+    properties?: Record<string, SanitizationRules>; // Per-property rules
+    removeEmpty?: boolean; // Remove null/undefined/empty string
   }
 ): object;
 ```
 
-#### `createSanitizer`
-
-```typescript
-function createSanitizer<T = any>(
-  rules: object | Array<object> | ((data: T) => T)
-): (data: T) => T;
-```
-
-### 3. Built-in Validators
-
-#### `validateString`
-
-```typescript
-function validateString(
-  input: string,
-  rules?: {
-    required?: boolean;
-    minLength?: number;
-    maxLength?: number;
-    exactLength?: number;
-    pattern?: RegExp;
-    enum?: string[];
-    startsWith?: string;
-    endsWith?: string;
-    contains?: string;
-    alphanumeric?: boolean;
-    alpha?: boolean;
-    numeric?: boolean;
-    uppercase?: boolean;
-    lowercase?: boolean;
-    email?: boolean;
-    url?: boolean;
-    uuid?: boolean;
-    slug?: boolean;
-    hexColor?: boolean;
-    base64?: boolean;
-    json?: boolean;
-    custom?: (value: string) => boolean | string;
-  }
-): boolean;
-```
-
-#### `validateNumber`
-
-```typescript
-function validateNumber(
-  input: number,
-  rules?: {
-    required?: boolean;
-    min?: number;
-    max?: number;
-    exclusiveMin?: number;
-    exclusiveMax?: number;
-    integer?: boolean;
-    positive?: boolean;
-    negative?: boolean;
-    nonZero?: boolean;
-    finite?: boolean;
-    multipleOf?: number;
-    precision?: number;
-    enum?: number[];
-    custom?: (value: number) => boolean | string;
-  }
-): boolean;
-```
-
-#### `validateEmail`
-
-```typescript
-function validateEmail(
-  email: string,
-  options?: {
-    allowInternational?: boolean;
-    allowSmtpUTF8?: boolean;
-    maxLength?: number;
-    blacklistDomains?: string[];
-    whitelistDomains?: string[];
-    requireTld?: boolean;
-    allowLocal?: boolean;
-  }
-): boolean;
-```
-
-#### `validateUrl`
-
-```typescript
-function validateUrl(
-  url: string,
-  options?: {
-    protocols?: string[];
-    requireTld?: boolean;
-    requireProtocol?: boolean;
-    allowLocal?: boolean;
-    allowPort?: boolean;
-    allowQuery?: boolean;
-    allowFragment?: boolean;
-    maxLength?: number;
-  }
-): boolean;
-```
-
-#### `validatePhone`
-
-```typescript
-function validatePhone(
-  phone: string,
-  options?: {
-    country?: string;
-    format?: 'e164' | 'national' | 'international' | 'any';
-    allowExtensions?: boolean;
-    minLength?: number;
-    maxLength?: number;
-  }
-): boolean;
-```
-
-### 4. Common Sanitizers
-
-#### `sanitizeEmail`
-
-```typescript
-function sanitizeEmail(email: string): string;
-```
-
-#### `sanitizeUsername`
-
-```typescript
-function sanitizeUsername(username: string): string;
-```
-
-#### `sanitizePassword`
-
-```typescript
-function sanitizePassword(password: string): string;
-```
-
-#### `sanitizePhone`
-
-```typescript
-function sanitizePhone(
-  phone: string,
-  options?: { format?: 'e164' | 'national'; country?: string }
-): string;
-```
-
-#### `sanitizeUrl`
-
-```typescript
-function sanitizeUrl(url: string): string;
-```
-
-#### `sanitizeSlug`
-
-```typescript
-function sanitizeSlug(slug: string): string;
-```
-
-#### `sanitizeSearch`
-
-```typescript
-function sanitizeSearch(query: string): string;
-```
-
-#### `sanitizeTags`
-
-```typescript
-function sanitizeTags(
-  tags: string | string[],
-  options?: { maxTags?: number; maxLength?: number; delimiter?: string }
-): string[];
-```
-
-### 5. Schema Functions
-
-#### `commonSchemas`
+### 7. Schema Management
 
 ```typescript
 const commonSchemas: {
-  email: object;
-  password: object;
-  username: object;
-  phone: object;
-  url: object;
-  id: object;
-  uuid: object;
-  slug: object;
-  tags: object;
-  date: object;
-  integer: object;
-  positiveInteger: object;
-  percentage: object;
-  address: object;
-  coordinates: object;
-  timeRange: object;
-  pagination: object;
-  searchQuery: object;
-  fileUpload: object;
-  creditCard: object;
-  postalCode: object;
-  hexColor: object;
-  ipAddress: object;
-  macAddress: object;
-  domain: object;
-  filename: object;
+  email: Schema; // RFC email with max 254 chars
+  password: Schema; // 8-128 chars, mixed case + number + special
+  username: Schema; // 3-32 chars, alphanumeric only
+  url: Schema; // Valid URL, max 2048 chars
+  boolean: Schema; // Boolean type validation
+  integer: Schema; // Integer number validation
 };
+
+function createSchema(definition: Schema): Schema;
 ```
 
-#### `createSchema`
-
-```typescript
-function createSchema(definition: object): object;
-```
-
-#### `mergeSchemas`
-
-```typescript
-function mergeSchemas(...schemas: object[]): object;
-```
-
-#### `extendSchema`
-
-```typescript
-function extendSchema(baseSchema: object, extension: object): object;
-```
-
-### 6. Error Handling
-
-#### `ValidationError`
+### 8. Error Handling
 
 ```typescript
 class ValidationError extends Error {
-  constructor(
-    message: string,
-    errors: Array<{
-      path: string;
-      message: string;
-      code: string;
-      value: any;
-    }>
-  );
-  getMessages(): string[];
-  getFieldErrors(field: string): Array<object>;
-  hasFieldErrors(field: string): boolean;
-  getErrorsByCode(code: string): Array<object>;
-  toJSON(): object;
+  constructor(message: string, errors?: Array<ErrorObject>);
+  getMessages(): string[]; // Formatted error messages
+  hasErrors(): boolean; // Check if errors exist
+  errors: Array<{
+    path: string;
+    message: string;
+    type: string;
+    value: any;
+  }>;
 }
 ```
 
+### 9. Pipeline Utilities
+
+```typescript
+const utils: {
+  pipeline: (...validators: Function[]) => (
+    data: any,
+    options?: {
+      abortEarly?: boolean;
+    }
+  ) => Promise<{
+    valid: boolean;
+    errors: Array<ErrorObject>;
+    value: any;
+  }>;
+};
+```
+
+- **Pipeline behavior**: Chains validators, passes transformed values between
+  steps
+- **Error handling**: Collects all errors unless `abortEarly: true`
+- **Value transformation**: Each validator can modify the value for the next
+  step
+
 ## Example Implementations
 
-### Example 1: Basic User Registration Validation
+### Basic Validation
+
+```javascript
+/**
+ * Validates user input data
+ * @param {Object} userData - User data to validate
+ * @returns {Object} Validation result
+ * @throws {Error} If validation setup fails
+ */
+function validateUser(userData) {
+  const schema = {
+    type: 'object',
+    properties: {
+      name: { type: 'string', required: true, minLength: 2 },
+      age: { type: 'number', min: 0, max: 120 },
+      email: { type: 'string', email: true },
+    },
+  };
+
+  const result = validate(userData, schema);
+
+  if (!result.valid) {
+    console.log('Validation errors:', result.errors);
+  }
+
+  return result;
+}
+
+/**
+ * Validates email address
+ * @param {string} email - Email to validate
+ * @returns {boolean} Is valid email
+ */
+function validateEmail(email) {
+  return isEmail(email);
+}
+```
+
+### Async Validation
+
+```javascript
+/**
+ * Validates username availability
+ * @param {string} username - Username to check
+ * @returns {Promise<Object>} Validation result
+ * @throws {Error} If validation fails
+ */
+async function validateUsername(username) {
+  const schema = {
+    type: 'string',
+    required: true,
+    alphanumeric: true,
+    minLength: 3,
+    validateAsync: async (value) => {
+      // Simulate database check
+      const existingUsers = await getUsernames();
+      return existingUsers.includes(value) ? 'Username already taken' : true;
+    },
+  };
+
+  return await validateAsync(username, schema);
+}
+
+/**
+ * Creates async user validator
+ * @returns {Function} Async validator function
+ */
+function createUserValidator() {
+  return createAsyncValidator({
+    type: 'object',
+    properties: {
+      email: {
+        type: 'string',
+        email: true,
+        validateAsync: async (email) => {
+          const exists = await checkEmailExists(email);
+          return exists ? 'Email already registered' : true;
+        },
+      },
+      username: {
+        type: 'string',
+        alphanumeric: true,
+        validateAsync: async (username) => {
+          const taken = await checkUsernameTaken(username);
+          return taken ? 'Username not available' : true;
+        },
+      },
+    },
+  });
+}
+```
+
+### Data Sanitization
+
+```javascript
+/**
+ * Sanitizes user input data
+ * @param {Object} rawData - Raw user input
+ * @returns {Object} Sanitized data
+ * @throws {Error} If sanitization fails
+ */
+function sanitizeUserInput(rawData) {
+  return sanitizeObject(rawData, {
+    pick: ['name', 'email', 'age'],
+    properties: {
+      name: { trim: true, truncate: 50 },
+      email: { trim: true, lowercase: true },
+      age: { integer: true, min: 0, clamp: true },
+    },
+    removeEmpty: true,
+  });
+}
+
+/**
+ * Sanitizes form data
+ * @param {Object} formData - Form input data
+ * @returns {Object} Clean form data
+ */
+function sanitizeForm(formData) {
+  const sanitized = {};
+
+  for (const [key, value] of Object.entries(formData)) {
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeString(value, {
+        trim: true,
+        truncate: 1000,
+      });
+    } else if (typeof value === 'number') {
+      sanitized[key] = sanitizeNumber(value, {
+        precision: 2,
+      });
+    } else {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized;
+}
+```
+
+### Reusable Validators
+
+```javascript
+/**
+ * Creates email validator
+ * @returns {Function} Email validator function
+ */
+function createEmailValidator() {
+  return createValidator({
+    type: 'string',
+    required: true,
+    email: true,
+    maxLength: 254,
+  });
+}
+
+/**
+ * Creates password validator
+ * @returns {Function} Password validator function
+ */
+function createPasswordValidator() {
+  return createValidator({
+    type: 'string',
+    required: true,
+    minLength: 8,
+    validate: (password) => {
+      if (!/[A-Z]/.test(password)) {
+        return 'Password must contain uppercase letter';
+      }
+      if (!/[a-z]/.test(password)) {
+        return 'Password must contain lowercase letter';
+      }
+      if (!/[0-9]/.test(password)) {
+        return 'Password must contain number';
+      }
+      return true;
+    },
+  });
+}
+
+/**
+ * Creates product validator
+ * @returns {Function} Product validator function
+ */
+function createProductValidator() {
+  return createValidator({
+    type: 'object',
+    properties: {
+      name: { type: 'string', required: true, minLength: 2 },
+      price: { type: 'number', required: true, min: 0 },
+      category: { type: 'string', required: true },
+      inStock: { type: 'boolean', default: true },
+    },
+  });
+}
+```
+
+### Schema Usage
 
 ```javascript
 /**
  * Validates user registration data
- * @param {Object} userData - User registration data
- * @returns {Object} Validation result with clean data
- * @throws {ValidationError} If validation fails in strict mode
+ * @param {Object} userData - Registration data
+ * @returns {Object} Validation result
  */
-function validateUserRegistration(userData) {
-  if (!userData || typeof userData !== 'object') {
-    throw new Error('User data must be an object');
-  }
-
-  try {
-    // Define schema
-    const schema = {
-      type: 'object',
-      required: ['username', 'email', 'password'],
-      properties: {
-        username: {
-          type: 'string',
-          minLength: 3,
-          maxLength: 20,
-          pattern: /^[a-zA-Z0-9_]+$/,
-        },
-        email: {
-          type: 'string',
-          email: true,
-          maxLength: 255,
-        },
-        password: {
-          type: 'string',
-          minLength: 8,
-          pattern:
-            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-        },
-        firstName: { type: 'string', minLength: 1, maxLength: 50 },
-        lastName: { type: 'string', minLength: 1, maxLength: 50 },
+function validateRegistration(userData) {
+  const schema = {
+    type: 'object',
+    properties: {
+      email: commonSchemas.email,
+      password: commonSchemas.password,
+      username: commonSchemas.username,
+      age: { type: 'number', min: 13, required: true },
+      terms: {
+        type: 'boolean',
+        validate: (value) => (value === true ? true : 'Must accept terms'),
       },
-      additionalProperties: false,
-    };
+    },
+  };
 
-    // Sanitize first
-    const cleanData = sanitize(userData, {
-      username: { trim: true, lowercase: true },
-      email: { trim: true, lowercase: true },
-      firstName: { trim: true, capitalize: true },
-      lastName: { trim: true, capitalize: true },
-    });
+  return validate(userData, schema);
+}
 
-    // Then validate
-    const result = validate(cleanData, schema, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
-    if (!result.valid) {
-      const error = new ValidationError(
-        'User registration validation failed',
-        result.errors
-      );
-      throw error;
-    }
-
-    return {
-      success: true,
-      data: result.value,
-      message: 'User data is valid',
-    };
-  } catch (error) {
-    console.error('User registration validation error:', error.message);
-    throw error;
-  }
+/**
+ * Creates custom schema
+ * @param {Object} definition - Schema definition
+ * @returns {Object} Schema object
+ */
+function createApiSchema(definition) {
+  return createSchema({
+    type: 'object',
+    properties: {
+      page: { type: 'number', min: 1, default: 1 },
+      limit: { type: 'number', min: 1, max: 100, default: 10 },
+      search: { type: 'string', maxLength: 100 },
+      ...definition,
+    },
+  });
 }
 ```
 
-### Example 2: API Request Sanitization and Validation
+### Pipeline Usage
 
 ```javascript
 /**
- * Creates a middleware for Express.js that sanitizes and validates API requests
- * @param {Object} schema - Validation schema
- * @param {Object} sanitizationRules - Sanitization rules
- * @returns {Function} Express middleware function
+ * Creates validation pipeline with multiple steps
+ * @returns {Function} Pipeline validator
  */
-function createValidationMiddleware(schema, sanitizationRules = {}) {
-  if (!schema || typeof schema !== 'object') {
-    throw new Error('Schema is required and must be an object');
-  }
-
-  const validator = createValidator(schema, {
-    abortEarly: false,
-    stripUnknown: true,
+function createValidationPipeline() {
+  const stringValidator = createValidator({
+    type: 'string',
+    required: true,
+    minLength: 3,
   });
 
-  const sanitizer =
-    Object.keys(sanitizationRules).length > 0
-      ? createSanitizer(sanitizationRules)
-      : null;
+  const emailValidator = createValidator({
+    type: 'string',
+    email: true,
+  });
 
-  return (req, res, next) => {
-    try {
-      // Sanitize request data if rules provided
-      const dataToValidate = sanitizer ? sanitizer(req.body) : req.body;
+  // Pipeline passes value through each validator
+  return utils.pipeline(stringValidator, emailValidator);
+}
 
-      // Validate the data
-      const result = validator(dataToValidate);
+/**
+ * Creates sanitization and validation pipeline
+ * @returns {Function} Combined pipeline
+ */
+function createDataPipeline() {
+  const sanitizer = (data) => ({
+    valid: true,
+    value: sanitizeString(data, { trim: true, lowercase: true }),
+  });
 
-      if (result.valid) {
-        req.validatedData = result.value;
-        next();
-      } else {
-        // Format errors for API response
-        const fieldErrors = {};
-        result.errors.forEach((error) => {
-          if (!fieldErrors[error.path]) {
-            fieldErrors[error.path] = [];
-          }
-          fieldErrors[error.path].push({
-            message: error.message,
-            code: error.code,
-            value: error.value,
-          });
-        });
+  const validator = createValidator({
+    type: 'string',
+    email: true,
+  });
 
-        res.status(400).json({
-          error: 'Validation failed',
-          message: 'Please check your input and try again',
-          fields: fieldErrors,
-        });
-      }
-    } catch (error) {
-      console.error('Validation middleware error:', error.message);
-      res.status(500).json({
-        error: 'Internal server error',
-        message: 'Validation processing failed',
-      });
-    }
+  return utils.pipeline(sanitizer, validator);
+}
+
+/**
+ * Validates data through pipeline with options
+ * @param {string} email - Email to validate
+ * @param {Object} options - Pipeline options
+ * @returns {Promise<Object>} Validation result
+ */
+async function validateThroughPipeline(email, options = {}) {
+  const pipeline = createValidationPipeline();
+
+  // Pipeline supports abortEarly option
+  return await pipeline(email, { abortEarly: options.abortEarly || false });
+}
+
+/**
+ * Creates complex validation pipeline
+ * @returns {Function} Multi-step validator
+ */
+function createComplexPipeline() {
+  // Step 1: Sanitize
+  const sanitizeStep = (data) => ({
+    valid: true,
+    value: sanitizeObject(data, {
+      pick: ['email', 'name'],
+      properties: {
+        email: { trim: true, lowercase: true },
+        name: { trim: true },
+      },
+    }),
+  });
+
+  // Step 2: Validate structure
+  const structureValidator = createValidator({
+    type: 'object',
+    properties: {
+      email: { type: 'string', required: true },
+      name: { type: 'string', required: true },
+    },
+  });
+
+  // Step 3: Validate content
+  const contentValidator = createValidator({
+    type: 'object',
+    properties: {
+      email: { type: 'string', email: true },
+      name: { type: 'string', minLength: 2 },
+    },
+  });
+
+  return utils.pipeline(sanitizeStep, structureValidator, contentValidator);
+}
+```
+
+### Error Handling
+
+```javascript
+/**
+ * Handles validation errors
+ * @param {Object} validationResult - Result from validation
+ * @returns {Object} Formatted error response
+ */
+function handleValidationErrors(validationResult) {
+  if (validationResult.valid) {
+    return { success: true, data: validationResult.value };
+  }
+
+  const error = new ValidationError(
+    'Validation failed',
+    validationResult.errors
+  );
+
+  return {
+    success: false,
+    errors: error.getMessages(),
+    details: validationResult.errors,
   };
 }
-```
 
-### Example 3: Async Validation with Database Checks
-
-```javascript
 /**
- * Validates user data with async database uniqueness checks
- * @param {Object} userData - User data to validate
- * @param {Object} database - Database connection object
- * @returns {Promise<Object>} Validation result
- * @throws {ValidationError} If validation fails
- */
-async function validateUserWithAsyncChecks(userData, database) {
-  if (!userData || typeof userData !== 'object') {
-    throw new Error('User data must be an object');
-  }
-
-  if (!database) {
-    throw new Error('Database connection is required');
-  }
-
-  try {
-    const schema = {
-      type: 'object',
-      required: ['username', 'email'],
-      properties: {
-        username: {
-          type: 'string',
-          minLength: 3,
-          maxLength: 20,
-          asyncValidator: async (username) => {
-            const exists = await database.users.findOne({ username });
-            return exists ? 'Username is already taken' : true;
-          },
-        },
-        email: {
-          type: 'string',
-          email: true,
-          asyncValidator: async (email) => {
-            const exists = await database.users.findOne({ email });
-            return exists ? 'Email is already registered' : true;
-          },
-        },
-      },
-    };
-
-    // Sanitize data first
-    const cleanData = sanitize(userData, {
-      username: { trim: true, lowercase: true },
-      email: { trim: true, lowercase: true },
-    });
-
-    // Perform async validation
-    const result = await validateAsync(cleanData, schema, {
-      timeout: 5000, // 5 second timeout
-      abortEarly: false,
-    });
-
-    if (!result.valid) {
-      throw new ValidationError('Async validation failed', result.errors);
-    }
-
-    return {
-      success: true,
-      data: result.value,
-      message: 'User data validated successfully',
-    };
-  } catch (error) {
-    console.error('Async validation error:', error.message);
-    throw error;
-  }
-}
-```
-
-### Example 4: Content Sanitization for Blog Posts
-
-```javascript
-/**
- * Sanitizes and validates blog post content
- * @param {Object} postData - Blog post data
- * @returns {Object} Sanitized and validated post data
- * @throws {Error} If validation fails
- */
-function sanitizeBlogPost(postData) {
-  if (!postData || typeof postData !== 'object') {
-    throw new Error('Post data must be an object');
-  }
-
-  try {
-    // Define sanitization rules
-    const sanitizationRules = {
-      title: {
-        trim: true,
-        titleCase: true,
-        stripTags: true,
-        truncate: 100,
-      },
-      content: {
-        // Will be handled by sanitizeHtml separately
-      },
-      excerpt: {
-        stripTags: true,
-        truncate: 300,
-        whitespace: 'single',
-      },
-      tags: {
-        compact: true,
-        unique: true,
-        items: { slug: true },
-        limit: 10,
-      },
-      author: {
-        trim: true,
-        capitalize: true,
-        stripTags: true,
-      },
-    };
-
-    // Sanitize basic fields
-    const sanitizedPost = sanitize(postData, sanitizationRules);
-
-    // Sanitize HTML content separately with specific rules
-    if (sanitizedPost.content) {
-      sanitizedPost.content = sanitizeHtml(sanitizedPost.content, {
-        allowedTags: [
-          'p',
-          'br',
-          'strong',
-          'em',
-          'b',
-          'i',
-          'u',
-          'h1',
-          'h2',
-          'h3',
-          'h4',
-          'h5',
-          'h6',
-          'ul',
-          'ol',
-          'li',
-          'blockquote',
-          'pre',
-          'code',
-          'a',
-          'img',
-        ],
-        allowedAttributes: {
-          a: ['href', 'title', 'target'],
-          img: ['src', 'alt', 'title', 'width', 'height'],
-          pre: ['class'],
-          code: ['class'],
-        },
-        allowedSchemes: ['http', 'https', 'mailto'],
-        stripEmpty: true,
-        maxLength: 50000,
-      });
-    }
-
-    // Validate the sanitized data
-    const schema = {
-      type: 'object',
-      required: ['title', 'content'],
-      properties: {
-        title: { type: 'string', minLength: 5, maxLength: 100 },
-        content: { type: 'string', minLength: 50 },
-        excerpt: { type: 'string', maxLength: 300 },
-        tags: {
-          type: 'array',
-          maxItems: 10,
-          items: { type: 'string', minLength: 2, maxLength: 30 },
-        },
-        author: { type: 'string', minLength: 1, maxLength: 100 },
-      },
-    };
-
-    const validationResult = validate(sanitizedPost, schema);
-
-    if (!validationResult.valid) {
-      throw new ValidationError(
-        'Blog post validation failed',
-        validationResult.errors
-      );
-    }
-
-    return {
-      success: true,
-      data: validationResult.value,
-      message: 'Blog post sanitized and validated successfully',
-    };
-  } catch (error) {
-    console.error('Blog post sanitization error:', error.message);
-    throw error;
-  }
-}
-```
-
-### Example 5: Data Import Validation Pipeline
-
-```javascript
-/**
- * Validates and processes bulk data import
- * @param {Array} dataArray - Array of data objects to validate
+ * Validates and handles errors
+ * @param {any} data - Data to validate
  * @param {Object} schema - Validation schema
- * @param {Object} sanitizationRules - Sanitization rules
- * @returns {Promise<Object>} Processing results
+ * @returns {Object} Result with error handling
  */
-async function processBulkDataImport(
-  dataArray,
-  schema,
-  sanitizationRules = {}
-) {
-  if (!Array.isArray(dataArray)) {
-    throw new Error('Data must be an array');
-  }
-
-  if (!schema || typeof schema !== 'object') {
-    throw new Error('Schema is required and must be an object');
-  }
-
+function validateWithErrorHandling(data, schema) {
   try {
-    const validator = createValidator(schema, {
-      abortEarly: false,
-      stripUnknown: true,
-    });
-
-    const sanitizer =
-      Object.keys(sanitizationRules).length > 0
-        ? createSanitizer(sanitizationRules)
-        : null;
-
-    const results = {
-      total: dataArray.length,
-      valid: [],
-      invalid: [],
-      processed: 0,
-    };
-
-    // Process each item
-    for (let i = 0; i < dataArray.length; i++) {
-      try {
-        const item = dataArray[i];
-
-        // Sanitize if rules provided
-        const cleanItem = sanitizer ? sanitizer(item) : item;
-
-        // Validate
-        const validationResult = validator(cleanItem);
-
-        if (validationResult.valid) {
-          results.valid.push({
-            index: i,
-            data: validationResult.value,
-          });
-        } else {
-          results.invalid.push({
-            index: i,
-            data: item,
-            errors: validationResult.errors,
-          });
-        }
-
-        results.processed++;
-
-        // Log progress for large datasets
-        if (results.processed % 1000 === 0) {
-          console.log(`Processed ${results.processed}/${results.total} items`);
-        }
-      } catch (error) {
-        results.invalid.push({
-          index: i,
-          data: dataArray[i],
-          errors: [
-            {
-              path: 'root',
-              message: error.message,
-              code: 'PROCESSING_ERROR',
-              value: dataArray[i],
-            },
-          ],
-        });
-        results.processed++;
-      }
-    }
-
-    console.log(
-      `Bulk validation complete: ${results.valid.length} valid, ${results.invalid.length} invalid`
-    );
-
-    return {
-      success: true,
-      results,
-      summary: {
-        totalProcessed: results.processed,
-        validCount: results.valid.length,
-        invalidCount: results.invalid.length,
-        successRate:
-          ((results.valid.length / results.total) * 100).toFixed(2) + '%',
-      },
-    };
+    const result = validate(data, schema);
+    return handleValidationErrors(result);
   } catch (error) {
-    console.error('Bulk data import error:', error.message);
-    throw error;
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 }
 ```
 
-### Example 6: Schema Composition and Reuse
+### Complete Integration Example
 
 ```javascript
 /**
- * Creates reusable schemas using composition patterns
- * @returns {Object} Collection of reusable schemas
+ * User registration service with validation and sanitization
+ * @class UserService
  */
-function createReusableSchemas() {
-  try {
-    // Base schemas
-    const timestampSchema = createSchema({
-      properties: {
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-      },
-    });
+class UserService {
+  constructor() {
+    this.emailValidator = createValidator(commonSchemas.email);
+    this.passwordValidator = createValidator(commonSchemas.password);
+  }
 
-    const auditSchema = createSchema({
-      properties: {
-        createdBy: { type: 'string', minLength: 1 },
-        updatedBy: { type: 'string', minLength: 1 },
-        version: { type: 'number', minimum: 1 },
-      },
-    });
-
-    // User schemas
-    const baseUserSchema = createSchema({
-      type: 'object',
-      required: ['username', 'email'],
-      properties: {
-        username: commonSchemas.username,
-        email: commonSchemas.email,
-        firstName: { type: 'string', minLength: 1, maxLength: 50 },
-        lastName: { type: 'string', minLength: 1, maxLength: 50 },
-      },
-    });
-
-    const fullUserSchema = mergeSchemas(
-      baseUserSchema,
-      timestampSchema,
-      auditSchema
-    );
-
-    const adminUserSchema = extendSchema(fullUserSchema, {
-      required: ['role', 'permissions'],
-      properties: {
-        role: { type: 'string', enum: ['admin', 'super_admin'] },
-        permissions: {
-          type: 'array',
-          items: { type: 'string' },
-          minItems: 1,
+  /**
+   * Registers a new user
+   * @param {Object} userData - User registration data
+   * @returns {Promise<Object>} Registration result
+   * @throws {Error} If registration fails
+   */
+  async registerUser(userData) {
+    try {
+      // Sanitize input
+      const sanitized = sanitizeObject(userData, {
+        pick: ['email', 'password', 'name'],
+        properties: {
+          email: { trim: true, lowercase: true },
+          name: { trim: true, truncate: 50 },
         },
-      },
-    });
+        removeEmpty: true,
+      });
 
-    // Product schemas
-    const baseProductSchema = createSchema({
-      type: 'object',
-      required: ['name', 'price'],
-      properties: {
-        name: { type: 'string', minLength: 1, maxLength: 100 },
-        description: { type: 'string', maxLength: 1000 },
-        price: { type: 'number', minimum: 0 },
-        category: {
-          type: 'string',
-          enum: ['electronics', 'clothing', 'books', 'home', 'sports'],
-        },
-      },
-    });
+      // Validate sanitized data
+      const emailResult = this.emailValidator(sanitized.email);
+      const passwordResult = this.passwordValidator(sanitized.password);
 
-    const fullProductSchema = mergeSchemas(baseProductSchema, timestampSchema, {
-      properties: {
-        tags: commonSchemas.tags,
-        images: {
-          type: 'array',
-          maxItems: 5,
-          items: commonSchemas.url,
-        },
-      },
-    });
+      if (!emailResult.valid || !passwordResult.valid) {
+        const errors = [...emailResult.errors, ...passwordResult.errors];
 
-    return {
-      users: {
-        base: baseUserSchema,
-        full: fullUserSchema,
-        admin: adminUserSchema,
-      },
-      products: {
-        base: baseProductSchema,
-        full: fullProductSchema,
-      },
-      common: {
-        timestamp: timestampSchema,
-        audit: auditSchema,
+        throw new ValidationError('Validation failed', errors);
+      }
+
+      // Check uniqueness
+      const uniqueResult = await this.validateUniqueness(sanitized.email);
+      if (!uniqueResult.valid) {
+        throw new ValidationError('Email already exists', uniqueResult.errors);
+      }
+
+      // Create user
+      const user = await this.createUser(sanitized);
+      return { success: true, user };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return {
+          success: false,
+          errors: error.getMessages(),
+        };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Validates email uniqueness
+   * @param {string} email - Email to check
+   * @returns {Promise<Object>} Validation result
+   */
+  async validateUniqueness(email) {
+    const schema = {
+      type: 'string',
+      validateAsync: async (value) => {
+        const exists = await this.emailExists(value);
+        return exists ? 'Email already registered' : true;
       },
     };
-  } catch (error) {
-    console.error('Schema creation error:', error.message);
-    throw error;
+
+    return await validateAsync(email, schema);
+  }
+
+  /**
+   * Creates user in database
+   * @param {Object} userData - Validated user data
+   * @returns {Promise<Object>} Created user
+   */
+  async createUser(userData) {
+    // Implementation here
+    return { id: 'user-123', ...userData };
+  }
+
+  /**
+   * Checks if email exists
+   * @param {string} email - Email to check
+   * @returns {Promise<boolean>} Email exists
+   */
+  async emailExists(email) {
+    // Implementation here
+    return false;
   }
 }
 ```
 
 ## Code Generation Rules
 
-1. **Always use async/await** for asynchronous validation operations
-2. **Include comprehensive error handling** with try/catch blocks
-3. **Validate function parameters** before processing
-4. **Include detailed JSDoc comments** for all functions
-5. **Use const and let** appropriately, avoid var
-6. **Follow TypeScript function signatures** exactly as provided
-7. **Include meaningful logging** for validation operations and errors
-8. **Handle edge cases** like null/undefined values, empty objects/arrays
-9. **Use environment variables** for sensitive configuration like database URLs
-10. **Prefer named exports** for better import experience
-11. **Sanitize before validating** to ensure data cleanliness and security
-12. **Use ValidationError class** for structured error handling
-13. **Leverage commonSchemas** for standard data types
-14. **Create reusable validators and sanitizers** for better performance
-15. **Format validation errors** appropriately for API responses
+1. **Always use async/await** for async validation functions and pipeline
+   operations
+2. **Include comprehensive error handling** with try/catch blocks for all
+   validation
+3. **Use JSDoc format** exactly as shown with proper type annotations
+4. **Check for null/undefined** before operations, especially in custom
+   validators
+5. **Return consistent response formats** with `{ valid, errors, value }`
+   structure
+6. **Use descriptive variable names** that explain purpose (e.g.,
+   `emailValidator`, `sanitizedData`)
+7. **Include validation before processing** in all data handling functions
+8. **Sanitize before validation** when both operations are needed
+9. **Handle edge cases** like empty strings, null values, and type mismatches
+10. **Implement proper pipeline error handling** with abortEarly support
+11. **Use utils.pipeline correctly** - always return async function, handle
+    value transformation
+12. **Apply commonSchemas** when appropriate instead of recreating standard
+    validations
+13. **Structure complex validations** as pipelines rather than single large
+    validators
+14. **Include ValidationError usage** for proper error reporting and handling
+
+## Common Patterns to Generate
+
+### API Endpoint Validation
+
+```javascript
+/**
+ * Validates API request data
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Next middleware function
+ */
+async function validateApiRequest(req, res, next) {
+  // Implementation with validation and error handling
+}
+```
+
+### Form Data Processing
+
+```javascript
+/**
+ * Processes and validates form submission
+ * @param {Object} formData - Raw form data
+ * @returns {Promise<Object>} Processing result
+ */
+async function processFormData(formData) {
+  // Implementation with sanitization and validation
+}
+```
+
+### Database Model Validation
+
+```javascript
+/**
+ * Validates model before database save
+ * @param {Object} model - Model data
+ * @returns {Object} Validation result
+ */
+function validateModel(model) {
+  // Implementation with schema validation
+}
+```
 
 ---
 
