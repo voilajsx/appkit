@@ -53,8 +53,6 @@ To install `@voilajsx/appkit` in your project:
 npm install @voilajsx/appkit
 ```
 
-````
-
 ## 🏃‍♂️ Quick Start
 
 Here's a quick overview of how to get started with the security utilities. For
@@ -375,7 +373,6 @@ Using the @voilajsx/appkit/security module, demonstrate how to encrypt a user's 
 
 For complete, working examples, check our examples folder:
 
-
 - [01-csrf-basic.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/01-csrf-basic.js) -
   CSRF tokens in forms with Express.js
 - [02-rate-limiting.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/02-rate-limiting.js) -
@@ -388,7 +385,6 @@ For complete, working examples, check our examples folder:
   Stateful CSRF protection with Fastify (manual adaptation)
 - [06-encryption-decryption.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/06-encryption-decryption.js) -
   Demonstrates data encryption and decryption
-
 
 ## 🛡️ Security Best Practices
 
@@ -489,5 +485,3 @@ MIT © [VoilaJS](https://github.com/voilajs)
 <p align="center">
 Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
 </p>
-
-````
