@@ -18,7 +18,7 @@ npm install @voilajsx/appkit
 ```javascript
 import {
   generateCsrfToken,
-  validateCsrfToken,
+  verifyCsrfToken,
   createCsrfMiddleware,
   createRateLimiter,
   sanitizeHtml,
@@ -62,7 +62,7 @@ res.render('form', { csrfToken: token });
 
 ---
 
-#### validateCsrfToken(token, session)
+#### verifyCsrfToken(token, session)
 
 Validates a CSRF token against the stored token in the session.
 
@@ -80,7 +80,7 @@ Validates a CSRF token against the stored token in the session.
 ##### Example
 
 ```javascript
-const isValid = validateCsrfToken(req.body._csrf, req.session);
+const isValid = verifyCsrfToken(req.body._csrf, req.session);
 if (isValid) {
   // Process form submission
 }

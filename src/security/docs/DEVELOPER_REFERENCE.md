@@ -49,7 +49,7 @@ npm install @voilajsx/appkit
 import {
   // CSRF Protection
   generateCsrfToken,
-  validateCsrfToken,
+  verifyCsrfToken,
   createCsrfMiddleware,
 
   // Rate Limiting
@@ -119,13 +119,13 @@ The function returns a random hex string like:
 
 ### Validating Tokens
 
-Use `validateCsrfToken` to check if a submitted token is valid:
+Use `verifyCsrfToken` to check if a submitted token is valid:
 
 ```javascript
-import { validateCsrfToken } from '@voilajsx/appkit/security';
+import { verifyCsrfToken } from '@voilajsx/appkit/security';
 
 app.post('/submit-form', (req, res) => {
-  const isValid = validateCsrfToken(req.body._csrf, req.session);
+  const isValid = verifyCsrfToken(req.body._csrf, req.session);
 
   if (!isValid) {
     return res.status(403).json({
@@ -143,7 +143,7 @@ app.post('/submit-form', (req, res) => {
 app.post('/api/sensitive-action', (req, res) => {
   const token = req.headers['x-csrf-token'] || req.body._csrf;
 
-  if (!validateCsrfToken(token, req.session)) {
+  if (!verifyCsrfToken(token, req.session)) {
     return res.status(403).json({
       error: 'CSRF_TOKEN_INVALID',
       message: 'Request blocked for security reasons',

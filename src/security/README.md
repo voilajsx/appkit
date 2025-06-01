@@ -14,7 +14,7 @@ be simple to use while following security best practices.
 
 ## 🚀 Features
 
-- **🛡️ CSRF Protection** - Generate and validate cryptographically secure,
+- **🛡️ CSRF Protection** - Generate and verify cryptographically secure,
   time-limited tokens to prevent cross-site request forgery.
 - **⏱️ Rate Limiting** - Control request frequency to protect against brute
   force and Denial-of-Service (DoS) attacks.
@@ -23,7 +23,7 @@ be simple to use while following security best practices.
 - **🔐 Data Encryption** - Encrypt and decrypt sensitive data using
   authenticated encryption (AES-256-GCM) for confidentiality and integrity.
 - **🔌 Framework Agnostic Core** - Core functions (`generateCsrfToken`,
-  `validateCsrfToken`, `escapeString`, `sanitizeHtml`, `sanitizeFilename`,
+  `verifyCsrfToken`, `escapeString`, `sanitizeHtml`, `sanitizeFilename`,
   `generateEncryptionKey`, `encrypt`, `decrypt`) are framework-agnostic.
 - **📦 Express.js Middleware Ready** - `createCsrfMiddleware` and
   `createRateLimiter` provide ready-to-use middleware for Express.js and
@@ -38,12 +38,12 @@ be simple to use while following security best practices.
 The Security module provides comprehensive protection against common web
 vulnerabilities:
 
-| Feature                | What it does                                         | Main functions                                                         |
-| ---------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------- |
-| **CSRF Protection**    | Prevent cross-site request forgery attacks           | `generateCsrfToken()`, `validateCsrfToken()`, `createCsrfMiddleware()` |
-| **Rate Limiting**      | Control request frequency to prevent abuse           | `createRateLimiter()`                                                  |
-| **Input Sanitization** | Clean user input to prevent XSS and injection        | `sanitizeHtml()`, `escapeString()`, `sanitizeFilename()`               |
-| **Data Encryption**    | Encrypt sensitive data with authenticated encryption | `generateEncryptionKey()`, `encrypt()`, `decrypt()`                    |
+| Feature                | What it does                                         | Main functions                                                       |
+| ---------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| **CSRF Protection**    | Prevent cross-site request forgery attacks           | `generateCsrfToken()`, `verifyCsrfToken()`, `createCsrfMiddleware()` |
+| **Rate Limiting**      | Control request frequency to prevent abuse           | `createRateLimiter()`                                                |
+| **Input Sanitization** | Clean user input to prevent XSS and injection        | `sanitizeHtml()`, `escapeString()`, `sanitizeFilename()`             |
+| **Data Encryption**    | Encrypt sensitive data with authenticated encryption | `generateEncryptionKey()`, `encrypt()`, `decrypt()`                  |
 
 ## 📦 Installation
 
@@ -56,13 +56,13 @@ npm install @voilajsx/appkit
 ## 🏃‍♂️ Quick Start
 
 Here's a quick overview of how to get started with the security utilities. For
-complete examples, refer to the [Example Code](%23example-code) section.
+complete examples, refer to the [Example Code](#example-code) section.
 
 ```javascript
 import {
   // CSRF Protection
   generateCsrfToken,
-  validateCsrfToken,
+  verifyCsrfToken,
   createCsrfMiddleware,
 
   // Rate Limiting
@@ -77,7 +77,7 @@ import {
   generateEncryptionKey,
   encrypt,
   decrypt,
-} from '@voilajsx/appkit/security'; // Corrected import path
+} from '@voilajsx/appkit/security';
 
 // --- Example Express.js Setup ---
 import express from 'express';
@@ -166,15 +166,15 @@ middleware.
 | Function                 | Purpose                                                                            | When to use                                                      |
 | :----------------------- | :--------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
 | `generateCsrfToken()`    | Creates a cryptographically secure token and stores it in the session              | When rendering forms or before sensitive actions                 |
-| `validateCsrfToken()`    | Verifies a submitted token against the one in the session (timing-safe comparison) | When manually validating form submissions or by the middleware   |
+| `verifyCsrfToken()`      | Verifies a submitted token against the one in the session (timing-safe comparison) | When manually validating form submissions or by the middleware   |
 | `createCsrfMiddleware()` | Creates an Express-compatible middleware for automatic CSRF protection of routes   | For automatic protection of `POST`, `PUT`, `DELETE`, etc. routes |
 
 ```javascript
 // Generate a token for a form (requires req.session from session middleware)
 const token = generateCsrfToken(req.session); // Store this in a hidden form field or custom header
 
-// Validate a token from a request (usually handled by the middleware)
-// const isValid = validateCsrfToken(req.body._csrf, req.session); // For manual validation
+// Verify a token from a request (usually handled by the middleware)
+// const isValid = verifyCsrfToken(req.body._csrf, req.session); // For manual validation
 
 // Apply middleware to all relevant routes (e.g., after session middleware)
 app.use(createCsrfMiddleware());
@@ -325,7 +325,7 @@ const safeHtml = sanitizeHtml(userInput, {
 | Category            | Use Case                    | Description                                                | Components Used                               |
 | :------------------ | :-------------------------- | :--------------------------------------------------------- | :-------------------------------------------- |
 | **Form Protection** | Contact Form                | Prevent forged form submissions                            | `generateCsrfToken`, `createCsrfMiddleware`   |
-| **Form Protection** | Admin Actions               | Protect sensitive administrative operations                | `generateCsrfToken`, `validateCsrfToken`      |
+| **Form Protection** | Admin Actions               | Protect sensitive administrative operations                | `generateCsrfToken`, `verifyCsrfToken`        |
 | **API Security**    | Public API                  | Prevent abuse and DoS                                      | `createRateLimiter`                           |
 | **API Security**    | Authentication              | Block brute force login attempts                           | `createRateLimiter` with strict limits        |
 | **Content Safety**  | User Comments               | Allow safe formatting while preventing XSS                 | `sanitizeHtml` with `allowedTags`             |
@@ -348,19 +348,19 @@ capabilities and generate high-quality security code.
 #### Basic Security Setup
 
 ```
-Please read the API reference at [https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md) and then create a basic Express application that implements CSRF protection and rate limiting for login attempts.
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md and then create a basic Express application that implements CSRF protection and rate limiting for login attempts.
 ```
 
 #### Content Sanitization System
 
 ```
-Please read the API reference at [https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md) and then implement a content sanitization system that allows safe HTML in comments but prevents XSS attacks.
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md and then implement a content sanitization system that allows safe HTML in comments but prevents XSS attacks.
 ```
 
 #### Complete Security Integration
 
 ```
-Please read the API reference at [https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md) and then create a complete security setup for an Express application with CSRF protection, tiered rate limiting, and input sanitization.
+Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md and then create a complete security setup for an Express application with CSRF protection, tiered rate limiting, and input sanitization.
 ```
 
 #### Data Encryption Example
@@ -472,7 +472,7 @@ try {
 
 ## 🤝 Contributing
 
-We welcome contributions\! Please see our
+We welcome contributions! Please see our
 [Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
 for details.
 

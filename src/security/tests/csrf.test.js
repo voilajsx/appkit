@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { generateCsrfToken, validateCsrfToken } from '../csrf.js';
+import { generateCsrfToken, verifyCsrfToken } from '../csrf.js';
 
 describe('CSRF Protection', () => {
   let sessionMock;
@@ -60,17 +60,17 @@ describe('CSRF Protection', () => {
     });
   });
 
-  describe('validateCsrfToken()', () => {
+  describe('verifyCsrfToken()', () => {
     it('should validate a token that matches the session token', () => {
       const token = generateCsrfToken(sessionMock);
-      const isValid = validateCsrfToken(token, sessionMock);
+      const isValid = verifyCsrfToken(token, sessionMock);
 
       expect(isValid).toBe(true);
     });
 
     it('should reject a token that does not match the session token', () => {
       generateCsrfToken(sessionMock);
-      const isValid = validateCsrfToken('invalid-token', sessionMock);
+      const isValid = verifyCsrfToken('invalid-token', sessionMock);
 
       expect(isValid).toBe(false);
     });
@@ -81,17 +81,17 @@ describe('CSRF Protection', () => {
       // Set expiry to a time in the past
       sessionMock.csrfTokenExpiry = Date.now() - 1000;
 
-      const isValid = validateCsrfToken(token, sessionMock);
+      const isValid = verifyCsrfToken(token, sessionMock);
       expect(isValid).toBe(false);
     });
 
     it('should return false for invalid inputs', () => {
-      expect(validateCsrfToken(null, sessionMock)).toBe(false);
-      expect(validateCsrfToken(undefined, sessionMock)).toBe(false);
-      expect(validateCsrfToken('', sessionMock)).toBe(false);
-      expect(validateCsrfToken(123, sessionMock)).toBe(false);
-      expect(validateCsrfToken('token', null)).toBe(false);
-      expect(validateCsrfToken('token', 'string')).toBe(false);
+      expect(verifyCsrfToken(null, sessionMock)).toBe(false);
+      expect(verifyCsrfToken(undefined, sessionMock)).toBe(false);
+      expect(verifyCsrfToken('', sessionMock)).toBe(false);
+      expect(verifyCsrfToken(123, sessionMock)).toBe(false);
+      expect(verifyCsrfToken('token', null)).toBe(false);
+      expect(verifyCsrfToken('token', 'string')).toBe(false);
     });
   });
 });

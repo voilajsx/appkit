@@ -36,14 +36,14 @@ export function generateCsrfToken(session, expiryMinutes = 60) {
 }
 
 /**
- * Validates a CSRF token received from a request against the one stored in the session.
+ * Verifies a CSRF token received from a request against the one stored in the session.
  * Uses a constant-time comparison to mitigate timing attacks.
  *
  * @param {string} token - The CSRF token received from the request (from body, header, or query).
  * @param {Object} session - The session object containing the stored CSRF token and its expiry.
  * @returns {boolean} True if the token is valid and not expired; otherwise, false.
  */
-export function validateCsrfToken(token, session) {
+export function verifyCsrfToken(token, session) {
   // Basic validation of inputs and existence of stored token
   if (
     !token ||
@@ -86,7 +86,7 @@ export function validateCsrfToken(token, session) {
 
 /**
  * Creates an Express-compatible CSRF protection middleware.
- * This middleware validates CSRF tokens for non-GET, HEAD, and OPTIONS requests.
+ * This middleware verifies CSRF tokens for non-GET, HEAD, and OPTIONS requests.
  * It assumes a session object (e.g., `req.session`) is available on the request,
  * populated by a preceding session middleware.
  *
@@ -125,14 +125,14 @@ export function createCsrfMiddleware(options = {}) {
       (req.query && req.query[tokenField]) ||
       null; // Ensure 'token' is explicitly null if not found
 
-    // Validate the extracted token using the validateCsrfToken helper
-    if (!validateCsrfToken(token, req.session)) {
+    // Verify the extracted token using the verifyCsrfToken helper
+    if (!verifyCsrfToken(token, req.session)) {
       const error = new Error('Invalid or missing CSRF token.');
       error.code = 'EBADCSRFTOKEN'; // Standard error code for invalid CSRF token
       error.status = 403; // HTTP 403 Forbidden status
       return next(error);
     }
 
-    next(); // If validation passes, proceed to the next middleware/route handler
+    next(); // If verification passes, proceed to the next middleware/route handler
   };
 }

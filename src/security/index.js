@@ -5,7 +5,7 @@
 
 export {
   generateCsrfToken,
-  validateCsrfToken,
+  verifyCsrfToken,
   createCsrfMiddleware,
 } from './csrf.js';
 export { createRateLimiter } from './rateLimiter.js';

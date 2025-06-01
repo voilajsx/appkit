@@ -45,13 +45,10 @@ function generateCsrfToken(
 - Default `expiryMinutes`: `60`
 - Throws: `'Session object is required'`
 
-### 2. `validateCsrfToken`
+### 2. `verifyCsrfToken`
 
 ```typescript
-function validateCsrfToken(
-  token: string,
-  session: Record<string, any>
-): boolean;
+function verifyCsrfToken(token: string, session: Record<string, any>): boolean;
 ```
 
 ### 3. `createCsrfMiddleware`
@@ -174,7 +171,7 @@ function setupCsrfProtection(req, res) {
    * @returns {boolean} True if valid
    */
   function validateToken(token) {
-    return validateCsrfToken(token, req.session);
+    return verifyCsrfToken(token, req.session);
   }
 
   // Generate token and add to response
