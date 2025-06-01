@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Demo - Home</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Home</a>
+        <a href="/login">Login</a>
+    </nav>
+
+    <div class="card">
+        <h1>🔐 Simple Auth Demo</h1>
+        <p>A minimal example using <strong>@voilajsx/appkit/auth</strong> with Express.</p>
+        
+        <h2>Features</h2>
+        <ul>
+            <li>JWT token authentication</li>
+            <li>Role-based access control</li>
+            <li>Password hashing with bcrypt</li>
+            <li>Simple HTML pages</li>
+        </ul>
+
+        <div class="demo-info">
+            <h3>Demo Accounts</h3>
+            <p><strong>Admin:</strong> admin@test.com / admin123</p>
+            <p><strong>User:</strong> user@test.com / user123</p>
+        </div>
+
+        <a href="/login" class="btn">Start Demo</a>
+    </div>
+
+    <div class="card">
+        <h2>How It Works</h2>
+        <ol>
+            <li>Login with demo credentials</li>
+            <li>Get JWT token for authentication</li>
+            <li>Access protected dashboard</li>
+            <li>Admin users can access admin panel</li>
+        </ol>
+    </div>
+</body>
+</html>

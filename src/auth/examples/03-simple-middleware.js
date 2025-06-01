@@ -1,56 +1,75 @@
 /**
- * Simple Middleware - @voilajsx/appkit Auth Module
- *
- * Basic example showing how auth middleware works
- * Minimal Express server with protected routes
- *
- * Run: node 03-simple-middleware.js
+ * Authentication middleware demonstration using @voilajsx/appkit/auth
+ * @module @voilajsx/appkit/auth
  * @file src/auth/examples/03-simple-middleware.js
+ * Run: node 03-simple-middleware.js
  */
 
-import express from 'express';
 import { createAuthMiddleware, generateToken } from '@voilajsx/appkit/auth';
 
-const app = express();
-const secret = 'my-secret-key';
+/**
+ * Demonstrates authentication middleware creation and usage
+ * @returns {Promise<void>}
+ */
+async function demo() {
+  try {
+    console.log('=== Authentication Middleware Demo ===\n');
 
-// Create auth middleware
-const auth = createAuthMiddleware({ secret });
+    const secret = 'your-secret-key';
 
-// Public route
-app.get('/', (req, res) => {
-  res.json({ message: 'Public route - anyone can access' });
-});
+    // Create basic middleware
+    console.log('1. Creating basic auth middleware...');
+    const basicAuth = createAuthMiddleware({ secret });
+    console.log('Basic middleware created');
+    console.log('');
 
-// Protected route
-app.get('/protected', auth, (req, res) => {
-  res.json({
-    message: 'Protected route - requires valid token',
-    user: req.user,
-  });
-});
+    // Create custom middleware with token extraction
+    console.log('2. Creating custom middleware...');
+    const customAuth = createAuthMiddleware({
+      secret,
+      getToken: (req) => {
+        // Check Authorization header first
+        if (req.headers.authorization?.startsWith('Bearer ')) {
+          return req.headers.authorization.slice(7);
+        }
+        // Check cookies
+        if (req.cookies?.token) {
+          return req.cookies.token;
+        }
+        return null;
+      },
+      onError: (error, req, res) => {
+        console.log('Custom error handler:', error.message);
+      },
+    });
+    console.log('Custom middleware created');
+    console.log('');
 
-// Get a token for testing
-app.get('/get-token', (req, res) => {
-  const token = generateToken(
-    { userId: '123', email: 'test@example.com' },
-    { secret }
-  );
-  res.json({
-    token,
-    usage: `curl http://localhost:3000/protected -H "Authorization: Bearer ${token}"`,
-  });
-});
+    // Simulate middleware usage
+    console.log('3. Simulating middleware usage...');
+    const token = generateToken({ userId: '123' }, { secret });
 
-app.listen(3000, () => {
-  console.log(`
-Simple Middleware Example
--------------------------
-Server running on http://localhost:3000
+    // Mock request object
+    const mockRequest = {
+      headers: { authorization: `Bearer ${token}` },
+      cookies: {},
+    };
 
-Try these URLs:
-1. http://localhost:3000/           (public)
-2. http://localhost:3000/get-token  (get a token)
-3. http://localhost:3000/protected  (needs token)
-  `);
-});
+    // Mock response object
+    const mockResponse = {
+      status: (code) => ({
+        json: (data) => console.log(`Response ${code}:`, data),
+      }),
+    };
+
+    // Simulate middleware execution
+    basicAuth(mockRequest, mockResponse, () => {
+      console.log('Middleware passed! User data:', mockRequest.user);
+    });
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+}
+
+// Execute the demonstration
+demo();
