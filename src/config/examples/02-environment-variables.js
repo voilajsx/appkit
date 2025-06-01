@@ -1,102 +1,117 @@
 /**
- * Environment Variables - @voilajsx/appkit Config Module
- *
- * Shows how to work with environment variables, including automatic type coercion via schema.
- * No external dependencies needed - just run it!
+ * Environment variables with .env file example
+ * @module @voilajsx/appkit/config
+ * @file src/config/examples/02-environment-variables.js
  *
  * Run: node 02-environment-variables.js
  */
 
-import { loadConfig, getConfig, getEnv } from '@voilajsx/appkit/config'; // Corrected import
+import { loadConfig, getConfig, createConfigSchema } from '../index.js';
+import dotenv from 'dotenv';
 
-async function demo() {
-  console.log('=== Environment Variables Demo ===\n');
+/**
+ * Simple example showing .env file loading with type coercion
+ * @returns {Promise<void>}
+ */
+async function simpleEnvExample() {
+  console.log('🌍 Simple .env File Example\n');
 
-  // Set environment variables for demo
-  process.env.PORT = '4000';
-  process.env.NODE_ENV = 'development';
-  process.env.APP_FEATURE_ENABLED = 'true'; // Will be coerced to boolean true
+  // Load .env file
+  dotenv.config({ path: './files/.env' });
 
-  // 1. Direct environment access
-  console.log('1. Direct environment access:');
-  const nodeEnv = getEnv('NODE_ENV');
-  const portString = getEnv('PORT'); // getEnv always returns string
-  const missing = getEnv('MISSING', 'default');
-
-  console.log(`NODE_ENV: ${nodeEnv}`);
-  console.log(`PORT (string from getEnv): ${portString}`);
-  console.log(`MISSING: ${missing}\n`);
-
-  // Define a schema for loadConfig to enable type coercion
-  const configSchema = {
+  // Define schema for type coercion
+  createConfigSchema('app', {
     type: 'object',
     properties: {
       server: {
         type: 'object',
         properties: {
-          port: { type: 'number' }, // Define port as number
+          port: { type: 'number' },
           host: { type: 'string' },
         },
       },
-      feature: {
+      database: {
         type: 'object',
         properties: {
-          enabled: { type: 'boolean' }, // Define enabled as boolean
+          url: { type: 'string' },
+          pool: {
+            type: 'object',
+            properties: {
+              size: { type: 'number' },
+            },
+          },
+        },
+      },
+      features: {
+        type: 'object',
+        properties: {
+          analytics: { type: 'boolean' },
         },
       },
     },
-  };
+  });
 
-  // 2. Environment integration with config and schema for type coercion
-  console.log(
-    '2. Environment integration with config (with schema for type coercion):'
-  );
+  // Load config with .env integration
   await loadConfig(
     {
-      server: {
-        port: 3000, // Will be overridden by PORT env var and coerced to number
-        host: 'localhost',
-      },
-      feature: {
-        enabled: false, // Will be overridden by APP_FEATURE_ENABLED env var and coerced to boolean
-      },
+      server: { port: 3000 },
+      features: { analytics: false },
     },
     {
       env: true,
-      schema: configSchema, // Provide schema to enable type coercion
-      map: {
-        // Explicitly map env vars to config paths if needed
-        PORT: 'server.port',
-        APP_FEATURE_ENABLED: 'feature.enabled',
-      },
+      schema: 'app',
     }
   );
 
-  console.log('Configuration after env integration:');
-  // getConfig('server.port') will now be a number (4000)
+  // Show the results
+  console.log('Values from .env with type coercion:');
   console.log(
-    `server.port: ${getConfig('server.port')} (type: ${typeof getConfig('server.port')})`
+    `server.port: ${getConfig('server.port')} (${typeof getConfig('server.port')})`
   );
-  // getConfig('feature.enabled') will now be a boolean (true)
   console.log(
-    `feature.enabled: ${getConfig('feature.enabled')} (type: ${typeof getConfig('feature.enabled')})`
+    `server.host: ${getConfig('server.host')} (${typeof getConfig('server.host')})`
   );
+  console.log(
+    `database.pool.size: ${getConfig('database.pool.size')} (${typeof getConfig('database.pool.size')})`
+  );
+  console.log(
+    `features.analytics: ${getConfig('features.analytics')} (${typeof getConfig('features.analytics')})`
+  );
+
+  console.log('\n✅ Example complete!');
 }
 
-demo().catch(console.error);
+/**
+ * Shows the environment variable mapping
+ * @returns {void}
+ */
+function showMapping() {
+  console.log('\n📝 Environment Variable Mapping:\n');
+  console.log('SERVER_PORT=8080      → server.port (number)');
+  console.log('SERVER_HOST=localhost → server.host (string)');
+  console.log('DATABASE_POOL_SIZE=25 → database.pool.size (number)');
+  console.log('FEATURES_ANALYTICS=true → features.analytics (boolean)');
+  console.log('\nRule: UPPER_SNAKE_CASE → lower.dot.notation');
+}
 
-/*
-Expected output:
+/**
+ * Main function
+ * @returns {Promise<void>}
+ */
+async function main() {
+  try {
+    await simpleEnvExample();
+    showMapping();
 
-=== Environment Variables Demo ===
+    console.log('\n🎉 Environment variables example complete!');
+    console.log('\nNext: Try changing values in your .env file and run again');
+  } catch (error) {
+    console.error('\n❌ Example failed:', error.message);
+    console.log('Make sure you created a .env file in this directory!');
+  }
+}
 
-1. Direct environment access:
-NODE_ENV: development
-PORT (string from getEnv): 4000
-MISSING: default
-
-2. Environment integration with config (with schema for type coercion):
-Configuration after env integration:
-server.port: 4000 (type: number)
-feature.enabled: true (type: boolean)
-*/
+// Run if executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}

@@ -1,90 +1,135 @@
 /**
- * Schema Validation - @voilajsx/appkit Config Module
- *
- * Simple example of schema validation
- * No external dependencies needed - just run it!
+ * Schema validation example
+ * @module @voilajsx/appkit/config
+ * @file src/config/examples/03-schema-validation.js
  *
  * Run: node 03-schema-validation.js
  */
 
 import {
-  defineSchema,
-  validateConfig,
-  clearConfig,
-} from '@voilajsx/appkit/config'; // Corrected import and added clearConfig
+  loadConfig,
+  getConfig,
+  createConfigSchema,
+  validateConfigSchema,
+} from '../index.js';
 
-async function demo() {
-  // This line is useful for ensuring a clean slate for the example,
-  // especially in environments where module state might persist.
-  clearConfig();
+/**
+ * Simple schema validation example
+ * @returns {Promise<void>}
+ */
+async function simpleSchemaExample() {
+  console.log('📋 Simple Schema Validation Example\n');
 
-  console.log('=== Schema Validation Demo ===\n');
-
-  // 1. Define a simple schema with a UNIQUE NAME
-  console.log('1. Defining a schema...');
-  // Changed 'server' to 'demoServerSchema' to avoid conflicts
-  defineSchema('demoServerSchema', {
-    // <--- Changed schema name here
+  // Create a schema
+  createConfigSchema('server', {
     type: 'object',
     required: ['port'],
     properties: {
-      port: {
-        type: 'number',
-        minimum: 1000,
-      },
-      host: {
-        type: 'string',
-        default: 'localhost',
-      },
+      port: { type: 'number', minimum: 1024 },
+      host: { type: 'string', default: 'localhost' },
     },
   });
 
-  // 2. Validate valid configuration
-  console.log('\n2. Validating valid configuration:');
+  // Valid configuration that matches the schema structure
   const validConfig = {
     port: 3000,
-    host: 'example.com',
+    host: 'localhost',
   };
 
-  try {
-    // Validate against the new schema name
-    validateConfig(validConfig, 'demoServerSchema'); // <--- Changed schema name here
-    console.log('✓ Configuration is valid');
-  } catch (error) {
-    console.error('✗ Validation failed:', error.message);
-  }
+  // Load with validation
+  await loadConfig(validConfig, {
+    schema: 'server',
+    validate: true,
+  });
 
-  // 3. Validate invalid configuration
-  console.log('\n3. Validating invalid configuration:');
-  const invalidConfig = {
-    port: 80, // Below minimum (1000)
-  };
+  console.log('✅ Configuration validated and loaded');
+  console.log(`Server: ${getConfig('host')}:${getConfig('port')}`);
 
-  try {
-    // Validate against the new schema name
-    validateConfig(invalidConfig, 'demoServerSchema'); // <--- Changed schema name here
-    console.log('✓ Configuration is valid');
-  } catch (error) {
-    console.log('✗ Validation failed as expected');
-    if (error.details?.errors) {
-      console.log('  Error:', error.details.errors[0].message);
+  console.log('\n✅ Schema validation complete!\n');
+}
+
+/**
+ * Show validation errors
+ * @returns {void}
+ */
+function validationErrorsExample() {
+  console.log('❌ Validation Errors Example\n');
+
+  // Try invalid configurations
+  const invalidConfigs = [
+    {}, // Missing required port
+    { port: 'invalid' }, // Wrong type
+    { port: 80 }, // Below minimum
+  ];
+
+  invalidConfigs.forEach((config, i) => {
+    try {
+      validateConfigSchema(config, 'server');
+      console.log(`❌ Config ${i + 1}: Should have failed`);
+    } catch (error) {
+      console.log(
+        `✅ Config ${i + 1}: ${error.message.split(':')[1]?.trim() || error.message}`
+      );
     }
+  });
+
+  console.log('\n✅ Error examples complete!\n');
+}
+
+/**
+ * Schema with defaults
+ * @returns {Promise<void>}
+ */
+async function schemaDefaultsExample() {
+  console.log('🔧 Schema with Defaults Example\n');
+
+  createConfigSchema('app', {
+    type: 'object',
+    properties: {
+      port: { type: 'number', default: 3000 },
+      debug: { type: 'boolean', default: false },
+      timeout: { type: 'number', default: 5000 },
+    },
+  });
+
+  // Minimal config - schema will add defaults
+  await loadConfig(
+    { port: 8080 },
+    {
+      schema: 'app',
+      validate: true,
+    }
+  );
+
+  console.log('Values with schema defaults:');
+  console.log(`port: ${getConfig('port')} (provided)`);
+  console.log(`debug: ${getConfig('debug')} (default)`);
+  console.log(`timeout: ${getConfig('timeout')} (default)`);
+
+  console.log('\n✅ Defaults example complete!');
+}
+
+/**
+ * Main function
+ * @returns {Promise<void>}
+ */
+async function main() {
+  try {
+    await simpleSchemaExample();
+    validationErrorsExample();
+    await schemaDefaultsExample();
+
+    console.log('\n🎉 Schema validation examples complete!');
+    console.log('\nKey benefits:');
+    console.log('- Catch configuration errors early');
+    console.log('- Ensure correct data types');
+    console.log('- Provide default values automatically');
+  } catch (error) {
+    console.error('\n❌ Example failed:', error.message);
   }
 }
 
-demo().catch(console.error);
-
-/*
-Expected output:
-
-=== Schema Validation Demo ===
-
-1. Defining a schema...
-
-2. Validating valid configuration:
-✓ Configuration is valid
-
-3. Validating invalid configuration:
-✗ Validation failed as expected
-  Error: Value must be at least 1000
-*/
+// Run if executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}

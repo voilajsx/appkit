@@ -2,16 +2,19 @@
 
 ## Overview
 
-The `@voilajsx/appkit/config` module provides robust configuration management
-for Node.js applications, including configuration loading from multiple sources,
-validation, environment variable integration, and real-time configuration
-updates.
+The `@voilajsx/appkit/config` module provides a lightweight and robust
+configuration management solution for Node.js applications, supporting loading
+from JSON, JavaScript, or `.env` files, schema validation, and environment
+variable integration with automatic type coercion.
 
 ## Installation
 
 ```bash
-npm install @voilajsx/appkit
+npm install @voilajsx/appkit dotenv
 ```
+
+**Note**: The `dotenv` package is required to load `.env` files and must be
+installed separately.
 
 ## Quick Start
 
@@ -19,45 +22,59 @@ npm install @voilajsx/appkit
 import {
   loadConfig,
   getConfig,
-  validateConfig,
-  defineSchema,
-  getEnv,
+  createConfigSchema,
 } from '@voilajsx/appkit/config';
+import dotenv from 'dotenv';
 
-// Load configuration
-const config = await loadConfig('./config.json', {
-  defaults: { server: { port: 3000 } },
-  schema: 'app',
+// Load .env file
+dotenv.config();
+
+// Define a schema
+createConfigSchema('app', {
+  type: 'object',
+  required: ['server'],
+  properties: {
+    server: {
+      type: 'object',
+      properties: {
+        port: { type: 'number', default: 3000 },
+        host: { type: 'string', default: 'localhost' },
+      },
+    },
+  },
 });
 
-// Access configuration values
-const port = getConfig('server.port');
-const apiKey = getConfig('api.key');
+// Load configuration
+await loadConfig(null, {
+  schema: 'app',
+  env: true,
+  defaults: { server: { port: 3000 } },
+});
+
+// Access configuration
+const port = getConfig('server.port'); // 3000 (number, coerced from .env)
 ```
 
 ## API Reference
 
 ### Configuration Loading
 
-#### loadConfig(pathOrConfig, options)
+#### loadConfig(source, options)
 
 Loads configuration from a file path or object. When `options.env` is `true` and
-a `options.schema` is provided, `loadConfig` will automatically attempt to
-coerce string values from environment variables to match the types (`number`,
-`boolean`) defined in the schema.
+`options.schema` is provided, `loadConfig` coerces environment variable strings
+to match schema-defined types (e.g., `number`, `boolean`).
 
 ##### Parameters
 
-| Name                  | Type             | Required | Default | Description                                                                                                     |
-| --------------------- | ---------------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------- |
-| `pathOrConfig`        | `string\|Object` | Yes      | -       | File path or configuration object                                                                               |
-| `options`             | `Object`         | No       | `{}`    | Configuration options                                                                                           |
-| `options.defaults`    | `Object`         | No       | `{}`    | Default values to merge with loaded configuration                                                               |
-| `options.validate`    | `boolean`        | No       | `true`  | Whether to validate configuration                                                                               |
-| `options.schema`      | `string\|Object` | No       | -       | Schema name or schema object for validation. **Used for automatic type coercion of `env` variables.**           |
-| `options.env`         | `boolean`        | No       | `true`  | Whether to integrate with environment variables. **Enables automatic type coercion when `schema` is provided.** |
-| `options.watch`       | `boolean`        | No       | `false` | Whether to watch for file changes and reload automatically                                                      |
-| `options.interpolate` | `boolean`        | No       | `true`  | Whether to interpolate variables like `${var}`                                                                  |
+| Name               | Type             | Required | Default | Description                                                                |
+| ------------------ | ---------------- | -------- | ------- | -------------------------------------------------------------------------- |
+| `source`           | `string\|Object` | Yes      | -       | File path or configuration object                                          |
+| `options`          | `Object`         | No       | `{}`    | Configuration options                                                      |
+| `options.defaults` | `Object`         | No       | `{}`    | Default values to merge with loaded configuration                          |
+| `options.validate` | `boolean`        | No       | `true`  | Whether to validate configuration                                          |
+| `options.schema`   | `string`         | No       | -       | Schema name for validation and type coercion of environment variables      |
+| `options.env`      | `boolean`        | No       | `true`  | Whether to integrate environment variables with schema-based type coercion |
 
 ##### Returns
 
@@ -66,35 +83,28 @@ coerce string values from environment variables to match the types (`number`,
 
 ##### Throws
 
-- `ConfigError` - If configuration file not found
-- `ConfigError` - If JSON parsing fails
-- `ConfigError` - If required fields are missing
-- `ConfigError` - If validation fails
-- `ConfigError` - For other loading errors
+- `Error` - If the configuration file is not found, JSON parsing fails,
+  validation fails, or other loading errors occur
 
 ##### Example
 
 ```javascript
-// Load JSON configuration with environment variable integration and schema-based type coercion
-// If process.env.SERVER_PORT is "8080" and schema.server.port is type: 'number',
-// config.server.port will be the number 8080.
-const config = await loadConfig('./config.json', {
-  defaults: {
-    server: {
-      port: 3000,
-      host: 'localhost',
-    },
-  },
-  schema: 'app', // Assuming 'app' schema defines types like 'number' and 'boolean'
-  env: true, // Essential to enable env var integration
-  watch: true,
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Load from JSON file and .env with type coercion
+// If process.env.SERVER_PORT is "8080" and schema defines server.port as number, config.server.port will be 8080 (number).
+await loadConfig('./config.json', {
+  defaults: { server: { port: 3000 } },
+  schema: 'app',
+  env: true,
 });
 
 // Load from JavaScript module
-const config = await loadConfig('./config.js');
+await loadConfig('./config.js');
 
 // Load from object
-const config = await loadConfig({
+await loadConfig({
   server: { port: 4000 },
   database: { url: 'mongodb://localhost:27017/myapp' },
 });
@@ -102,51 +112,28 @@ const config = await loadConfig({
 
 ---
 
-#### setConfig(config)
+### Configuration Access
 
-Sets the configuration store directly.
+#### getConfig(path, fallback)
 
-##### Parameters
-
-| Name     | Type     | Required | Description                   |
-| -------- | -------- | -------- | ----------------------------- |
-| `config` | `Object` | Yes      | Configuration object to store |
-
-##### Throws
-
-- `ConfigError` - If `config` is not an object
-
-##### Example
-
-```javascript
-setConfig({
-  server: { port: 3000 },
-  database: { url: 'mongodb://localhost/myapp' },
-});
-```
-
----
-
-#### getConfig(key, defaultValue)
-
-Gets a configuration value by key using dot notation.
+Retrieves a configuration value by path using dot notation.
 
 ##### Parameters
 
-| Name           | Type     | Required | Default | Description                                  |
-| -------------- | -------- | -------- | ------- | -------------------------------------------- |
-| `key`          | `string` | No       | -       | Configuration key using dot notation         |
-| `defaultValue` | `any`    | No       | -       | Default value if key not found in the config |
+| Name       | Type     | Required | Default | Description                           |
+| ---------- | -------- | -------- | ------- | ------------------------------------- |
+| `path`     | `string` | No       | -       | Configuration path using dot notation |
+| `fallback` | `any`    | No       | -       | Fallback value if path is not found   |
 
 ##### Returns
 
-- If `key` is provided: The value at that path, or `defaultValue` if not found
-- If no `key` is provided: The entire configuration object
+- If `path` is provided: The value at that path, or `fallback` if not found
+- If no `path` is provided: The entire configuration object
 
 ##### Example
 
 ```javascript
-// Get a specific value (will be coerced to number if schema defines it)
+// Get a specific value (coerced to number if schema defines it)
 const port = getConfig('server.port', 3000);
 
 // Get a nested object
@@ -158,84 +145,24 @@ const allConfig = getConfig();
 
 ---
 
-#### getEnv(key, defaultValue)
+#### hasConfig(path)
 
-Gets an environment variable value.
+Checks if a configuration path exists.
 
 ##### Parameters
 
-| Name           | Type     | Required | Default | Description                              |
-| -------------- | -------- | -------- | ------- | ---------------------------------------- |
-| `key`          | `string` | Yes      | -       | Environment variable name                |
-| `defaultValue` | `any`    | No       | -       | Default value if variable is not defined |
+| Name   | Type     | Required | Description                           |
+| ------ | -------- | -------- | ------------------------------------- |
+| `path` | `string` | Yes      | Configuration path using dot notation |
 
 ##### Returns
 
-- `string` - The environment variable value, or `defaultValue` if not defined
+- `boolean` - `true` if the path exists, `false` otherwise
 
 ##### Example
 
 ```javascript
-// Get NODE_ENV or use 'development' as default
-const environment = getEnv('NODE_ENV', 'development'); // This still returns the raw string value
-
-// Get database URL with fallback
-const dbUrl = getEnv('DATABASE_URL', 'mongodb://localhost/myapp');
-```
-
----
-
-#### reloadConfig(filePath)
-
-Reloads configuration from the specified file or the last loaded file.
-
-##### Parameters
-
-| Name       | Type     | Required | Default | Description                            |
-| ---------- | -------- | -------- | ------- | -------------------------------------- |
-| `filePath` | `string` | No       | -       | Configuration file path to reload from |
-
-##### Returns
-
-- `Promise<Object>` - The reloaded configuration object
-
-##### Throws
-
-- `ConfigError` - If no file path is provided and no previous path exists
-- `ConfigError` - If file not found or other loading errors occur
-
-##### Example
-
-```javascript
-try {
-  // Reload from the same file that was last loaded
-  const config = await reloadConfig();
-  console.log('Configuration reloaded successfully');
-} catch (error) {
-  console.error('Failed to reload config:', error.message);
-}
-```
-
----
-
-#### hasConfig(key)
-
-Checks if a configuration key exists.
-
-##### Parameters
-
-| Name  | Type     | Required | Description                          |
-| ----- | -------- | -------- | ------------------------------------ |
-| `key` | `string` | Yes      | Configuration key using dot notation |
-
-##### Returns
-
-- `boolean` - `true` if the key exists, `false` otherwise
-
-##### Example
-
-```javascript
-// Check if a configuration key exists
+// Check if a configuration path exists
 if (hasConfig('database.ssl')) {
   console.log('SSL configuration is defined');
 }
@@ -243,112 +170,42 @@ if (hasConfig('database.ssl')) {
 
 ---
 
-#### clearConfig()
-
-Clears all configuration data and options.
-
-##### Example
-
-```javascript
-// Clear all configuration
-clearConfig();
-```
-
----
-
 ### Configuration Validation
 
-#### validateConfig(config, schema)
+#### createConfigSchema(name, schema)
 
-Validates a configuration object against a schema.
-
-##### Parameters
-
-| Name     | Type             | Required | Description                                |
-| -------- | ---------------- | -------- | ------------------------------------------ |
-| `config` | `Object`         | Yes      | Configuration object to validate           |
-| `schema` | `Object\|string` | Yes      | Schema object or name of predefined schema |
-
-##### Returns
-
-- `boolean` - `true` if configuration is valid
-
-##### Throws
-
-- `ConfigError` - If validation fails, with details in the error object
-
-##### Example
-
-```javascript
-// Validate against a schema object
-try {
-  validateConfig(config, {
-    type: 'object',
-    required: ['server.port'],
-    properties: {
-      server: {
-        type: 'object',
-        properties: {
-          port: {
-            type: 'number',
-            minimum: 1024,
-            maximum: 65535,
-          },
-        },
-      },
-    },
-  });
-  console.log('Configuration is valid');
-} catch (error) {
-  console.error('Validation failed:', error.details.errors);
-}
-
-// Validate against a predefined schema
-try {
-  validateConfig(config, 'app');
-  console.log('App configuration is valid');
-} catch (error) {
-  console.error('Validation failed:', error.details.errors);
-}
-```
-
----
-
-#### defineSchema(name, schema)
-
-Defines a named schema for later use.
+Defines a named schema for validation and type coercion.
 
 ##### Parameters
 
-| Name     | Type     | Required | Description                  |
-| -------- | -------- | -------- | ---------------------------- |
-| `name`   | `string` | Yes      | Name to assign to the schema |
-| `schema` | `Object` | Yes      | Schema definition object     |
+| Name     | Type     | Required | Description                 |
+| -------- | -------- | -------- | --------------------------- |
+| `name`   | `string` | Yes      | Unique name for the schema  |
+| `schema` | `Object` | Yes      | JSON Schema-like definition |
 
 ##### Throws
 
-- `ConfigError` - If a schema with the given name already exists
+- `Error` - If a schema with the given name already exists
 
 ##### Example
 
 ```javascript
 // Define a server schema
-defineSchema('server', {
+createConfigSchema('server', {
   type: 'object',
   required: ['port'],
   properties: {
     host: { type: 'string', default: 'localhost' },
-    port: { type: 'number', minimum: 1, maximum: 65535 },
+    port: { type: 'number', minimum: 1024, maximum: 65535 },
   },
 });
 
-// Define an app schema that references the server schema
-defineSchema('app', {
+// Define an app schema referencing the server schema
+createConfigSchema('app', {
   type: 'object',
   required: ['server'],
   properties: {
     name: { type: 'string' },
-    version: { type: 'string' },
     server: { $ref: 'server' },
   },
 });
@@ -356,162 +213,111 @@ defineSchema('app', {
 
 ---
 
-#### getConfigSchema(name)
+#### validateConfigSchema(config, schemaName)
 
-Retrieves a previously defined schema.
+Validates a configuration object against a named schema.
 
 ##### Parameters
 
-| Name   | Type     | Required | Description               |
-| ------ | -------- | -------- | ------------------------- |
-| `name` | `string` | Yes      | Name of the schema to get |
+| Name         | Type     | Required | Description                      |
+| ------------ | -------- | -------- | -------------------------------- |
+| `config`     | `Object` | Yes      | Configuration object to validate |
+| `schemaName` | `string` | Yes      | Name of the predefined schema    |
 
 ##### Returns
 
-- `Object` - The schema definition
+- `boolean` - `true` if configuration is valid
 
 ##### Throws
 
-- `ConfigError` - If no schema with the given name exists
+- `Error` - If validation fails or the schema is not found
 
 ##### Example
 
 ```javascript
-// Get a predefined schema
-const serverSchema = getConfigSchema('server');
-console.log(serverSchema);
+// Validate against a named schema
+try {
+  validateConfigSchema(config, 'app');
+  console.log('Configuration is valid');
+} catch (error) {
+  console.error('Validation failed:', error.message);
+}
 ```
 
 ---
 
 ### Error Handling
 
-#### ConfigError
-
-Custom error class for configuration-related errors.
-
-##### Properties
-
-| Name      | Type     | Description                        |
-| --------- | -------- | ---------------------------------- |
-| `name`    | `string` | Always set to `'ConfigError'`      |
-| `message` | `string` | Human-readable error message       |
-| `code`    | `string` | Error code identifying error type  |
-| `details` | `Object` | Additional details about the error |
-
-##### Example
+All functions throw standard `Error` objects with descriptive messages. Use
+try-catch blocks to handle errors:
 
 ```javascript
 try {
-  await loadConfig('./nonexistent.json');
+  await loadConfig('./config.json', { schema: 'app' });
 } catch (error) {
-  if (error.name === 'ConfigError') {
-    console.error(`Configuration error (${error.code}): ${error.message}`);
-    if (error.details && error.details.errors) {
-      // Print validation errors
-      error.details.errors.forEach((err) => {
-        console.error(`- ${err.path}: ${err.message}`);
-      });
-    }
-  }
+  console.error('Configuration error:', error.message);
+  process.exit(1);
 }
 ```
 
-## Error Handling
+#### Common Error Messages
 
-All functions in this module throw errors with descriptive messages. It's
-recommended to wrap calls in try-catch blocks:
+| Function               | Error Message Example                | Cause                               |
+| ---------------------- | ------------------------------------ | ----------------------------------- |
+| `loadConfig`           | `Configuration file not found`       | File does not exist                 |
+| `loadConfig`           | `Invalid JSON in configuration file` | JSON parsing error                  |
+| `loadConfig`           | `Configuration validation failed`    | Schema validation error             |
+| `createConfigSchema`   | `Schema 'name' already defined`      | Schema name already in use          |
+| `validateConfigSchema` | `Schema 'name' not found`            | Referenced schema does not exist    |
+| `validateConfigSchema` | `Configuration validation failed`    | Configuration does not match schema |
 
-```javascript
-try {
-  const config = await loadConfig('./config.json');
-} catch (error) {
-  console.error('Configuration loading failed:', error.message); // Handle specific error types
-  if (error.code === 'FILE_NOT_FOUND') {
-    // Handle file not found
-  } else if (error.code === 'VALIDATION_ERROR') {
-    // Handle validation errors
-    console.error('Validation errors:', error.details.errors);
-  }
-}
-```
+---
 
-### Common Error Codes
+### Security Considerations
 
-| Function          | Error Code                | Cause                              |
-| ----------------- | ------------------------- | ---------------------------------- |
-| `loadConfig`      | `FILE_NOT_FOUND`          | Configuration file does not exist  |
-| `loadConfig`      | `JSON_PARSE_ERROR`        | Invalid JSON in configuration file |
-| `loadConfig`      | `MISSING_REQUIRED_FIELDS` | Required fields missing            |
-| `validateConfig`  | `VALIDATION_ERROR`        | Schema validation failed           |
-| `defineSchema`    | `SCHEMA_EXISTS`           | Schema name already in use         |
-| `getConfigSchema` | `SCHEMA_NOT_FOUND`        | Referenced schema does not exist   |
-| `setConfig`       | `INVALID_CONFIG_TYPE`     | Configuration is not an object     |
-| `reloadConfig`    | `NO_CONFIG_PATH`          | No file path specified for reload  |
+1. **Secret Management**: Store sensitive data (e.g., API keys, database
+   credentials) in `.env` files, not in version-controlled configuration files.
+2. **Environment Variables**: Use `dotenv` to load `.env` files for secure
+   configuration in production.
+3. **Validation**: Always use schemas to prevent runtime errors from invalid
+   configurations.
+4. **File Permissions**: Ensure configuration files have restricted permissions
+   if they contain sensitive data.
+5. **Schema References**: Avoid circular `$ref` schema references to prevent
+   validation issues.
 
-## Security Considerations
+---
 
-1.  **Secret Management**: Never store sensitive information like API keys or   
-    database credentials directly in configuration files that might be committed
-       to version control
-2.  **Environment Variables**: Use environment variables for sensitive   
-    configuration in production
-3.  **Validation**: Always validate configuration to prevent unexpected runtime
-       errors
-4.  **File Permissions**: Set appropriate file permissions for configuration   
-    files containing sensitive information
-5.  **Schema References**: Be cautious with circular schema references that
-    might    cause stack overflows
-6.  **Interpolation**: Be aware that interpolation could potentially expose   
-    sensitive values in logs or error messages
+### TypeScript Support
 
-## TypeScript Support
-
-While this module is written in JavaScript, it includes JSDoc comments for
-better IDE support. For TypeScript projects, you can create declaration files or
-use JSDoc type annotations.
+The module uses JSDoc for IDE support. For TypeScript, you can use these
+annotations or create declaration files:
 
 ```typescript
-// Example type declarations
 interface ConfigOptions {
   defaults?: Record<string, any>;
-  schema?: string | Record<string, any>;
   validate?: boolean;
+  schema?: string;
   env?: boolean;
-  watch?: boolean;
-  interpolate?: boolean;
 }
 
 interface SchemaDefinition {
   type: string | string[];
   required?: string[];
-  properties?: Record<string, SchemaDefinition>; // ... other schema properties
+  properties?: Record<string, SchemaDefinition>;
+  default?: any;
+  minimum?: number;
+  maximum?: number;
+  $ref?: string;
 }
 ```
 
-## Performance Tips
+---
 
-1.  **Caching**: The module internally caches environment variables to avoid   
-    repeated lookups
-2.  **File Watching**: Only enable `watch` option when needed, as it consumes   
-    resources
-3.  **Schema Complexity**: Complex schemas with deep nesting can impact   
-    validation performance
-4.  **Interpolation**: Disable interpolation for large configurations if not   
-    needed
-5.  **Predefined Schemas**: Use predefined schemas where possible to avoid   
-    redundant schema definitions
-
-## License
+### License
 
 MIT
 
 ---
 
-\<p align="center"\>   Built with ❤️ in India by the \<a
-href="https://github.com/orgs/voilajsx/people"\>VoilaJS Team\</a\> — powering
-modern web development. \</p\>
-
-```
-
-```
+<p align="center"> Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development. </p>
