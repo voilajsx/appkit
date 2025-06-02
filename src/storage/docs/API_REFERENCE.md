@@ -130,8 +130,7 @@ Uploads a file with automatic optimization for large files.
 
 ##### Returns
 
-- `Promise<{url: string, size: number, etag?: string, path: string}>` - Upload
-  result
+- `Promise<{url: string, size: number, etag: string|null}>` - Upload result
 
 ##### Throws
 

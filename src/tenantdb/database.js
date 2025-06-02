@@ -1,104 +1,69 @@
 /**
- * @voilajs/appkit - Multi-tenant database manager
- * @module @voilajs/appkit/tenantdb/database
+ * @voilajsx/appkit - Multi-tenant database core
+ * @module @voilajsx/appkit/tenantdb
+ * @file src/tenantdb/database.js
  */
 
 import { RowStrategy } from './strategies/row.js';
-import { SchemaStrategy } from './strategies/schema.js';
 import { DatabaseStrategy } from './strategies/database.js';
 import { PrismaAdapter } from './adapters/prisma.js';
 import { MongooseAdapter } from './adapters/mongoose.js';
-import { KnexAdapter } from './adapters/knex.js';
-import { TypeORMAdapter } from './adapters/typeorm.js';
 
 // Available strategies
 const strategies = {
   row: RowStrategy,
-  schema: SchemaStrategy,
-  database: DatabaseStrategy
+  database: DatabaseStrategy,
 };
 
 // Available adapters
 const adapters = {
   prisma: PrismaAdapter,
   mongoose: MongooseAdapter,
-  knex: KnexAdapter,
-  typeorm: TypeORMAdapter  
-};
-
-// Default configuration
-const DEFAULT_OPTIONS = {
-  strategy: 'row',
-  adapter: 'prisma',
-  pooling: {
-    max: 10,
-    min: 2,
-    idleTimeoutMillis: 30000
-  },
-  cache: {
-    enabled: true,
-    ttl: 300000 // 5 minutes
-  }
 };
 
 /**
  * Creates a multi-tenant database instance
  * @param {Object} config - Configuration options
  * @param {string} config.url - Database connection URL
- * @param {string} [config.strategy='row'] - Tenancy strategy: 'row', 'schema', or 'database'
- * @param {string} [config.adapter='prisma'] - Database adapter: 'prisma', 'mongoose', or 'knex'
- * @param {Object} [config.pooling] - Connection pooling options
- * @param {Object} [config.cache] - Connection cache options
- * @param {Object} [config.adapterConfig] - Adapter-specific configuration
+ * @param {string} [config.strategy] - Tenancy strategy: 'row' or 'database' (auto-detected)
+ * @param {string} [config.adapter] - Database adapter: 'prisma' or 'mongoose' (auto-detected)
  * @returns {Object} Multi-tenant database instance
  */
 export function createDb(config) {
-  const options = {
-    ...DEFAULT_OPTIONS,
-    ...config,
-    pooling: { ...DEFAULT_OPTIONS.pooling, ...config.pooling },
-    cache: { ...DEFAULT_OPTIONS.cache, ...config.cache }
-  };
-
-  if (!options.url) {
+  if (!config?.url) {
     throw new Error('Database URL is required');
   }
 
-  // Initialize adapter
-  const AdapterClass = adapters[options.adapter];
-  if (!AdapterClass) {
-    throw new Error(`Unknown adapter: ${options.adapter}. Supported: ${Object.keys(adapters).join(', ')}`);
-  }
+  // Auto-detect strategy from URL
+  const hasPlaceholder = config.url.includes('{tenant}');
+  const strategy = config.strategy || (hasPlaceholder ? 'database' : 'row');
 
-  const adapter = new AdapterClass(options);
+  // Auto-detect adapter from URL
+  const isMongoUrl = config.url.includes('mongodb');
+  const adapter = config.adapter || (isMongoUrl ? 'mongoose' : 'prisma');
 
-  // Initialize strategy
-  const StrategyClass = strategies[options.strategy];
+  // Validate strategy
+  const StrategyClass = strategies[strategy];
   if (!StrategyClass) {
-    throw new Error(`Unknown strategy: ${options.strategy}. Supported: ${Object.keys(strategies).join(', ')}`);
+    throw new Error(
+      `Unknown strategy: ${strategy}. Supported: ${Object.keys(strategies).join(', ')}`
+    );
   }
 
-  const strategy = new StrategyClass(options, adapter);
-
-  // Connection cache
-  const connectionCache = new Map();
-  const connectionCounts = new Map();
-
-  // Cache management
-  let cacheCleanupInterval;
-  if (options.cache.enabled) {
-    // Periodically clean up stale connections
-    cacheCleanupInterval = setInterval(() => {
-      const now = Date.now();
-      for (const [tenantId, cached] of connectionCache.entries()) {
-        if (now - cached.timestamp > options.cache.ttl) {
-          cached.client.$disconnect?.();
-          connectionCache.delete(tenantId);
-          connectionCounts.delete(tenantId);
-        }
-      }
-    }, options.cache.ttl);
+  // Validate adapter
+  const AdapterClass = adapters[adapter];
+  if (!AdapterClass) {
+    throw new Error(
+      `Unknown adapter: ${adapter}. Supported: ${Object.keys(adapters).join(', ')}`
+    );
   }
+
+  // Initialize adapter and strategy
+  const adapterInstance = new AdapterClass({ url: config.url });
+  const strategyInstance = new StrategyClass(
+    { url: config.url },
+    adapterInstance
+  );
 
   const instance = {
     /**
@@ -111,57 +76,27 @@ export function createDb(config) {
         throw new Error('Tenant ID is required');
       }
 
-      // Check cache first
-      if (options.cache.enabled && connectionCache.has(tenantId)) {
-        const cached = connectionCache.get(tenantId);
-        if (Date.now() - cached.timestamp < options.cache.ttl) {
-          connectionCounts.set(tenantId, (connectionCounts.get(tenantId) || 0) + 1);
-          return cached.client;
-        } else {
-          // Cache expired, disconnect old client
-          await cached.client.$disconnect?.();
-          connectionCache.delete(tenantId);
-        }
-      }
-
-      // Create new connection through strategy
-      const client = await strategy.getConnection(tenantId);
-      
-      // Cache connection if enabled
-      if (options.cache.enabled) {
-        connectionCache.set(tenantId, {
-          client,
-          timestamp: Date.now()
-        });
-        connectionCounts.set(tenantId, 1);
-      }
-
-      return client;
+      return strategyInstance.getConnection(tenantId);
     },
 
     /**
      * Creates a new tenant
      * @param {string} tenantId - Tenant identifier
-     * @param {Object} [options] - Creation options
      * @returns {Promise<void>}
      */
-    async createTenant(tenantId, options = {}) {
+    async createTenant(tenantId) {
       if (!tenantId) {
         throw new Error('Tenant ID is required');
       }
 
       // Validate tenant ID format
       if (!/^[a-zA-Z0-9_-]+$/.test(tenantId)) {
-        throw new Error('Tenant ID must contain only alphanumeric characters, underscores, and hyphens');
+        throw new Error(
+          'Tenant ID must contain only alphanumeric characters, underscores, and hyphens'
+        );
       }
 
-      // Check if tenant already exists
-      const exists = await this.tenantExists(tenantId);
-      if (exists) {
-        throw new Error(`Tenant '${tenantId}' already exists`);
-      }
-
-      return strategy.createTenant(tenantId, options);
+      return strategyInstance.createTenant(tenantId);
     },
 
     /**
@@ -174,36 +109,7 @@ export function createDb(config) {
         throw new Error('Tenant ID is required');
       }
 
-      // Clear from cache first
-      if (connectionCache.has(tenantId)) {
-        const cached = connectionCache.get(tenantId);
-        await cached.client.$disconnect?.();
-        connectionCache.delete(tenantId);
-        connectionCounts.delete(tenantId);
-      }
-
-      return strategy.deleteTenant(tenantId);
-    },
-
-    /**
-     * Runs migrations for a tenant
-     * @param {string} tenantId - Tenant identifier
-     * @returns {Promise<void>}
-     */
-    async migrateTenant(tenantId) {
-      if (!tenantId) {
-        throw new Error('Tenant ID is required');
-      }
-
-      return strategy.migrateTenant(tenantId);
-    },
-
-    /**
-     * Lists all tenants
-     * @returns {Promise<string[]>} Array of tenant IDs
-     */
-    async listTenants() {
-      return strategy.listTenants();
+      return strategyInstance.deleteTenant(tenantId);
     },
 
     /**
@@ -216,39 +122,15 @@ export function createDb(config) {
         return false;
       }
 
-      return strategy.tenantExists(tenantId);
+      return strategyInstance.tenantExists(tenantId);
     },
 
     /**
-     * Gets connection statistics
-     * @returns {Object} Connection stats
+     * Lists all tenants
+     * @returns {Promise<string[]>} Array of tenant IDs
      */
-    getStats() {
-      return {
-        adapter: options.adapter,
-        strategy: options.strategy,
-        cachedConnections: connectionCache.size,
-        connectionCounts: Object.fromEntries(connectionCounts),
-        totalConnections: Array.from(connectionCounts.values()).reduce((a, b) => a + b, 0),
-        cacheEnabled: options.cache.enabled,
-        cacheConfig: options.cache
-      };
-    },
-
-    /**
-     * Clears connection cache
-     * @returns {Promise<void>}
-     */
-    async clearCache() {
-      for (const [tenantId, cached] of connectionCache.entries()) {
-        try {
-          await cached.client.$disconnect?.();
-        } catch (error) {
-          console.error(`Error disconnecting tenant ${tenantId}:`, error);
-        }
-      }
-      connectionCache.clear();
-      connectionCounts.clear();
+    async listTenants() {
+      return strategyInstance.listTenants();
     },
 
     /**
@@ -256,73 +138,22 @@ export function createDb(config) {
      * @returns {Promise<void>}
      */
     async disconnect() {
-      // Clear cache cleanup interval
-      if (cacheCleanupInterval) {
-        clearInterval(cacheCleanupInterval);
-      }
-
-      // Clear all cached connections
-      await this.clearCache();
-      
-      // Disconnect adapter
-      await adapter.disconnect();
-      
-      // Disconnect strategy
-      await strategy.disconnect();
+      await strategyInstance.disconnect();
+      await adapterInstance.disconnect();
     },
-
-    /**
-     * Gets the raw adapter instance
-     * @returns {Object} Raw adapter
-     */
-    getAdapter() {
-      return adapter;
-    },
-
-    /**
-     * Gets the raw strategy instance
-     * @returns {Object} Raw strategy
-     */
-    getStrategy() {
-      return strategy;
-    },
-
-    /**
-     * Health check for the database connection
-     * @returns {Promise<boolean>} True if healthy
-     */
-    async healthCheck() {
-      try {
-        // Try to list tenants as a basic health check
-        await this.listTenants();
-        return true;
-      } catch (error) {
-        return false;
-      }
-    },
-
-    /**
-     * Gets configuration
-     * @returns {Object} Current configuration
-     */
-    getConfig() {
-      return { ...options };
-    }
   };
 
   // Add cleanup on process exit
-  process.on('SIGINT', async () => {
-    await instance.disconnect();
-  });
+  const cleanup = async () => {
+    try {
+      await instance.disconnect();
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
+  };
 
-  process.on('SIGTERM', async () => {
-    await instance.disconnect();
-  });
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 
   return instance;
 }
-
-/**
- * Alias for backward compatibility
- */
-export const createMultiTenantDb = createDb;

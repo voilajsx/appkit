@@ -1,242 +1,115 @@
-# @voilajs/appkit/tenantdb - LLM API Reference
+# @voilajsx/appkit/tenantdb - LLM API Reference
 
-> **Note**: Implementation is in JavaScript. TypeScript signatures are for
-> clarity only.
+**Note**: Implementation is in JavaScript. TypeScript signatures are for
+reference only.
 
 ## LLM Code Generation Guidelines
 
-1. **Adhere to Code Style**:
-
-   - ESM imports, single quotes, 2-space indentation, semicolons
-   - Always include JSDoc comments for functions
-
-2. **JSDoc Format** (Required for all functions):
+1. **File Header Comments** (Required for all files):
 
    ```javascript
    /**
-    * Function description
+    * Brief description of what the file does
+    * @module @voilajsx/appkit/tenantdb
+    * @file path/to/filename.js
+    */
+   ```
+
+````
+
+2. **Function JSDoc** (Required for all functions):
+
+   ```javascript
+   /**
+    * One clear sentence describing what the function does
     * @param {Type} paramName - Parameter description
     * @returns {ReturnType} Return value description
     * @throws {Error} Error conditions
     */
    ```
 
-3. **Error Handling**:
+3. **Code Style**:
 
+   - ESM imports, single quotes, 2-space indentation, semicolons
+   - Focus on reduced file size and clean code
+
+4. **Comment Guidelines**:
+
+   - **File headers**: Always include with description, module, and file path
+   - **Function docs**: One clear sentence describing the purpose
+   - **Inline comments**: Only for complex logic that's confusing or hard to
+     understand
+   - **No basic comments**: Avoid obvious comments like `// Create tenant`
+     before `createTenant()`
+   - **Focus on minimal file size**: Comment only when necessary for
+     understanding
+
+5. **Configuration**:
+
+   - Use simple hardcoded URLs for basic examples
+     (`'postgresql://localhost:5432/myapp'`)
+   - Use environment variables only in complete application examples
+     (`process.env.DATABASE_URL`)
+
+6. **Database References**:
+
+   - If database operations are needed, use the tenant-scoped `db` object (e.g.,
+     `tenantDb.user.findMany()`)
+   - Don't import or define database clients - assume they're available from the
+     module
+   - Keep database operations simple and generic
+
+7. **Error Handling**:
    - Use try/catch blocks for async functions
-   - Check parameters before using them
    - Throw descriptive error messages
-
-4. **Framework Agnostic**:
-   - Primary functions should work with any Node.js framework
-   - Express middleware should be clearly labeled as such
-   - Provide adapter patterns for different ORMs/query builders
 
 ## Function Signatures
 
-### Core Database Functions
-
-#### createDb(config)
+### 1. `createDb`
 
 ```typescript
 function createDb(config: {
   url: string;
-  strategy?: 'row' | 'schema' | 'database';
-  adapter?: 'prisma' | 'mongoose' | 'knex' | 'typeorm';
-  pooling?: {
-    max?: number;
-    min?: number;
-    idleTimeoutMillis?: number;
-  };
-  cache?: {
-    enabled?: boolean;
-    ttl?: number;
-  };
-  adapterConfig?: Record<string, any>;
-}): MultiTenantDb;
+  strategy?: 'row' | 'database';
+  adapter?: 'prisma' | 'mongoose';
+}): TenantDatabase;
 ```
 
-- Default `strategy`: `'row'`
-- Default `adapter`: `'prisma'`
-- Default `pooling.max`: `10`
-- Default `pooling.min`: `2`
-- Default `pooling.idleTimeoutMillis`: `30000`
-- Default `cache.enabled`: `true`
-- Default `cache.ttl`: `300000` (5 minutes)
-- Throws: `'Database URL is required'`, `'Unknown adapter'`,
-  `'Unknown strategy'`
+- Auto-detects `strategy` from URL pattern (`{tenant}` = database strategy)
+- Auto-detects `adapter` from URL protocol (`mongodb` = mongoose)
 
-#### MultiTenantDb.forTenant(tenantId)
+### 2. `createMiddleware`
 
 ```typescript
-function forTenant(tenantId: string): Promise<DbClient>;
+function createMiddleware(db: TenantDatabase): ExpressMiddleware;
 ```
 
-- Throws: `'Tenant ID is required'`
+- Sets `req.db` with tenant-scoped database connection
+- Sets `req.tenantId` with extracted tenant ID
 
-#### MultiTenantDb.createTenant(tenantId, options)
-
-```typescript
-function createTenant(
-  tenantId: string,
-  options?: {
-    runMigrations?: boolean;
-    template?: string;
-  }
-): Promise<void>;
-```
-
-- Default `options.runMigrations`: `true`
-- Throws: `'Tenant ID is required'`, `'Tenant already exists'`,
-  `'Invalid tenant ID format'`
-
-#### MultiTenantDb.deleteTenant(tenantId)
+### 3. `TenantDatabase` methods
 
 ```typescript
-function deleteTenant(tenantId: string): Promise<void>;
-```
-
-- Throws: `'Tenant ID is required'`
-
-#### MultiTenantDb.migrateTenant(tenantId)
-
-```typescript
-function migrateTenant(tenantId: string): Promise<void>;
-```
-
-- Throws: `'Tenant ID is required'`
-
-#### MultiTenantDb.listTenants()
-
-```typescript
-function listTenants(): Promise<string[]>;
-```
-
-#### MultiTenantDb.tenantExists(tenantId)
-
-```typescript
-function tenantExists(tenantId: string): Promise<boolean>;
-```
-
-#### MultiTenantDb.getStats()
-
-```typescript
-function getStats(): {
-  adapter: string;
-  strategy: string;
-  cachedConnections: number;
-  connectionCounts: Record<string, number>;
-  totalConnections: number;
-  cacheEnabled: boolean;
-  cacheConfig: Object;
-};
-```
-
-#### MultiTenantDb.clearCache()
-
-```typescript
-function clearCache(): Promise<void>;
-```
-
-#### MultiTenantDb.disconnect()
-
-```typescript
-function disconnect(): Promise<void>;
-```
-
-#### MultiTenantDb.healthCheck()
-
-```typescript
-function healthCheck(): Promise<boolean>;
-```
-
-### Middleware Functions
-
-#### createMiddleware(db, options)
-
-```typescript
-function createMiddleware(
-  db: MultiTenantDb,
-  options?: {
-    getTenantId?: (req: any) => string | null;
-    onError?: (error: Error, req: any, res: any) => void;
-    required?: boolean;
-  }
-): (req: any, res: any, next: Function) => Promise<void>;
-```
-
-- Default `options.required`: `true`
-- Default `options.getTenantId`: Function that checks request headers, query
-  parameters, route parameters, tenant object, user object, and body
-- Default `options.onError`: Function that returns HTTP 400/404 with error
-  message
-
-#### createTenantContext(db)
-
-```typescript
-function createTenantContext(db: MultiTenantDb): {
-  run: (tenantId: string, fn: Function) => Promise<any>;
-  get: () => { tenantId: string; db: DbClient } | undefined;
-  getTenantId: () => string | undefined;
-  getDb: () => DbClient | undefined;
-};
-```
-
-### Tenancy Strategy Classes
-
-#### RowStrategy
-
-```typescript
-class RowStrategy {
-  constructor(options: { url: string; prismaClient?: any; log?: string[] });
-
-  getConnection(tenantId: string): Promise<DbClient>;
+interface TenantDatabase {
+  forTenant(tenantId: string): Promise<DatabaseClient>;
   createTenant(tenantId: string): Promise<void>;
   deleteTenant(tenantId: string): Promise<void>;
-  migrateTenant(tenantId: string): Promise<void>;
-  listTenants(): Promise<string[]>;
   tenantExists(tenantId: string): Promise<boolean>;
+  listTenants(): Promise<string[]>;
   disconnect(): Promise<void>;
 }
 ```
 
-#### SchemaStrategy
+### 4. Tenant ID Sources (Middleware)
 
-```typescript
-class SchemaStrategy {
-  constructor(options: { url: string; prismaClient?: any; log?: string[] });
+Middleware checks these sources in order:
 
-  getConnection(tenantId: string): Promise<DbClient>;
-  createTenant(
-    tenantId: string,
-    options?: { template?: string; runMigrations?: boolean }
-  ): Promise<void>;
-  deleteTenant(tenantId: string): Promise<void>;
-  migrateTenant(tenantId: string): Promise<void>;
-  listTenants(): Promise<string[]>;
-  tenantExists(tenantId: string): Promise<boolean>;
-  disconnect(): Promise<void>;
-}
-```
-
-#### DatabaseStrategy
-
-```typescript
-class DatabaseStrategy {
-  constructor(options: { url: string; prismaClient?: any; log?: string[] });
-
-  getConnection(tenantId: string): Promise<DbClient>;
-  createTenant(
-    tenantId: string,
-    options?: { runMigrations?: boolean }
-  ): Promise<void>;
-  deleteTenant(tenantId: string): Promise<void>;
-  migrateTenant(tenantId: string): Promise<void>;
-  listTenants(): Promise<string[]>;
-  tenantExists(tenantId: string): Promise<boolean>;
-  disconnect(): Promise<void>;
-}
-```
+1. `req.headers['x-tenant-id']`
+2. `req.query.tenantId`
+3. `req.params.tenantId`
+4. `req.tenant?.id`
+5. `req.user?.tenantId`
+6. `req.body?.tenantId`
 
 ## Example Implementations
 
@@ -244,392 +117,383 @@ class DatabaseStrategy {
 
 ```javascript
 /**
- * Creates a multi-tenant database instance with row-level strategy
- * @param {string} databaseUrl - Database connection URL
- * @returns {Object} Multi-tenant database instance
+ * Basic multi-tenant Express application with automatic tenant isolation
+ * @module @voilajsx/appkit/tenantdb
+ * @file examples/basic-app.js
  */
-function createTenantDatabase(databaseUrl) {
-  if (!databaseUrl) {
-    throw new Error('Database URL is required');
-  }
 
-  // Import from @voilajs/appkit
-  const { createDb } = require('@voilajs/appkit/tenantdb');
+import { createDb, createMiddleware } from '@voilajsx/appkit/tenantdb';
+import express from 'express';
 
-  // Create with default row-level strategy and Prisma adapter
-  const db = createDb({
-    url: databaseUrl,
-    strategy: 'row',
-    adapter: 'prisma',
-    cache: {
-      enabled: true,
-      ttl: 5 * 60 * 1000, // 5 minutes
-    },
-  });
-
-  // Graceful shutdown handling
-  process.on('SIGTERM', async () => {
-    console.log('Shutting down tenant database connections...');
-    await db.disconnect();
-    process.exit(0);
-  });
-
-  return db;
-}
+const app = express();
+app.use(express.json());
 
 /**
- * Example using the tenant database with Express
- * @param {Object} app - Express app
- * @param {Object} db - Multi-tenant database instance
+ * Creates multi-tenant database with row-level isolation
+ * @returns {Object} Database instance with tenant methods
  */
-function setupTenantRoutes(app, db) {
-  const { createMiddleware } = require('@voilajs/appkit/tenantdb');
-
-  // Create tenant middleware
-  const tenantMiddleware = createMiddleware(db, {
-    // Custom tenant ID extraction
-    getTenantId: (req) => {
-      return req.headers['x-tenant-id'] || req.query.tenant;
-    },
-    // Custom error handling
-    onError: (error, req, res) => {
-      console.error('Tenant error:', error.message);
-      res.status(400).json({
-        error: 'Tenant error',
-        message: error.message,
-      });
-    },
-    required: true,
-  });
-
-  // Apply middleware to routes
-  app.use('/api', tenantMiddleware);
-
-  // Tenant management routes
-  app.post('/admin/tenants', async (req, res) => {
-    try {
-      const { tenantId, name } = req.body;
-
-      if (!tenantId || !/^[a-z0-9-]+$/.test(tenantId)) {
-        return res.status(400).json({
-          error:
-            'Invalid tenant ID. Use lowercase letters, numbers, and hyphens only.',
-        });
-      }
-
-      if (await db.tenantExists(tenantId)) {
-        return res.status(409).json({ error: 'Tenant already exists' });
-      }
-
-      await db.createTenant(tenantId);
-
-      // Store additional tenant metadata in your system
-      const tenant = await storeTenantMetadata(tenantId, name);
-
-      res.status(201).json({ tenant });
-    } catch (error) {
-      console.error('Error creating tenant:', error);
-      res.status(500).json({ error: 'Failed to create tenant' });
-    }
-  });
-
-  // API routes (with tenant context)
-  app.get('/api/users', async (req, res) => {
-    try {
-      // req.db is automatically set to the tenant's database connection
-      const users = await req.db.user.findMany();
-      res.json({ users });
-    } catch (error) {
-      res.status(500).json({ error: 'Error fetching users' });
-    }
+function setupDatabase() {
+  return createDb({
+    url: 'postgresql://localhost:5432/myapp',
   });
 }
+
+const db = setupDatabase();
+const tenantMiddleware = createMiddleware(db);
+
+// Add tenant context to all API routes
+app.use('/api', tenantMiddleware);
+
+/**
+ * Gets all users for the current tenant
+ * @param {Object} req - Express request with tenant context
+ * @param {Object} res - Express response
+ */
+app.get('/api/users', async (req, res) => {
+  const users = await req.db.user.findMany();
+  res.json(users);
+});
+
+/**
+ * Creates a new user for the current tenant
+ * @param {Object} req - Express request with tenant context and user data
+ * @param {Object} res - Express response
+ */
+app.post('/api/users', async (req, res) => {
+  const user = await req.db.user.create({
+    data: req.body,
+  });
+  res.json(user);
+});
+
+app.listen(3000);
 ```
 
-### Database-per-Tenant Strategy
+### Database-Per-Tenant Strategy
 
 ```javascript
 /**
- * Creates a multi-tenant database with database-per-tenant strategy
- * @param {string} databaseUrl - Database URL with {tenant} placeholder
- * @returns {Object} Multi-tenant database instance
+ * Multi-tenant application with database-per-tenant isolation
+ * @module @voilajsx/appkit/tenantdb
+ * @file examples/database-strategy.js
  */
-function createDatabasePerTenant(databaseUrl) {
-  if (!databaseUrl.includes('{tenant}')) {
-    throw new Error('Database URL must contain {tenant} placeholder');
-  }
 
-  const { createDb } = require('@voilajs/appkit/tenantdb');
+import { createDb } from '@voilajsx/appkit/tenantdb';
 
-  const db = createDb({
-    url: databaseUrl,
-    strategy: 'database',
-    adapter: 'prisma',
-    pooling: {
-      max: 5, // Limit connections since each tenant has its own database
-      min: 0,
-      idleTimeoutMillis: 10000, // Close idle connections sooner
+/**
+ * Creates database instance with database-per-tenant strategy
+ * @returns {Object} Database instance for managing separate tenant databases
+ */
+function createTenantDatabase() {
+  return createDb({
+    url: 'postgresql://admin:password@localhost:5432/{tenant}',
+  });
+}
+
+const db = createTenantDatabase();
+
+/**
+ * Creates a new tenant with dedicated database
+ * @param {string} tenantId - Unique tenant identifier
+ * @param {string} adminEmail - Email for tenant admin user
+ * @returns {Promise<Object>} Tenant details with admin user ID
+ */
+async function provisionTenant(tenantId, adminEmail) {
+  await db.createTenant(tenantId);
+
+  const tenantDb = await db.forTenant(tenantId);
+  const admin = await tenantDb.user.create({
+    data: {
+      email: adminEmail,
+      role: 'admin',
     },
   });
 
-  return db;
+  return { tenantId, adminId: admin.id };
 }
 
 /**
- * Sets up tenant provisioning with database strategy
- * @param {Object} db - Multi-tenant database instance
+ * Gets health status for a specific tenant
+ * @param {string} tenantId - Tenant identifier to check
+ * @returns {Promise<Object>} Health status and basic metrics
  */
-async function provisionTenant(db, tenantId, metadata) {
-  if (!tenantId) {
-    throw new Error('Tenant ID is required');
+async function getTenantHealth(tenantId) {
+  if (!(await db.tenantExists(tenantId))) {
+    return { status: 'not_found' };
   }
 
-  try {
-    // Validate tenant ID format
-    if (!/^[a-z0-9-]+$/.test(tenantId)) {
-      throw new Error(
-        'Tenant ID must contain only lowercase letters, numbers, and hyphens'
-      );
-    }
-
-    // Create tenant database
-    await db.createTenant(tenantId, { runMigrations: true });
-
-    // Initialize tenant data
-    const tenantDb = await db.forTenant(tenantId);
-
-    // Create initial admin user
-    await tenantDb.user.create({
-      data: {
-        email: `admin@${tenantId}.example.com`,
-        name: 'Admin User',
-        role: 'ADMIN',
-      },
-    });
-
-    // Create default settings
-    await tenantDb.settings.create({
-      data: {
-        theme: 'light',
-        companyName: metadata.companyName || tenantId,
-        timezone: metadata.timezone || 'UTC',
-      },
-    });
-
-    console.log(`Tenant ${tenantId} provisioned successfully`);
-    return true;
-  } catch (error) {
-    console.error(`Failed to provision tenant ${tenantId}:`, error);
-
-    // Clean up on failure
-    try {
-      if (await db.tenantExists(tenantId)) {
-        await db.deleteTenant(tenantId);
-      }
-    } catch (cleanupError) {
-      console.error(`Cleanup failed for tenant ${tenantId}:`, cleanupError);
-    }
-
-    throw error;
-  }
-}
-```
-
-### Schema-per-Tenant Strategy (PostgreSQL)
-
-```javascript
-/**
- * Creates a multi-tenant database with schema-per-tenant strategy
- * @param {string} databaseUrl - PostgreSQL database URL
- * @returns {Object} Multi-tenant database instance
- */
-function createSchemaPerTenant(databaseUrl) {
-  const { createDb } = require('@voilajs/appkit/tenantdb');
-
-  const db = createDb({
-    url: databaseUrl,
-    strategy: 'schema',
-    adapter: 'prisma',
-  });
-
-  return db;
-}
-
-/**
- * Sets up tenant provisioning with schema strategy
- * @param {Object} db - Multi-tenant database instance
- * @param {string} tenantId - Tenant identifier
- * @param {Object} options - Provisioning options
- */
-async function provisionTenantSchema(db, tenantId, options = {}) {
-  try {
-    // Create tenant schema using a template if specified
-    await db.createTenant(tenantId, {
-      template: options.template || 'template_schema',
-      runMigrations: true,
-    });
-
-    // Connect to tenant schema
-    const tenantDb = await db.forTenant(tenantId);
-
-    // Initialize tenant data
-    await tenantDb.$transaction([
-      // Create initial admin user
-      tenantDb.user.create({
-        data: {
-          email: options.adminEmail || `admin@${tenantId}.example.com`,
-          name: options.adminName || 'Admin User',
-          role: 'ADMIN',
-        },
-      }),
-
-      // Create default settings
-      tenantDb.settings.create({
-        data: {
-          companyName: options.companyName || tenantId,
-          timezone: options.timezone || 'UTC',
-          features: {
-            billing: options.features?.billing || false,
-            reporting: options.features?.reporting || true,
-            api: options.features?.api || false,
-          },
-        },
-      }),
-    ]);
-
-    console.log(`Tenant schema ${tenantId} provisioned successfully`);
-    return true;
-  } catch (error) {
-    console.error(`Failed to provision tenant schema ${tenantId}:`, error);
-
-    // Clean up on failure
-    try {
-      if (await db.tenantExists(tenantId)) {
-        await db.deleteTenant(tenantId);
-      }
-    } catch (cleanupError) {
-      console.error(`Cleanup failed for tenant ${tenantId}:`, cleanupError);
-    }
-
-    throw error;
-  }
-}
-```
-
-### Using Tenant Context with Async Local Storage
-
-```javascript
-/**
- * Sets up tenant context for business logic
- * @param {Object} db - Multi-tenant database instance
- * @returns {Object} Tenant service with context functions
- */
-function createTenantService(db) {
-  const { createTenantContext } = require('@voilajs/appkit/tenantdb');
-  const context = createTenantContext(db);
+  const tenantDb = await db.forTenant(tenantId);
+  const userCount = await tenantDb.user.count();
 
   return {
-    /**
-     * Executes function within tenant context
-     * @param {string} tenantId - Tenant identifier
-     * @param {Function} fn - Function to execute
-     * @returns {Promise<any>} Function result
-     */
-    async runForTenant(tenantId, fn) {
-      return context.run(tenantId, fn);
-    },
+    status: 'healthy',
+    tenantId,
+    userCount,
+  };
+}
+```
 
-    /**
-     * Gets current tenant ID from context
-     * @returns {string|undefined} Current tenant ID
-     */
-    getCurrentTenantId() {
-      return context.getTenantId();
-    },
+### Tenant Management
 
-    /**
-     * Gets database for current tenant
-     * @returns {Object|undefined} Current tenant database
-     * @throws {Error} If not in tenant context
-     */
-    getDB() {
-      const db = context.getDb();
-      if (!db) {
-        throw new Error('Not in tenant context');
-      }
-      return db;
-    },
+```javascript
+/**
+ * Administrative functions for tenant lifecycle management
+ * @module @voilajsx/appkit/tenantdb
+ * @file examples/tenant-management.js
+ */
 
-    /**
-     * Executes business logic in current tenant context
-     * @param {Function} businessLogic - Business logic to execute
-     * @returns {Promise<any>} Business logic result
-     * @throws {Error} If not in tenant context
-     */
-    async execute(businessLogic) {
-      const tenantId = this.getCurrentTenantId();
-      if (!tenantId) {
-        throw new Error('Not in tenant context');
-      }
+import { createDb } from '@voilajsx/appkit/tenantdb';
 
-      const db = this.getDB();
-      return businessLogic(db, tenantId);
+const db = createDb({ url: process.env.DATABASE_URL });
+
+/**
+ * Creates a new tenant with initial setup
+ * @param {string} companyName - Company name for the tenant
+ * @param {string} ownerEmail - Email for the tenant owner
+ * @returns {Promise<Object>} Created tenant details
+ * @throws {Error} If tenant creation fails
+ */
+async function createCompanyTenant(companyName, ownerEmail) {
+  const tenantId = companyName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+  if (await db.tenantExists(tenantId)) {
+    throw new Error('Company already exists');
+  }
+
+  await db.createTenant(tenantId);
+
+  const tenantDb = await db.forTenant(tenantId);
+  const owner = await tenantDb.user.create({
+    data: {
+      email: ownerEmail,
+      role: 'owner',
+      status: 'active',
     },
+  });
+
+  return { tenantId, ownerId: owner.id };
+}
+
+/**
+ * Gets overview of all tenants with basic statistics
+ * @returns {Promise<Object>} Tenant statistics and details
+ */
+async function getTenantOverview() {
+  const tenants = await db.listTenants();
+  const stats = [];
+
+  for (const tenantId of tenants) {
+    const tenantDb = await db.forTenant(tenantId);
+    const userCount = await tenantDb.user.count();
+
+    stats.push({
+      tenantId,
+      userCount,
+      status: 'active',
+    });
+  }
+
+  return {
+    totalTenants: tenants.length,
+    tenants: stats,
   };
 }
 
 /**
- * Example showing how to use tenant context in business logic
- * @param {Object} tenantService - Tenant service
+ * Safely deletes a tenant after validation
+ * @param {string} tenantId - Tenant to delete
+ * @param {string} confirmCode - Confirmation code for safety
+ * @throws {Error} If confirmation code is invalid
  */
-async function processTenantData(tenantService) {
+async function deleteTenantSafely(tenantId, confirmCode) {
+  if (confirmCode !== `DELETE_${tenantId}`) {
+    throw new Error('Invalid confirmation code');
+  }
+
+  await db.deleteTenant(tenantId);
+}
+```
+
+### Express API Integration
+
+```javascript
+/**
+ * Complete Express API with tenant authentication and management
+ * @module @voilajsx/appkit/tenantdb
+ * @file examples/express-api.js
+ */
+
+import express from 'express';
+import { createDb, createMiddleware } from '@voilajsx/appkit/tenantdb';
+
+const app = express();
+app.use(express.json());
+
+const db = createDb({ url: process.env.DATABASE_URL });
+
+/**
+ * Registers a new company and creates tenant
+ * @param {Object} req - Request with company registration data
+ * @param {Object} res - Response object
+ */
+app.post('/register', async (req, res) => {
   try {
-    // Get all tenants
-    const tenantDb = await db.forTenant('system');
-    const tenants = await tenantDb.tenant.findMany({
-      where: { status: 'active' },
+    const { companyName, adminEmail } = req.body;
+    const tenantId = companyName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+    await db.createTenant(tenantId);
+
+    const tenantDb = await db.forTenant(tenantId);
+    const admin = await tenantDb.user.create({
+      data: {
+        email: adminEmail,
+        role: 'admin',
+      },
     });
 
-    for (const tenant of tenants) {
-      await tenantService.runForTenant(tenant.id, async () => {
-        // This runs in tenant context, DB queries are automatically isolated
-        const db = tenantService.getDB();
-
-        // Get users who need report
-        const users = await db.user.findMany({
-          where: { reportSubscription: true },
-        });
-
-        // Generate and send reports
-        for (const user of users) {
-          const report = await generateUserReport(user.id);
-          await sendEmailReport(user.email, report);
-        }
-
-        console.log(`Processed reports for tenant: ${tenant.id}`);
-      });
-    }
+    res.status(201).json({
+      tenantId,
+      adminId: admin.id,
+    });
   } catch (error) {
-    console.error('Error processing tenant data:', error);
+    res.status(400).json({ error: error.message });
   }
+});
+
+// Apply tenant middleware to API routes
+app.use('/api', createMiddleware(db));
+
+/**
+ * Gets current tenant's user list
+ */
+app.get('/api/users', async (req, res) => {
+  const users = await req.db.user.findMany({
+    select: { id: true, email: true, role: true },
+  });
+  res.json(users);
+});
+
+/**
+ * Creates new user in current tenant
+ */
+app.post('/api/users', async (req, res) => {
+  const user = await req.db.user.create({
+    data: req.body,
+  });
+  res.json(user);
+});
+
+/**
+ * Gets tenant dashboard statistics
+ */
+app.get('/api/dashboard', async (req, res) => {
+  const userCount = await req.db.user.count();
+  const activeUsers = await req.db.user.count({
+    where: { status: 'active' },
+  });
+
+  res.json({
+    tenant: req.tenantId,
+    stats: { userCount, activeUsers },
+  });
+});
+
+/**
+ * System admin endpoint for tenant overview
+ */
+app.get('/admin/tenants', async (req, res) => {
+  const tenants = await db.listTenants();
+  const details = [];
+
+  for (const tenantId of tenants) {
+    const tenantDb = await db.forTenant(tenantId);
+    const userCount = await tenantDb.user.count();
+    details.push({ tenantId, userCount });
+  }
+
+  res.json({ totalTenants: tenants.length, tenants: details });
+});
+
+app.listen(3000);
+```
+
+### MongoDB/Mongoose Integration
+
+```javascript
+/**
+ * Multi-tenant MongoDB application using Mongoose
+ * @module @voilajsx/appkit/tenantdb
+ * @file examples/mongoose-app.js
+ */
+
+import { createDb, createMiddleware } from '@voilajsx/appkit/tenantdb';
+import mongoose from 'mongoose';
+import express from 'express';
+
+const app = express();
+app.use(express.json());
+
+/**
+ * Creates MongoDB multi-tenant database instance
+ * @returns {Object} Database instance configured for MongoDB
+ */
+function setupMongoDatabase() {
+  return createDb({
+    url: 'mongodb://localhost:27017/myapp',
+  });
 }
+
+// User schema with tenantId field
+const userSchema = new mongoose.Schema({
+  tenantId: { type: String, required: true, index: true },
+  email: { type: String, required: true },
+  name: { type: String, required: true },
+  role: { type: String, default: 'user' },
+});
+
+const db = setupMongoDatabase();
+app.use('/api', createMiddleware(db));
+
+/**
+ * Gets users for current tenant using Mongoose
+ */
+app.get('/api/users', async (req, res) => {
+  const User = req.db.model('User', userSchema);
+  const users = await User.find({ active: true });
+  res.json(users);
+});
+
+/**
+ * Creates user in current tenant using Mongoose
+ */
+app.post('/api/users', async (req, res) => {
+  const User = req.db.model('User', userSchema);
+  const user = await User.create(req.body);
+  res.json(user);
+});
+
+app.listen(3000);
 ```
 
 ## Code Generation Rules
 
-1. **Always validate tenant ID** before using in database operations
-2. **Use try/catch blocks** for all async operations
-3. **Properly handle database connection lifecycle** with disconnect
-4. **Apply tenant isolation consistently** across all queries
-5. **Sanitize inputs** to prevent SQL injection when building queries
-6. **Cache connections appropriately** for performance
-7. **Apply proper error handling** with descriptive messages
-8. **Always use await** with async database operations
-9. **Follow the tenancy strategy pattern** for consistency
-10. **Use middleware to simplify tenant routing** in web applications
+1. **Always include file header** with description, @module, and @file tags
+2. **Use JSDoc for all functions** with one clear sentence descriptions
+3. **Add inline comments** only for complex logic that needs explanation
+4. **Use async/await** for all database operations
+5. **Include comprehensive error handling** with try/catch blocks
+6. **Use simple configuration** for basic examples (hardcoded URLs)
+7. **Use environment variables** only in complete application examples
+8. **Use tenant-scoped database objects** (req.db, tenantDb) for all operations
+9. **Return consistent response formats** in API endpoints
+10. **Focus on minimal file size** - avoid unnecessary comments
+11. **Follow ESM import style** with single quotes and semicolons
+12. **Include proper tenant validation** in administrative functions
 
 ---
 
 <p align="center">
   Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
 </p>
+
+````

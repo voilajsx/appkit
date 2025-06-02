@@ -195,10 +195,8 @@ export class S3Provider extends StorageProvider {
           // File stream - create new stream for this chunk
           chunkData = createReadStream(file.path, { start, end: end - 1 });
         } else {
-          // This is a simplified approach - real implementation would need proper stream chunking
-          throw new Error(
-            'Multipart upload from streams not fully implemented in this minimal version'
-          );
+          // For simplicity, fall back to single upload for streams in this version
+          return this._uploadSingle(file, path, options, onProgress);
         }
 
         const uploadPartResponse = await this.client.send(

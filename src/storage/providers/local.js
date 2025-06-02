@@ -68,7 +68,7 @@ export class LocalProvider extends StorageProvider {
     return {
       url: this.getUrl(filePath),
       size,
-      path: filePath,
+      etag: null, // Local storage doesn't have ETags
     };
   }
 
@@ -99,7 +99,7 @@ export class LocalProvider extends StorageProvider {
     return {
       url: this.getUrl(path.basename(fullPath)),
       size: stats.size,
-      path: path.basename(fullPath),
+      etag: null,
     };
   }
 
