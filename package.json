@@ -152,7 +152,8 @@
     "dotenv": "^16.5.0",
     "express-session": "^1.18.1",
     "fastify": "^5.3.3",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

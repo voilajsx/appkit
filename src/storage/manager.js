@@ -1,6 +1,7 @@
 /**
- * @voilajs/appkit - Storage manager
- * @module @voilajs/appkit/storage/manager
+ * Storage provider manager for initializing and accessing storage instances
+ * @module @voilajsx/storage/manager
+ * @file src/storage/manager.js
  */
 
 import { LocalProvider } from './providers/local.js';

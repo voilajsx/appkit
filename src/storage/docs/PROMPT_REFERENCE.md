@@ -1,596 +1,630 @@
-# @voilajs/appkit/storage - LLM API Reference
+# @voilajsx/appkit/storage - LLM API Reference
 
-> **Note**: Implementation is in JavaScript. TypeScript signatures are for
-> clarity only.
+**Note**: Implementation is in JavaScript. TypeScript signatures are for
+reference only.
 
 ## LLM Code Generation Guidelines
 
-1. **Adhere to Code Style**:
-
-   - ESM imports, single quotes, 2-space indentation, semicolons
-   - Always include JSDoc comments for functions
-
-2. **JSDoc Format** (Required for all functions):
+1. **File Header Comments** (Required for all files):
 
    ```javascript
    /**
-    * Function description
+    * Brief description of what the file does
+    * @module @voilajsx/appkit/storage
+    * @file path/to/filename.js
+    */
+   ```
+
+2. **Function JSDoc** (Required for all functions):
+
+   ```javascript
+   /**
+    * One clear sentence describing what the function does
     * @param {Type} paramName - Parameter description
     * @returns {ReturnType} Return value description
     * @throws {Error} Error conditions
     */
    ```
 
-3. **Error Handling**:
+3. **Code Style**:
 
+   - ESM imports, single quotes, 2-space indentation, semicolons
+   - Focus on reduced file size and clean code
+
+4. **Comment Guidelines**:
+
+   - **File headers**: Always include with description, module, and file path
+   - **Function docs**: One clear sentence describing the purpose
+   - **Inline comments**: Only for complex logic that's confusing or hard to
+     understand
+   - **No basic comments**: Avoid obvious comments like `// Upload file` before
+     `storage.upload()`
+   - **Focus on minimal file size**: Comment only when necessary for
+     understanding
+
+5. **Storage Configuration**:
+
+   - Use environment variables for production configs (`process.env.S3_BUCKET`)
+   - Use simple hardcoded values for examples (`'my-bucket'`, `'./uploads'`)
+
+6. **Error Handling**:
    - Use try/catch blocks for async functions
-   - Check parameters before using them
+   - Check for specific error messages like 'not found'
    - Throw descriptive error messages
-
-4. **Framework Agnostic**:
-   - Code should work in any Node.js environment
-   - Avoid dependencies on specific frameworks
 
 ## Function Signatures
 
-### Core Functions
-
-#### initStorage(provider, config)
+### 1. `initStorage`
 
 ```typescript
 function initStorage(
   provider: 'local' | 's3',
-  config?: Record<string, any>
+  config: LocalConfig | S3Config
 ): Promise<StorageProvider>;
 ```
 
-- Throws: `'Storage already initialized'`, `'Unknown storage provider'`
+#### Local Config
 
-#### getStorage()
+```typescript
+interface LocalConfig {
+  basePath?: string; // Default: './storage'
+  baseUrl?: string; // Default: '/storage'
+}
+```
+
+#### S3 Config
+
+```typescript
+interface S3Config {
+  bucket: string; // Required
+  region?: string; // Default: 'us-east-1'
+  credentials?: {
+    accessKeyId: string;
+    secretAccessKey: string;
+  };
+  publicRead?: boolean; // Default: false
+  baseUrl?: string; // Auto-generated if not provided
+}
+```
+
+### 2. `getStorage`
 
 ```typescript
 function getStorage(): StorageProvider;
 ```
 
-- Throws: `'Storage not initialized'`
+- Throws: `'Storage not initialized. Call initStorage() first.'`
 
-### StorageProvider Interface
+### 3. Storage Provider Methods
 
-#### StorageProvider.initialize()
-
-```typescript
-function initialize(): Promise<void>;
-```
-
-#### StorageProvider.upload(file, path, options, onProgress)
+#### `upload`
 
 ```typescript
-function upload(
-  file: Buffer | Stream,
-  path: string,
-  options?: {
-    contentType?: string;
-    metadata?: Record<string, string>;
-    cacheControl?: string;
-    public?: boolean;
-    [key: string]: any;
-  },
-  onProgress?: (percent: number) => void
-): Promise<{
-  url: string;
-  size: number;
-  etag?: string;
-  path?: string;
-  contentType?: string;
-}>;
-```
-
-#### StorageProvider.uploadLarge(file, path, options, onProgress)
-
-```typescript
-function uploadLarge(
+async function upload(
   file: Buffer | Stream | string,
   path: string,
-  options?: {
-    contentType?: string;
-    metadata?: Record<string, string>;
-    cacheControl?: string;
-    public?: boolean;
-    chunkSize?: number;
-    fileSize?: number;
-    [key: string]: any;
-  },
+  options?: UploadOptions,
   onProgress?: (percent: number) => void
-): Promise<{
+): Promise<UploadResult>;
+```
+
+```typescript
+interface UploadOptions {
+  contentType?: string;
+  metadata?: Record<string, string>;
+  public?: boolean;
+  fileSize?: number; // Required for streams
+}
+
+interface UploadResult {
   url: string;
   size: number;
   etag?: string;
-  path?: string;
-  contentType?: string;
-}>;
+  path: string;
+}
 ```
 
-#### StorageProvider.download(path)
+#### `get`
 
 ```typescript
-function download(path: string): Promise<Buffer>;
+async function get(path: string): Promise<Buffer>;
 ```
 
-- Throws: `'File not found'`
+- Throws: `'File not found: {path}'` if file doesn't exist
 
-#### StorageProvider.downloadStream(path)
+#### `delete`
 
 ```typescript
-function downloadStream(path: string): Promise<Stream>;
+async function delete(path: string): Promise<boolean>;
 ```
 
-- Throws: `'File not found'`
+- Returns: `true` if deleted, `false` if file didn't exist
 
-#### StorageProvider.delete(path)
+#### `exists`
 
 ```typescript
-function delete(path: string): Promise<boolean>;
+async function exists(path: string): Promise<boolean>;
 ```
 
-#### StorageProvider.getUrl(path, options)
+#### `getUrl`
 
 ```typescript
-function getUrl(
+function getUrl(path: string, options?: URLOptions): string | Promise<string>;
+```
+
+```typescript
+interface URLOptions {
+  signed?: boolean; // S3 only
+  expiresIn?: number; // S3 only, seconds
+}
+```
+
+#### `list`
+
+```typescript
+async function list(prefix?: string): Promise<string[]>;
+```
+
+### 4. S3-Specific Extension
+
+#### `getSignedUrl` (S3Provider only)
+
+```typescript
+async function getSignedUrl(
   path: string,
-  options?: {
-    signed?: boolean;
-    expiresIn?: number;
-    [key: string]: any;
-  }
-): string | Promise<string>;
+  options?: { expiresIn?: number }
+): Promise<string>;
 ```
-
-#### StorageProvider.exists(path)
-
-```typescript
-function exists(path: string): Promise<boolean>;
-```
-
-#### StorageProvider.list(prefix, options)
-
-```typescript
-function list(
-  prefix?: string,
-  options?: {
-    recursive?: boolean;
-    limit?: number;
-    delimiter?: string;
-    [key: string]: any;
-  }
-): Promise<
-  Array<{
-    path: string;
-    size: number;
-    modified: Date;
-  }>
->;
-```
-
-#### StorageProvider.getMetadata(path)
-
-```typescript
-function getMetadata(path: string): Promise<{
-  size: number;
-  modified: Date;
-  contentType?: string;
-  etag?: string;
-}>;
-```
-
-- Throws: `'File not found'`
-
-#### StorageProvider.copy(source, destination)
-
-```typescript
-function copy(source: string, destination: string): Promise<boolean>;
-```
-
-- Throws: `'Source file not found'`
-
-#### StorageProvider.move(source, destination)
-
-```typescript
-function move(source: string, destination: string): Promise<boolean>;
-```
-
-- Throws: `'Source file not found'`
-
-#### StorageProvider.createDirectory(path)
-
-```typescript
-function createDirectory(path: string): Promise<boolean>;
-```
-
-### Provider-Specific Implementations
-
-#### LocalProvider
-
-```typescript
-class LocalProvider extends StorageProvider {
-  constructor(config?: { basePath?: string; baseUrl?: string });
-}
-```
-
-- Default `basePath`: `'./storage'`
-- Default `baseUrl`: `'/storage'`
-
-#### S3Provider
-
-```typescript
-class S3Provider extends StorageProvider {
-  constructor(config?: {
-    bucket: string;
-    region?: string;
-    credentials?: {
-      accessKeyId: string;
-      secretAccessKey: string;
-    };
-    endpoint?: string;
-    forcePathStyle?: boolean;
-    publicRead?: boolean;
-    baseUrl?: string;
-  });
-}
-```
-
-- Default `region`: `'us-east-1'`
-- Default `forcePathStyle`: `false`
-- Default `publicRead`: `false`
-- Default `baseUrl`: `'https://{bucket}.s3.{region}.amazonaws.com'`
 
 ## Example Implementations
 
-### Basic File Storage
+### Basic Local Storage
 
 ```javascript
 /**
- * Sets up file storage and provides utility functions
- * @param {Object} config - Storage configuration
- * @returns {Object} Storage utilities
+ * Simple local file storage setup for desktop applications
+ * @module @voilajsx/appkit/storage
+ * @file examples/local-basic.js
  */
-async function setupStorage(config) {
-  const { initStorage } = require('@voilajs/appkit/storage');
 
-  // Initialize storage with appropriate provider
-  const storage = await initStorage(config.provider, {
-    // Local provider config
-    basePath: config.basePath || './uploads',
-    baseUrl: config.baseUrl || '/files',
+import { initStorage, getStorage } from '@voilajsx/appkit/storage';
 
-    // S3 provider config
-    bucket: config.bucket,
-    region: config.region,
-    credentials: config.credentials,
-    endpoint: config.endpoint,
-    publicRead: config.public || false,
+/**
+ * Initializes local storage for a desktop app
+ * @returns {Promise<Object>} Storage instance
+ */
+async function setupLocalStorage() {
+  await initStorage('local', {
+    basePath: './app-data',
+    baseUrl: '/files',
   });
 
-  return {
-    /**
-     * Uploads a file with proper error handling
-     * @param {Buffer|Stream} fileContent - File to upload
-     * @param {string} fileName - Name for the file
-     * @param {Object} options - Upload options
-     * @returns {Promise<string>} File URL
-     */
-    async uploadFile(fileContent, fileName, options = {}) {
-      try {
-        // Generate a unique file path
-        const timestamp = Date.now();
-        const path = `${options.folder || 'uploads'}/${timestamp}-${fileName}`;
-
-        // Upload with progress callback
-        const result = await storage.upload(
-          fileContent,
-          path,
-          {
-            contentType: options.contentType,
-            metadata: options.metadata,
-            public: options.public || false,
-          },
-          options.onProgress
-        );
-
-        return result.url;
-      } catch (error) {
-        throw new Error(`Failed to upload file: ${error.message}`);
-      }
-    },
-
-    /**
-     * Downloads a file by path
-     * @param {string} filePath - Path to file
-     * @returns {Promise<Buffer>} File content
-     */
-    async downloadFile(filePath) {
-      try {
-        return await storage.download(filePath);
-      } catch (error) {
-        if (error.message.includes('not found')) {
-          throw new Error(`File not found: ${filePath}`);
-        }
-        throw new Error(`Failed to download file: ${error.message}`);
-      }
-    },
-
-    /**
-     * Lists files in a directory
-     * @param {string} folder - Folder path
-     * @param {boolean} recursive - Include subfolders
-     * @returns {Promise<Array>} List of files
-     */
-    async listFiles(folder = '', recursive = false) {
-      try {
-        const files = await storage.list(folder, { recursive });
-        return files.map((file) => ({
-          name: file.path.split('/').pop(),
-          path: file.path,
-          size: file.size,
-          modified: file.modified,
-          url: storage.getUrl(file.path),
-        }));
-      } catch (error) {
-        throw new Error(`Failed to list files: ${error.message}`);
-      }
-    },
-  };
+  return getStorage();
 }
-```
 
-### Large File Upload with Progress
-
-```javascript
 /**
- * Uploads a large file with progress tracking
- * @param {string|Buffer|Stream} file - File content or path
- * @param {string} destination - Destination path
- * @param {Object} options - Upload options
+ * Saves user settings to local storage
+ * @param {Object} settings - User settings object
  * @returns {Promise<Object>} Upload result
  */
-async function uploadLargeFile(file, destination, options = {}) {
-  const { getStorage } = require('@voilajs/appkit/storage');
+async function saveSettings(settings) {
+  const storage = getStorage();
+
+  return storage.upload(
+    Buffer.from(JSON.stringify(settings, null, 2)),
+    'settings.json'
+  );
+}
+
+/**
+ * Loads user settings from local storage
+ * @returns {Promise<Object|null>} Settings object or null if not found
+ */
+async function loadSettings() {
+  const storage = getStorage();
 
   try {
-    const storage = getStorage();
-
-    // Setup progress tracking
-    let lastReportedProgress = 0;
-    const progressTracker = (percent) => {
-      // Only report when progress changes by at least 5%
-      if (percent >= lastReportedProgress + 5 || percent === 100) {
-        lastReportedProgress = percent;
-        console.log(`Upload progress: ${percent}%`);
-
-        if (options.onProgress) {
-          options.onProgress(percent);
-        }
-      }
-    };
-
-    console.log('Starting large file upload...');
-
-    // Use uploadLarge for automatic chunking and progress reporting
-    const result = await storage.uploadLarge(
-      file,
-      destination,
-      {
-        contentType: options.contentType,
-        metadata: options.metadata,
-        public: options.public,
-        chunkSize: options.chunkSize || 10 * 1024 * 1024, // 10MB chunks
-        fileSize: options.fileSize,
-      },
-      progressTracker
-    );
-
-    console.log(`Upload complete: ${result.url}`);
-    return result;
+    const data = await storage.get('settings.json');
+    return JSON.parse(data.toString());
   } catch (error) {
-    console.error('Upload failed:', error.message);
+    if (error.message.includes('not found')) {
+      return null;
+    }
     throw error;
   }
 }
 ```
 
-### Streaming Media File
+### S3 Cloud Storage
 
 ```javascript
 /**
- * Creates a video streaming endpoint
- * @param {Object} app - Express app instance
- * @param {Object} storage - Storage provider
+ * S3 cloud storage setup for web applications
+ * @module @voilajsx/appkit/storage
+ * @file examples/s3-basic.js
  */
-function setupVideoStreaming(app, storage) {
-  /**
-   * Video streaming route
-   * @param {Object} req - Request object
-   * @param {Object} res - Response object
-   */
-  app.get('/videos/:filename', async (req, res) => {
-    const filename = req.params.filename;
-    const videoPath = `videos/${filename}`;
 
-    try {
-      // Check if file exists
-      const exists = await storage.exists(videoPath);
-      if (!exists) {
-        return res.status(404).send('Video not found');
-      }
+import { initStorage, getStorage } from '@voilajsx/appkit/storage';
 
-      // Get file metadata
-      const metadata = await storage.getMetadata(videoPath);
-      const fileSize = metadata.size;
-
-      // Parse range header
-      const range = req.headers.range;
-      if (range) {
-        const parts = range.replace(/bytes=/, '').split('-');
-        const start = parseInt(parts[0], 10);
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-        const chunkSize = end - start + 1;
-
-        // Set response headers
-        res.writeHead(206, {
-          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-          'Accept-Ranges': 'bytes',
-          'Content-Length': chunkSize,
-          'Content-Type': metadata.contentType || 'video/mp4',
-        });
-
-        // Get stream from storage
-        const stream = await storage.downloadStream(videoPath);
-
-        // Pipe the appropriate chunk to response
-        stream.pipe(res);
-      } else {
-        // No range requested, send entire file
-        res.writeHead(200, {
-          'Content-Length': fileSize,
-          'Content-Type': metadata.contentType || 'video/mp4',
-        });
-
-        const stream = await storage.downloadStream(videoPath);
-        stream.pipe(res);
-      }
-    } catch (error) {
-      console.error(`Error streaming video: ${error.message}`);
-      res.status(500).send('Error streaming video');
-    }
+/**
+ * Initializes S3 storage for production use
+ * @returns {Promise<Object>} Storage instance
+ */
+async function setupS3Storage() {
+  await initStorage('s3', {
+    bucket: process.env.S3_BUCKET,
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
   });
+
+  return getStorage();
 }
-```
 
-### File Management System
-
-```javascript
 /**
- * Creates a file management system
- * @param {Object} config - Configuration options
- * @returns {Object} File management API
+ * Uploads user file to S3 with progress tracking
+ * @param {Buffer} fileBuffer - File content as buffer
+ * @param {string} userId - User identifier
+ * @param {string} filename - Original filename
+ * @returns {Promise<Object>} Upload result with signed URL
  */
-async function createFileManager(config) {
-  const { initStorage } = require('@voilajs/appkit/storage');
+async function uploadUserFile(fileBuffer, userId, filename) {
+  const storage = getStorage();
+  const timestamp = Date.now();
+  const path = `users/${userId}/${timestamp}-${filename}`;
 
-  // Initialize with appropriate provider
-  const storage = await initStorage(
-    config.provider || 'local',
-    config.providerConfig || {}
+  const result = await storage.upload(
+    fileBuffer,
+    path,
+    { contentType: 'application/octet-stream' },
+    (progress) => console.log(`Upload progress: ${progress}%`)
   );
 
   return {
-    /**
-     * Creates a folder structure
-     * @param {string} path - Folder path
-     * @returns {Promise<boolean>} Success status
-     */
-    async createFolder(path) {
-      try {
-        // Normalize path
-        const normalizedPath = path.endsWith('/') ? path : `${path}/`;
-
-        // Create directory
-        await storage.createDirectory(normalizedPath);
-        return true;
-      } catch (error) {
-        throw new Error(`Failed to create folder: ${error.message}`);
-      }
-    },
-
-    /**
-     * Saves a file to storage
-     * @param {Buffer|Stream|string} content - File content or path
-     * @param {string} destination - Destination path
-     * @param {Object} options - Save options
-     * @returns {Promise<Object>} File information
-     */
-    async saveFile(content, destination, options = {}) {
-      try {
-        // Determine if we should use large file upload
-        const isLargeFile =
-          (Buffer.isBuffer(content) && content.length > 5 * 1024 * 1024) || // 5MB for buffers
-          options.isLarge ||
-          typeof content === 'string'; // Always use large file upload for file paths
-
-        // Use the appropriate upload method
-        const uploadMethod = isLargeFile ? 'uploadLarge' : 'upload';
-
-        // Ensure parent directory exists
-        const parentDir = destination.split('/').slice(0, -1).join('/');
-        if (parentDir) {
-          await this.createFolder(parentDir);
-        }
-
-        // Upload the file
-        const result = await storage[uploadMethod](
-          content,
-          destination,
-          {
-            contentType: options.contentType,
-            metadata: options.metadata,
-            public: options.public,
-          },
-          options.onProgress
-        );
-
-        return {
-          path: destination,
-          url: result.url,
-          size: result.size,
-          contentType: result.contentType || options.contentType,
-        };
-      } catch (error) {
-        throw new Error(`Failed to save file: ${error.message}`);
-      }
-    },
-
-    /**
-     * Gets a file for streaming
-     * @param {string} path - File path
-     * @returns {Promise<Object>} Stream and metadata
-     */
-    async getFileStream(path) {
-      try {
-        // Get file metadata
-        const metadata = await storage.getMetadata(path);
-
-        // Get file stream
-        const stream = await storage.downloadStream(path);
-
-        return {
-          stream,
-          metadata,
-          contentType: metadata.contentType,
-          size: metadata.size,
-        };
-      } catch (error) {
-        throw new Error(`Failed to get file stream: ${error.message}`);
-      }
-    },
+    path: result.path,
+    publicUrl: result.url,
+    size: result.size,
   };
+}
+
+/**
+ * Gets secure get URL for user file
+ * @param {string} filePath - Path to file in storage
+ * @param {number} expiresIn - URL expiration in seconds
+ * @returns {Promise<string>} Signed get URL
+ */
+async function getSecuregetUrl(filePath, expiresIn = 3600) {
+  const storage = getStorage();
+
+  if (storage.getSignedUrl) {
+    return storage.getSignedUrl(filePath, { expiresIn });
+  }
+
+  return storage.getUrl(filePath);
+}
+```
+
+### File Management Utilities
+
+```javascript
+/**
+ * File management utilities for organizing stored files
+ * @module @voilajsx/appkit/storage
+ * @file examples/file-manager.js
+ */
+
+import { getStorage } from '@voilajsx/appkit/storage';
+
+/**
+ * Simple file manager for basic file operations
+ */
+class SimpleFileManager {
+  constructor() {
+    this.storage = getStorage();
+  }
+
+  /**
+   * Saves JSON data to storage
+   * @param {Object} data - Data to save
+   * @param {string} filename - Name of file
+   * @returns {Promise<Object>} Upload result
+   */
+  async saveJSON(data, filename) {
+    const jsonData = JSON.stringify(data, null, 2);
+    return this.storage.upload(Buffer.from(jsonData), `${filename}.json`);
+  }
+
+  /**
+   * Loads JSON data from storage
+   * @param {string} filename - Name of file without extension
+   * @returns {Promise<Object|null>} Parsed data or null if not found
+   */
+  async loadJSON(filename) {
+    try {
+      const data = await this.storage.get(`${filename}.json`);
+      return JSON.parse(data.toString());
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Lists all files with basic organization
+   * @param {string} prefix - Directory prefix to filter
+   * @returns {Promise<Array>} Array of file objects
+   */
+  async listFiles(prefix = '') {
+    const files = await this.storage.list(prefix);
+
+    return files.map((path) => ({
+      name: path.split('/').pop(),
+      path: path,
+      url: this.storage.getUrl(path),
+      directory: path.substring(0, path.lastIndexOf('/')),
+    }));
+  }
+
+  /**
+   * Deletes multiple files by pattern
+   * @param {string} pattern - Pattern to match filenames
+   * @returns {Promise<Array>} Array of deleted file paths
+   */
+  async deleteByPattern(pattern) {
+    const files = await this.storage.list();
+    const deleted = [];
+
+    for (const path of files) {
+      if (path.includes(pattern)) {
+        const success = await this.storage.delete(path);
+        if (success) {
+          deleted.push(path);
+        }
+      }
+    }
+
+    return deleted;
+  }
+}
+```
+
+### Tauri Desktop App
+
+```javascript
+/**
+ * Tauri desktop app integration with local file storage
+ * @module @voilajsx/appkit/storage
+ * @file examples/tauri-app.js
+ */
+
+import { initStorage, getStorage } from '@voilajsx/appkit/storage';
+
+/**
+ * Tauri app data manager for desktop applications
+ */
+class TauriAppData {
+  constructor() {
+    this.storage = null;
+    this.ready = false;
+  }
+
+  /**
+   * Initializes storage for Tauri app
+   * @returns {Promise<void>}
+   */
+  async init() {
+    if (this.ready) return;
+
+    await initStorage('local', {
+      basePath: './my-app-data',
+      baseUrl: '/app-files',
+    });
+
+    this.storage = getStorage();
+    this.ready = true;
+  }
+
+  /**
+   * Saves user document to app storage
+   * @param {string} name - Document name
+   * @param {string} content - Document content
+   * @returns {Promise<Object>} Save result
+   */
+  async saveDocument(name, content) {
+    const doc = {
+      name: name,
+      content: content,
+      createdAt: new Date().toISOString(),
+      modifiedAt: new Date().toISOString(),
+    };
+
+    return this.storage.upload(
+      Buffer.from(JSON.stringify(doc, null, 2)),
+      `documents/${name}.json`
+    );
+  }
+
+  /**
+   * Loads user document from app storage
+   * @param {string} name - Document name
+   * @returns {Promise<Object|null>} Document object or null
+   */
+  async loadDocument(name) {
+    try {
+      const data = await this.storage.get(`documents/${name}.json`);
+      return JSON.parse(data.toString());
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Gets list of all user documents
+   * @returns {Promise<Array>} Array of document names
+   */
+  async getDocuments() {
+    const files = await this.storage.list('documents/');
+    return files.map((path) =>
+      path.replace('documents/', '').replace('.json', '')
+    );
+  }
+
+  /**
+   * Backs up all app data to single file
+   * @returns {Promise<string>} Backup file URL
+   */
+  async createBackup() {
+    const documents = await this.getDocuments();
+    const backup = {
+      createdAt: new Date().toISOString(),
+      documents: {},
+    };
+
+    for (const name of documents) {
+      backup.documents[name] = await this.loadDocument(name);
+    }
+
+    const timestamp = Date.now();
+    const result = await this.storage.upload(
+      Buffer.from(JSON.stringify(backup, null, 2)),
+      `backups/backup-${timestamp}.json`
+    );
+
+    return result.url;
+  }
+}
+```
+
+### Express.js Web Server
+
+```javascript
+/**
+ * Express.js web server with file upload and storage
+ * @module @voilajsx/appkit/storage
+ * @file examples/express-server.js
+ */
+
+import express from 'express';
+import multer from 'multer';
+import { initStorage, getStorage } from '@voilajsx/appkit/storage';
+
+/**
+ * Sets up Express server with file storage capabilities
+ * @returns {Promise<Object>} Express app instance
+ */
+async function createFileServer() {
+  const app = express();
+
+  // Initialize storage based on environment
+  if (process.env.NODE_ENV === 'production') {
+    await initStorage('s3', {
+      bucket: process.env.S3_BUCKET,
+      region: process.env.AWS_REGION,
+    });
+  } else {
+    await initStorage('local', {
+      basePath: './uploads',
+      baseUrl: '/files',
+    });
+  }
+
+  const storage = getStorage();
+
+  // Setup multer for file uploads
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+  });
+
+  app.use(express.json());
+  app.use(express.static('public'));
+
+  return { app, storage, upload };
+}
+
+/**
+ * Handles file upload with progress tracking
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Object} storage - Storage instance
+ */
+async function handleFileUpload(req, res, storage) {
+  try {
+    const timestamp = Date.now();
+    const filename = `${timestamp}-${req.file.originalname}`;
+
+    const result = await storage.upload(
+      req.file.buffer,
+      `uploads/${filename}`,
+      { contentType: req.file.mimetype }
+    );
+
+    res.json({
+      success: true,
+      file: {
+        name: req.file.originalname,
+        url: result.url,
+        size: result.size,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * Gets list of uploaded files
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Object} storage - Storage instance
+ */
+async function listUploadedFiles(req, res, storage) {
+  try {
+    const files = await storage.list('uploads/');
+
+    const fileList = files.map((path) => ({
+      name: path.split('-').slice(1).join('-'),
+      url: storage.getUrl(path),
+      uploadedAt: new Date(parseInt(path.split('-')[0])),
+    }));
+
+    res.json({ files: fileList });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 }
 ```
 
 ## Code Generation Rules
 
-1. **Always handle file paths carefully** - Normalize paths for consistency
-2. **Use streams for large files** - Avoid loading large files into memory
-3. **Always check file existence** before operations
-4. **Provide progress reporting** for long-running operations
-5. **Create intermediate directories** when needed
-6. **Set proper content types** for uploads
-7. **Always clean up resources** in error handling
-8. **Use try/catch blocks** for all async storage operations
-9. **Validate inputs** before sending to storage
-10. **Respect provider differences** while maintaining consistent API
-11. **Use provider-specific optimizations** when available
+1. **Always include file header** with description, @module, and @file tags
+2. **Use JSDoc for all functions** with one clear sentence descriptions
+3. **Add inline comments** only for complex logic that needs explanation
+4. **Use async/await** for all storage operations
+5. **Include comprehensive error handling** with try/catch blocks
+6. **Use environment variables** for production configurations
+7. **Use simple hardcoded values** for examples and development
+8. **Check for 'not found' errors** when geting files
+9. **Return consistent response formats** in API endpoints
+10. **Focus on minimal file size** - avoid unnecessary comments
+11. **Follow ESM import style** with single quotes and semicolons
+12. **Use Buffer.from()** for string to buffer conversion
+13. **Handle progress callbacks** for large file uploads
+14. **Organize files with logical path structures** (users/id/, documents/,
+    etc.)
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development.
 </p>

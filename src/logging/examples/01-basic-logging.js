@@ -1,6 +1,6 @@
 /**
  * Basic Logging - @voilajs/appkit
- *
+ * @file 01-basic-logging.js
  * Simple example showing how to create a logger and use it
  *
  * Run: node 01-basic-logging.js

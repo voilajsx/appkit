@@ -1,6 +1,7 @@
 /**
- * @voilajs/appkit - Storage module
- * @module @voilajs/appkit/storage
+ * Storage module for file operations across different providers
+ * @module @voilajsx/storage
+ * @file src/storage/index.js
  */
 
 export { initStorage, getStorage } from './manager.js';
