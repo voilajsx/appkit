@@ -1,185 +1,138 @@
 # @voilajsx/appkit/error - LLM API Reference
 
-> **Note**: Implementation is in JavaScript. TypeScript signatures are for
-> clarity only.
+**Note**: Implementation is in JavaScript. TypeScript signatures are for
+reference only.
 
 ## LLM Code Generation Guidelines
 
-1. **Adhere to Code Style**:
-
-   - ESM imports, single quotes, 2-space indentation, semicolons
-   - Always include JSDoc comments for functions
-
-2. **JSDoc Format** (Required for all functions):
+1. **File Header Comments** (Required for all files):
 
    ```javascript
    /**
-    * Function description
+    * Brief description of what the file does
+    * @module @voilajsx/appkit/error
+    * @file path/to/filename.js
+    */
+   ```
+
+2. **Function JSDoc** (Required for all functions):
+
+   ```javascript
+   /**
+    * One clear sentence describing what the function does
     * @param {Type} paramName - Parameter description
     * @returns {ReturnType} Return value description
     * @throws {Error} Error conditions
     */
    ```
 
-3. **Error Handling**:
+3. **Code Style**:
 
-   - Use try/catch blocks for async functions
-   - Check parameters before using them
-   - Throw descriptive error messages
+   - ESM imports, single quotes, 2-space indentation, semicolons
+   - Focus on reduced file size and clean code
 
-4. **Framework Agnostic**:
-   - Code should work with any Node.js framework
-   - Middleware patterns should be adaptable
+4. **Comment Guidelines**:
+
+   - **File headers**: Always include with description, module, and file path
+   - **Function docs**: One clear sentence describing the purpose
+   - **Inline comments**: Only for complex logic that's confusing or hard to
+     understand
+   - **No basic comments**: Avoid obvious comments like
+     `// Create validation error` before `validationError()`
+   - **Focus on minimal file size**: Comment only when necessary for
+     understanding
+
+5. **Error Handling Philosophy**:
+
+   - Use the 4 simple error types: `VALIDATION`, `NOT_FOUND`, `AUTH`, `SERVER`
+   - Always use factory functions instead of creating `AppError` directly
+   - Include helpful details in error objects for debugging
+   - Use `asyncHandler` for all async route handlers
+
+6. **Database References**:
+
+   - If database is needed, use generic `db` object (e.g., `db.findUser()`,
+     `db.createUser()`)
+   - Don't import or define `db` - assume it's available in scope
+   - Keep database operations simple and generic
+
+7. **Express Integration**:
+   - Always use `asyncHandler` for async routes
+   - Apply `errorHandler()` as the last middleware
+   - Use `notFoundHandler()` before `errorHandler()`
 
 ## Function Signatures
 
-### 1. `AppError`
-
-```typescript
-class AppError extends Error {
-  constructor(
-    type: string,
-    message: string,
-    details?: Record<string, any> | null,
-    statusCode?: number
-  );
-
-  toJSON(): Record<string, any>;
-}
-```
-
-- Default `details`: `null`
-- Default `statusCode`: `500`
-
-### 2. `ErrorTypes`
+### 1. `ErrorTypes`
 
 ```typescript
 enum ErrorTypes {
   VALIDATION = 'VALIDATION_ERROR',
   NOT_FOUND = 'NOT_FOUND',
-  AUTHENTICATION = 'AUTHENTICATION_ERROR',
-  AUTHORIZATION = 'AUTHORIZATION_ERROR',
-  CONFLICT = 'CONFLICT',
-  INTERNAL = 'INTERNAL_ERROR',
-  BAD_REQUEST = 'BAD_REQUEST',
-  RATE_LIMIT = 'RATE_LIMIT_EXCEEDED',
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+  AUTH = 'AUTH_ERROR',
+  SERVER = 'SERVER_ERROR',
 }
 ```
 
-### 3. `createError`
+### 2. `AppError`
 
 ```typescript
-function createError(
-  type: string,
-  message: string,
-  details?: Record<string, any> | null
-): AppError;
+class AppError extends Error {
+  constructor(type: string, message: string, details?: any);
+
+  type: string;
+  message: string;
+  details: any;
+  statusCode: number;
+
+  toJSON(): { type: string; message: string; details?: any };
+  getStatusCode(type: string): number;
+}
 ```
 
-- Default `details`: `null`
+- Status mapping: VALIDATION→400, NOT_FOUND→404, AUTH→401, SERVER→500
 
-### 4. `validationError`
+### 3. `validationError`
 
 ```typescript
-function validationError(errors: Record<string, string>): AppError;
+function validationError(message: string, details?: any): AppError;
 ```
 
-### 5. `notFoundError`
+### 4. `notFoundError`
 
 ```typescript
-function notFoundError(entity: string, id: string): AppError;
+function notFoundError(message?: string): AppError;
 ```
 
-### 6. `authenticationError`
+- Default `message`: `'Not found'`
+
+### 5. `authError`
 
 ```typescript
-function authenticationError(message?: string): AppError;
+function authError(message?: string): AppError;
 ```
 
 - Default `message`: `'Authentication failed'`
 
-### 7. `authorizationError`
+### 6. `serverError`
 
 ```typescript
-function authorizationError(message?: string): AppError;
+function serverError(message?: string, details?: any): AppError;
 ```
 
-- Default `message`: `'Insufficient permissions'`
+- Default `message`: `'Server error'`
 
-### 8. `conflictError`
+### 7. `errorHandler`
 
 ```typescript
-function conflictError(
-  message: string,
-  details?: Record<string, any> | null
-): AppError;
+function errorHandler(): (error: Error, req: any, res: any, next: any) => void;
 ```
 
-- Default `details`: `null`
+- Zero configuration
+- Automatically handles AppError, ValidationError, CastError, JWT errors,
+  duplicate key errors
 
-### 9. `badRequestError`
-
-```typescript
-function badRequestError(
-  message: string,
-  details?: Record<string, any> | null
-): AppError;
-```
-
-- Default `details`: `null`
-
-### 10. `rateLimitError`
-
-```typescript
-function rateLimitError(
-  message?: string,
-  details?: Record<string, any> | null
-): AppError;
-```
-
-- Default `message`: `'Rate limit exceeded'`
-- Default `details`: `null`
-
-### 11. `serviceUnavailableError`
-
-```typescript
-function serviceUnavailableError(message?: string): AppError;
-```
-
-- Default `message`: `'Service temporarily unavailable'`
-
-### 12. `internalError`
-
-```typescript
-function internalError(
-  message?: string,
-  details?: Record<string, any> | null
-): AppError;
-```
-
-- Default `message`: `'Internal server error'`
-- Default `details`: `null`
-
-### 13. `formatErrorResponse`
-
-```typescript
-function formatErrorResponse(error: Error): Record<string, any>;
-```
-
-### 14. `createErrorHandler`
-
-```typescript
-function createErrorHandler(options?: {
-  logger?: (error: any) => void;
-  includeStack?: boolean;
-}): (error: Error, req: any, res: any, next: any) => void;
-```
-
-- Default `logger`: `console.error`
-- Default `includeStack`: `false`
-
-### 15. `asyncHandler`
+### 8. `asyncHandler`
 
 ```typescript
 function asyncHandler(
@@ -187,81 +140,92 @@ function asyncHandler(
 ): (req: any, res: any, next: any) => void;
 ```
 
-### 16. `notFoundHandler`
+### 9. `notFoundHandler`
 
 ```typescript
 function notFoundHandler(): (req: any, res: any, next: any) => void;
 ```
 
-### 17. `handleUnhandledRejections`
-
-```typescript
-function handleUnhandledRejections(
-  logger?: (reason: any, promise: Promise<any>) => void
-): void;
-```
-
-- Default `logger`: `console.error`
-
-### 18. `handleUncaughtExceptions`
-
-```typescript
-function handleUncaughtExceptions(logger?: (error: Error) => void): void;
-```
-
-- Default `logger`: `console.error`
-
-### 19. `validateRequest`
-
-```typescript
-function validateRequest(schema: any): (req: any, res: any, next: any) => void;
-```
-
 ## Example Implementations
 
-### Basic Error Creation and Handling
+### Basic Error Creation
 
 ```javascript
 /**
- * Processes user data with error handling
- * @param {Object} userData - User data to process
- * @returns {Object} Processed user data
- * @throws {AppError} If user data is invalid
+ * User validation utilities with comprehensive error handling
+ * @module @voilajsx/appkit/error
+ * @file examples/user-validation.js
  */
-function processUserData(userData) {
-  if (!userData) {
-    throw badRequestError('User data is required');
-  }
 
-  const { email, name, age } = userData;
+import {
+  validationError,
+  notFoundError,
+  authError,
+} from '@voilajsx/appkit/error';
+
+/**
+ * Validates user registration data
+ * @param {Object} userData - User registration data
+ * @returns {Object} Validated user data
+ * @throws {AppError} If validation fails
+ */
+function validateUserRegistration(userData) {
+  const { email, password, name } = userData;
   const errors = {};
 
   if (!email) {
     errors.email = 'Email is required';
-  } else if (!isValidEmail(email)) {
+  } else if (!email.includes('@')) {
     errors.email = 'Invalid email format';
   }
 
-  if (!name) {
+  if (!password) {
+    errors.password = 'Password is required';
+  } else if (password.length < 8) {
+    errors.password = 'Password must be at least 8 characters';
+  }
+
+  if (!name || name.trim().length === 0) {
     errors.name = 'Name is required';
   }
 
-  if (age !== undefined && (typeof age !== 'number' || age < 0)) {
-    errors.age = 'Age must be a positive number';
-  }
-
   if (Object.keys(errors).length > 0) {
-    throw validationError(errors);
+    throw validationError('Registration validation failed', errors);
   }
 
-  // Process user data...
-  return {
-    id: generateId(),
-    email,
-    name,
-    age,
-    createdAt: new Date(),
-  };
+  return { email, password, name: name.trim() };
+}
+
+/**
+ * Finds user by ID with proper error handling
+ * @param {string} userId - User ID to search for
+ * @returns {Promise<Object>} User object
+ * @throws {AppError} If user not found
+ */
+async function findUserById(userId) {
+  const user = await db.findUser(userId);
+
+  if (!user) {
+    throw notFoundError('User not found');
+  }
+
+  return user;
+}
+
+/**
+ * Verifies user has required permissions
+ * @param {Object} user - User object
+ * @param {string} requiredRole - Required role
+ * @throws {AppError} If user lacks permission
+ */
+function requireRole(user, requiredRole) {
+  if (!user) {
+    throw authError('Authentication required');
+  }
+
+  if (!user.roles || !user.roles.includes(requiredRole)) {
+    throw authError(`${requiredRole} access required`);
+  }
 }
 ```
 
@@ -269,180 +233,474 @@ function processUserData(userData) {
 
 ```javascript
 /**
- * Sets up error handling middleware for Express app
- * @param {Object} app - Express app instance
+ * Express application with comprehensive error handling
+ * @module @voilajsx/appkit/error
+ * @file examples/express-app.js
  */
-function setupErrorHandling(app) {
-  // Not found handler - should be after all routes
-  app.use(notFoundHandler());
 
-  // Global error handler - should be last middleware
-  app.use(
-    createErrorHandler({
-      logger: (error) => {
-        console.error('API Error:', {
-          message: error.message,
-          type: error.type,
-          path: error.url,
-          timestamp: new Date().toISOString(),
-        });
-      },
-      includeStack: process.env.NODE_ENV !== 'production',
+import express from 'express';
+import {
+  errorHandler,
+  asyncHandler,
+  notFoundHandler,
+  validationError,
+  notFoundError,
+  authError,
+} from '@voilajsx/appkit/error';
+
+/**
+ * Creates Express app with error handling middleware
+ * @returns {Object} Configured Express application
+ */
+function createApp() {
+  const app = express();
+
+  app.use(express.json());
+
+  // Authentication middleware
+  const authenticate = asyncHandler(async (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      throw authError('Authentication token required');
+    }
+
+    const user = await verifyToken(token);
+    if (!user) {
+      throw authError('Invalid token');
+    }
+
+    req.user = user;
+    next();
+  });
+
+  // Public routes
+  app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
+  // Protected routes
+  app.get(
+    '/api/profile',
+    authenticate,
+    asyncHandler(async (req, res) => {
+      const user = await db.findUser(req.user.id);
+      if (!user) {
+        throw notFoundError('User profile not found');
+      }
+      res.json(user);
     })
   );
 
-  // Set up global handlers
-  handleUncaughtExceptions();
-  handleUnhandledRejections();
+  app.post(
+    '/api/users',
+    asyncHandler(async (req, res) => {
+      const { email, name } = req.body;
+
+      if (!email || !name) {
+        throw validationError('Email and name are required');
+      }
+
+      const user = await db.createUser({ email, name });
+      res.status(201).json(user);
+    })
+  );
+
+  // Error handling middleware (order matters)
+  app.use(notFoundHandler());
+  app.use(errorHandler());
+
+  return app;
 }
 ```
 
-### Async Route Handler
+### Async Route Handlers
 
 ```javascript
 /**
- * Retrieves user by ID
- * @param {Object} req - Express request
- * @param {Object} res - Express response
- * @returns {Promise<void>}
+ * User management routes with async error handling
+ * @module @voilajsx/appkit/error
+ * @file examples/user-routes.js
  */
-async function getUserById(req, res) {
-  const userId = req.params.id;
 
-  if (!userId) {
-    throw badRequestError('User ID is required');
+import {
+  asyncHandler,
+  validationError,
+  notFoundError,
+  authError,
+  serverError,
+} from '@voilajsx/appkit/error';
+
+/**
+ * Creates user profile update route handler
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @throws {AppError} Various error types based on failure
+ */
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, email, bio } = req.body;
+
+  // Input validation
+  const errors = {};
+
+  if (!name || name.trim().length === 0) {
+    errors.name = 'Name is required';
   }
 
+  if (email && !email.includes('@')) {
+    errors.email = 'Invalid email format';
+  }
+
+  if (bio && bio.length > 500) {
+    errors.bio = 'Bio must be less than 500 characters';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw validationError('Profile validation failed', errors);
+  }
+
+  // Authorization check
+  if (req.user.id !== id && !req.user.isAdmin) {
+    throw authError('Cannot update other users profiles');
+  }
+
+  // Check if user exists
+  const existingUser = await db.findUser(id);
+  if (!existingUser) {
+    throw notFoundError('User not found');
+  }
+
+  // Update user
   try {
-    const user = await userService.findById(userId);
+    const updatedUser = await db.updateUser(id, {
+      name: name.trim(),
+      email,
+      bio: bio?.trim(),
+    });
 
-    if (!user) {
-      throw notFoundError('User', userId);
-    }
-
-    res.json(user);
-  } catch (error) {
-    // If error is already an AppError, it will be passed through
-    // If it's a different error, convert it to an appropriate AppError
-    if (error.name === 'CastError') {
-      throw badRequestError('Invalid user ID format', { id: userId });
-    }
-
-    throw error;
+    res.json(updatedUser);
+  } catch (dbError) {
+    throw serverError('Failed to update user profile');
   }
-}
+});
 
-// Usage with asyncHandler
-app.get('/users/:id', asyncHandler(getUserById));
+/**
+ * Creates user deletion route handler
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @throws {AppError} Various error types based on failure
+ */
+const deleteUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Only admins can delete users
+  if (!req.user.isAdmin) {
+    throw authError('Admin access required');
+  }
+
+  // Prevent self-deletion
+  if (id === req.user.id) {
+    throw validationError('Cannot delete your own account');
+  }
+
+  const user = await db.findUser(id);
+  if (!user) {
+    throw notFoundError('User not found');
+  }
+
+  await db.deleteUser(id);
+  res.status(204).end();
+});
 ```
 
-### Complete Error Handling System
+### Complete Application Example
 
 ```javascript
 /**
- * Creates a complete error handling system for Express
- * @param {Object} app - Express app instance
+ * Complete Express application with full error handling
+ * @module @voilajsx/appkit/error
+ * @file examples/complete-app.js
  */
-function createErrorSystem(app) {
-  // Custom error handling middleware
-  const errorHandler = createErrorHandler({
-    logger: (error) => {
-      // Log error details
-      console.error({
-        message: error.message,
-        type: error.type || 'UNKNOWN',
-        path: error.url,
-        method: error.method,
-        timestamp: new Date().toISOString(),
-        // Don't log stack in production
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-      });
-    },
-    includeStack: process.env.NODE_ENV !== 'production',
+
+import express from 'express';
+import {
+  errorHandler,
+  asyncHandler,
+  notFoundHandler,
+  validationError,
+  notFoundError,
+  authError,
+  serverError,
+} from '@voilajsx/appkit/error';
+
+/**
+ * Sets up complete Express application with error handling
+ * @returns {Object} Configured Express application
+ */
+function setupApp() {
+  const app = express();
+
+  app.use(express.json({ limit: '10mb' }));
+
+  // Authentication middleware
+  const auth = asyncHandler(async (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      throw authError('Authentication required');
+    }
+
+    try {
+      const user = await verifyJWT(token);
+      req.user = user;
+      next();
+    } catch (error) {
+      throw authError('Invalid or expired token');
+    }
   });
 
-  // Function to wrap route handlers
-  const route = (fn) => asyncHandler(fn);
-
-  // Validation middleware generator
-  const validate = (schema) => validateRequest(schema);
-
-  // Helper for checking permissions
-  const requirePermission = (permission) => {
+  // Validation middleware factory
+  const validateBody = (schema) => {
     return (req, res, next) => {
-      if (!req.user || !req.user.permissions.includes(permission)) {
-        throw authorizationError(`Required permission: ${permission}`);
+      const errors = {};
+
+      for (const [field, rules] of Object.entries(schema)) {
+        const value = req.body[field];
+
+        if (rules.required && !value) {
+          errors[field] = `${field} is required`;
+        } else if (value && rules.type && typeof value !== rules.type) {
+          errors[field] = `${field} must be a ${rules.type}`;
+        } else if (value && rules.minLength && value.length < rules.minLength) {
+          errors[field] =
+            `${field} must be at least ${rules.minLength} characters`;
+        }
       }
+
+      if (Object.keys(errors).length > 0) {
+        throw validationError('Validation failed', errors);
+      }
+
       next();
     };
   };
 
-  // Apply error handling middleware
+  // Public endpoints
+  app.post(
+    '/auth/login',
+    validateBody({
+      email: { required: true, type: 'string' },
+      password: { required: true, type: 'string', minLength: 8 },
+    }),
+    asyncHandler(async (req, res) => {
+      const { email, password } = req.body;
+
+      const user = await db.findUserByEmail(email);
+      if (!user) {
+        throw authError('Invalid credentials');
+      }
+
+      const isValid = await comparePassword(password, user.password);
+      if (!isValid) {
+        throw authError('Invalid credentials');
+      }
+
+      const token = generateJWT(user);
+      res.json({ token, user: { id: user.id, email: user.email } });
+    })
+  );
+
+  // Protected endpoints
+  app.get(
+    '/api/profile',
+    auth,
+    asyncHandler(async (req, res) => {
+      const user = await db.findUser(req.user.id);
+      if (!user) {
+        throw notFoundError('User profile not found');
+      }
+      res.json(user);
+    })
+  );
+
+  app.put(
+    '/api/profile',
+    auth,
+    validateBody({
+      name: { required: true, type: 'string' },
+      bio: { type: 'string' },
+    }),
+    asyncHandler(async (req, res) => {
+      const { name, bio } = req.body;
+
+      try {
+        const updatedUser = await db.updateUser(req.user.id, { name, bio });
+        res.json(updatedUser);
+      } catch (error) {
+        throw serverError('Failed to update profile');
+      }
+    })
+  );
+
+  // Admin endpoints
+  app.get(
+    '/api/admin/users',
+    auth,
+    asyncHandler(async (req, res) => {
+      if (!req.user.isAdmin) {
+        throw authError('Admin access required');
+      }
+
+      const users = await db.getAllUsers();
+      res.json(users);
+    })
+  );
+
+  // File upload with validation
+  app.post(
+    '/api/upload',
+    auth,
+    asyncHandler(async (req, res) => {
+      if (!req.files || !req.files.file) {
+        throw validationError('No file provided');
+      }
+
+      const file = req.files.file;
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (file.size > maxSize) {
+        throw validationError('File too large', {
+          maxSize: '5MB',
+          receivedSize:
+            Math.round((file.size / 1024 / 1024) * 100) / 100 + 'MB',
+        });
+      }
+
+      try {
+        const result = await uploadFile(file);
+        res.json(result);
+      } catch (error) {
+        throw serverError('File upload failed');
+      }
+    })
+  );
+
+  // Error handling (order is important)
   app.use(notFoundHandler());
-  app.use(errorHandler);
+  app.use(errorHandler());
 
-  // Register global handlers
-  handleUncaughtExceptions();
-  handleUnhandledRejections();
-
-  // Return utility functions
-  return {
-    route,
-    validate,
-    requirePermission,
-  };
+  return app;
 }
 
-// Usage example
-const app = express();
-const { route, validate, requirePermission } = createErrorSystem(app);
+// Start server
+const app = setupApp();
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+```
 
-app.get(
-  '/users',
-  route(async (req, res) => {
-    const users = await userService.findAll();
-    res.json(users);
-  })
-);
+### Error Transformation Patterns
 
-app.post(
-  '/users',
-  validate(userSchema),
-  route(async (req, res) => {
-    const user = await userService.create(req.body);
-    res.status(201).json(user);
-  })
-);
+```javascript
+/**
+ * Error transformation utilities for third-party libraries
+ * @module @voilajsx/appkit/error
+ * @file examples/error-transformation.js
+ */
 
-app.delete(
-  '/users/:id',
-  requirePermission('user:delete'),
-  route(async (req, res) => {
-    await userService.delete(req.params.id);
-    res.status(204).end();
-  })
-);
+import {
+  validationError,
+  notFoundError,
+  authError,
+  serverError,
+} from '@voilajsx/appkit/error';
+
+/**
+ * Transforms MongoDB errors to application errors
+ * @param {Error} error - MongoDB error
+ * @throws {AppError} Transformed application error
+ */
+function transformMongoError(error) {
+  if (error.name === 'ValidationError') {
+    const details = {};
+    for (const field in error.errors) {
+      details[field] = error.errors[field].message;
+    }
+    throw validationError('Validation failed', details);
+  }
+
+  if (error.name === 'CastError') {
+    throw validationError('Invalid ID format');
+  }
+
+  if (error.code === 11000) {
+    const field = Object.keys(error.keyValue)[0];
+    throw validationError(`${field} already exists`);
+  }
+
+  throw serverError('Database operation failed');
+}
+
+/**
+ * Transforms JWT errors to authentication errors
+ * @param {Error} error - JWT error
+ * @throws {AppError} Transformed authentication error
+ */
+function transformJWTError(error) {
+  if (error.name === 'TokenExpiredError') {
+    throw authError('Token has expired');
+  }
+
+  if (error.name === 'JsonWebTokenError') {
+    throw authError('Invalid token');
+  }
+
+  if (error.name === 'NotBeforeError') {
+    throw authError('Token not active yet');
+  }
+
+  throw authError('Token verification failed');
+}
+
+/**
+ * Database service with error transformation
+ * @param {string} userId - User ID
+ * @param {Object} userData - User data to update
+ * @returns {Promise<Object>} Updated user
+ * @throws {AppError} If operation fails
+ */
+async function updateUserSafely(userId, userData) {
+  try {
+    const user = await db.updateUser(userId, userData);
+    if (!user) {
+      throw notFoundError('User not found');
+    }
+    return user;
+  } catch (error) {
+    transformMongoError(error);
+  }
+}
 ```
 
 ## Code Generation Rules
 
-1. **Always use descriptive errors**: Use the appropriate error factory function
-   based on the error type rather than generic Error objects
-2. **Include proper error details**: Provide relevant details in error objects
-   to help debugging
-3. **Wrap async route handlers**: Always use asyncHandler for Express async
-   route handlers
-4. **Use middleware composition**: Combine middleware functions for validation,
-   authentication, and authorization
-5. **Include JSDoc comments**: Document all functions with JSDoc format comments
-6. **Handle all error cases**: Account for different types of errors that could
-   occur
-7. **Use environment variables**: Adjust behavior based on NODE_ENV
-8. **Implement proper logging**: Log errors with useful context but avoid
-   sensitive information
+1. **Always include file header** with description, @module, and @file tags
+2. **Use JSDoc for all functions** with one clear sentence descriptions
+3. **Add inline comments** only for complex logic that needs explanation
+4. **Use the 4 error types consistently**: VALIDATION, NOT_FOUND, AUTH, SERVER
+5. **Always use factory functions** instead of creating AppError directly
+6. **Wrap all async routes** with asyncHandler
+7. **Include error details** when helpful for debugging
+8. **Use generic db object** for database operations without imports
+9. **Apply error handling middleware** in correct order (notFoundHandler, then
+   errorHandler)
+10. **Transform third-party errors** to standard format
+11. **Focus on minimal file size** - avoid unnecessary comments
+12. **Follow ESM import style** with single quotes and semicolons
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development.
 </p>
