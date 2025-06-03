@@ -9,7 +9,7 @@
 import { createLogger } from '../logger.js';
 
 // Create a logger
-const logger = createLogger();
+const logger = createLogger({ level: 'debug' });
 
 // Log some messages
 logger.info('Application started');
