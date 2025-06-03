@@ -296,3 +296,6 @@ export class FileTransport extends BaseTransport {
     });
   }
 }
+
+// Default export for convenience
+export default FileTransport;

@@ -1,6 +1,6 @@
 {
   "name": "@voilajsx/appkit",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "A minimal, framework-agnostic Node.js application toolkit",
   "main": "src/index.js",
   "type": "module",

@@ -73,11 +73,15 @@ export class Logger {
   getDefaultTransports(options) {
     const transports = [];
 
+    // Determine environment-based defaults more consistently
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
     // Always include console transport
     transports.push(
       new ConsoleTransport({
-        colorize: process.env.NODE_ENV !== 'production',
-        prettyPrint: process.env.NODE_ENV === 'development',
+        colorize: !isProduction, // Colorize unless in production
+        prettyPrint: isDevelopment, // Pretty print only in development
       })
     );
 

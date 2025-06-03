@@ -3,10 +3,11 @@
  * @module @voilajsx/appkit/logging
  */
 
-// Main exports file
+// Main exports
 export { createLogger, Logger } from './logger.js';
 export { FileTransport } from './transports/file.js';
 export { ConsoleTransport } from './transports/console.js';
+export { BaseTransport } from './transports/base.js';
 
 // Re-export types for better type inference
 /**

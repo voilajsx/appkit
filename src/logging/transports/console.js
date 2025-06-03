@@ -51,7 +51,7 @@ export class ConsoleTransport extends BaseTransport {
       output = this.applyColor(output, level);
     }
 
-    // Use appropriate console method
+    // Use appropriate console method with fallbacks
     switch (level) {
       case 'error':
         console.error(output);
@@ -60,7 +60,12 @@ export class ConsoleTransport extends BaseTransport {
         console.warn(output);
         break;
       case 'debug':
-        console.debug(output);
+        // Fallback to console.log if console.debug is not available
+        if (typeof console.debug === 'function') {
+          console.debug(output);
+        } else {
+          console.log(output);
+        }
         break;
       default:
         console.log(output);
@@ -115,6 +120,9 @@ export class ConsoleTransport extends BaseTransport {
       debug: '🐛 DEBUG',
     };
 
-    return labels[level] || String(level).toUpperCase(); // Ensure level is string for .toUpperCase()
+    return labels[level] || String(level).toUpperCase();
   }
 }
+
+// Default export for convenience
+export default ConsoleTransport;

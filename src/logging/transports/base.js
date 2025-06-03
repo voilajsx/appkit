@@ -73,3 +73,6 @@ export class BaseTransport {
     // Override in subclasses if needed
   }
 }
+
+// Default export for convenience
+export default BaseTransport;
