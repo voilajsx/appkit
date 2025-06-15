@@ -1,124 +1,154 @@
 /**
- * @voilajsx/appkit - Rate Limiting middleware
+ * @voilajsx/appkit - Rate limiting utilities
  * @module @voilajsx/appkit/security/rateLimiter
+ * @file src/security/rateLimiter.js
  *
- * Provides rate limiting functionality to protect routes from abuse.
+ * Production-ready rate limiting with automatic cleanup and environment-first design.
  */
 
-// Module-scoped in-memory store for rate limiting records
-// This is used as the default store if no custom store is provided.
-const memoryStore = new Map();
-// Flag to ensure the cleanup interval for the default memoryStore is initialized only once.
-let _memoryStoreCleanupInitialized = false;
+// In-memory store for rate limiting records
+const requestStore = new Map();
+let cleanupInitialized = false;
 
 /**
- * Creates an Express-compatible rate limiter middleware.
- * Limits the number of requests a client can make within a specified time window.
- *
- * @param {Object} options - Configuration options for the rate limiter.
- * @param {number} options.windowMs - The time window in milliseconds during which `max` requests are allowed.
- * @param {number} options.max - The maximum number of requests allowed per `windowMs`.
- * @param {string} [options.message='Too many requests, please try again later.'] - The error message sent to the client when the limit is exceeded.
- * @param {Function} [options.keyGenerator] - A function that returns a unique key for the client (e.g., IP address). Defaults to `req.ip`.
- * @param {Object} [options.store] - A custom store implementation (must support `get`, `set`, `delete` methods). Defaults to an in-memory Map.
- * @returns {Function} An Express-compatible middleware function (req, res, next).
- * @throws {Error} If `windowMs` or `max` options are missing or invalid.
+ * Creates security error with status code
+ * @private
+ * @param {string} message - Error message
+ * @param {number} statusCode - HTTP status code
+ * @param {Object} [details] - Additional error details
+ * @returns {Error} Error with statusCode property
  */
-export function createRateLimiter(options) {
-  if (
-    !options ||
-    typeof options.windowMs !== 'number' ||
-    options.windowMs <= 0 ||
-    typeof options.max !== 'number' ||
-    options.max < 0
-  ) {
-    throw new Error(
-      'createRateLimiter: `windowMs` (positive number) and `max` (non-negative number) are required options.'
-    );
+function createSecurityError(message, statusCode = 400, details = {}) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  Object.assign(error, details);
+  return error;
+}
+
+/**
+ * Initializes cleanup interval for memory management
+ * @private
+ * @param {number} windowMs - Time window for cleanup interval
+ */
+function initializeCleanup(windowMs) {
+  if (cleanupInitialized) return;
+
+  // Cleanup interval is smaller of windowMs or 60 seconds
+  const cleanupInterval = Math.min(windowMs, 60 * 1000);
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, record] of requestStore.entries()) {
+      if (now > record.resetTime) {
+        requestStore.delete(key);
+      }
+    }
+  }, cleanupInterval).unref(); // Allow process to exit
+
+  cleanupInitialized = true;
+}
+
+/**
+ * Gets unique identifier for the client
+ * @private
+ * @param {Object} req - Express request object
+ * @returns {string} Client identifier
+ */
+function getClientKey(req) {
+  // Use IP address or forwarded IP as client identifier
+  return (
+    req.ip ||
+    req.connection?.remoteAddress ||
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    'unknown'
+  );
+}
+
+/**
+ * Creates rate limiting middleware with environment-first defaults
+ * @param {number} [maxRequests] - Max requests per window (uses VOILA_RATE_LIMIT env var)
+ * @param {number} [windowMs] - Time window in milliseconds (uses VOILA_RATE_WINDOW env var)
+ * @param {Object} [options] - Configuration options
+ * @param {string} [options.message] - Custom error message
+ * @param {Function} [options.keyGenerator] - Custom key generation function
+ * @returns {Function} Express middleware for rate limiting
+ */
+export function limitRequests(maxRequests, windowMs, options = {}) {
+  // Handle argument polymorphism
+  if (typeof maxRequests === 'object') {
+    options = maxRequests;
+    maxRequests = options.maxRequests;
+    windowMs = options.windowMs;
+  } else if (typeof windowMs === 'object') {
+    options = windowMs;
+    windowMs = options.windowMs;
   }
 
-  const {
-    windowMs,
-    max,
-    message = 'Too many requests, please try again later.',
-    keyGenerator = (req) =>
-      req.ip || (req.connection && req.connection.remoteAddress) || 'unknown', // Robust key generation from IP
-    store = memoryStore, // Use the default in-memory store if none provided
-  } = options;
+  // Environment → Argument → Default pattern
+  const max = maxRequests || parseInt(process.env.VOILA_RATE_LIMIT) || 100;
 
-  // Initialize the cleanup interval for the default in-memory store only once.
-  // This ensures old records are purged to prevent memory leaks.
-  if (store === memoryStore && !_memoryStoreCleanupInitialized) {
-    setInterval(
-      () => {
-        const now = Date.now();
-        for (const [key, record] of memoryStore.entries()) {
-          if (now > record.resetTime) {
-            // If the record's window has passed
-            memoryStore.delete(key); // Delete the old record
-          }
-        }
-      },
-      // Cleanup interval is the smaller of windowMs or 60 seconds, to ensure timely cleanup
-      Math.min(windowMs, 60 * 1000)
-    ).unref(); // Allows the Node.js process to exit if only this interval is left active
-    _memoryStoreCleanupInitialized = true;
+  const window =
+    windowMs || parseInt(process.env.VOILA_RATE_WINDOW) || 15 * 60 * 1000; // 15 minutes
+
+  const message =
+    options.message ||
+    process.env.VOILA_RATE_MESSAGE ||
+    'Too many requests, please try again later';
+
+  const keyGenerator = options.keyGenerator || getClientKey;
+
+  // Validate configuration
+  if (max < 0 || window <= 0) {
+    throw createSecurityError('Invalid rate limit configuration', 500);
   }
+
+  // Initialize cleanup for memory management
+  initializeCleanup(window);
 
   return (req, res, next) => {
-    const key = keyGenerator(req); // Get the unique key for the current client
+    const key = keyGenerator(req);
     const now = Date.now();
 
-    // Retrieve or create the rate limiting record for the client
-    let record = store.get(key);
+    // Get or create rate limit record
+    let record = requestStore.get(key);
     if (!record) {
-      // If no record exists, create a new one with count 0 and a new reset time
-      record = { count: 0, resetTime: now + windowMs };
-      store.set(key, record);
+      record = { count: 0, resetTime: now + window };
+      requestStore.set(key, record);
     } else if (now > record.resetTime) {
-      // If the current time is past the reset time, reset the count and update the reset time
+      // Reset if window has passed
       record.count = 0;
-      record.resetTime = now + windowMs;
+      record.resetTime = now + window;
     }
 
-    // Increment the request count for the current window
+    // Increment request count
     record.count++;
 
-    // Set standard X-RateLimit headers for client-side feedback
-    res.setHeader('X-RateLimit-Limit', max);
-    res.setHeader('X-RateLimit-Remaining', Math.max(0, max - record.count));
-    res.setHeader('X-RateLimit-Reset', Math.ceil(record.resetTime / 1000)); // UNIX timestamp in seconds
-
-    // Check if the request count exceeds the maximum allowed
-    if (record.count > max) {
-      // Set HTTP status code to 429 Too Many Requests
-      res.statusCode = 429;
-
-      const responseData = {
-        error: 'Too Many Requests',
-        message,
-        retryAfter: Math.ceil((record.resetTime - now) / 1000), // Time in seconds to wait
-      };
-
-      // Attempt to send the JSON response using framework-specific methods first,
-      // then fall back to native Node.js http.ServerResponse methods.
-      if (typeof res.json === 'function') {
-        // Express/Fastify compatibility
-        res.json(responseData);
-      } else if (typeof res.send === 'function') {
-        // Other frameworks that might use .send for objects
-        res.send(responseData);
-      } else {
-        // Native Node.js http.ServerResponse fallback
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify(responseData));
-      }
-
-      // Stop the middleware chain; do not call next()
-      return;
+    // Set rate limit headers for client information
+    if (res.setHeader) {
+      res.setHeader('X-RateLimit-Limit', max);
+      res.setHeader('X-RateLimit-Remaining', Math.max(0, max - record.count));
+      res.setHeader('X-RateLimit-Reset', Math.ceil(record.resetTime / 1000));
     }
 
-    // If the limit is not exceeded, proceed to the next middleware/route handler
+    // Check if limit exceeded
+    if (record.count > max) {
+      const retryAfter = Math.ceil((record.resetTime - now) / 1000);
+
+      // Set Retry-After header
+      if (res.setHeader) {
+        res.setHeader('Retry-After', retryAfter);
+      }
+
+      const error = createSecurityError(message, 429, {
+        retryAfter,
+        limit: max,
+        remaining: 0,
+        resetTime: record.resetTime,
+      });
+
+      return next(error);
+    }
+
     next();
   };
 }

@@ -3,53 +3,49 @@
  * @module @voilajsx/appkit/auth/password
  * @file src/auth/password.js
  *
- * Provides functions to securely hash passwords and verify them using bcrypt.
- * Designed for use within the @voilajsx/appkit authentication module.
+ * Production-ready functions to securely hash passwords and verify them using bcrypt.
  */
 
 import bcrypt from 'bcrypt';
 
 /**
- * Reads password configuration from VOILA_AUTH_* environment variables
- * @returns {Object} Environment configuration object
+ * Validates bcrypt rounds for security and performance
+ * @param {number} rounds - Number of salt rounds
+ * @throws {Error} If rounds are outside safe range
  */
-function getConfigFromEnvironment() {
-  const envConfig = {};
-
-  if (process.env.VOILA_AUTH_BCRYPT_ROUNDS) {
-    const rounds = parseInt(process.env.VOILA_AUTH_BCRYPT_ROUNDS);
-    if (!isNaN(rounds) && rounds >= 4 && rounds <= 31) {
-      envConfig.rounds = rounds;
-    }
+function validateRounds(rounds) {
+  if (rounds < 8) {
+    throw new Error('Bcrypt rounds must be at least 8 for security');
   }
 
-  return envConfig;
+  if (rounds > 15) {
+    throw new Error('Bcrypt rounds should not exceed 15 for performance');
+  }
 }
 
 /**
- * Hashes a password using bcrypt with configurable salt rounds
- *
- * @param {string} password - The plain text password to hash.
- * @param {number} [rounds=10] - The number of salt rounds for bcrypt.
- * @returns {Promise<string>} The resulting hashed password.
- * @throws {Error} If password is invalid or hashing fails.
+ * Hashes a password using bcrypt
+ * @param {string} password - Plain text password to hash
+ * @param {number} [rounds=10] - Number of salt rounds (uses VOILA_AUTH_BCRYPT_ROUNDS if not provided)
+ * @returns {Promise<string>} Hashed password
  */
 export async function hashPassword(password, rounds) {
   if (!password || typeof password !== 'string') {
     throw new Error('Password must be a non-empty string');
   }
 
-  // Minimum length check removed for flexibility, but empty string still invalid
   if (password.length === 0) {
     throw new Error('Password cannot be empty');
   }
 
-  // Merge environment config with provided rounds (explicit rounds take precedence)
-  const envConfig = getConfigFromEnvironment();
-  const finalRounds = rounds !== undefined ? rounds : envConfig.rounds || 10;
+  const saltRounds =
+    rounds || parseInt(process.env.VOILA_AUTH_BCRYPT_ROUNDS) || 10;
+
+  // Validate rounds for production security
+  validateRounds(saltRounds);
 
   try {
-    return await bcrypt.hash(password, finalRounds);
+    return await bcrypt.hash(password, saltRounds);
   } catch (error) {
     throw new Error(`Failed to hash password: ${error.message}`);
   }
@@ -57,11 +53,9 @@ export async function hashPassword(password, rounds) {
 
 /**
  * Compares a plain text password against a hashed password
- *
- * @param {string} password - The plain text password to verify.
- * @param {string} hash - The hashed password to compare against.
- * @returns {Promise<boolean>} Returns true if the password matches the hash.
- * @throws {Error} If inputs are invalid or comparison fails.
+ * @param {string} password - Plain text password to verify
+ * @param {string} hash - Hashed password to compare against
+ * @returns {Promise<boolean>} True if password matches the hash
  */
 export async function comparePassword(password, hash) {
   if (!password || typeof password !== 'string') {
@@ -70,6 +64,11 @@ export async function comparePassword(password, hash) {
 
   if (!hash || typeof hash !== 'string') {
     throw new Error('Hash must be a non-empty string');
+  }
+
+  // Validate hash format (bcrypt hashes start with $2a$, $2b$, or $2y$)
+  if (!hash.match(/^\$2[aby]\$\d{2}\$/)) {
+    throw new Error('Invalid hash format');
   }
 
   try {

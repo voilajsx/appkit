@@ -3,72 +3,61 @@
  * @module @voilajsx/appkit/auth/jwt
  * @file src/auth/jwt.js
  *
- * Functions for generating and verifying JSON Web Tokens (JWT) using `jsonwebtoken`.
+ * Production-ready functions for generating and verifying JSON Web Tokens (JWT).
  */
 
 import jwt from 'jsonwebtoken';
 
 /**
- * Reads JWT configuration from VOILA_AUTH_* environment variables
- * @returns {Object} Environment configuration object
+ * Validates JWT secret strength for production security
+ * @param {string} secret - JWT secret to validate
+ * @throws {Error} If secret is weak or invalid
  */
-function getConfigFromEnvironment() {
-  const envConfig = {};
-
-  if (process.env.VOILA_AUTH_SECRET) {
-    envConfig.secret = process.env.VOILA_AUTH_SECRET;
+function validateSecret(secret) {
+  if (!secret || typeof secret !== 'string') {
+    throw new Error('JWT secret must be a non-empty string');
   }
 
-  if (process.env.VOILA_AUTH_EXPIRES_IN) {
-    envConfig.expiresIn = process.env.VOILA_AUTH_EXPIRES_IN;
+  if (secret.length < 32) {
+    throw new Error(
+      'JWT secret must be at least 32 characters long for security'
+    );
   }
 
-  if (process.env.VOILA_AUTH_ALGORITHM) {
-    envConfig.algorithm = process.env.VOILA_AUTH_ALGORITHM;
+  // Warn about common weak secrets
+  const weakSecrets = ['secret', 'password', 'key', 'token', 'jwt'];
+  if (weakSecrets.includes(secret.toLowerCase())) {
+    throw new Error('JWT secret is too weak. Use a strong, random secret');
   }
-
-  return envConfig;
 }
 
 /**
- * Generates a JWT token from payload and configuration options
- *
- * @param {Object} payload - The data to encode in the JWT payload.
- * @param {Object} options - Token generation options.
- * @param {string} options.secret - Secret key used to sign the token.
- * @param {string} [options.expiresIn='7d'] - Token expiration duration (e.g., '1h', '7d').
- * @param {string} [options.algorithm='HS256'] - Signing algorithm to use.
- * @returns {string} Signed JWT token.
- * @throws {Error} If payload is not an object, secret is missing, or token generation fails.
+ * Creates and signs a JWT token
+ * @param {Object} payload - Data to encode in the token
+ * @param {string} [secret] - JWT secret (uses VOILA_AUTH_SECRET if not provided)
+ * @param {string} [expiresIn='7d'] - Token expiration
+ * @returns {string} Signed JWT token
  */
-export function generateToken(payload, options = {}) {
+export function signToken(payload, secret, expiresIn = '7d') {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Payload must be an object');
   }
 
-  // Merge environment config with provided options (options take precedence)
-  const envConfig = getConfigFromEnvironment();
-  const finalOptions = { ...envConfig, ...options };
+  const jwtSecret = secret || process.env.VOILA_AUTH_SECRET;
 
-  if (!finalOptions.secret) {
-    console.error(
-      '❌ JWT Secret Missing: No secret provided via options.secret or VOILA_AUTH_SECRET environment variable'
-    );
+  if (!jwtSecret) {
     throw new Error(
-      'JWT secret is required. Provide via options.secret or VOILA_AUTH_SECRET environment variable'
+      'JWT secret required. Provide as argument or set VOILA_AUTH_SECRET'
     );
   }
 
-  const {
-    secret,
-    expiresIn = '7d', // default expiration for better user experience
-    algorithm = 'HS256',
-  } = finalOptions;
+  // Validate secret strength for production security
+  validateSecret(jwtSecret);
 
   try {
-    return jwt.sign(payload, secret, {
+    return jwt.sign(payload, jwtSecret, {
       expiresIn,
-      algorithm,
+      algorithm: 'HS256',
     });
   } catch (error) {
     throw new Error(`Failed to generate token: ${error.message}`);
@@ -76,37 +65,31 @@ export function generateToken(payload, options = {}) {
 }
 
 /**
- * Verifies a JWT token and returns the decoded payload
- *
- * @param {string} token - The JWT token to verify.
- * @param {Object} options - Verification options.
- * @param {string} options.secret - Secret key used to verify the token.
- * @param {string[]} [options.algorithms=['HS256']] - Allowed algorithms for verification.
- * @returns {Object} Decoded token payload.
- * @throws {Error} If token is invalid, expired, malformed, or verification fails.
+ * Verifies and decodes a JWT token
+ * @param {string} token - JWT token to verify
+ * @param {string} [secret] - JWT secret (uses VOILA_AUTH_SECRET if not provided)
+ * @returns {Object} Decoded token payload
  */
-export function verifyToken(token, options = {}) {
+export function verifyToken(token, secret) {
   if (!token || typeof token !== 'string') {
     throw new Error('Token must be a string');
   }
 
-  // Merge environment config with provided options (options take precedence)
-  const envConfig = getConfigFromEnvironment();
-  const finalOptions = { ...envConfig, ...options };
+  const jwtSecret = secret || process.env.VOILA_AUTH_SECRET;
 
-  if (!finalOptions.secret) {
-    console.error(
-      '❌ JWT Secret Missing: No secret provided via options.secret or VOILA_AUTH_SECRET environment variable'
-    );
+  if (!jwtSecret) {
     throw new Error(
-      'JWT secret is required. Provide via options.secret or VOILA_AUTH_SECRET environment variable'
+      'JWT secret required. Provide as argument or set VOILA_AUTH_SECRET'
     );
   }
 
-  const { secret, algorithms = ['HS256'] } = finalOptions;
+  // Validate secret strength for production security
+  validateSecret(jwtSecret);
 
   try {
-    return jwt.verify(token, secret, { algorithms });
+    return jwt.verify(token, jwtSecret, {
+      algorithms: ['HS256'],
+    });
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw new Error('Token has expired');

@@ -3,51 +3,36 @@
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Essential security utilities for Node.js applications - CSRF protection, rate
-> limiting, input sanitization, and **data encryption**.
+> Production-ready security utilities with environment-first design and smart
+> defaults
 
-The Security module of `@voilajsx/appkit` provides robust protection against
-common web vulnerabilities including cross-site request forgery (CSRF), brute
-force attacks, cross-site scripting (XSS), and ensures the **confidentiality and
-integrity of sensitive data at rest or in transit.** Each utility is designed to
-be simple to use while following security best practices.
-
-## 🚀 Features
-
-- **🛡️ CSRF Protection** - Generate and verify cryptographically secure,
-  time-limited tokens to prevent cross-site request forgery.
-- **⏱️ Rate Limiting** - Control request frequency to protect against brute
-  force and Denial-of-Service (DoS) attacks.
-- **🧹 Input Sanitization** - Clean user input to prevent XSS and injection
-  attacks.
-- **🔐 Data Encryption** - Encrypt and decrypt sensitive data using
-  authenticated encryption (AES-256-GCM) for confidentiality and integrity.
-- **🔌 Framework Agnostic Core** - Core functions (`generateCsrfToken`,
-  `verifyCsrfToken`, `escapeString`, `sanitizeHtml`, `sanitizeFilename`,
-  `generateEncryptionKey`, `encrypt`, `decrypt`) are framework-agnostic.
-- **📦 Express.js Middleware Ready** - `createCsrfMiddleware` and
-  `createRateLimiter` provide ready-to-use middleware for Express.js and
-  Express-compatible frameworks.
-- **🎯 Minimal Dependencies** - Lightweight implementation with zero external
-  dependencies.
-- **⚡ Simple API** - Easy to implement with sensible defaults for quick
-  protection.
+The Security module provides essential protection against common web
+vulnerabilities including CSRF attacks, brute force attempts, XSS injections,
+and data breaches. Each utility is designed for production use with zero
+configuration required.
 
 ## Module Overview
 
-The Security module provides comprehensive protection against common web
-vulnerabilities:
+Complete security protection for production applications:
 
-| Feature                | What it does                                         | Main functions                                                       |
-| ---------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
-| **CSRF Protection**    | Prevent cross-site request forgery attacks           | `generateCsrfToken()`, `verifyCsrfToken()`, `createCsrfMiddleware()` |
-| **Rate Limiting**      | Control request frequency to prevent abuse           | `createRateLimiter()`                                                |
-| **Input Sanitization** | Clean user input to prevent XSS and injection        | `sanitizeHtml()`, `escapeString()`, `sanitizeFilename()`             |
-| **Data Encryption**    | Encrypt sensitive data with authenticated encryption | `generateEncryptionKey()`, `encrypt()`, `decrypt()`                  |
+| Feature             | What it does                   | Main functions                                    |
+| ------------------- | ------------------------------ | ------------------------------------------------- |
+| **Form Protection** | CSRF attack prevention         | `protectForms()`                                  |
+| **Rate Limiting**   | Brute force and DoS protection | `limitRequests()`                                 |
+| **Input Safety**    | XSS and injection prevention   | `cleanInput()`, `cleanHtml()`, `escapeHtml()`     |
+| **Data Encryption** | Sensitive data protection      | `encryptData()`, `decryptData()`, `generateKey()` |
+
+## 🚀 Features
+
+- **🛡️ Complete Protection** - CSRF, rate limiting, input sanitization,
+  encryption
+- **⚡ Zero Configuration** - Smart defaults from environment variables
+- **🌍 Environment-First** - Production vs development aware
+- **🔧 Framework Agnostic** - Works with Express, Fastify, and others
+- **📦 Independent Module** - No dependencies on other @voilajsx/appkit modules
+- **🎯 Production-Ready** - Cryptographically secure implementations
 
 ## 📦 Installation
-
-To install `@voilajsx/appkit` in your project:
 
 ```bash
 npm install @voilajsx/appkit
@@ -55,433 +40,375 @@ npm install @voilajsx/appkit
 
 ## 🏃‍♂️ Quick Start
 
-Here's a quick overview of how to get started with the security utilities. For
-complete examples, refer to the [Example Code](#example-code) section.
-
 ```javascript
 import {
-  // CSRF Protection
-  generateCsrfToken,
-  verifyCsrfToken,
-  createCsrfMiddleware,
-
-  // Rate Limiting
-  createRateLimiter,
-
-  // Input Sanitization
-  sanitizeHtml,
-  escapeString,
-  sanitizeFilename,
-
-  // Encryption
-  generateEncryptionKey,
-  encrypt,
-  decrypt,
+  protectForms,
+  limitRequests,
+  cleanInput,
+  encryptData
 } from '@voilajsx/appkit/security';
 
-// --- Example Express.js Setup ---
-import express from 'express';
-import session from 'express-session'; // Required for stateful CSRF
+// Complete security setup in 3 lines
+app.use(protectForms());           // CSRF protection
+app.use('/api', limitRequests());  // Rate limiting
 
-const app = express();
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// 1. Configure session middleware (REQUIRED for stateful CSRF)
-app.use(
-  session({
-    secret: 'your-super-secret-session-key', // CHANGE THIS IN PRODUCTION!
-    resave: false,
-    saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: 'Lax' },
-  })
-);
-
-// 2. Create and apply CSRF middleware
-const csrfProtection = createCsrfMiddleware();
-app.use(csrfProtection); // Apply globally or to specific POST routes
-
-// 3. Add rate limiting to API endpoints
-const apiLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
-});
-app.use('/api', apiLimiter);
-
-// 4. Sanitize user input before display or storage
+// Secure user input handling
 app.post('/profile', (req, res) => {
-  const unsafeHtml = req.body.bio;
-  const unsafeText = req.body.username;
-  const unsafeFilename = req.body.fileName;
+  const safeBio = cleanInput(req.body.bio);
+  const encryptedSSN = encryptData(req.body.ssn);
 
-  const safeHtml = sanitizeHtml(unsafeHtml, {
-    allowedTags: ['p', 'b', 'i', 'a'], // Allow only these HTML tags
-  });
-  const safeText = escapeString(unsafeText);
-  const safeFilename = sanitizeFilename(unsafeFilename);
-
-  res.json({ username: safeText, bio: safeHtml, file: safeFilename });
+  await saveUser({ bio: safeBio, ssn: encryptedSSN });
+  res.json({ success: true });
 });
-
-// --- Example Data Encryption ---
-const ENCRYPTION_KEY = generateEncryptionKey(); // Generate once and load securely
-const sensitiveData = 'This is my secret sensitive data!';
-const associatedData = 'user_id_123'; // Optional: data to bind to the ciphertext
-
-// Encrypt
-const encrypted = encrypt(sensitiveData, ENCRYPTION_KEY, associatedData);
-console.log('Encrypted:', encrypted);
-
-// Decrypt
-try {
-  const decrypted = decrypt(encrypted, ENCRYPTION_KEY, associatedData);
-  console.log('Decrypted:', decrypted);
-} catch (error) {
-  console.error('Decryption failed:', error.message);
-}
-
-// Basic error handler for CSRF errors
-app.use((err, req, res, next) => {
-  if (err.code === 'EBADCSRFTOKEN') {
-    return res.status(403).send('Invalid or missing CSRF token!');
-  }
-  if (err.code === 'ENOSESSION') {
-    return res.status(500).send('Session not configured for CSRF middleware!');
-  }
-  next(err);
-});
-
-app.listen(3000, () => console.log('Quick Start App running on port 3000'));
 ```
 
 ## 📖 Core Functions
 
-### CSRF Protection
+### Form Protection (1 function)
 
-These utilities help prevent cross-site request forgery attacks by ensuring that
-form submissions and state-changing requests originate from your site. They rely
-on a **stateful (session-based)** approach, requiring a session management
-middleware.
+CSRF protection with cryptographically secure tokens:
 
-| Function                 | Purpose                                                                            | When to use                                                      |
-| :----------------------- | :--------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
-| `generateCsrfToken()`    | Creates a cryptographically secure token and stores it in the session              | When rendering forms or before sensitive actions                 |
-| `verifyCsrfToken()`      | Verifies a submitted token against the one in the session (timing-safe comparison) | When manually validating form submissions or by the middleware   |
-| `createCsrfMiddleware()` | Creates an Express-compatible middleware for automatic CSRF protection of routes   | For automatic protection of `POST`, `PUT`, `DELETE`, etc. routes |
+| Function         | Purpose               | When to use                 |
+| ---------------- | --------------------- | --------------------------- |
+| `protectForms()` | Prevents CSRF attacks | All applications with forms |
 
 ```javascript
-// Generate a token for a form (requires req.session from session middleware)
-const token = generateCsrfToken(req.session); // Store this in a hidden form field or custom header
+// Zero-config CSRF protection
+app.use(protectForms()); // Uses VOILA_CSRF_SECRET
 
-// Verify a token from a request (usually handled by the middleware)
-// const isValid = verifyCsrfToken(req.body._csrf, req.session); // For manual validation
-
-// Apply middleware to all relevant routes (e.g., after session middleware)
-app.use(createCsrfMiddleware());
-```
-
-### Rate Limiting
-
-Rate limiting helps prevent abuse of your API endpoints by controlling how many
-requests a client can make in a given time period. It uses an in-memory store by
-default.
-
-| Function              | Purpose                                          | When to use                                          |
-| :-------------------- | :----------------------------------------------- | :--------------------------------------------------- |
-| `createRateLimiter()` | Creates middleware that limits request frequency | For API endpoints, login pages, and form submissions |
-
-```javascript
-// Create a rate limiter: 100 requests per 15 minutes
-const limiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
+// Generate tokens in forms
+app.get('/contact', (req, res) => {
+  const csrfToken = req.csrfToken(); // Added by middleware
+  res.render('contact', { csrfToken });
 });
 
-// Apply to API routes
-app.use('/api', limiter);
-
-// Stricter limits for login attempts (5 attempts per hour)
-const loginLimiter = createRateLimiter({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 attempts per hour
-});
-app.use('/login', loginLimiter);
-```
-
-### Input Sanitization
-
-These utilities clean user input to prevent XSS attacks and other injection
-vulnerabilities.
-
-| Function             | Purpose                                                          | When to use                                                                     |
-| :------------------- | :--------------------------------------------------------------- | :------------------------------------------------------------------------------ |
-| `escapeString()`     | Escapes HTML special characters in plain text                    | When displaying untrusted user input in HTML                                    |
-| `sanitizeHtml()`     | Removes dangerous HTML elements and attributes from HTML strings | When allowing limited HTML formatting in user input (e.g., comments, rich text) |
-| `sanitizeFilename()` | Cleans filenames to prevent path traversal issues                | When handling user-uploaded files or user-provided file paths                   |
-
-```javascript
-// Escape user input for safe display in HTML
-const safeText = escapeString(userComment); // e.g., converts <script> to &lt;script&gt;
-
-// Allow limited HTML tags (e.g., from a user's bio)
-const safeHtml = sanitizeHtml(userBio, {
-  allowedTags: ['p', 'b', 'i', 'a', 'ul', 'li'], // Other tags will be stripped
-});
-
-// Clean a filename provided by a user
-const safeName = sanitizeFilename(uploadedFile.originalname); // e.g., removes ../ or /
-```
-
-### Data Encryption
-
-These utilities provide strong, authenticated symmetric encryption using
-AES-256-GCM. This ensures both confidentiality (data remains secret) and
-integrity (data has not been tampered with).
-
-| Function                  | Purpose                                                               | When to use                                                       |
-| :------------------------ | :-------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| `generateEncryptionKey()` | Generates a cryptographically secure 32-byte (AES-256) encryption key | Once for your application; load securely at runtime               |
-| `encrypt()`               | Encrypts plaintext data using AES-256-GCM                             | To protect sensitive data at rest or in transit                   |
-| `decrypt()`               | Decrypts ciphertext and verifies its authenticity                     | To retrieve original data after encryption; will fail if tampered |
-
-```javascript
-// --- IMPORTANT: Key Management ---
-// Generate this key ONCE per application and store it securely (e.g., environment variable, KMS).
-// NEVER hardcode keys in your code!
-const ENCRYPTION_KEY = generateEncryptionKey(); // For demo purposes only
-
-// Data to encrypt and optional Associated Data (AAD)
-const sensitiveUserInfo = '{"email": "user@example.com", "ssn": "123-45-678"}';
-const aad = 'user_profile_id_456'; // AAD is optional, but highly recommended for context binding
-
-// Encrypt the data
-// Returns a string format "IV:Ciphertext:AuthTag" (all in hex)
-const encryptedData = encrypt(sensitiveUserInfo, ENCRYPTION_KEY, aad);
-console.log('Encrypted Data:', encryptedData);
-
-// Decrypt the data
-try {
-  const decryptedData = decrypt(encryptedData, ENCRYPTION_KEY, aad);
-  console.log('Decrypted Data:', decryptedData);
-} catch (error) {
-  console.error(
-    'Decryption failed due to tampering or incorrect key/AAD:',
-    error.message
-  );
-}
-```
-
-## 🔧 Configuration Options
-
-### CSRF Middleware Options
-
-```javascript
-const csrf = createCsrfMiddleware({
-  // Name of field containing the token in form data (default: '_csrf')
-  tokenField: 'csrf_token',
-
-  // Name of HTTP header for CSRF token (default: 'x-csrf-token')
-  headerField: 'x-csrf',
+// Automatic verification on POST/PUT/DELETE
+app.post('/contact', (req, res) => {
+  // CSRF already verified by middleware
+  // Handle form submission...
 });
 ```
 
-### Rate Limiter Options
+### Rate Limiting (1 function)
+
+Protect against brute force and DoS attacks:
+
+| Function          | Purpose                    | When to use                |
+| ----------------- | -------------------------- | -------------------------- |
+| `limitRequests()` | Controls request frequency | API endpoints, login pages |
 
 ```javascript
-const limiter = createRateLimiter({
-  // Required: Time window in milliseconds
-  windowMs: 15 * 60 * 1000, // 15 minutes
+// Global API rate limiting
+app.use('/api', limitRequests()); // Uses VOILA_RATE_LIMIT + VOILA_RATE_WINDOW
 
-  // Required: Maximum requests per window
-  max: 100,
+// Strict login protection
+app.use('/auth/login', limitRequests(5, 3600000)); // 5 attempts per hour
 
-  // Optional: Custom error message
-  message: 'Too many requests, please try again later',
-
-  // Optional: Function to generate unique client identifier (e.g., for IP-based limits)
-  keyGenerator: (req) => req.ip || req.headers['x-api-key'], // Default is req.ip
-
-  // Optional: Custom store for rate limit data. Default is in-memory Map (single-server only).
-  // For multi-server deployments, you should provide a distributed store like Redis.
-  store: new Map(), // Example: Use `new RedisStore(...)` for production
-});
+// Custom rate limiting
+app.use('/upload', limitRequests(10, 60000)); // 10 uploads per minute
 ```
 
-### Sanitization Options
+### Input Safety (3 functions)
+
+Comprehensive protection against XSS and injection attacks:
+
+| Function       | Purpose                    | When to use                |
+| -------------- | -------------------------- | -------------------------- |
+| `cleanInput()` | Basic text sanitization    | User input, search queries |
+| `cleanHtml()`  | Advanced HTML sanitization | Rich text, comments, bios  |
+| `escapeHtml()` | HTML entity escaping       | Displaying user content    |
 
 ```javascript
-// HTML Sanitization Options for `sanitizeHtml()`
-const safeHtml = sanitizeHtml(userInput, {
-  // Set to true to remove all HTML tags completely (default: false)
-  stripAllTags: false,
+// Basic input cleaning
+const cleanEmail = cleanInput(req.body.email);
+const cleanName = cleanInput(req.body.name, { maxLength: 50 });
 
-  // An array of HTML tags that are allowed to remain in the output (default: empty array)
+// Rich text with allowed HTML
+const safeBio = cleanHtml(req.body.bio, {
   allowedTags: ['p', 'b', 'i', 'a', 'ul', 'li'],
 });
+
+// Safe text display
+const safeComment = escapeHtml(userComment);
+res.send(`<p>User said: ${safeComment}</p>`);
+```
+
+### Data Encryption (3 functions)
+
+AES-256-GCM encryption for sensitive data protection:
+
+| Function        | Purpose                 | When to use                 |
+| --------------- | ----------------------- | --------------------------- |
+| `encryptData()` | Encrypts sensitive data | PII, payment info, secrets  |
+| `decryptData()` | Decrypts encrypted data | Retrieving sensitive data   |
+| `generateKey()` | Creates encryption keys | Initial setup, key rotation |
+
+```javascript
+// Generate encryption key (one-time setup)
+const key = generateKey();
+console.log('Save this key securely:', key);
+
+// Encrypt sensitive data
+const encryptedSSN = encryptData(user.ssn); // Uses VOILA_ENCRYPTION_KEY
+const encryptedCard = encryptData(paymentInfo, customKey);
+
+// Decrypt when needed
+const originalSSN = decryptData(encryptedSSN);
+const originalCard = decryptData(encryptedCard, customKey);
+```
+
+## 🔧 Environment Variables
+
+### Required for Production
+
+```bash
+# CSRF Protection
+VOILA_CSRF_SECRET=your-csrf-secret-key  # Required for form protection
+
+# Data Encryption
+VOILA_ENCRYPTION_KEY=your-256-bit-hex-key  # Required for data encryption
+```
+
+### Optional Configuration (Smart Defaults)
+
+```bash
+# CSRF Settings
+VOILA_CSRF_FIELD=_csrf              # Form field name (default: _csrf)
+VOILA_CSRF_HEADER=x-csrf-token      # Header name (default: x-csrf-token)
+VOILA_CSRF_EXPIRY=60                # Token expiry minutes (default: 60)
+
+# Rate Limiting
+VOILA_RATE_LIMIT=100                # Max requests (default: 100)
+VOILA_RATE_WINDOW=900000            # Window in ms (default: 15 min)
+VOILA_RATE_MESSAGE="Too many requests" # Custom error message
+
+# Input Sanitization
+VOILA_MAX_INPUT_LENGTH=1000         # Max input length (default: 1000)
+VOILA_ALLOWED_TAGS=p,b,i,a          # Allowed HTML tags (comma-separated)
+VOILA_STRIP_ALL_TAGS=false          # Strip all HTML (default: false)
 ```
 
 ## 💡 Common Use Cases
 
-| Category            | Use Case                    | Description                                                | Components Used                               |
-| :------------------ | :-------------------------- | :--------------------------------------------------------- | :-------------------------------------------- |
-| **Form Protection** | Contact Form                | Prevent forged form submissions                            | `generateCsrfToken`, `createCsrfMiddleware`   |
-| **Form Protection** | Admin Actions               | Protect sensitive administrative operations                | `generateCsrfToken`, `verifyCsrfToken`        |
-| **API Security**    | Public API                  | Prevent abuse and DoS                                      | `createRateLimiter`                           |
-| **API Security**    | Authentication              | Block brute force login attempts                           | `createRateLimiter` with strict limits        |
-| **Content Safety**  | User Comments               | Allow safe formatting while preventing XSS                 | `sanitizeHtml` with `allowedTags`             |
-| **Content Safety**  | Profile Display             | Prevent XSS when displaying user-generated text            | `escapeString`                                |
-| **File Handling**   | User Uploads                | Prevent path traversal and malicious filenames             | `sanitizeFilename`                            |
-| **Data Security**   | Database Fields             | Encrypt sensitive data at rest in your DB                  | `encrypt`, `decrypt`, `generateEncryptionKey` |
-| **Data Security**   | Inter-service Communication | Encrypt payloads between microservices for confidentiality | `encrypt`, `decrypt`                          |
+| Scenario           | Functions Used                      | Example                          |
+| ------------------ | ----------------------------------- | -------------------------------- |
+| **Web Forms**      | `protectForms()`, `cleanInput()`    | Contact forms, user registration |
+| **API Security**   | `limitRequests()`, `cleanInput()`   | REST APIs, GraphQL endpoints     |
+| **Rich Content**   | `cleanHtml()`, `escapeHtml()`       | Comments, blogs, user profiles   |
+| **Data Privacy**   | `encryptData()`, `decryptData()`    | PII storage, payment processing  |
+| **Authentication** | `limitRequests()`, `protectForms()` | Login pages, password reset      |
 
-## 🤖 Code Generation with LLMs
+## 📋 Complete Example
 
-You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common security scenarios using the `@voilajsx/appkit/security` module.
-We've created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md)
-document that's designed specifically for LLMs to understand the module's
-capabilities and generate high-quality security code.
+```javascript
+import express from 'express';
+import session from 'express-session';
+import {
+  protectForms,
+  limitRequests,
+  cleanInput,
+  cleanHtml,
+  escapeHtml,
+  encryptData,
+  decryptData,
+  generateKey,
+} from '@voilajsx/appkit/security';
 
-### Sample Prompts to Try
+const app = express();
 
-#### Basic Security Setup
+// Middleware setup
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Session middleware (required for CSRF)
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax' },
+  })
+);
+
+// Security middleware
+app.use(protectForms()); // CSRF protection for all forms
+app.use('/api', limitRequests()); // Rate limiting for API routes
+
+// Strict rate limiting for authentication
+app.use('/auth', limitRequests(5, 3600000)); // 5 attempts per hour
+
+// User registration with complete security
+app.post('/auth/register', async (req, res) => {
+  try {
+    // Clean and validate input
+    const email = cleanInput(req.body.email?.toLowerCase());
+    const name = cleanInput(req.body.name, { maxLength: 50 });
+    const bio = cleanHtml(req.body.bio, {
+      allowedTags: ['p', 'b', 'i'],
+    });
+
+    // Encrypt sensitive data
+    const encryptedPhone = encryptData(req.body.phone);
+
+    // Save user
+    const user = await createUser({
+      email,
+      name,
+      bio,
+      phone: encryptedPhone,
+    });
+
+    res.json({ success: true, userId: user.id });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      error: error.message,
+    });
+  }
+});
+
+// Profile display with safe output
+app.get('/profile/:id', async (req, res) => {
+  const user = await getUser(req.params.id);
+
+  // Decrypt sensitive data
+  const phone = decryptData(user.encryptedPhone);
+
+  // Safe HTML output
+  const safeName = escapeHtml(user.name);
+  const safeBio = user.bio; // Already cleaned during input
+
+  res.send(`
+    <h1>${safeName}</h1>
+    <div>${safeBio}</div>
+    <p>Phone: ${escapeHtml(phone)}</p>
+  `);
+});
+
+// File upload with security
+app.post('/upload', limitRequests(5, 60000), async (req, res) => {
+  // Clean filename
+  const safeFilename = cleanInput(req.body.filename, {
+    maxLength: 100,
+    removeXSS: true,
+  });
+
+  // Process upload...
+  res.json({ filename: safeFilename });
+});
+
+// API endpoint with comprehensive protection
+app.post('/api/comments', async (req, res) => {
+  try {
+    // Clean comment content
+    const content = cleanHtml(req.body.content, {
+      allowedTags: ['p', 'b', 'i', 'a'],
+    });
+
+    const comment = await createComment({
+      content,
+      userId: req.user.id,
+    });
+
+    res.json(comment);
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      error: error.message,
+    });
+  }
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Secure server running on port ${port}`);
+});
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md and then create a basic Express application that implements CSRF protection and rate limiting for login attempts.
-```
 
-#### Content Sanitization System
+## 🛡️ Security Features
 
-```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md and then implement a content sanitization system that allows safe HTML in comments but prevents XSS attacks.
-```
+### CSRF Protection
 
-#### Complete Security Integration
+- **Cryptographically secure tokens** using `crypto.randomBytes()`
+- **Timing-safe verification** with `crypto.timingSafeEqual()`
+- **Session-based storage** preventing token prediction
+- **Automatic expiry** with configurable timeouts
 
-```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md and then create a complete security setup for an Express application with CSRF protection, tiered rate limiting, and input sanitization.
-```
+### Rate Limiting
 
-#### Data Encryption Example
+- **In-memory tracking** with automatic cleanup
+- **Configurable windows** and request limits
+- **Client identification** via IP address
+- **Standard headers** (X-RateLimit-\*, Retry-After)
 
-```
-Using the @voilajsx/appkit/security module, demonstrate how to encrypt a user's sensitive profile data and decrypt it later, including the use of Associated Data.
-```
+### Input Sanitization
 
-## 📋 Example Code
+- **XSS prevention** removing dangerous scripts and protocols
+- **Length limiting** preventing memory exhaustion
+- **HTML filtering** with configurable allowed tags
+- **Entity escaping** for safe text display
 
-For complete, working examples, check our examples folder:
+### Data Encryption
 
-- [01-csrf-basic.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/01-csrf-basic.js) -
-  CSRF tokens in forms with Express.js
-- [02-rate-limiting.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/02-rate-limiting.js) -
-  Protecting API endpoints from abuse
-- [03-sanitization.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/03-sanitization.js) -
-  Safely handling user input
-- [04-complete-app.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/04-complete-app.js) -
-  All security features working together in an Express app
-- [05-fastify-security-integration.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/05-fastify-security-integration.js) -
-  Stateful CSRF protection with Fastify (manual adaptation)
-- [06-encryption-decryption.js](https://github.com/voilajs/appkit/blob/main/src/security/examples/06-encryption-decryption.js) -
-  Demonstrates data encryption and decryption
-
-## 🛡️ Security Best Practices
-
-Following these practices will help ensure your application remains secure:
-
-1.  **Use HTTPS in Production**: All security measures are bypassed if traffic
-    can be intercepted.
-2.  **Environment Variables**: Store secrets and configuration (especially
-    encryption keys and session secrets) in environment variables, not in code.
-3.  **Defense in Depth**: Apply multiple security layers; don't rely on a single
-    protection mechanism.
-4.  **Validate Server-Side**: Never trust client-side validation alone; always
-    validate on the server.
-5.  **Keep Updated**: Regularly update dependencies to get security patches.
-6.  **Error Messages**: Use generic error messages that don't leak
-    implementation details.
-7.  **Security Headers**: Implement security headers like CSP alongside these
-    utilities for comprehensive protection.
-
-## 📊 Performance Considerations
-
-- **Rate Limiter Memory**: The default in-memory store works for single-server
-  deployments; use Redis or a distributed store for multiple servers.
-- **CSRF Token Size**: The default 16-byte (32 hex character) tokens balance
-  security and performance.
-- **Sanitization Complexity**: The `stripAllTags` option is faster than
-  `allowedTags` when you don't need any HTML.
-- **Encryption Overhead**: While secure, encryption adds computational overhead.
-  Use it selectively for truly sensitive data.
-- **Middleware Order**: Place rate limiting before other middleware to reject
-  excessive requests early.
+- **AES-256-GCM** authenticated encryption
+- **Random IVs** for each encryption operation
+- **Authentication tags** preventing tampering
+- **Associated data** support for additional security
 
 ## 🔍 Error Handling
 
-The security module provides helpful errors that should be caught and handled:
+All security functions return standard Error objects with `statusCode`
+properties:
 
 ```javascript
 try {
-  const token = generateCsrfToken(req.session);
+  const encrypted = encryptData(sensitiveData);
 } catch (error) {
-  console.error('CSRF token generation failed:', error.message);
-  // Handle gracefully, e.g., redirect to login or show an error page
-}
-
-// For middleware errors (e.g., from createCsrfMiddleware or createRateLimiter)
-app.use((err, req, res, next) => {
-  if (err.code === 'EBADCSRFTOKEN') {
-    // Handle CSRF errors (e.g., invalid/missing/expired token)
-    return res.status(403).send('Form expired or invalid. Please try again.');
-  }
-  if (err.code === 'ENOSESSION') {
-    // Handle session not found for CSRF (configuration error)
-    return res
-      .status(500)
-      .send('Server error: Session not configured for security checks.');
-  }
-  if (err.statusCode === 429) {
-    // Rate limiter typically sets statusCode 429
-    // Handle rate limiting errors
-    return res.status(429).send(err.message || 'Too many requests.');
-  }
-  next(err); // Pass on other errors
-});
-
-// For encryption/decryption errors
-try {
-  const decrypted = decrypt(encryptedData, key, aad);
-} catch (error) {
-  console.error('Decryption failed:', error.message);
-  // Handle authentication failure (tampering, wrong key/AAD)
+  console.log(`Error ${error.statusCode}: ${error.message}`);
+  // Handle security error appropriately
 }
 ```
 
-## 📚 Documentation Links
+### Common Error Status Codes
 
-- 📘
-  [Developer REFERENCE](https://github.com/voilajs/appkit/blob/main/src/security/docs/DEVELOPER_REFERENCE.md) -
-  Detailed implementation guide with examples
-- 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/security/docs/API_REFERENCE.md) -
-  Complete API documentation
-- 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajs/appkit/blob/main/src/security/docs/PROMPT_REFERENCE.md) -
-  Guide for AI/LLM code generation
+- **400** - Invalid input format or parameters
+- **401** - Authentication failure (tampered data)
+- **403** - Access denied (CSRF, rate limit)
+- **429** - Rate limit exceeded
+- **500** - Server configuration error
+
+## 📚 API Reference
+
+### Form Protection
+
+- `protectForms(secret?, options?)` - CSRF protection middleware
+
+### Rate Limiting
+
+- `limitRequests(maxRequests?, windowMs?, options?)` - Rate limiting middleware
+
+### Input Safety
+
+- `cleanInput(text, options?)` - Basic text sanitization
+- `cleanHtml(html, options?)` - HTML sanitization with allowed tags
+- `escapeHtml(text)` - HTML entity escaping
+
+### Data Encryption
+
+- `generateKey()` - Generate 256-bit encryption key
+- `encryptData(data, key?, associatedData?)` - AES-256-GCM encryption
+- `decryptData(encryptedData, key?, associatedData?)` - Authenticated decryption
 
 ## 🤝 Contributing
 
 We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
+[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
 for details.
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajs)
+MIT © [VoilaJSX](https://github.com/voilajsx)
 
 ---
 
 <p align="center">
-Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
 </p>

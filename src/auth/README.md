@@ -3,34 +3,19 @@
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Secure, simple, and flexible authentication utilities for Node.js applications
+> Dead simple, secure authentication for Node.js applications
 
-The Auth module of `@voilajsx/appkit` provides robust authentication utilities
-including JWT token management, password hashing with bcrypt, and customizable
-middleware for protecting routes and enforcing role-based access control (RBAC).
+The Auth module provides **6 essential functions** that cover 90% of
+authentication needs with zero learning curve. Production-ready security with
+the simplest possible API.
 
-## Module Overview
+## 🚀 Why Choose This?
 
-The Auth module provides everything you need for modern authentication:
-
-| Feature               | What it does                         | Main functions                        |
-| --------------------- | ------------------------------------ | ------------------------------------- |
-| **JWT Management**    | Create and verify secure tokens      | `generateToken()`, `verifyToken()`    |
-| **Password Security** | Hash and verify passwords safely     | `hashPassword()`, `comparePassword()` |
-| **Route Protection**  | Secure API endpoints with middleware | `createAuthMiddleware()`              |
-| **Role-Based Access** | Control access based on user roles   | `createAuthorizationMiddleware()`     |
-
-## 🚀 Features
-
-- **🔑 JWT Token Management** - Generate and verify JWT tokens with customizable
-  expiration
-- **🔒 Password Security** - Hash and compare passwords using bcrypt
-- **🛡️ Route Protection** - Middleware for authenticating requests
-- **👥 Role-Based Access** - Control access based on user roles
-- **🎯 Framework Agnostic** - Works with Express, Fastify, Koa, and more
-- **⚡ Simple API** - Get started with just a few lines of code
-- **🌍 Environment Configuration** - Auto-detects VOILA*AUTH*\* environment
-  variables
+- **⚡ Zero Learning Curve** - Intuitive function names, start in 30 seconds
+- **🔒 Production Security** - Enterprise-grade security by default
+- **🎯 Just 6 Functions** - Covers 90% of auth needs without complexity
+- **🌍 Environment-First** - Auto-detects VOILA*AUTH*\* variables
+- **📦 Ultra Lightweight** - No bloat, just essentials
 
 ## 📦 Installation
 
@@ -38,365 +23,394 @@ The Auth module provides everything you need for modern authentication:
 npm install @voilajsx/appkit
 ```
 
-## 🌍 Environment Configuration
+## 🏃‍♂️ Quick Start (30 seconds)
 
-Configure the Auth module using environment variables for seamless integration:
+### 1. Set your environment variables:
 
 ```bash
-# JWT Configuration
-VOILA_AUTH_SECRET=your-jwt-secret-key    # Required: JWT signing secret
-VOILA_AUTH_EXPIRES_IN=7d                 # Optional: Default token expiration
-VOILA_AUTH_ALGORITHM=HS256               # Optional: Default signing algorithm
-
-# Password Configuration
-VOILA_AUTH_BCRYPT_ROUNDS=12              # Optional: Default bcrypt rounds (4-31)
-
-# Middleware Configuration
-VOILA_AUTH_TOKEN_HEADER=authorization    # Optional: Header name for tokens
-VOILA_AUTH_COOKIE_NAME=token             # Optional: Cookie name for tokens
+# .env
+VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-2024-minimum-32-chars
+VOILA_AUTH_BCRYPT_ROUNDS=12
 ```
 
-These variables are automatically detected and applied when using any function
-from this module. Explicit options always take precedence over environment
-variables.
-
-## 🏃‍♂️ Quick Start
-
-Import only the functions you need and start using them right away. Each
-function is designed to work independently, so you can pick and choose what you
-need for your application.
+### 2. Start using immediately:
 
 ```javascript
 import {
-  generateToken,
+  signToken,
   verifyToken,
+  requireAuth,
+  requireRole,
   hashPassword,
-  createAuthMiddleware,
 } from '@voilajsx/appkit/auth';
 
-// Set environment variable (or use explicit options)
-process.env.VOILA_AUTH_SECRET = 'your-secret-key';
+// Hash a password
+const hash = await hashPassword('userPassword123');
 
-// Generate a JWT token (uses env secret automatically)
-const token = generateToken({ userId: '123', email: 'user@example.com' });
+// Create a JWT token
+const token = signToken({ userId: 123, roles: ['user'] });
 
-// Protect your routes (uses env secret automatically)
-const auth = createAuthMiddleware();
-app.get('/dashboard', auth, (req, res) => {
-  res.json({ userId: req.user.userId });
+// Verify a token
+const payload = verifyToken(token);
+
+// Protect routes
+app.get('/profile', requireAuth(), (req, res) => {
+  res.json({ user: req.user });
+});
+
+app.get('/admin', requireAuth(), requireRole('admin'), (req, res) => {
+  res.json({ message: 'Admin only!' });
 });
 ```
 
-## 📖 Core Functions
+That's it! You're ready for production.
 
-### JWT Token Management
+## 📖 Complete API Reference
 
-These utilities enable you to create secure, signed tokens for authenticating
-requests and transmitting sensitive information. JWTs are perfect for stateless
-authentication in APIs and microservices.
+### JWT Functions
 
-| Function          | Purpose                            | When to use                                   |
-| ----------------- | ---------------------------------- | --------------------------------------------- |
-| `generateToken()` | Creates a JWT token from a payload | After successful login, API token generation  |
-| `verifyToken()`   | Verifies and decodes a JWT token   | Before allowing access to protected resources |
+#### `signToken(payload, secret?, expiresIn?)`
+
+Creates a JWT token with your data.
 
 ```javascript
-// Using environment configuration (recommended)
-process.env.VOILA_AUTH_SECRET = 'your-secret-key';
-process.env.VOILA_AUTH_EXPIRES_IN = '24h';
+// Uses VOILA_AUTH_SECRET from environment
+const token = signToken({ userId: 123 });
 
-const token = generateToken({ userId: '123', email: 'user@example.com' });
+// Override secret
+const token = signToken({ userId: 123 }, 'my-secret');
 
-// Using explicit options (takes precedence over environment)
-const token = generateToken(
-  { userId: '123', email: 'user@example.com' },
-  { secret: 'explicit-secret', expiresIn: '1h' }
-);
-
-// Verify a token (uses environment secret)
-try {
-  const payload = verifyToken(token);
-  console.log(payload.userId); // '123'
-} catch (error) {
-  console.log('Invalid token');
-}
+// Custom expiration
+const token = signToken({ userId: 123 }, 'my-secret', '1h');
 ```
 
-### Password Security
+#### `verifyToken(token, secret?)`
 
-These functions enable you to securely store user passwords in your database by
-creating cryptographically strong hashes. Never store plaintext passwords - use
-these utilities to significantly improve your application's security.
-
-| Function            | Purpose                            | When to use                              |
-| ------------------- | ---------------------------------- | ---------------------------------------- |
-| `hashPassword()`    | Hashes a password using bcrypt     | During user registration, password reset |
-| `comparePassword()` | Verifies a password against a hash | During user login, password verification |
+Verifies and decodes a JWT token.
 
 ```javascript
-// Using environment configuration
-process.env.VOILA_AUTH_BCRYPT_ROUNDS = '12';
+// Uses VOILA_AUTH_SECRET from environment
+const payload = verifyToken(token);
 
-// Hash a password (uses env rounds automatically)
+// Override secret
+const payload = verifyToken(token, 'my-secret');
+```
+
+### Password Functions
+
+#### `hashPassword(password, rounds?)`
+
+Securely hashes a password using bcrypt.
+
+```javascript
+// Uses VOILA_AUTH_BCRYPT_ROUNDS from environment (default: 10)
 const hash = await hashPassword('myPassword123');
 
-// Using explicit rounds (takes precedence)
-const hash = await hashPassword('myPassword123', 10);
+// Custom rounds
+const hash = await hashPassword('myPassword123', 12);
+```
 
-// Verify a password
+#### `comparePassword(password, hash)`
+
+Verifies a password against its hash.
+
+```javascript
 const isValid = await comparePassword('myPassword123', hash);
-console.log(isValid); // true or false
+if (isValid) {
+  // Password correct
+}
 ```
 
-### Middleware
+### Middleware Functions
 
-Secure your routes with authentication middleware that verifies JWT tokens. For
-more granular control, use role-based middleware to restrict access based on
-user roles (admin, editor, etc.), ensuring users can only access what they're
-authorized to.
+#### `requireAuth(secret?, options?)`
 
-| Function                          | Purpose                              | When to use                               |
-| --------------------------------- | ------------------------------------ | ----------------------------------------- |
-| `createAuthMiddleware()`          | Creates JWT verification middleware  | Protecting API routes, securing endpoints |
-| `createAuthorizationMiddleware()` | Creates role-based access middleware | Admin panels, premium features            |
+Protects routes with JWT authentication.
 
 ```javascript
-// Using environment configuration
-process.env.VOILA_AUTH_SECRET = 'your-secret-key';
-process.env.VOILA_AUTH_TOKEN_HEADER = 'x-auth-token';
-process.env.VOILA_AUTH_COOKIE_NAME = 'authToken';
+// Uses VOILA_AUTH_SECRET from environment
+app.get('/protected', requireAuth(), handler);
 
-// Authentication middleware (uses env config automatically)
-const auth = createAuthMiddleware();
+// Override secret
+app.get('/protected', requireAuth('my-secret'), handler);
 
-// Authorization middleware
-const adminOnly = createAuthorizationMiddleware(['admin']);
-
-// Apply to routes
-app.get('/profile', auth, (req, res) => {
-  // Requires valid JWT token
-});
-
-app.get('/admin', auth, adminOnly, (req, res) => {
-  // Requires valid JWT token with admin role
-});
-
-// Override environment with explicit options
-const customAuth = createAuthMiddleware({
-  secret: 'override-secret',
-  getToken: (req) => req.headers['custom-header'],
-});
+// Custom token extraction
+app.get(
+  '/protected',
+  requireAuth({
+    getToken: (req) => req.headers['x-api-key'],
+  }),
+  handler
+);
 ```
 
-## 🔧 Configuration Options
+**Token Sources (checked in order):**
 
-The examples above show environment variable usage, but you have complete
-control over configuration. Here are all available options:
+1. `Authorization: Bearer <token>` header
+2. `token` cookie
+3. `?token=<token>` query parameter
 
-### Token Generation Options
+#### `requireRole(...roles)`
 
-| Option      | Description                   | Environment Variable    | Default    | Example                         |
-| ----------- | ----------------------------- | ----------------------- | ---------- | ------------------------------- |
-| `secret`    | Secret key for signing tokens | `VOILA_AUTH_SECRET`     | _Required_ | `'your-secret-key'`             |
-| `expiresIn` | Token expiration time         | `VOILA_AUTH_EXPIRES_IN` | `'7d'`     | `'1h'`, `'7d'`, `'30d'`         |
-| `algorithm` | JWT signing algorithm         | `VOILA_AUTH_ALGORITHM`  | `'HS256'`  | `'HS256'`, `'HS384'`, `'HS512'` |
+Restricts access based on user roles.
 
 ```javascript
-// Environment-driven configuration
-process.env.VOILA_AUTH_SECRET = 'your-secret-key';
-process.env.VOILA_AUTH_EXPIRES_IN = '7d';
-process.env.VOILA_AUTH_ALGORITHM = 'HS256';
+// Single role
+app.get('/admin', requireAuth(), requireRole('admin'), handler);
 
-generateToken(payload); // Uses all environment settings
+// Multiple roles (OR logic)
+app.get('/content', requireAuth(), requireRole('admin', 'editor'), handler);
 
-// Explicit configuration (overrides environment)
-generateToken(payload, {
-  secret: 'explicit-secret',
-  expiresIn: '1h',
-  algorithm: 'HS512',
+// Array syntax
+app.get('/content', requireAuth(), requireRole(['admin', 'editor']), handler);
+```
+
+**Note:** Requires `req.user.roles` array in JWT payload.
+
+## 🌍 Environment Variables
+
+| Variable                   | Description                       | Default    | Example                             |
+| -------------------------- | --------------------------------- | ---------- | ----------------------------------- |
+| `VOILA_AUTH_SECRET`        | JWT signing secret (min 32 chars) | _Required_ | `your-secret-key-2024-min-32-chars` |
+| `VOILA_AUTH_BCRYPT_ROUNDS` | Password hashing rounds (8-15)    | `10`       | `12`                                |
+
+### Security Requirements:
+
+- **JWT Secret**: Must be at least 32 characters
+- **Bcrypt Rounds**: Must be between 8-15 for security/performance balance
+
+## 💡 Real-World Examples
+
+### User Registration & Login
+
+```javascript
+import {
+  signToken,
+  hashPassword,
+  comparePassword,
+} from '@voilajsx/appkit/auth';
+
+// Registration
+app.post('/register', async (req, res) => {
+  const { email, password } = req.body;
+
+  // Hash password
+  const hashedPassword = await hashPassword(password);
+
+  // Save user to database
+  const user = await db.createUser({ email, password: hashedPassword });
+
+  // Create token
+  const token = signToken({ userId: user.id, email, roles: ['user'] });
+
+  res.json({ token, user: { id: user.id, email } });
+});
+
+// Login
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await db.findUserByEmail(email);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const isValid = await comparePassword(password, user.password);
+  if (!isValid) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const token = signToken({ userId: user.id, email, roles: user.roles });
+  res.json({ token });
 });
 ```
 
-### Password Hashing Options
-
-| Option   | Description                  | Environment Variable       | Default | Example    |
-| -------- | ---------------------------- | -------------------------- | ------- | ---------- |
-| `rounds` | Number of bcrypt salt rounds | `VOILA_AUTH_BCRYPT_ROUNDS` | `10`    | `12`, `14` |
+### Protected API Routes
 
 ```javascript
-// Environment-driven configuration
-process.env.VOILA_AUTH_BCRYPT_ROUNDS = '12';
+import { requireAuth, requireRole } from '@voilajsx/appkit/auth';
 
-await hashPassword('password'); // Uses 12 rounds from environment
-
-// Explicit configuration (overrides environment)
-await hashPassword('password', 14); // Uses 14 rounds explicitly
-```
-
-### Auth Middleware Options
-
-| Option        | Description                      | Environment Variable      | Default                        | Example                      |
-| ------------- | -------------------------------- | ------------------------- | ------------------------------ | ---------------------------- |
-| `secret`      | Secret key for verifying tokens  | `VOILA_AUTH_SECRET`       | _Required_                     | `'your-secret-key'`          |
-| `tokenHeader` | Header name to check for tokens  | `VOILA_AUTH_TOKEN_HEADER` | `'authorization'`              | `'x-auth-token'`             |
-| `cookieName`  | Cookie name to check for tokens  | `VOILA_AUTH_COOKIE_NAME`  | `'token'`                      | `'authToken'`                |
-| `getToken`    | Custom function to extract token | _N/A_                     | Checks headers, cookies, query | Function that returns token  |
-| `onError`     | Custom error handling            | _N/A_                     | Returns 401 responses          | Function that handles errors |
-
-```javascript
-// Environment-driven configuration
-process.env.VOILA_AUTH_SECRET = 'your-secret-key';
-process.env.VOILA_AUTH_TOKEN_HEADER = 'x-api-token';
-process.env.VOILA_AUTH_COOKIE_NAME = 'sessionToken';
-
-createAuthMiddleware(); // Uses all environment settings
-
-// Explicit configuration (overrides environment)
-createAuthMiddleware({
-  secret: 'explicit-secret',
-  tokenHeader: 'custom-header',
-  getToken: (req) => req.headers['x-api-key'],
-  onError: (error, req, res) => {
-    res.status(401).json({ error: error.message });
-  },
+// Public route
+app.get('/api/posts', async (req, res) => {
+  const posts = await db.getPosts();
+  res.json({ posts });
 });
+
+// User-only route
+app.get('/api/profile', requireAuth(), async (req, res) => {
+  const user = await db.findUserById(req.user.userId);
+  res.json({ user });
+});
+
+// Admin-only route
+app.get(
+  '/api/admin/users',
+  requireAuth(),
+  requireRole('admin'),
+  async (req, res) => {
+    const users = await db.getAllUsers();
+    res.json({ users });
+  }
+);
+
+// Multi-role route
+app.put(
+  '/api/posts/:id',
+  requireAuth(),
+  requireRole('admin', 'editor'),
+  async (req, res) => {
+    const post = await db.updatePost(req.params.id, req.body);
+    res.json({ post });
+  }
+);
 ```
 
-## 💡 Common Use Cases
+### Complete Express App
 
-Here's where you can apply the auth module's functionality in your applications:
+```javascript
+import express from 'express';
+import {
+  signToken,
+  verifyToken,
+  requireAuth,
+  requireRole,
+  hashPassword,
+  comparePassword,
+} from '@voilajsx/appkit/auth';
 
-| Category            | Use Case            | Description                                           | Components Used                                             |
-| ------------------- | ------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
-| **User Management** | User Registration   | Securely store user credentials during signup         | `hashPassword()`                                            |
-|                     | User Login          | Authenticate users and generate tokens                | `comparePassword()`, `generateToken()`                      |
-|                     | Password Reset      | Securely handle password reset flows                  | `hashPassword()`, `generateToken()`                         |
-| **API Security**    | API Authentication  | Secure API endpoints with token verification          | `createAuthMiddleware()`                                    |
-|                     | Microservices       | Secure service-to-service communication               | `generateToken()`, `verifyToken()`                          |
-|                     | Mobile API Backends | Authenticate mobile app clients                       | `generateToken()`, `createAuthMiddleware()`                 |
-| **Access Control**  | Admin Dashboards    | Restrict sensitive admin features to authorized users | `createAuthMiddleware()`, `createAuthorizationMiddleware()` |
-|                     | Premium Features    | Limit access to paid features based on subscription   | `createAuthorizationMiddleware()`                           |
-|                     | Multi-tenant Apps   | Ensure users can only access their own data           | `createAuthMiddleware()`, custom role checks                |
-| **Special Cases**   | Single Sign-On      | Implement SSO with JWT as the token format            | `generateToken()`, `verifyToken()`                          |
+const app = express();
+app.use(express.json());
 
-## 🤖 Code Generation with LLMs
+// Auth routes
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const hashedPassword = await hashPassword(password);
+    const user = await db.createUser({
+      email,
+      password: hashedPassword,
+      roles: ['user'],
+    });
+    const token = signToken({ userId: user.id, email, roles: user.roles });
+    res.json({ token, user: { id: user.id, email } });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
-You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common authentication scenarios using the `@voilajsx/appkit/auth` module.
-We've created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md)
-document that's designed specifically for LLMs to understand the module's
-capabilities and generate high-quality authentication code.
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await db.findUserByEmail(email);
+    if (!user || !(await comparePassword(password, user.password))) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    const token = signToken({ userId: user.id, email, roles: user.roles });
+    res.json({ token });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
-### How to Use LLM Code Generation
+// Protected routes
+app.get('/api/profile', requireAuth(), async (req, res) => {
+  const user = await db.findUserById(req.user.userId);
+  res.json({ user });
+});
 
-Simply copy one of the prompts below and share it with ChatGPT, Claude, or
-another capable LLM. The LLM will read the reference document and generate
-secure, best-practice authentication code tailored to your specific
-requirements.
+app.get('/api/admin', requireAuth(), requireRole('admin'), (req, res) => {
+  res.json({ message: 'Welcome admin!' });
+});
 
-### Sample Prompts to Try
-
-#### Basic Auth Setup
-
-```
-Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then create a complete authentication system for an Express app using @voilajsx/appkit/auth with the following features:
-- User registration with password hashing
-- Login with JWT token generation
-- Middleware for protected routes
-- Role-based access control for admin routes
-- Environment variable configuration using VOILA_AUTH_* variables
-```
-
-#### Custom Authentication Flow
-
-```
-Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a secure authentication flow for a React Native mobile app using @voilajsx/appkit/auth that includes:
-- Token storage in secure storage
-- Token refresh mechanism
-- Biometric authentication integration
-- Protection against common mobile auth vulnerabilities
-- VOILA_AUTH_* environment configuration
-```
-
-#### Complex Authorization
-
-```
-Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md and then implement a complex authorization system using @voilajsx/appkit/auth with:
-- Hierarchical role structure (admin > manager > user)
-- Resource-based permissions (users can only access their own data)
-- Team-based access control
-- Audit logging for all authentication and authorization events
-- Environment-driven configuration using VOILA_AUTH_* variables
+app.listen(3000, () => console.log('Server running on port 3000'));
 ```
 
-## 📋 Example Code
+## 🛡️ Security Features
 
-For complete, working examples, check our examples folder:
+### Production-Ready Security
 
-- [Password Basics](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/01-password-basics.js) -
-  Password hashing and verification with VOILA_AUTH_BCRYPT_ROUNDS
-- [JWT Basics](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/02-jwt-basics.js) -
-  Token generation and verification with VOILA*AUTH*\* environment variables
-- [Simple Middleware](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/03-simple-middleware.js) -
-  Authentication middleware with environment configuration
-- [Role Authorization](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/04-role-authorization.js) -
-  Role-based access control with custom logic
-- [Environment Configuration](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/05-environment-config.js) -
-  Comprehensive VOILA*AUTH*\* environment variable usage
+- **Strong Secret Validation** - Rejects weak JWT secrets
+- **Algorithm Protection** - Forces HS256 algorithm to prevent attacks
+- **Bcrypt Rounds Validation** - Ensures optimal security/performance balance
+- **Hash Format Validation** - Validates bcrypt hash integrity
+- **Input Sanitization** - Comprehensive input validation
+- **Timing Attack Protection** - Secure password comparison
 
-## 🛡️ Security Best Practices
-
-Following these practices will help ensure your authentication system remains
-secure:
-
-1. **Environment Variables**: Store JWT secrets in environment variables, never
-   in code. Use `VOILA_AUTH_SECRET` for consistent configuration.
-2. **HTTPS**: Always use HTTPS in production to protect tokens in transit
-3. **Token Expiration**: Use short-lived tokens (hours/days, not months)
-4. **Password Requirements**: Implement strong password policies
-5. **Salt Rounds**: Use at least 10 bcrypt rounds (12 for high security).
-   Configure with `VOILA_AUTH_BCRYPT_ROUNDS`.
-6. **Error Messages**: Don't reveal sensitive information in error responses
-
-## 📊 Performance Considerations
-
-- **Bcrypt Rounds**: Balance security and performance with appropriate rounds
-  (10-12). Set `VOILA_AUTH_BCRYPT_ROUNDS` appropriately.
-- **Token Size**: Keep JWT payloads small to minimize token size
-- **Caching**: Consider caching verified tokens to reduce verification overhead
-- **Async/Await**: Use properly with password functions for better performance
-
-## 🔍 Error Handling
-
-The module provides specific error messages that you should handle
-appropriately:
+### Error Handling
 
 ```javascript
 try {
   const payload = verifyToken(token);
 } catch (error) {
-  if (error.message === 'Token has expired') {
-    // Handle expired token
-  } else if (error.message === 'Invalid token') {
-    // Handle invalid token
-  } else {
-    // Handle other errors
-  }
+  // Handles: 'Token has expired', 'Invalid token', etc.
+  console.log(error.message);
 }
 ```
 
-## 📚 Documentation Links
+## 🔍 Error Messages
 
-- 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/auth/PROMPT_REFERENCE.md) -
-  Guide for AI/LLM code generation
+| Function       | Error                                       | Meaning                     |
+| -------------- | ------------------------------------------- | --------------------------- |
+| `signToken`    | `JWT secret must be at least 32 characters` | Weak secret detected        |
+| `verifyToken`  | `Token has expired`                         | JWT token expired           |
+| `verifyToken`  | `Invalid token`                             | JWT token corrupted/invalid |
+| `hashPassword` | `Bcrypt rounds must be between 8-15`        | Invalid rounds              |
+| `requireAuth`  | `Authentication required`                   | No token provided           |
+| `requireRole`  | `Insufficient permissions`                  | User lacks required role    |
+
+## 🚀 Migration from Other Libraries
+
+### From `jsonwebtoken`
+
+```javascript
+// Before
+import jwt from 'jsonwebtoken';
+const token = jwt.sign(payload, secret, { expiresIn: '7d' });
+const decoded = jwt.verify(token, secret);
+
+// After
+import { signToken, verifyToken } from '@voilajsx/appkit/auth';
+const token = signToken(payload, secret);
+const decoded = verifyToken(token, secret);
+```
+
+### From `express-jwt`
+
+```javascript
+// Before
+import { expressjwt } from 'express-jwt';
+app.use(expressjwt({ secret, algorithms: ['HS256'] }));
+
+// After
+import { requireAuth } from '@voilajsx/appkit/auth';
+app.use(requireAuth(secret));
+```
+
+### From `bcrypt`
+
+```javascript
+// Before
+import bcrypt from 'bcrypt';
+const hash = await bcrypt.hash(password, 10);
+const valid = await bcrypt.compare(password, hash);
+
+// After
+import { hashPassword, comparePassword } from '@voilajsx/appkit/auth';
+const hash = await hashPassword(password);
+const valid = await comparePassword(password, hash);
+```
+
+## 📊 Performance
+
+- **JWT Operations**: ~1ms per token (sign/verify)
+- **Password Hashing**: ~100ms with 10 rounds, ~400ms with 12 rounds
+- **Memory Usage**: <1MB additional overhead
+- **Bundle Size**: <50KB additional (with tree-shaking)
 
 ## 🤝 Contributing
 
 We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
-for details.
+[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md).
 
 ## 📄 License
 

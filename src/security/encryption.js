@@ -1,149 +1,201 @@
 /**
- * @voilajsx/appkit - Symmetric encryption utilities
+ * @voilajsx/appkit - Data encryption utilities
  * @module @voilajsx/appkit/security/encryption
+ * @file src/security/encryption.js
+ *
+ * Production-ready AES-256-GCM encryption with environment-first design.
  */
 
 import crypto from 'crypto';
 
-// Recommended algorithm and key length for strong symmetric encryption
+// AES-256-GCM configuration
 const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16; // 16 bytes for GCM IV (Initialization Vector)
-const TAG_LENGTH = 16; // 16 bytes for GCM Authentication Tag (in hex)
+const IV_LENGTH = 16; // 16 bytes for GCM IV
+const TAG_LENGTH = 16; // 16 bytes for GCM authentication tag
+const KEY_LENGTH = 32; // 32 bytes for AES-256
 
 /**
- * Generates a cryptographically secure random key suitable for AES-256 encryption.
- * The key is returned as a hexadecimal string.
- *
- * @param {number} [lengthBytes=32] - The length of the key in bytes. AES-256 requires 32 bytes (256 bits).
- * @returns {string} The generated key as a hexadecimal string.
+ * Creates security error with status code
+ * @private
+ * @param {string} message - Error message
+ * @param {number} statusCode - HTTP status code
+ * @returns {Error} Error with statusCode property
  */
-export function generateEncryptionKey(lengthBytes = 32) {
-  if (typeof lengthBytes !== 'number' || lengthBytes <= 0) {
-    throw new Error('Key length must be a positive number of bytes.');
-  }
-  return crypto.randomBytes(lengthBytes).toString('hex');
+function createSecurityError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
 }
 
 /**
- * Encrypts a plaintext string or Buffer using AES-256-GCM.
- * The output is a combined hexadecimal string of IV, ciphertext, and authentication tag,
- * separated by colons (:). This format allows for secure decryption.
- *
- * @param {string | Buffer} plaintext - The data to encrypt.
- * @param {string | Buffer} key - The encryption key. Must be 32 bytes (256 bits).
- * If a string, it's assumed to be a hex-encoded key.
- * @param {Buffer} [associatedData] - Optional Associated Data (AAD) that is authenticated but not encrypted.
- * @returns {string} The encrypted data as a combined hex string (IV:ciphertext:tag).
- * @throws {Error} If key is invalid or encryption fails.
+ * Validates encryption key format and length
+ * @private
+ * @param {string|Buffer} key - Encryption key to validate
+ * @throws {Error} If key is invalid
  */
-export function encrypt(plaintext, key, associatedData = null) {
-  if (!plaintext) {
-    throw new Error('Plaintext cannot be empty.');
+function validateKey(key) {
+  if (!key) {
+    throw createSecurityError('Encryption key is required', 500);
   }
-  if (
-    !key ||
-    (typeof key === 'string' && key.length !== 64) ||
-    (Buffer.isBuffer(key) && key.length !== 32)
-  ) {
-    throw new Error(
-      `Invalid key length. Key must be 32 bytes (64 hex characters). Got ${typeof key === 'string' ? key.length / 2 : key.length} bytes.`
+
+  const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'hex') : key;
+
+  if (keyBuffer.length !== KEY_LENGTH) {
+    throw createSecurityError(
+      `Invalid key length. Expected ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex chars), got ${keyBuffer.length} bytes`,
+      500
+    );
+  }
+}
+
+/**
+ * Generates a secure encryption key for production use
+ * @returns {string} 32-byte encryption key as hex string
+ */
+export function generateKey() {
+  try {
+    return crypto.randomBytes(KEY_LENGTH).toString('hex');
+  } catch (error) {
+    throw createSecurityError(`Key generation failed: ${error.message}`, 500);
+  }
+}
+
+/**
+ * Encrypts sensitive data with environment-first key management
+ * @param {string|Buffer} data - Data to encrypt
+ * @param {string|Buffer} [key] - Encryption key (uses VOILA_ENCRYPTION_KEY env var)
+ * @param {Buffer} [associatedData] - Optional Associated Data (AAD) for additional security
+ * @returns {string} Encrypted data as "IV:ciphertext:authTag" hex string
+ */
+export function encryptData(data, key, associatedData = null) {
+  if (!data) {
+    throw createSecurityError('Data to encrypt cannot be empty');
+  }
+
+  // Environment → Argument → Error pattern
+  const encryptionKey = key || process.env.VOILA_ENCRYPTION_KEY;
+
+  if (!encryptionKey) {
+    throw createSecurityError(
+      'Encryption key required. Provide as argument or set VOILA_ENCRYPTION_KEY environment variable',
+      500
     );
   }
 
-  const encryptionKey = typeof key === 'string' ? Buffer.from(key, 'hex') : key;
-  const iv = crypto.randomBytes(IV_LENGTH); // Generate a unique IV for each encryption
+  // Validate key
+  validateKey(encryptionKey);
+
+  const keyBuffer =
+    typeof encryptionKey === 'string'
+      ? Buffer.from(encryptionKey, 'hex')
+      : encryptionKey;
 
   try {
-    const cipher = crypto.createCipheriv(ALGORITHM, encryptionKey, iv);
+    // Generate random IV for each encryption
+    const iv = crypto.randomBytes(IV_LENGTH);
 
+    // Create cipher
+    const cipher = crypto.createCipheriv(ALGORITHM, keyBuffer, iv);
+
+    // Set AAD if provided
     if (associatedData) {
       if (!Buffer.isBuffer(associatedData)) {
-        throw new Error('Associated data must be a Buffer.');
+        throw createSecurityError('Associated data must be a Buffer');
       }
       cipher.setAAD(associatedData);
     }
 
-    let encrypted = cipher.update(
-      plaintext instanceof Buffer ? plaintext : Buffer.from(plaintext, 'utf8')
-    );
+    // Encrypt data
+    const dataBuffer = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf8');
+    let encrypted = cipher.update(dataBuffer);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
 
-    const authTag = cipher.getAuthTag(); // Get the authentication tag
+    // Get authentication tag
+    const authTag = cipher.getAuthTag();
 
-    // Combine IV, ciphertext, and auth tag into a single string, separated by colons
+    // Combine IV, ciphertext, and auth tag
     return `${iv.toString('hex')}:${encrypted.toString('hex')}:${authTag.toString('hex')}`;
   } catch (error) {
-    throw new Error(`Encryption failed: ${error.message}`);
+    throw createSecurityError(`Encryption failed: ${error.message}`, 500);
   }
 }
 
 /**
- * Decrypts data previously encrypted with AES-256-GCM.
- * It expects the input to be a combined hexadecimal string (IV:ciphertext:tag).
- *
- * @param {string} encryptedData - The encrypted data string (IV:ciphertext:tag).
- * @param {string | Buffer} key - The decryption key. Must be 32 bytes (256 bits).
- * If a string, it's assumed to be a hex-encoded key.
- * @param {Buffer} [associatedData] - Optional Associated Data (AAD) used during encryption. Must match exactly.
- * @returns {string} The decrypted plaintext as a UTF-8 string.
- * @throws {Error} If key is invalid, data format is incorrect, or decryption/authentication fails.
+ * Decrypts previously encrypted data with validation
+ * @param {string} encryptedData - Encrypted data string in "IV:ciphertext:authTag" format
+ * @param {string|Buffer} [key] - Decryption key (uses VOILA_ENCRYPTION_KEY env var)
+ * @param {Buffer} [associatedData] - Optional Associated Data (AAD) used during encryption
+ * @returns {string} Original plaintext data
  */
-export function decrypt(encryptedData, key, associatedData = null) {
-  if (typeof encryptedData !== 'string' || !encryptedData) {
-    throw new Error('Encrypted data must be a non-empty string.');
+export function decryptData(encryptedData, key, associatedData = null) {
+  if (!encryptedData || typeof encryptedData !== 'string') {
+    throw createSecurityError('Encrypted data must be a non-empty string');
   }
-  if (
-    !key ||
-    (typeof key === 'string' && key.length !== 64) ||
-    (Buffer.isBuffer(key) && key.length !== 32)
-  ) {
-    throw new Error(
-      `Invalid key length. Key must be 32 bytes (64 hex characters). Got ${typeof key === 'string' ? key.length / 2 : key.length} bytes.`
+
+  // Environment → Argument → Error pattern
+  const decryptionKey = key || process.env.VOILA_ENCRYPTION_KEY;
+
+  if (!decryptionKey) {
+    throw createSecurityError(
+      'Decryption key required. Provide as argument or set VOILA_ENCRYPTION_KEY environment variable',
+      500
     );
   }
 
-  const decryptionKey = typeof key === 'string' ? Buffer.from(key, 'hex') : key;
+  // Validate key
+  validateKey(decryptionKey);
+
+  const keyBuffer =
+    typeof decryptionKey === 'string'
+      ? Buffer.from(decryptionKey, 'hex')
+      : decryptionKey;
+
+  // Parse encrypted data format
   const parts = encryptedData.split(':');
-
   if (parts.length !== 3) {
-    throw new Error(
-      'Invalid encrypted data format. Expected IV:ciphertext:tag.'
-    );
-  }
-
-  const iv = Buffer.from(parts[0], 'hex');
-  const encrypted = Buffer.from(parts[1], 'hex');
-  const authTag = Buffer.from(parts[2], 'hex');
-
-  if (iv.length !== IV_LENGTH || authTag.length !== TAG_LENGTH) {
-    throw new Error(
-      'Invalid IV or Authentication Tag length in encrypted data.'
+    throw createSecurityError(
+      'Invalid encrypted data format. Expected IV:ciphertext:authTag'
     );
   }
 
   try {
-    const decipher = crypto.createDecipheriv(ALGORITHM, decryptionKey, iv);
+    const iv = Buffer.from(parts[0], 'hex');
+    const encrypted = Buffer.from(parts[1], 'hex');
+    const authTag = Buffer.from(parts[2], 'hex');
 
+    // Validate component lengths
+    if (iv.length !== IV_LENGTH || authTag.length !== TAG_LENGTH) {
+      throw createSecurityError('Invalid IV or authentication tag length');
+    }
+
+    // Create decipher
+    const decipher = crypto.createDecipheriv(ALGORITHM, keyBuffer, iv);
+
+    // Set AAD if provided
     if (associatedData) {
       if (!Buffer.isBuffer(associatedData)) {
-        throw new Error('Associated data must be a Buffer.');
+        throw createSecurityError('Associated data must be a Buffer');
       }
       decipher.setAAD(associatedData);
     }
 
-    decipher.setAuthTag(authTag); // Set the authentication tag BEFORE decryption
+    // Set authentication tag
+    decipher.setAuthTag(authTag);
 
+    // Decrypt data
     let decrypted = decipher.update(encrypted);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
 
     return decrypted.toString('utf8');
   } catch (error) {
-    // If the authentication tag is invalid or data is tampered, an 'EBADTAG' error is thrown.
+    // Handle authentication failures specifically
     if (error.code === 'EBADTAG') {
-      throw new Error(
-        'Authentication failed: Data may be tampered or key/AAD incorrect.'
+      throw createSecurityError(
+        'Authentication failed: Data may be tampered with or incorrect key/AAD provided',
+        401
       );
     }
-    throw new Error(`Decryption failed: ${error.message}`);
+
+    throw createSecurityError(`Decryption failed: ${error.message}`, 500);
   }
 }

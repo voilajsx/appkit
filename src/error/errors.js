@@ -1,105 +1,84 @@
 /**
- * @voilajsx/appkit - Simple error utilities
+ * @voilajsx/appkit - Error creation functions
  * @module @voilajsx/appkit/error/errors
  * @file src/error/errors.js
+ *
+ * Production-ready error creation with semantic HTTP status codes.
  */
 
 /**
- * Simple error types
+ * Creates a 400 Bad Request error
+ * @param {string} [message='Bad Request'] - Error message
+ * @returns {Error} Error with statusCode 400
  */
-export const ErrorTypes = {
-  VALIDATION: 'VALIDATION_ERROR',
-  NOT_FOUND: 'NOT_FOUND',
-  AUTH: 'AUTH_ERROR',
-  SERVER: 'SERVER_ERROR',
-};
-
-/**
- * Custom application error class
- * @extends Error
- */
-export class AppError extends Error {
-  /**
-   * Creates an application error
-   * @param {string} type - Error type from ErrorTypes
-   * @param {string} message - Error message
-   * @param {Object} [details] - Additional error details
-   */
-  constructor(type, message, details = null) {
-    super(message);
-
-    this.name = 'AppError';
-    this.type = type;
-    this.message = message;
-    this.details = details;
-    this.statusCode = this.getStatusCode(type);
-
-    // Capture stack trace
-    Error.captureStackTrace(this, this.constructor);
-  }
-
-  /**
-   * Gets HTTP status code for error type
-   * @param {string} type - Error type
-   * @returns {number} HTTP status code
-   */
-  getStatusCode(type) {
-    const statusCodes = {
-      [ErrorTypes.VALIDATION]: 400,
-      [ErrorTypes.NOT_FOUND]: 404,
-      [ErrorTypes.AUTH]: 401,
-      [ErrorTypes.SERVER]: 500,
-    };
-    return statusCodes[type] || 500;
-  }
-
-  /**
-   * Converts error to JSON-serializable object
-   * @returns {Object} Error object
-   */
-  toJSON() {
-    return {
-      type: this.type,
-      message: this.message,
-      details: this.details,
-    };
-  }
+export function badRequest(message = 'Bad Request') {
+  const error = new Error(message);
+  error.statusCode = 400;
+  error.type = 'BAD_REQUEST';
+  return error;
 }
 
 /**
- * Creates a validation error
- * @param {string} message - Error message
- * @param {Object} [details] - Validation details
- * @returns {AppError} Validation error instance
+ * Creates a 401 Unauthorized error
+ * @param {string} [message] - Error message (uses VOILA_AUTH_MESSAGE env var if not provided)
+ * @returns {Error} Error with statusCode 401
  */
-export function validationError(message, details = null) {
-  return new AppError(ErrorTypes.VALIDATION, message, details);
+export function unauthorized(message) {
+  const defaultMessage =
+    process.env.VOILA_AUTH_MESSAGE || 'Authentication required';
+  const error = new Error(message || defaultMessage);
+  error.statusCode = 401;
+  error.type = 'UNAUTHORIZED';
+  return error;
 }
 
 /**
- * Creates a not found error
+ * Creates a 403 Forbidden error
+ * @param {string} [message='Access denied'] - Error message
+ * @returns {Error} Error with statusCode 403
+ */
+export function forbidden(message = 'Access denied') {
+  const error = new Error(message);
+  error.statusCode = 403;
+  error.type = 'FORBIDDEN';
+  return error;
+}
+
+/**
+ * Creates a 404 Not Found error
  * @param {string} [message='Not found'] - Error message
- * @returns {AppError} Not found error instance
+ * @returns {Error} Error with statusCode 404
  */
-export function notFoundError(message = 'Not found') {
-  return new AppError(ErrorTypes.NOT_FOUND, message);
+export function notFound(message = 'Not found') {
+  const error = new Error(message);
+  error.statusCode = 404;
+  error.type = 'NOT_FOUND';
+  return error;
 }
 
 /**
- * Creates an authentication error
- * @param {string} [message='Authentication failed'] - Error message
- * @returns {AppError} Authentication error instance
+ * Creates a 409 Conflict error
+ * @param {string} [message='Conflict'] - Error message
+ * @returns {Error} Error with statusCode 409
  */
-export function authError(message = 'Authentication failed') {
-  return new AppError(ErrorTypes.AUTH, message);
+export function conflict(message = 'Conflict') {
+  const error = new Error(message);
+  error.statusCode = 409;
+  error.type = 'CONFLICT';
+  return error;
 }
 
 /**
- * Creates a server error
- * @param {string} [message='Server error'] - Error message
- * @param {Object} [details] - Error details
- * @returns {AppError} Server error instance
+ * Creates a 500 Server Error
+ * @param {string} [message] - Error message (environment-aware defaults)
+ * @returns {Error} Error with statusCode 500
  */
-export function serverError(message = 'Server error', details = null) {
-  return new AppError(ErrorTypes.SERVER, message, details);
+export function serverError(message) {
+  const isDev = process.env.NODE_ENV === 'development';
+  const defaultMessage = isDev ? 'Internal server error' : 'Server error';
+
+  const error = new Error(message || defaultMessage);
+  error.statusCode = 500;
+  error.type = 'SERVER_ERROR';
+  return error;
 }

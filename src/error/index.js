@@ -1,18 +1,20 @@
 /**
- * @voilajsx/appkit - Error module
+ * @voilajsx/appkit - Production-ready error handling
  * @module @voilajsx/appkit/error
  * @file src/error/index.js
+ *
+ * Environment-first error handling with smart defaults for production APIs.
  */
 
-// Error classes and types
+// Error creation functions (6)
 export {
-  AppError,
-  ErrorTypes,
-  validationError,
-  notFoundError,
-  authError,
+  badRequest,
+  unauthorized,
+  forbidden,
+  notFound,
+  conflict,
   serverError,
 } from './errors.js';
 
-// Error handling utilities
-export { errorHandler, asyncHandler, notFoundHandler } from './handlers.js';
+// Error handling middleware (2)
+export { handleErrors, asyncRoute } from './middleware.js';
