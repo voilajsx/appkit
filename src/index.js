@@ -20,8 +20,6 @@ export * as storage from './storage/index.js';
 export * as session from './session/index.js';
 export * as email from './email/index.js';
 export * as queue from './queue/index.js';
-export * as config from './config/index.js';
-export * as validation from './validation/index.js';
 export * as utils from './utils/index.js';
 
 /**
