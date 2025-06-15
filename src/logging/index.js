@@ -12,7 +12,7 @@ import { getSmartDefaults } from './defaults.js';
  * @param {string|object} [levelOrOptions] - Log level or options object
  * @returns {LoggerClass} Ready-to-use logger instance
  */
-export function logger(levelOrOptions) {
+function logger(levelOrOptions) {
   if (typeof levelOrOptions === 'string') {
     return new LoggerClass({
       level: levelOrOptions,
