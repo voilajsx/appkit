@@ -29,12 +29,36 @@ The Auth module provides everything you need for modern authentication:
 - **👥 Role-Based Access** - Control access based on user roles
 - **🎯 Framework Agnostic** - Works with Express, Fastify, Koa, and more
 - **⚡ Simple API** - Get started with just a few lines of code
+- **🌍 Environment Configuration** - Auto-detects VOILA*AUTH*\* environment
+  variables
 
 ## 📦 Installation
 
 ```bash
 npm install @voilajsx/appkit
 ```
+
+## 🌍 Environment Configuration
+
+Configure the Auth module using environment variables for seamless integration:
+
+```bash
+# JWT Configuration
+VOILA_AUTH_SECRET=your-jwt-secret-key    # Required: JWT signing secret
+VOILA_AUTH_EXPIRES_IN=7d                 # Optional: Default token expiration
+VOILA_AUTH_ALGORITHM=HS256               # Optional: Default signing algorithm
+
+# Password Configuration
+VOILA_AUTH_BCRYPT_ROUNDS=12              # Optional: Default bcrypt rounds (4-31)
+
+# Middleware Configuration
+VOILA_AUTH_TOKEN_HEADER=authorization    # Optional: Header name for tokens
+VOILA_AUTH_COOKIE_NAME=token             # Optional: Cookie name for tokens
+```
+
+These variables are automatically detected and applied when using any function
+from this module. Explicit options always take precedence over environment
+variables.
 
 ## 🏃‍♂️ Quick Start
 
@@ -50,14 +74,14 @@ import {
   createAuthMiddleware,
 } from '@voilajsx/appkit/auth';
 
-// Generate a JWT token
-const token = generateToken(
-  { userId: '123', email: 'user@example.com' },
-  { secret: 'your-secret-key' }
-);
+// Set environment variable (or use explicit options)
+process.env.VOILA_AUTH_SECRET = 'your-secret-key';
 
-// Protect your routes
-const auth = createAuthMiddleware({ secret: 'your-secret-key' });
+// Generate a JWT token (uses env secret automatically)
+const token = generateToken({ userId: '123', email: 'user@example.com' });
+
+// Protect your routes (uses env secret automatically)
+const auth = createAuthMiddleware();
 app.get('/dashboard', auth, (req, res) => {
   res.json({ userId: req.user.userId });
 });
@@ -77,15 +101,21 @@ authentication in APIs and microservices.
 | `verifyToken()`   | Verifies and decodes a JWT token   | Before allowing access to protected resources |
 
 ```javascript
-// Generate a token
+// Using environment configuration (recommended)
+process.env.VOILA_AUTH_SECRET = 'your-secret-key';
+process.env.VOILA_AUTH_EXPIRES_IN = '24h';
+
+const token = generateToken({ userId: '123', email: 'user@example.com' });
+
+// Using explicit options (takes precedence over environment)
 const token = generateToken(
   { userId: '123', email: 'user@example.com' },
-  { secret: 'your-secret-key', expiresIn: '24h' }
+  { secret: 'explicit-secret', expiresIn: '1h' }
 );
 
-// Verify a token
+// Verify a token (uses environment secret)
 try {
-  const payload = verifyToken(token, { secret: 'your-secret-key' });
+  const payload = verifyToken(token);
   console.log(payload.userId); // '123'
 } catch (error) {
   console.log('Invalid token');
@@ -104,8 +134,14 @@ these utilities to significantly improve your application's security.
 | `comparePassword()` | Verifies a password against a hash | During user login, password verification |
 
 ```javascript
-// Hash a password
+// Using environment configuration
+process.env.VOILA_AUTH_BCRYPT_ROUNDS = '12';
+
+// Hash a password (uses env rounds automatically)
 const hash = await hashPassword('myPassword123');
+
+// Using explicit rounds (takes precedence)
+const hash = await hashPassword('myPassword123', 10);
 
 // Verify a password
 const isValid = await comparePassword('myPassword123', hash);
@@ -125,8 +161,13 @@ authorized to.
 | `createAuthorizationMiddleware()` | Creates role-based access middleware | Admin panels, premium features            |
 
 ```javascript
-// Authentication middleware
-const auth = createAuthMiddleware({ secret: 'your-secret-key' });
+// Using environment configuration
+process.env.VOILA_AUTH_SECRET = 'your-secret-key';
+process.env.VOILA_AUTH_TOKEN_HEADER = 'x-auth-token';
+process.env.VOILA_AUTH_COOKIE_NAME = 'authToken';
+
+// Authentication middleware (uses env config automatically)
+const auth = createAuthMiddleware();
 
 // Authorization middleware
 const adminOnly = createAuthorizationMiddleware(['admin']);
@@ -139,40 +180,81 @@ app.get('/profile', auth, (req, res) => {
 app.get('/admin', auth, adminOnly, (req, res) => {
   // Requires valid JWT token with admin role
 });
+
+// Override environment with explicit options
+const customAuth = createAuthMiddleware({
+  secret: 'override-secret',
+  getToken: (req) => req.headers['custom-header'],
+});
 ```
 
 ## 🔧 Configuration Options
 
-The examples above show basic usage, but you have much more control over how
-these utilities work. Here are the customization options available:
+The examples above show environment variable usage, but you have complete
+control over configuration. Here are all available options:
 
 ### Token Generation Options
 
-| Option      | Description                   | Default    | Example                         |
-| ----------- | ----------------------------- | ---------- | ------------------------------- |
-| `secret`    | Secret key for signing tokens | _Required_ | `'your-secret-key'`             |
-| `expiresIn` | Token expiration time         | `'7d'`     | `'1h'`, `'7d'`, `'30d'`         |
-| `algorithm` | JWT signing algorithm         | `'HS256'`  | `'HS256'`, `'HS384'`, `'HS512'` |
+| Option      | Description                   | Environment Variable    | Default    | Example                         |
+| ----------- | ----------------------------- | ----------------------- | ---------- | ------------------------------- |
+| `secret`    | Secret key for signing tokens | `VOILA_AUTH_SECRET`     | _Required_ | `'your-secret-key'`             |
+| `expiresIn` | Token expiration time         | `VOILA_AUTH_EXPIRES_IN` | `'7d'`     | `'1h'`, `'7d'`, `'30d'`         |
+| `algorithm` | JWT signing algorithm         | `VOILA_AUTH_ALGORITHM`  | `'HS256'`  | `'HS256'`, `'HS384'`, `'HS512'` |
 
 ```javascript
+// Environment-driven configuration
+process.env.VOILA_AUTH_SECRET = 'your-secret-key';
+process.env.VOILA_AUTH_EXPIRES_IN = '7d';
+process.env.VOILA_AUTH_ALGORITHM = 'HS256';
+
+generateToken(payload); // Uses all environment settings
+
+// Explicit configuration (overrides environment)
 generateToken(payload, {
-  secret: 'your-secret-key',
-  expiresIn: '7d',
-  algorithm: 'HS256',
+  secret: 'explicit-secret',
+  expiresIn: '1h',
+  algorithm: 'HS512',
 });
+```
+
+### Password Hashing Options
+
+| Option   | Description                  | Environment Variable       | Default | Example    |
+| -------- | ---------------------------- | -------------------------- | ------- | ---------- |
+| `rounds` | Number of bcrypt salt rounds | `VOILA_AUTH_BCRYPT_ROUNDS` | `10`    | `12`, `14` |
+
+```javascript
+// Environment-driven configuration
+process.env.VOILA_AUTH_BCRYPT_ROUNDS = '12';
+
+await hashPassword('password'); // Uses 12 rounds from environment
+
+// Explicit configuration (overrides environment)
+await hashPassword('password', 14); // Uses 14 rounds explicitly
 ```
 
 ### Auth Middleware Options
 
-| Option     | Description                      | Default                        | Example                      |
-| ---------- | -------------------------------- | ------------------------------ | ---------------------------- |
-| `secret`   | Secret key for verifying tokens  | _Required_                     | `'your-secret-key'`          |
-| `getToken` | Custom function to extract token | Checks headers, cookies, query | Function that returns token  |
-| `onError`  | Custom error handling            | Returns 401 responses          | Function that handles errors |
+| Option        | Description                      | Environment Variable      | Default                        | Example                      |
+| ------------- | -------------------------------- | ------------------------- | ------------------------------ | ---------------------------- |
+| `secret`      | Secret key for verifying tokens  | `VOILA_AUTH_SECRET`       | _Required_                     | `'your-secret-key'`          |
+| `tokenHeader` | Header name to check for tokens  | `VOILA_AUTH_TOKEN_HEADER` | `'authorization'`              | `'x-auth-token'`             |
+| `cookieName`  | Cookie name to check for tokens  | `VOILA_AUTH_COOKIE_NAME`  | `'token'`                      | `'authToken'`                |
+| `getToken`    | Custom function to extract token | _N/A_                     | Checks headers, cookies, query | Function that returns token  |
+| `onError`     | Custom error handling            | _N/A_                     | Returns 401 responses          | Function that handles errors |
 
 ```javascript
+// Environment-driven configuration
+process.env.VOILA_AUTH_SECRET = 'your-secret-key';
+process.env.VOILA_AUTH_TOKEN_HEADER = 'x-api-token';
+process.env.VOILA_AUTH_COOKIE_NAME = 'sessionToken';
+
+createAuthMiddleware(); // Uses all environment settings
+
+// Explicit configuration (overrides environment)
 createAuthMiddleware({
-  secret: 'your-secret-key',
+  secret: 'explicit-secret',
+  tokenHeader: 'custom-header',
   getToken: (req) => req.headers['x-api-key'],
   onError: (error, req, res) => {
     res.status(401).json({ error: error.message });
@@ -223,6 +305,7 @@ Please read the API reference at https://github.com/voilajsx/appkit/blob/main/sr
 - Login with JWT token generation
 - Middleware for protected routes
 - Role-based access control for admin routes
+- Environment variable configuration using VOILA_AUTH_* variables
 ```
 
 #### Custom Authentication Flow
@@ -233,6 +316,7 @@ Please read the API reference at https://github.com/voilajsx/appkit/blob/main/sr
 - Token refresh mechanism
 - Biometric authentication integration
 - Protection against common mobile auth vulnerabilities
+- VOILA_AUTH_* environment configuration
 ```
 
 #### Complex Authorization
@@ -243,6 +327,7 @@ Please read the API reference at https://github.com/voilajsx/appkit/blob/main/sr
 - Resource-based permissions (users can only access their own data)
 - Team-based access control
 - Audit logging for all authentication and authorization events
+- Environment-driven configuration using VOILA_AUTH_* variables
 ```
 
 ## 📋 Example Code
@@ -250,31 +335,34 @@ Please read the API reference at https://github.com/voilajsx/appkit/blob/main/sr
 For complete, working examples, check our examples folder:
 
 - [Password Basics](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/01-password-basics.js) -
-  How to hash and verify passwords
+  Password hashing and verification with VOILA_AUTH_BCRYPT_ROUNDS
 - [JWT Basics](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/02-jwt-basics.js) -
-  Working with JWT tokens
+  Token generation and verification with VOILA*AUTH*\* environment variables
 - [Simple Middleware](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/03-simple-middleware.js) -
-  Protecting routes with middleware
-- [Complete Demo App](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/auth-demo-app) -
-  A fully functional authentication system
+  Authentication middleware with environment configuration
+- [Role Authorization](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/04-role-authorization.js) -
+  Role-based access control with custom logic
+- [Environment Configuration](https://github.com/voilajsx/appkit/blob/main/src/auth/examples/05-environment-config.js) -
+  Comprehensive VOILA*AUTH*\* environment variable usage
 
 ## 🛡️ Security Best Practices
 
 Following these practices will help ensure your authentication system remains
 secure:
 
-1. **Environment Variables**: Store JWT secrets in environment variables, not in
-   code
+1. **Environment Variables**: Store JWT secrets in environment variables, never
+   in code. Use `VOILA_AUTH_SECRET` for consistent configuration.
 2. **HTTPS**: Always use HTTPS in production to protect tokens in transit
 3. **Token Expiration**: Use short-lived tokens (hours/days, not months)
 4. **Password Requirements**: Implement strong password policies
-5. **Salt Rounds**: Use at least 10 bcrypt rounds (12 for high security)
+5. **Salt Rounds**: Use at least 10 bcrypt rounds (12 for high security).
+   Configure with `VOILA_AUTH_BCRYPT_ROUNDS`.
 6. **Error Messages**: Don't reveal sensitive information in error responses
 
 ## 📊 Performance Considerations
 
 - **Bcrypt Rounds**: Balance security and performance with appropriate rounds
-  (10-12)
+  (10-12). Set `VOILA_AUTH_BCRYPT_ROUNDS` appropriately.
 - **Token Size**: Keep JWT payloads small to minimize token size
 - **Caching**: Consider caching verified tokens to reduce verification overhead
 - **Async/Await**: Use properly with password functions for better performance
@@ -286,7 +374,7 @@ appropriately:
 
 ```javascript
 try {
-  const payload = verifyToken(token, { secret });
+  const payload = verifyToken(token);
 } catch (error) {
   if (error.message === 'Token has expired') {
     // Handle expired token
@@ -300,14 +388,8 @@ try {
 
 ## 📚 Documentation Links
 
-- 📘
-  [Developer REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/DEVELOPER_REFERENCE.md) -
-  Detailed implementation guide with examples
-- 📗
-  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/API_REFERENCE.md) -
-  Complete API documentation
 - 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/auth/docs/PROMPT_REFERENCE.md) -
+  [LLM Code Generation REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/auth/PROMPT_REFERENCE.md) -
   Guide for AI/LLM code generation
 
 ## 🤝 Contributing

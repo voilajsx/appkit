@@ -10,7 +10,29 @@
 import { verifyToken } from './jwt.js';
 
 /**
- * Creates authentication middleware.
+ * Reads middleware configuration from VOILA_AUTH_* environment variables
+ * @returns {Object} Environment configuration object
+ */
+function getConfigFromEnvironment() {
+  const envConfig = {};
+
+  if (process.env.VOILA_AUTH_SECRET) {
+    envConfig.secret = process.env.VOILA_AUTH_SECRET;
+  }
+
+  if (process.env.VOILA_AUTH_TOKEN_HEADER) {
+    envConfig.tokenHeader = process.env.VOILA_AUTH_TOKEN_HEADER;
+  }
+
+  if (process.env.VOILA_AUTH_COOKIE_NAME) {
+    envConfig.cookieName = process.env.VOILA_AUTH_COOKIE_NAME;
+  }
+
+  return envConfig;
+}
+
+/**
+ * Creates authentication middleware for JWT token verification
  *
  * @param {Object} options - Middleware options.
  * @param {Function} [options.getToken] - Function to extract token from request (default checks headers, cookies, query).
@@ -18,19 +40,29 @@ import { verifyToken } from './jwt.js';
  * @param {Function} [options.onError] - Custom error handler called on auth failure.
  * @returns {Function} Express middleware function.
  */
-export function createAuthMiddleware(options) {
-  if (!options?.secret) {
-    throw new Error('JWT secret is required');
+export function createAuthMiddleware(options = {}) {
+  // Merge environment config with provided options (options take precedence)
+  const envConfig = getConfigFromEnvironment();
+  const finalOptions = { ...envConfig, ...options };
+
+  if (!finalOptions.secret) {
+    console.error(
+      '❌ JWT Secret Missing: No secret provided via options.secret or VOILA_AUTH_SECRET environment variable'
+    );
+    throw new Error('JWT secret is required for authentication middleware');
   }
 
   // Default token extraction: Authorization header -> cookies -> query params
   const defaultGetToken = (req) => {
-    const authHeader = req.headers.authorization;
+    const headerName = finalOptions.tokenHeader || 'authorization';
+    const cookieName = finalOptions.cookieName || 'token';
+
+    const authHeader = req.headers[headerName.toLowerCase()];
     if (authHeader?.startsWith('Bearer ')) {
       return authHeader.slice(7);
     }
-    if (req.cookies?.token) {
-      return req.cookies.token;
+    if (req.cookies?.[cookieName]) {
+      return req.cookies[cookieName];
     }
     if (req.query?.token) {
       return req.query.token;
@@ -42,7 +74,7 @@ export function createAuthMiddleware(options) {
     getToken = defaultGetToken,
     secret,
     onError = defaultAuthErrorHandler,
-  } = options;
+  } = finalOptions;
 
   return async (req, res, next) => {
     try {
@@ -62,7 +94,7 @@ export function createAuthMiddleware(options) {
 }
 
 /**
- * Creates authorization middleware to restrict access based on user roles.
+ * Creates authorization middleware to restrict access based on user roles
  *
  * @param {string[]} allowedRoles - Array of roles allowed to access the route.
  * @param {Object} [options={}] - Middleware options.
@@ -105,7 +137,7 @@ export function createAuthorizationMiddleware(allowedRoles, options = {}) {
 }
 
 /**
- * Default error handler for authentication middleware.
+ * Default error handler for authentication middleware
  *
  * @private
  */
@@ -149,7 +181,7 @@ function defaultAuthErrorHandler(error, req, res) {
 }
 
 /**
- * Default function to extract roles from the request user object.
+ * Default function to extract roles from the request user object
  *
  * @private
  */

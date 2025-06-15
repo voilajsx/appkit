@@ -1,11 +1,11 @@
 /**
  * Integration tests for @voilajsx/appkit auth module
- * Tests complete authentication workflows
+ * Tests complete authentication workflows including environment variables
  *
  * @file src/auth/tests/integration.test.js
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import {
@@ -22,16 +22,33 @@ describe('Auth Module Integration', () => {
   const SECRET = 'integration-test-secret';
   const users = new Map();
 
+  // Store original environment variables
+  let originalEnv;
+
   beforeEach(() => {
+    originalEnv = { ...process.env };
+
+    // Set up environment variables for integration tests
+    process.env.VOILA_AUTH_SECRET = SECRET;
+    process.env.VOILA_AUTH_EXPIRES_IN = '1h';
+    process.env.VOILA_AUTH_BCRYPT_ROUNDS = '10';
+    process.env.VOILA_AUTH_TOKEN_HEADER = 'authorization';
+    process.env.VOILA_AUTH_COOKIE_NAME = 'token';
+
     app = express();
     app.use(express.json());
     users.clear();
   });
 
-  describe('Complete Authentication Flow', () => {
+  afterEach(() => {
+    // Restore original environment variables
+    process.env = originalEnv;
+  });
+
+  describe('Complete Authentication Flow with Environment Variables', () => {
     beforeEach(() => {
-      // Auth middleware
-      const auth = createAuthMiddleware({ secret: SECRET });
+      // Auth middleware using environment configuration
+      const auth = createAuthMiddleware(); // Uses VOILA_AUTH_SECRET automatically
 
       // Registration endpoint
       app.post('/auth/register', async (req, res) => {
@@ -42,6 +59,7 @@ describe('Auth Module Integration', () => {
             return res.status(400).json({ error: 'User already exists' });
           }
 
+          // Uses VOILA_AUTH_BCRYPT_ROUNDS automatically
           const hashedPassword = await hashPassword(password);
           const user = {
             id: Date.now().toString(),
@@ -53,10 +71,12 @@ describe('Auth Module Integration', () => {
 
           users.set(email, user);
 
-          const token = generateToken(
-            { userId: user.id, email, roles: user.roles },
-            { secret: SECRET }
-          );
+          // Uses VOILA_AUTH_SECRET and VOILA_AUTH_EXPIRES_IN automatically
+          const token = generateToken({
+            userId: user.id,
+            email,
+            roles: user.roles,
+          });
 
           res.status(201).json({ token, user: { id: user.id, email, name } });
         } catch (error) {
@@ -79,10 +99,12 @@ describe('Auth Module Integration', () => {
             return res.status(401).json({ error: 'Invalid credentials' });
           }
 
-          const token = generateToken(
-            { userId: user.id, email, roles: user.roles },
-            { secret: SECRET }
-          );
+          // Uses environment configuration automatically
+          const token = generateToken({
+            userId: user.id,
+            email,
+            roles: user.roles,
+          });
 
           res.json({ token, user: { id: user.id, email, name: user.name } });
         } catch (error) {
@@ -90,7 +112,7 @@ describe('Auth Module Integration', () => {
         }
       });
 
-      // Protected endpoint
+      // Protected endpoint using environment-configured middleware
       app.get('/api/profile', auth, (req, res) => {
         const user = Array.from(users.values()).find(
           (u) => u.id === req.user.userId
@@ -99,7 +121,7 @@ describe('Auth Module Integration', () => {
       });
     });
 
-    it('should handle complete user registration and login flow', async () => {
+    it('should handle complete user registration and login flow with environment config', async () => {
       // 1. Register a new user
       const registerRes = await request(app).post('/auth/register').send({
         email: 'test@example.com',
@@ -110,6 +132,11 @@ describe('Auth Module Integration', () => {
       expect(registerRes.status).toBe(201);
       expect(registerRes.body.token).toBeDefined();
       expect(registerRes.body.user.email).toBe('test@example.com');
+
+      // Verify token was created with environment configuration
+      const payload = verifyToken(registerRes.body.token); // Uses env secret
+      expect(payload.userId).toBeDefined();
+      expect(payload.email).toBe('test@example.com');
 
       // 2. Login with the same credentials
       const loginRes = await request(app).post('/auth/login').send({
@@ -127,6 +154,38 @@ describe('Auth Module Integration', () => {
 
       expect(profileRes.status).toBe(200);
       expect(profileRes.body.user.email).toBe('test@example.com');
+    });
+
+    it('should work with custom environment headers', async () => {
+      // Change environment header configuration
+      process.env.VOILA_AUTH_TOKEN_HEADER = 'x-auth-token';
+
+      // Create new middleware with updated environment
+      const customAuth = createAuthMiddleware();
+
+      app.get('/api/custom-auth', customAuth, (req, res) => {
+        res.json({ success: true, userId: req.user.userId });
+      });
+
+      // Register and login to get a token
+      await request(app).post('/auth/register').send({
+        email: 'custom@example.com',
+        password: 'Password123!',
+        name: 'Custom User',
+      });
+
+      const loginRes = await request(app).post('/auth/login').send({
+        email: 'custom@example.com',
+        password: 'Password123!',
+      });
+
+      // Test with custom header
+      const customRes = await request(app)
+        .get('/api/custom-auth')
+        .set('x-auth-token', `Bearer ${loginRes.body.token}`);
+
+      expect(customRes.status).toBe(200);
+      expect(customRes.body.success).toBe(true);
     });
 
     it('should prevent duplicate registration', async () => {
@@ -190,13 +249,13 @@ describe('Auth Module Integration', () => {
     });
   });
 
-  describe('Role-Based Access Control', () => {
+  describe('Role-Based Access Control with Environment Variables', () => {
     beforeEach(() => {
-      const auth = createAuthMiddleware({ secret: SECRET });
+      const auth = createAuthMiddleware(); // Uses environment configuration
       const adminOnly = createAuthorizationMiddleware(['admin']);
       const userAccess = createAuthorizationMiddleware(['user', 'admin']);
 
-      // Create test users
+      // Create test users with different roles
       const adminUser = {
         id: '1',
         email: 'admin@example.com',
@@ -231,16 +290,18 @@ describe('Auth Module Integration', () => {
           return res.status(401).json({ error: 'User not found' });
         }
 
-        const token = generateToken(
-          { userId: user.id, email, roles: user.roles },
-          { secret: SECRET }
-        );
+        // Uses environment configuration for token generation
+        const token = generateToken({
+          userId: user.id,
+          email,
+          roles: user.roles,
+        });
 
         res.json({ token });
       });
     });
 
-    it('should allow admin access to admin routes', async () => {
+    it('should allow admin access to admin routes with environment config', async () => {
       // Login as admin
       const loginRes = await request(app)
         .post('/auth/login')
@@ -299,19 +360,25 @@ describe('Auth Module Integration', () => {
     });
   });
 
-  describe('Token Expiration', () => {
-    it('should handle expired tokens correctly', async () => {
-      const auth = createAuthMiddleware({ secret: SECRET });
+  describe('Token Expiration with Environment Variables', () => {
+    beforeEach(() => {
+      // Set up middleware and routes for this test block
+      const auth = createAuthMiddleware();
 
       app.get('/api/protected', auth, (req, res) => {
         res.json({ message: 'Access granted' });
       });
+    });
 
-      // Create an expired token
-      const expiredToken = generateToken(
-        { userId: '123', email: 'test@example.com' },
-        { secret: SECRET, expiresIn: '1ms' }
-      );
+    it('should handle expired tokens correctly', async () => {
+      // Set very short expiration in environment
+      process.env.VOILA_AUTH_EXPIRES_IN = '1ms';
+
+      // Create an expired token using environment config
+      const expiredToken = generateToken({
+        userId: '123',
+        email: 'test@example.com',
+      });
 
       // Wait for token to expire
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -326,47 +393,250 @@ describe('Auth Module Integration', () => {
         'Your session has expired. Please sign in again.'
       );
     });
+
+    it('should respect custom expiration from environment', async () => {
+      // Set 2 hour expiration
+      process.env.VOILA_AUTH_EXPIRES_IN = '2h';
+
+      const token = generateToken({
+        userId: '123',
+        email: 'test@example.com',
+      });
+
+      // Verify token and check expiration time
+      const payload = verifyToken(token);
+      const expirationTime = payload.exp - payload.iat;
+      expect(expirationTime).toBe(2 * 60 * 60); // 2 hours in seconds
+    });
   });
 
-  describe('Custom Token Sources', () => {
-    it('should support multiple token sources', async () => {
-      const auth = createAuthMiddleware({
-        secret: SECRET,
-        getToken: (req) => {
-          // Check multiple sources
-          if (req.headers['x-api-key']) return req.headers['x-api-key'];
-          if (req.query.token) return req.query.token;
-          if (req.headers.authorization?.startsWith('Bearer ')) {
-            return req.headers.authorization.slice(7);
-          }
-          return null;
-        },
-      });
+  describe('Custom Token Sources with Environment Variables', () => {
+    it('should support multiple token sources with environment configuration', async () => {
+      process.env.VOILA_AUTH_TOKEN_HEADER = 'x-api-key';
+      process.env.VOILA_AUTH_COOKIE_NAME = 'sessionToken';
+
+      const auth = createAuthMiddleware();
 
       app.get('/api/data', auth, (req, res) => {
-        res.json({ data: 'Protected data' });
+        res.json({ data: 'Protected data', userId: req.user.userId });
       });
 
-      const token = generateToken({ userId: '123' }, { secret: SECRET });
+      const token = generateToken({ userId: '123' });
 
-      // Test with custom header
+      // Test with environment-configured custom header
       const headerRes = await request(app)
         .get('/api/data')
-        .set('X-API-Key', token);
+        .set('x-api-key', `Bearer ${token}`);
 
       expect(headerRes.status).toBe(200);
+      expect(headerRes.body.data).toBe('Protected data');
 
-      // Test with query parameter
+      // Test with query parameter (fallback)
       const queryRes = await request(app).get(`/api/data?token=${token}`);
 
       expect(queryRes.status).toBe(200);
+      expect(queryRes.body.data).toBe('Protected data');
+    });
 
-      // Test with Authorization header
-      const authRes = await request(app)
-        .get('/api/data')
-        .set('Authorization', `Bearer ${token}`);
+    it('should handle mixed environment and explicit configuration', async () => {
+      process.env.VOILA_AUTH_SECRET = SECRET;
+      process.env.VOILA_AUTH_TOKEN_HEADER = 'x-env-header';
 
-      expect(authRes.status).toBe(200);
+      // Create middleware that uses environment secret but custom token extraction
+      const auth = createAuthMiddleware({
+        // Uses VOILA_AUTH_SECRET from environment
+        getToken: (req) => {
+          // Custom extraction overrides environment header setting
+          return (
+            req.headers['x-custom-header'] ||
+            req.headers['authorization']?.slice(7) ||
+            null
+          );
+        },
+      });
+
+      app.get('/api/mixed', auth, (req, res) => {
+        res.json({ success: true, userId: req.user.userId });
+      });
+
+      const token = generateToken({ userId: '456' });
+
+      const res = await request(app)
+        .get('/api/mixed')
+        .set('x-custom-header', token);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.userId).toBe('456');
+    });
+  });
+
+  describe('Environment Variable Priority', () => {
+    it('should prioritize explicit options over environment variables', async () => {
+      // Set environment variables
+      process.env.VOILA_AUTH_SECRET = 'env-secret';
+      process.env.VOILA_AUTH_EXPIRES_IN = '1d';
+      process.env.VOILA_AUTH_BCRYPT_ROUNDS = '8';
+
+      // Create middleware with explicit secret (should override environment)
+      const auth = createAuthMiddleware({
+        secret: SECRET, // Explicit secret overrides env
+      });
+
+      app.post('/test/register', async (req, res) => {
+        try {
+          // Use explicit rounds (should override environment)
+          const hashedPassword = await hashPassword('testpass', 12);
+
+          // Use explicit token options (should override environment)
+          const token = generateToken(
+            { userId: 'test', email: 'test@example.com' },
+            { secret: SECRET, expiresIn: '30m' }
+          );
+
+          res.json({ token, hashPattern: hashedPassword.substring(0, 7) });
+        } catch (error) {
+          res.status(500).json({ error: error.message });
+        }
+      });
+
+      app.get('/test/verify', auth, (req, res) => {
+        res.json({ verified: true, userId: req.user.userId });
+      });
+
+      // Test registration with explicit options
+      const registerRes = await request(app).post('/test/register').send({});
+
+      expect(registerRes.status).toBe(200);
+      expect(registerRes.body.hashPattern).toBe('$2b$12$'); // Uses explicit rounds=12, not env rounds=8
+
+      // Verify token uses explicit secret, not environment secret
+      const verifyRes = await request(app)
+        .get('/test/verify')
+        .set('Authorization', `Bearer ${registerRes.body.token}`);
+
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.verified).toBe(true);
+    });
+  });
+
+  describe('Complete Environment-Driven Application', () => {
+    it('should run entire authentication flow using only environment variables', async () => {
+      // Set all environment variables
+      process.env.VOILA_AUTH_SECRET = SECRET;
+      process.env.VOILA_AUTH_EXPIRES_IN = '24h';
+      process.env.VOILA_AUTH_BCRYPT_ROUNDS = '12';
+      process.env.VOILA_AUTH_TOKEN_HEADER = 'x-mobile-auth';
+      process.env.VOILA_AUTH_COOKIE_NAME = 'mobile_session';
+
+      // Create app using only environment configuration
+      const envApp = express();
+      envApp.use(express.json());
+      const envUsers = new Map();
+
+      const envAuth = createAuthMiddleware(); // Uses all environment config
+      const adminAuth = createAuthorizationMiddleware(['admin']);
+
+      // Registration using environment config
+      envApp.post('/register', async (req, res) => {
+        const { email, password, role = 'user' } = req.body;
+
+        const hashedPassword = await hashPassword(password); // Uses env rounds
+        const user = {
+          id: Date.now().toString(),
+          email,
+          password: hashedPassword,
+          role,
+          roles: [role], // Ensure roles array is included
+        };
+        envUsers.set(email, user);
+
+        const token = generateToken({
+          userId: user.id,
+          email,
+          role,
+          roles: [role], // Include roles in token payload
+        }); // Uses env config
+        res.json({ token, user: { id: user.id, email, role } });
+      });
+
+      // Login using environment config
+      envApp.post('/login', async (req, res) => {
+        const { email, password } = req.body;
+        const user = envUsers.get(email);
+
+        if (!user || !(await comparePassword(password, user.password))) {
+          return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = generateToken({
+          userId: user.id,
+          email,
+          role: user.role,
+          roles: user.roles || [user.role], // Ensure roles array is included
+        }); // Uses env config
+        res.json({ token });
+      });
+
+      // Protected routes using environment config
+      envApp.get('/profile', envAuth, (req, res) => {
+        res.json({ profile: req.user });
+      });
+
+      envApp.get('/admin', envAuth, adminAuth, (req, res) => {
+        res.json({ message: 'Admin area' });
+      });
+
+      // Test complete flow
+
+      // 1. Register admin user
+      const adminRegRes = await request(envApp)
+        .post('/register')
+        .send({
+          email: 'admin@test.com',
+          password: 'AdminPass123!',
+          role: 'admin',
+        });
+
+      expect(adminRegRes.status).toBe(200);
+
+      // 2. Login admin user
+      const adminLoginRes = await request(envApp)
+        .post('/login')
+        .send({ email: 'admin@test.com', password: 'AdminPass123!' });
+
+      expect(adminLoginRes.status).toBe(200);
+
+      // 3. Access profile with custom header (from environment)
+      const profileRes = await request(envApp)
+        .get('/profile')
+        .set('x-mobile-auth', `Bearer ${adminLoginRes.body.token}`);
+
+      expect(profileRes.status).toBe(200);
+      expect(profileRes.body.profile.email).toBe('admin@test.com');
+
+      // 4. Access admin area
+      const adminRes = await request(envApp)
+        .get('/admin')
+        .set('x-mobile-auth', `Bearer ${adminLoginRes.body.token}`);
+
+      expect(adminRes.status).toBe(200);
+      expect(adminRes.body.message).toBe('Admin area');
+
+      // 5. Register regular user and test denied admin access
+      const userRegRes = await request(envApp)
+        .post('/register')
+        .send({ email: 'user@test.com', password: 'UserPass123!' });
+
+      const userLoginRes = await request(envApp)
+        .post('/login')
+        .send({ email: 'user@test.com', password: 'UserPass123!' });
+
+      const userAdminRes = await request(envApp)
+        .get('/admin')
+        .set('x-mobile-auth', `Bearer ${userLoginRes.body.token}`);
+
+      expect(userAdminRes.status).toBe(403);
     });
   });
 });
