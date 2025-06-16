@@ -1,11 +1,14 @@
 /**
- * Core logger class with built-in console and file logging
+ * Core logger class with transport manager and built-in functionality
  * @module @voilajsx/appkit/logging
  * @file src/logging/logger.js
  */
 
-import fs from 'fs';
-import path from 'path';
+import { ConsoleTransport } from './transports/console.js';
+import { FileTransport } from './transports/file.js';
+import { DatabaseTransport } from './transports/database.js';
+import { HttpTransport } from './transports/http.js';
+import { WebhookTransport } from './transports/webhook.js';
 
 const LOG_LEVELS = {
   error: 0,
@@ -15,7 +18,7 @@ const LOG_LEVELS = {
 };
 
 /**
- * Logger class with built-in console and file support
+ * Logger class with built-in transport management
  */
 export class LoggerClass {
   /**
@@ -26,25 +29,83 @@ export class LoggerClass {
     this.level = options.level || 'info';
     this.defaultMeta = options.defaultMeta || {};
     this.levelValue = LOG_LEVELS[this.level];
+    this.config = options;
 
-    // Console options
-    this.colorize = options.colorize !== false;
-    this.prettyPrint = options.prettyPrint || false;
+    // Initialize transports
+    this.transports = new Map();
+    this.initializeTransports();
+  }
 
-    // File options
-    this.enableFileLogging = options.enableFileLogging !== false;
-    this.dirname = options.dirname || 'logs';
-    this.filename = options.filename || 'app.log';
-    this.maxSize = options.maxSize || 10 * 1024 * 1024;
-    this.retentionDays = options.retentionDays ?? 7;
+  /**
+   * Initialize all enabled transports
+   */
+  initializeTransports() {
+    const enabledTransports = this.config.transports || ['console', 'file'];
 
-    // File state
-    this.currentSize = 0;
-    this.currentDate = this.getCurrentDate();
-    this.stream = null;
+    for (const transportName of enabledTransports) {
+      try {
+        const transport = this.createTransport(transportName);
+        if (transport) {
+          this.transports.set(transportName, transport);
+        }
+      } catch (error) {
+        console.error(
+          `Failed to initialize ${transportName} transport:`,
+          error.message
+        );
+      }
+    }
 
-    if (this.enableFileLogging) {
-      this.setupFileLogging();
+    if (this.transports.size === 0) {
+      console.warn('No transports initialized, falling back to console');
+      this.transports.set('console', new ConsoleTransport());
+    }
+  }
+
+  /**
+   * Create transport instance based on name
+   * @param {string} name - Transport name
+   * @returns {object|null} Transport instance
+   */
+  createTransport(name) {
+    const transportConfig = this.config[name] || {};
+
+    // Skip disabled transports
+    if (transportConfig.enabled === false) {
+      return null;
+    }
+
+    switch (name) {
+      case 'console':
+        return new ConsoleTransport(transportConfig);
+
+      case 'file':
+        return new FileTransport(transportConfig);
+
+      case 'database':
+        if (!transportConfig.url) {
+          console.warn('Database transport skipped: no URL configured');
+          return null;
+        }
+        return new DatabaseTransport(transportConfig);
+
+      case 'http':
+        if (!transportConfig.url) {
+          console.warn('HTTP transport skipped: no URL configured');
+          return null;
+        }
+        return new HttpTransport(transportConfig);
+
+      case 'webhook':
+        if (!transportConfig.url) {
+          console.warn('Webhook transport skipped: no URL configured');
+          return null;
+        }
+        return new WebhookTransport(transportConfig);
+
+      default:
+        console.warn(`Unknown transport: ${name}`);
+        return null;
     }
   }
 
@@ -102,10 +163,12 @@ export class LoggerClass {
    * @param {object} meta - Metadata
    */
   log(level, message, meta) {
+    // Skip if level is too low
     if (LOG_LEVELS[level] > this.levelValue) {
       return;
     }
 
+    // Normalize inputs
     if (message === undefined) {
       message = '';
     }
@@ -114,414 +177,251 @@ export class LoggerClass {
       meta = {};
     }
 
-    const entry = {
+    // Create log entry
+    const entry = this.createLogEntry(level, message, meta);
+
+    // Send to all transports
+    this.writeToTransports(entry);
+  }
+
+  /**
+   * Create standardized log entry
+   * @param {string} level - Log level
+   * @param {string} message - Log message
+   * @param {object} meta - Metadata
+   * @returns {object} Log entry object
+   */
+  createLogEntry(level, message, meta) {
+    return {
       timestamp: new Date().toISOString(),
       level,
       message,
       ...this.defaultMeta,
       ...meta,
     };
-
-    try {
-      this.writeToConsole(entry);
-
-      if (this.enableFileLogging && this.stream) {
-        this.writeToFile(entry);
-      }
-    } catch (error) {
-      console.error('Logging error:', error);
-    }
   }
 
   /**
-   * Writes log entry to console
+   * Write log entry to all transports
    * @param {object} entry - Log entry
    */
-  writeToConsole(entry) {
-    const { level } = entry;
-    let output;
+  writeToTransports(entry) {
+    const writePromises = [];
 
-    if (this.prettyPrint) {
-      output = this.prettyFormat(entry);
-    } else {
-      output = this.format(entry);
-    }
-
-    if (this.colorize) {
-      output = this.applyColor(output, level);
-    }
-
-    switch (level) {
-      case 'error':
-        console.error(output);
-        break;
-      case 'warn':
-        console.warn(output);
-        break;
-      case 'debug':
-        if (typeof console.debug === 'function') {
-          console.debug(output);
-        } else {
-          console.log(output);
-        }
-        break;
-      default:
-        console.log(output);
-    }
-  }
-
-  /**
-   * Writes log entry to file
-   * @param {object} entry - Log entry
-   */
-  async writeToFile(entry) {
-    try {
-      await this.checkRotation();
-
-      if (!this.stream || !this.stream.writable) {
-        this.createStream();
-      }
-
-      const line = JSON.stringify(entry) + '\n';
-      const size = Buffer.byteLength(line);
-
-      await new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          console.warn('Log write timed out after 5000ms');
-          resolve();
-        }, 5000);
-
-        this.stream.write(line, (error) => {
-          clearTimeout(timeout);
-          if (error) {
-            console.error('Error writing to log file:', error);
-            this.stream = null;
-          } else {
-            this.currentSize += size;
-          }
-          resolve();
-        });
-      });
-    } catch (error) {
-      console.error('Error logging to file:', error);
-    }
-  }
-
-  /**
-   * Formats log entry into human-readable string
-   * @param {object} entry - Log entry
-   * @returns {string} Formatted entry
-   */
-  format(entry) {
-    const { timestamp, level, message, ...meta } = entry;
-    let formatted = `${timestamp} [${level.toUpperCase()}] ${message}`;
-
-    if (Object.keys(meta).length > 0) {
-      formatted += ` ${JSON.stringify(meta)}`;
-    }
-
-    return formatted;
-  }
-
-  /**
-   * Pretty format for development
-   * @param {object} entry - Log entry
-   * @returns {string} Formatted entry
-   */
-  prettyFormat(entry) {
-    const { timestamp, level, message, ...meta } = entry;
-    let formatted = `${timestamp} ${this.getLevelLabel(level)} ${message}`;
-
-    if (Object.keys(meta).length > 0) {
-      formatted += '\n' + JSON.stringify(meta, null, 2);
-    }
-
-    return formatted;
-  }
-
-  /**
-   * Apply color to output
-   * @param {string} output - Output string
-   * @param {string} level - Log level
-   * @returns {string} Colored output
-   */
-  applyColor(output, level) {
-    const colors = {
-      error: '\x1b[31m',
-      warn: '\x1b[33m',
-      info: '\x1b[36m',
-      debug: '\x1b[90m',
-    };
-    const reset = '\x1b[0m';
-
-    return `${colors[level] || ''}${output}${reset}`;
-  }
-
-  /**
-   * Get level label with emoji
-   * @param {string} level - Log level
-   * @returns {string} Level label
-   */
-  getLevelLabel(level) {
-    const labels = {
-      error: '❌ ERROR',
-      warn: '⚠️  WARN',
-      info: 'ℹ️  INFO',
-      debug: '🐛 DEBUG',
-    };
-
-    return labels[level] || String(level).toUpperCase();
-  }
-
-  setupFileLogging() {
-    this.ensureDirectoryExists();
-    this.createStream();
-    this.setupRetentionCleanup();
-  }
-
-  ensureDirectoryExists() {
-    try {
-      if (!fs.existsSync(this.dirname)) {
-        fs.mkdirSync(this.dirname, { recursive: true });
-      }
-    } catch (error) {
-      console.error('Error creating log directory:', error);
-    }
-  }
-
-  getCurrentDate() {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  }
-
-  getCurrentFilename() {
-    const base = path.basename(this.filename, path.extname(this.filename));
-    const ext = path.extname(this.filename);
-    return `${base}-${this.currentDate}${ext}`;
-  }
-
-  createStream() {
-    const filename = this.getCurrentFilename();
-    const filepath = path.join(this.dirname, filename);
-
-    try {
-      if (fs.existsSync(filepath)) {
-        const stats = fs.statSync(filepath);
-        this.currentSize = stats.size;
-      } else {
-        this.currentSize = 0;
-      }
-    } catch (error) {
-      console.error('Error checking file size:', error);
-      this.currentSize = 0;
-    }
-
-    if (this.stream) {
+    for (const [name, transport] of this.transports) {
       try {
-        this.stream.end();
-      } catch (error) {
-        console.error('Error closing existing stream:', error);
-      }
-    }
-
-    try {
-      this.stream = fs.createWriteStream(filepath, { flags: 'a' });
-      this.stream.on('error', (error) => {
-        console.error('Log file write error:', error);
-        this.stream = null;
-      });
-    } catch (error) {
-      console.error('Error creating write stream:', error);
-      this.stream = null;
-    }
-  }
-
-  async checkRotation() {
-    const currentDate = this.getCurrentDate();
-    if (currentDate !== this.currentDate) {
-      await this.rotate();
-      return;
-    }
-    if (this.currentSize >= this.maxSize) {
-      await this.rotateSizeBased();
-    }
-  }
-
-  async rotate() {
-    if (this.stream) {
-      await new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          console.warn('Stream close during rotate timed out after 5000ms');
-          resolve();
-        }, 5000);
-
-        this.stream.on('error', (error) => {
-          console.error('Stream error during rotate:', error);
-          clearTimeout(timeout);
-          resolve();
-        });
-
-        this.stream.end(() => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      });
-    }
-
-    this.currentDate = this.getCurrentDate();
-    this.currentSize = 0;
-    this.createStream();
-  }
-
-  async rotateSizeBased() {
-    if (this.stream) {
-      await new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          console.warn(
-            'Stream close during size-based rotate timed out after 5000ms'
-          );
-          resolve();
-        }, 5000);
-
-        this.stream.on('error', (error) => {
-          console.error('Stream error during size-based rotate:', error);
-          clearTimeout(timeout);
-          resolve();
-        });
-
-        this.stream.end(() => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      });
-    }
-
-    const filename = this.getCurrentFilename();
-    const filepath = path.join(this.dirname, filename);
-
-    try {
-      if (!fs.existsSync(filepath)) {
-        this.currentSize = 0;
-        this.createStream();
-        return;
-      }
-
-      let rotation = 1;
-      while (fs.existsSync(`${filepath}.${rotation}`)) {
-        rotation++;
-      }
-
-      await fs.promises.rename(filepath, `${filepath}.${rotation}`);
-    } catch (error) {
-      console.error('Error during file rotation:', error);
-    }
-
-    this.currentSize = 0;
-    this.createStream();
-  }
-
-  setupRetentionCleanup() {
-    this.cleanOldLogs();
-    this.cleanupInterval = setInterval(
-      () => {
-        this.cleanOldLogs();
-      },
-      24 * 60 * 60 * 1000
-    );
-  }
-
-  async cleanOldLogs() {
-    if (this.retentionDays <= 0) return;
-
-    try {
-      const files = await fs.promises.readdir(this.dirname);
-      const now = Date.now();
-      const maxAge = this.retentionDays * 24 * 60 * 60 * 1000;
-      const base = path.basename(this.filename, path.extname(this.filename));
-
-      for (const file of files) {
-        if (!file.startsWith(base)) {
+        // Check if transport should handle this level
+        if (
+          transport.shouldLog &&
+          !transport.shouldLog(entry.level, this.level)
+        ) {
           continue;
         }
 
-        const filepath = path.join(this.dirname, file);
+        // Write to transport (may be async)
+        const writeResult = transport.write(entry);
 
-        try {
-          const stats = await fs.promises.stat(filepath);
-          if (now - stats.mtimeMs > maxAge) {
-            await fs.promises.unlink(filepath);
-            console.log(`Deleted old log file: ${file}`);
-          }
-        } catch (error) {
-          console.error(`Error processing log file ${file}:`, error);
+        // Collect promises for potential waiting
+        if (writeResult && typeof writeResult.then === 'function') {
+          writePromises.push(
+            writeResult.catch((error) => {
+              console.error(`Transport ${name} write failed:`, error.message);
+            })
+          );
         }
+      } catch (error) {
+        console.error(`Transport ${name} write error:`, error.message);
       }
-    } catch (error) {
-      console.error('Error cleaning old logs:', error);
+    }
+
+    // Store promises for potential flushing
+    this._pendingWrites = writePromises;
+  }
+
+  /**
+   * Wait for all pending writes to complete
+   * @returns {Promise<void>}
+   */
+  async waitForWrites() {
+    if (this._pendingWrites && this._pendingWrites.length > 0) {
+      try {
+        await Promise.all(this._pendingWrites);
+      } catch (error) {
+        // Errors already handled in writeToTransports
+      }
+      this._pendingWrites = [];
     }
   }
 
   /**
-   * Flushes any pending logs
+   * Flushes all pending logs across all transports
    * @returns {Promise<void>}
    */
   async flush() {
-    return new Promise((resolve) => {
-      if (this.stream && this.stream.writable) {
-        if (this.stream.writableLength === 0) {
-          resolve();
-        } else {
-          const timeout = setTimeout(() => {
-            console.warn('Logger flush timed out after 5000ms');
-            resolve();
-          }, 5000);
+    // Wait for any pending writes first
+    await this.waitForWrites();
 
-          this.stream.once('drain', () => {
-            clearTimeout(timeout);
-            resolve();
-          });
+    // Flush all transports
+    const flushPromises = [];
 
-          this.stream.write('');
+    for (const [name, transport] of this.transports) {
+      if (transport.flush && typeof transport.flush === 'function') {
+        try {
+          const flushResult = transport.flush();
+          if (flushResult && typeof flushResult.then === 'function') {
+            flushPromises.push(
+              flushResult.catch((error) => {
+                console.error(`Transport ${name} flush failed:`, error.message);
+              })
+            );
+          }
+        } catch (error) {
+          console.error(`Transport ${name} flush error:`, error.message);
         }
-      } else {
-        resolve();
       }
-    });
+    }
+
+    if (flushPromises.length > 0) {
+      await Promise.all(flushPromises);
+    }
   }
 
   /**
-   * Closes the logger
+   * Closes all transports and cleans up resources
    * @returns {Promise<void>}
    */
   async close() {
-    return new Promise((resolve) => {
-      if (this.cleanupInterval) {
-        clearInterval(this.cleanupInterval);
-        this.cleanupInterval = null;
+    // Wait for pending writes
+    await this.waitForWrites();
+
+    // Flush all transports first
+    await this.flush();
+
+    // Close all transports
+    const closePromises = [];
+
+    for (const [name, transport] of this.transports) {
+      if (transport.close && typeof transport.close === 'function') {
+        try {
+          const closeResult = transport.close();
+          if (closeResult && typeof closeResult.then === 'function') {
+            closePromises.push(
+              closeResult.catch((error) => {
+                console.error(`Transport ${name} close failed:`, error.message);
+              })
+            );
+          }
+        } catch (error) {
+          console.error(`Transport ${name} close error:`, error.message);
+        }
+      }
+    }
+
+    if (closePromises.length > 0) {
+      await Promise.all(closePromises);
+    }
+
+    // Clear transports
+    this.transports.clear();
+  }
+
+  /**
+   * Get list of active transport names
+   * @returns {string[]} Array of active transport names
+   */
+  getActiveTransports() {
+    return Array.from(this.transports.keys());
+  }
+
+  /**
+   * Check if a specific transport is active
+   * @param {string} name - Transport name
+   * @returns {boolean} True if transport is active
+   */
+  hasTransport(name) {
+    return this.transports.has(name);
+  }
+
+  /**
+   * Get transport instance by name (for advanced usage)
+   * @param {string} name - Transport name
+   * @returns {object|null} Transport instance or null
+   */
+  getTransport(name) {
+    return this.transports.get(name) || null;
+  }
+
+  /**
+   * Add a custom transport at runtime
+   * @param {string} name - Transport name
+   * @param {object} transport - Transport instance
+   */
+  addTransport(name, transport) {
+    if (!transport || typeof transport.write !== 'function') {
+      throw new Error('Transport must have a write method');
+    }
+
+    this.transports.set(name, transport);
+  }
+
+  /**
+   * Remove a transport at runtime
+   * @param {string} name - Transport name
+   * @returns {Promise<void>}
+   */
+  async removeTransport(name) {
+    const transport = this.transports.get(name);
+    if (transport) {
+      // Flush and close the transport
+      if (transport.flush && typeof transport.flush === 'function') {
+        try {
+          await transport.flush();
+        } catch (error) {
+          console.error(`Error flushing transport ${name}:`, error.message);
+        }
       }
 
-      if (this.stream) {
-        const timeout = setTimeout(() => {
-          console.warn('Logger close timed out after 5000ms');
-          this.stream = null;
-          resolve();
-        }, 5000);
-
-        this.stream.on('error', (error) => {
-          console.error('Logger stream error during close:', error);
-          clearTimeout(timeout);
-          this.stream = null;
-          resolve();
-        });
-
-        this.stream.end(() => {
-          clearTimeout(timeout);
-          this.stream = null;
-          resolve();
-        });
-      } else {
-        resolve();
+      if (transport.close && typeof transport.close === 'function') {
+        try {
+          await transport.close();
+        } catch (error) {
+          console.error(`Error closing transport ${name}:`, error.message);
+        }
       }
-    });
+
+      this.transports.delete(name);
+    }
+  }
+
+  /**
+   * Update log level at runtime
+   * @param {string} level - New log level
+   */
+  setLevel(level) {
+    if (!LOG_LEVELS.hasOwnProperty(level)) {
+      throw new Error(
+        `Invalid log level: ${level}. Must be one of: ${Object.keys(LOG_LEVELS).join(', ')}`
+      );
+    }
+
+    this.level = level;
+    this.levelValue = LOG_LEVELS[level];
+  }
+
+  /**
+   * Get current log level
+   * @returns {string} Current log level
+   */
+  getLevel() {
+    return this.level;
+  }
+
+  /**
+   * Check if a specific level would be logged
+   * @param {string} level - Log level to check
+   * @returns {boolean} True if level would be logged
+   */
+  isLevelEnabled(level) {
+    return LOG_LEVELS[level] <= this.levelValue;
   }
 }
