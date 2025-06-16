@@ -1,5 +1,5 @@
 /**
- * Core authentication class with built-in JWT, password, and middleware methods
+ * Core authentication class with Fastify-native middleware and Express adapter
  * @module @voilajsx/appkit/auth
  * @file src/auth/authentication.js
  */
@@ -9,7 +9,7 @@ import bcrypt from 'bcrypt';
 import { validateSecret, validateRounds, validateRole } from './defaults.js';
 
 /**
- * Authentication class with built-in JWT, password, and middleware functionality
+ * Authentication class with built-in JWT, password, and Fastify-native middleware
  */
 export class AuthenticationClass {
   /**
@@ -180,10 +180,10 @@ export class AuthenticationClass {
   }
 
   /**
-   * Creates user authentication middleware for login-based routes
+   * Creates Fastify-native authentication middleware for login-based routes
    * @param {Object} [options] - Additional middleware options
    * @param {Function} [options.getToken] - Custom token extraction function
-   * @returns {Function} Express middleware function
+   * @returns {Function} Fastify preHandler function
    */
   requireLogin(options = {}) {
     if (!this.config.jwt.secret) {
@@ -193,39 +193,42 @@ export class AuthenticationClass {
     // Default token extraction function
     const getToken = options.getToken || this.getDefaultTokenExtractor();
 
-    return async (req, res, next) => {
+    return async (request, reply) => {
       try {
-        const token = getToken(req);
+        const token = getToken(request);
 
         if (!token) {
-          return res.status(401).json({
+          throw {
+            statusCode: 401,
             error: 'Authentication required',
             message: this.config.middleware.errorMessages.noToken,
-          });
+          };
         }
 
         const payload = this.verifyToken(token);
-        req.user = payload; // Set user information for login-based routes
-        next();
+        request.user = payload; // Set user information for login-based routes
       } catch (error) {
         const isExpired = error.message === 'Token has expired';
+        const statusCode = error.statusCode || 401;
+
         const message = isExpired
           ? this.config.middleware.errorMessages.expiredToken
           : this.config.middleware.errorMessages.invalidToken;
 
-        res.status(401).json({
+        throw {
+          statusCode,
           error: 'Authentication failed',
           message,
-        });
+        };
       }
     };
   }
 
   /**
-   * Creates token validation middleware for API-to-API communication
+   * Creates Fastify-native token validation middleware for API-to-API communication
    * @param {Object} [options] - Additional middleware options
    * @param {Function} [options.getToken] - Custom token extraction function
-   * @returns {Function} Express middleware function
+   * @returns {Function} Fastify preHandler function
    */
   requireToken(options = {}) {
     if (!this.config.jwt.secret) {
@@ -235,38 +238,41 @@ export class AuthenticationClass {
     // Default token extraction function
     const getToken = options.getToken || this.getDefaultTokenExtractor();
 
-    return async (req, res, next) => {
+    return async (request, reply) => {
       try {
-        const token = getToken(req);
+        const token = getToken(request);
 
         if (!token) {
-          return res.status(401).json({
+          throw {
+            statusCode: 401,
             error: 'Token required',
             message: 'Valid token required for API access',
-          });
+          };
         }
 
         const payload = this.verifyToken(token);
-        req.token = payload; // Set token payload for API routes (different from req.user)
-        next();
+        request.token = payload; // Set token payload for API routes (different from request.user)
       } catch (error) {
         const isExpired = error.message === 'Token has expired';
+        const statusCode = error.statusCode || 401;
+
         const message = isExpired
           ? 'Token has expired'
           : 'Invalid token provided';
 
-        res.status(401).json({
+        throw {
+          statusCode,
           error: 'Token validation failed',
           message,
-        });
+        };
       }
     };
   }
 
   /**
-   * Creates role-based authorization middleware
+   * Creates Fastify-native role-based authorization middleware
    * @param {...string|string[]} roles - Required roles (can be multiple arguments or array)
-   * @returns {Function} Express middleware function
+   * @returns {Function} Fastify preHandler function
    */
   requireRole(...roles) {
     let allowedRoles;
@@ -291,17 +297,18 @@ export class AuthenticationClass {
       }
     });
 
-    return async (req, res, next) => {
+    return async (request, reply) => {
       try {
         // Check for user authentication (from requireLogin)
-        if (req.user) {
-          const userRoles = req.user.roles || [];
+        if (request.user) {
+          const userRoles = request.user.roles || [];
 
           if (!Array.isArray(userRoles) || userRoles.length === 0) {
-            return res.status(403).json({
+            throw {
+              statusCode: 403,
               error: 'Authorization failed',
               message: this.config.middleware.errorMessages.noRoles,
-            });
+            };
           }
 
           // Use role hierarchy checking
@@ -310,25 +317,27 @@ export class AuthenticationClass {
           );
 
           if (!hasRequiredRole) {
-            return res.status(403).json({
+            throw {
+              statusCode: 403,
               error: 'Authorization failed',
               message:
                 this.config.middleware.errorMessages.insufficientPermissions,
-            });
+            };
           }
 
-          return next();
+          return;
         }
 
         // Check for token authentication (from requireToken)
-        if (req.token) {
-          const tokenRoles = req.token.roles || [];
+        if (request.token) {
+          const tokenRoles = request.token.roles || [];
 
           if (!Array.isArray(tokenRoles) || tokenRoles.length === 0) {
-            return res.status(403).json({
+            throw {
+              statusCode: 403,
               error: 'Authorization failed',
               message: 'No roles found in token',
-            });
+            };
           }
 
           // Use role hierarchy checking for tokens too
@@ -337,62 +346,123 @@ export class AuthenticationClass {
           );
 
           if (!hasRequiredRole) {
-            return res.status(403).json({
+            throw {
+              statusCode: 403,
               error: 'Authorization failed',
               message: 'Insufficient token permissions',
-            });
+            };
           }
 
-          return next();
+          return;
         }
 
         // Neither user nor token found
-        return res.status(401).json({
+        throw {
+          statusCode: 401,
           error: 'Authentication required',
           message: 'Please authenticate first',
-        });
+        };
       } catch (error) {
-        res.status(500).json({
-          error: 'Server error',
-          message: 'Authorization check failed',
-        });
+        const statusCode = error.statusCode || 500;
+        throw {
+          statusCode,
+          error: error.error || 'Server error',
+          message: error.message || 'Authorization check failed',
+        };
       }
     };
   }
 
   /**
    * Gets user from request object safely (works with both requireLogin and requireToken)
-   * @param {Object} req - Express request object
+   * @param {Object} request - Fastify request object
    * @returns {Object|null} User object or null if not authenticated
    */
-  user(req) {
+  user(request) {
     // Return user from requireLogin() first, then token from requireToken()
-    return req.user || req.token || null;
+    return request.user || request.token || null;
   }
 
   /**
-   * Gets default token extraction function
+   * Gets default token extraction function for Fastify
    * @returns {Function} Token extraction function
    */
   getDefaultTokenExtractor() {
-    return (req) => {
+    return (request) => {
       // Check Authorization header first (Bearer token)
-      const authHeader = req.headers.authorization;
+      const authHeader = request.headers.authorization;
       if (authHeader?.startsWith('Bearer ')) {
         return authHeader.slice(7);
       }
 
       // Check cookies
-      if (req.cookies?.token) {
-        return req.cookies.token;
+      if (request.cookies?.token) {
+        return request.cookies.token;
       }
 
       // Check query params (less secure, but sometimes needed)
-      if (req.query?.token) {
-        return req.query.token;
+      if (request.query?.token) {
+        return request.query.token;
       }
 
       return null;
     };
+  }
+
+  /**
+   * Express adapter - converts Fastify middleware to work with Express
+   * @param {Function} fastifyMiddleware - Fastify preHandler function
+   * @returns {Function} Express middleware function
+   */
+  toExpress(fastifyMiddleware) {
+    return async (req, res, next) => {
+      try {
+        // Create Fastify-like request object
+        const request = {
+          ...req,
+          headers: req.headers,
+          cookies: req.cookies,
+          query: req.query,
+        };
+
+        // Create Fastify-like reply object (minimal)
+        const reply = {
+          code: (statusCode) => ({
+            send: (data) => res.status(statusCode).json(data),
+          }),
+          send: (data) => res.json(data),
+        };
+
+        // Execute Fastify middleware
+        await fastifyMiddleware(request, reply);
+
+        // Copy user/token back to Express req
+        if (request.user) req.user = request.user;
+        if (request.token) req.token = request.token;
+
+        next();
+      } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+          error: error.error || 'Error',
+          message: error.message || 'An error occurred',
+        });
+      }
+    };
+  }
+
+  /**
+   * Express convenience methods (using the adapter)
+   */
+  requireLoginExpress(options = {}) {
+    return this.toExpress(this.requireLogin(options));
+  }
+
+  requireTokenExpress(options = {}) {
+    return this.toExpress(this.requireToken(options));
+  }
+
+  requireRoleExpress(...roles) {
+    return this.toExpress(this.requireRole(...roles));
   }
 }
