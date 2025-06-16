@@ -18,6 +18,9 @@
       "types": "./types/tenantdb/index.d.ts",
       "default": "./src/tenantdb/index.js"
     },
+    "./db": {
+      "default": "./src/db/index.js"
+    },
     "./cache": {
       "types": "./types/cache/index.d.ts",
       "default": "./src/cache/index.js"
