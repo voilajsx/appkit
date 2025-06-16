@@ -148,6 +148,7 @@
     "@fastify/formbody": "^8.0.2",
     "@fastify/helmet": "^13.0.1",
     "@fastify/session": "^11.1.0",
+    "@voilajsx/appkit": "github:voilajsx/appkit",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.5.0",
     "express-session": "^1.18.1",
