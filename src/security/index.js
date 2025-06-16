@@ -1,19 +1,35 @@
 /**
- * @voilajsx/appkit - Production-ready security utilities
+ * Ultra-simple object-driven security that just works
  * @module @voilajsx/appkit/security
  * @file src/security/index.js
- *
- * Independent security module with environment-first design and smart defaults.
  */
 
-// Form protection (1)
-export { protectForms } from './csrf.js';
+import { SecurityClass } from './security.js';
+import { getSmartDefaults } from './defaults.js';
 
-// Rate limiting (1)
-export { limitRequests } from './rateLimiter.js';
+// Global security instance for performance
+let globalSecurity = null;
 
-// Input cleaning (3)
-export { cleanInput, cleanHtml, escapeHtml } from './sanitizer.js';
+/**
+ * Get security instance - the only function you need to learn
+ * Environment variables parsed once for performance
+ * @param {object} [overrides] - Optional configuration overrides
+ * @returns {SecurityClass} Security instance with all methods
+ */
+function get(overrides = {}) {
+  // Lazy initialization - parse environment once
+  if (!globalSecurity) {
+    const defaults = getSmartDefaults();
+    const config = { ...defaults, ...overrides };
+    globalSecurity = new SecurityClass(config);
+  }
 
-// Data encryption (3)
-export { encryptData, decryptData, generateKey } from './encryption.js';
+  return globalSecurity;
+}
+
+/**
+ * Single security export with minimal functionality
+ */
+export const security = {
+  get,
+};

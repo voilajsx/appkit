@@ -1,6 +1,6 @@
 # @voilajsx/appkit/logging - LLM API Reference
 
-**Implementation**: JavaScript ES6 modules with ultra-minimal API design.
+**Implementation**: JavaScript ES6 modules with object-driven API design.
 
 ## LLM Code Generation Guidelines
 
@@ -36,29 +36,43 @@
 
 - **Always use .env files** in examples
 - **Show VOILA*LOGGING*\* variables** in all examples
-- **Load with dotenv.config()** at top of files
 - **Never hardcode configuration** in code examples
+- **Auto-detect transports** from environment variables
 
 ## Complete API Reference
 
-### Main Function
+### Single Export Pattern
 
-#### `logger(levelOrOptions?)`
+#### `logger.get(component?)`
 
-Creates a logger that just works.
+**The only function you need to learn** - returns logger object with all
+methods.
 
 ```javascript
-// Uses VOILA_LOGGING_LEVEL from .env
-const log = logger();
+import { logger } from '@voilajsx/appkit/logging';
 
-// With explicit level
-const log = logger('debug');
+// Global logger
+const log = logger.get();
 
-// With full options
-const log = logger({ level: 'debug', dirname: './logs' });
+// Component-scoped logger
+const authLog = logger.get('auth');
+const dbLog = logger.get('database');
 ```
 
-### Logging Methods
+#### `logger.clear()`
+
+Clears global logger state for testing.
+
+```javascript
+// In test files only
+afterEach(async () => {
+  await logger.clear();
+});
+```
+
+### Logger Object Methods
+
+All logger objects returned by `logger.get()` have these methods:
 
 #### `log.info(message, meta?)`
 
@@ -95,16 +109,30 @@ Logs debug messages.
 log.debug('Cache operation', { operation: 'set', key: 'user:123', ttl: 3600 });
 ```
 
-### Child Logger
-
 #### `log.child(bindings)`
 
-Creates logger with additional context.
+Creates child logger with additional context.
 
 ```javascript
 // Request-scoped logger
 const reqLog = log.child({ requestId: 'req-123', userId: 'user-456' });
 reqLog.info('Processing request');
+
+// Service-scoped logger
+const serviceLog = log.child({ service: 'payment-api', version: '2.1.0' });
+serviceLog.info('Service started');
+```
+
+#### `log.flush()` and `log.close()`
+
+Lifecycle management methods.
+
+```javascript
+// Flush pending logs
+await log.flush();
+
+// Close logger and cleanup resources
+await log.close();
 ```
 
 ## Environment Variables
@@ -112,14 +140,17 @@ reqLog.info('Processing request');
 **Required .env file structure:**
 
 ```bash
-# Core Configuration
+# Core Configuration (minimal)
 VOILA_LOGGING_LEVEL=debug
-VOILA_LOGGING_DIR=logs
-VOILA_LOGGING_FILE=app.log
 
-# Advanced Configuration
-VOILA_LOGGING_RETENTION_DAYS=30
-VOILA_LOGGING_MAX_SIZE=52428800
+# Database transport (auto-detected)
+DATABASE_URL=postgres://localhost/myapp
+
+# HTTP transport (external services)
+VOILA_LOGGING_HTTP_URL=https://logs.datadog.com/api/v1/logs
+
+# Webhook transport (alerts)
+VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/xxx
 ```
 
 **Complete .env example:**
@@ -128,15 +159,26 @@ VOILA_LOGGING_MAX_SIZE=52428800
 # Development
 NODE_ENV=development
 VOILA_LOGGING_LEVEL=debug
-VOILA_LOGGING_PRETTY=true
+VOILA_LOGGING_DIR=logs
 VOILA_SERVICE_NAME=user-api
 
 # Production
 NODE_ENV=production
 VOILA_LOGGING_LEVEL=warn
 VOILA_LOGGING_DIR=/var/log/myapp
-VOILA_LOGGING_RETENTION_DAYS=30
+DATABASE_URL=postgres://user:pass@localhost/myapp
+VOILA_LOGGING_HTTP_URL=https://logs.datadog.com/api/v1/logs
+VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/xxx
 ```
+
+## Transport Auto-Detection
+
+**The logger automatically enables transports based on environment:**
+
+- **Console + File**: Always enabled (except test environment)
+- **Database**: Enabled if `DATABASE_URL` or `VOILA_LOGGING_DB_URL` exists
+- **HTTP**: Enabled if `VOILA_LOGGING_HTTP_URL` exists
+- **Webhook**: Enabled if `VOILA_LOGGING_WEBHOOK_URL` exists
 
 ## Standard Code Patterns
 
@@ -144,17 +186,14 @@ VOILA_LOGGING_RETENTION_DAYS=30
 
 ```javascript
 /**
- * Basic application with logging setup
+ * Basic application with object-driven logging setup
  * @module @voilajsx/appkit/logging
  * @file examples/basic-app.js
  */
 
-import dotenv from 'dotenv';
 import { logger } from '@voilajsx/appkit/logging';
 
-dotenv.config();
-
-const log = logger();
+const log = logger.get();
 
 async function startApp() {
   log.info('Application starting', { version: '1.0.0' });
@@ -174,29 +213,26 @@ async function startApp() {
 startApp();
 ```
 
-### 2. Express Application
+### 2. Express Application with Request Logging
 
 ```javascript
 /**
- * Express application with request logging
+ * Express application with object-driven request logging
  * @module @voilajsx/appkit/logging
  * @file examples/express-app.js
  */
 
-import dotenv from 'dotenv';
 import express from 'express';
 import { logger } from '@voilajsx/appkit/logging';
 
-dotenv.config();
-
-const log = logger();
+const log = logger.get();
 const app = express();
 
 app.use(express.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
-  req.log = log.child({
+  req.log = logger.get('request').child({
     requestId: req.headers['x-request-id'] || Math.random().toString(36),
     method: req.method,
     url: req.url,
@@ -223,23 +259,21 @@ app.listen(3000, () => {
 });
 ```
 
-### 3. Service with Different Components
+### 3. Microservice with Component-Based Logging
 
 ```javascript
 /**
- * Microservice with component-based logging
+ * Microservice with component-scoped object loggers
  * @module @voilajsx/appkit/logging
  * @file examples/microservice.js
  */
 
-import dotenv from 'dotenv';
 import { logger } from '@voilajsx/appkit/logging';
 
-dotenv.config();
-
-const serviceLog = logger().child({ service: 'payment-api' });
-const dbLog = serviceLog.child({ component: 'database' });
-const paymentLog = serviceLog.child({ component: 'payment' });
+// Component-scoped loggers
+const serviceLog = logger.get('payment-service');
+const dbLog = logger.get('database');
+const paymentLog = logger.get('payment-processor');
 
 async function processPayment(orderId, amount) {
   const reqLog = paymentLog.child({ orderId });
@@ -282,20 +316,17 @@ async function processPayment(orderId, amount) {
 
 ```javascript
 /**
- * Background job worker with structured logging
+ * Background job worker with structured object logging
  * @module @voilajsx/appkit/logging
  * @file examples/job-worker.js
  */
 
-import dotenv from 'dotenv';
 import { logger } from '@voilajsx/appkit/logging';
 
-dotenv.config();
-
-const log = logger().child({ component: 'job-worker' });
+const workerLog = logger.get('job-worker');
 
 async function processEmailJob(job) {
-  const jobLog = log.child({
+  const jobLog = workerLog.child({
     jobId: job.id,
     jobType: 'email',
     userId: job.data.userId,
@@ -325,7 +356,7 @@ async function processEmailJob(job) {
 }
 
 async function workerLoop() {
-  log.info('Worker started');
+  workerLog.info('Worker started');
 
   while (true) {
     try {
@@ -336,65 +367,83 @@ async function workerLoop() {
         await sleep(1000);
       }
     } catch (error) {
-      log.error('Worker error', { error: error.message });
+      workerLog.error('Worker error', { error: error.message });
       await sleep(5000);
     }
   }
 }
 ```
 
+### 5. Testing Pattern with Logger Cleanup
+
+```javascript
+/**
+ * Testing pattern with proper logger cleanup
+ * @module @voilajsx/appkit/logging
+ * @file examples/test-example.js
+ */
+
+import { logger } from '@voilajsx/appkit/logging';
+
+describe('User Service', () => {
+  afterEach(async () => {
+    // Clear logger state between tests
+    await logger.clear();
+  });
+
+  test('should create user successfully', async () => {
+    const log = logger.get('test');
+    log.info('Test started');
+
+    const userData = { email: 'test@example.com', name: 'Test User' };
+    const user = await createUser(userData);
+
+    expect(user.id).toBeDefined();
+    log.info('Test completed', { userId: user.id });
+  });
+});
+```
+
 ## LLM Instructions
 
-**When generating code:**
+**When generating code, always follow these patterns:**
 
-1. **Always start with** `import dotenv from 'dotenv';` and `dotenv.config();`
-2. **Always include** `.env` file example with `VOILA_LOGGING_*` variables
-3. **Use simple patterns** - avoid complex configurations
-4. **Include file headers** with @module and @file tags
-5. **Use try/catch blocks** for error handling
-6. **Keep database operations generic** using `db.methodName()`
-7. **Focus on the main function**: `logger()` and logging methods
-8. **Use child loggers** for context (requests, components, jobs)
-
-**Default .env template for all examples:**
-
-```bash
-# Required
-NODE_ENV=development
-VOILA_LOGGING_LEVEL=debug
-VOILA_LOGGING_DIR=logs
-VOILA_LOGGING_FILE=app.log
-
-# Optional
-VOILA_LOGGING_RETENTION_DAYS=7
-VOILA_SERVICE_NAME=my-app
-```
+1. **Use object-driven API**: Always `logger.get()` then call methods on
+   returned object
+2. **Component scoping**: Use `logger.get('component-name')` for different parts
+   of application
+3. **Include file headers** with @module and @file tags
+4. **Use try/catch blocks** for error handling with structured logging
+5. **Child loggers for context**: Use `.child({ key: value })` for
+   request/operation context
+6. **Testing cleanup**: Always include `logger.clear()` in test teardown
 
 **Standard import pattern:**
 
 ```javascript
-import dotenv from 'dotenv';
 import { logger } from '@voilajsx/appkit/logging';
 
-dotenv.config();
-
-const log = logger();
+const log = logger.get(); // Global logger
+const componentLog = logger.get('auth'); // Component logger
 ```
 
-**Child logger pattern:**
+**Standard context pattern:**
 
 ```javascript
 // Request context
 const reqLog = log.child({ requestId: 'req-123' });
 
 // Service context
-const serviceLog = log.child({ service: 'user-api' });
+const serviceLog = logger.get('payment-service');
 
-// Component context
-const dbLog = log.child({ component: 'database' });
+// Operation context
+const operationLog = serviceLog.child({
+  orderId: '456',
+  operation: 'process-payment',
+});
 ```
 
-**Error logging pattern:**
+**Standard error logging pattern:**
 
 ```javascript
 try {
@@ -407,9 +456,9 @@ try {
 }
 ```
 
-## Standard Guidelines for Effective Usage
+## Log Levels and Best Practices
 
-### 1. Log Level Guidelines
+### Log Level Guidelines
 
 **Use appropriate log levels for production readiness:**
 
@@ -418,10 +467,7 @@ try {
 log.error('Database connection failed', {
   error: err.message,
   host: 'localhost',
-});
-log.error('Payment processing failed', {
-  orderId: '123',
-  error: 'Gateway timeout',
+  retryCount: 3,
 });
 
 // WARN - Potential issues, degraded performance (visible in production)
@@ -440,7 +486,7 @@ log.debug('Cache operation', { operation: 'set', key: 'user:123', ttl: 3600 });
 log.debug('SQL query executed', { sql: 'SELECT * FROM users', params: [123] });
 ```
 
-### 2. Context and Metadata Best Practices
+### Context and Metadata Best Practices
 
 **Always include relevant context for troubleshooting:**
 
@@ -462,7 +508,7 @@ log.error('Registration failed');
 ```javascript
 // Request middleware - creates correlated logs
 app.use((req, res, next) => {
-  req.log = log.child({
+  req.log = logger.get('request').child({
     requestId: req.headers['x-request-id'] || generateId(),
     method: req.method,
     url: req.url,
@@ -476,7 +522,7 @@ req.log.info('Processing user registration');
 req.log.error('Validation failed', { field: 'email' });
 ```
 
-### 3. Security and Privacy Guidelines
+### Security and Privacy Guidelines
 
 **Never log sensitive information:**
 
@@ -503,183 +549,69 @@ log.info('Payment processed', {
 });
 ```
 
-### 4. Performance and Timing
-
-**Log performance metrics for monitoring:**
-
-```javascript
-async function processOrder(orderId) {
-  const start = Date.now();
-  const orderLog = log.child({ orderId });
-
-  orderLog.info('Order processing started');
-
-  try {
-    const order = await db.getOrder(orderId);
-    const duration = Date.now() - start;
-
-    if (duration > 1000) {
-      orderLog.warn('Slow order lookup', { duration: `${duration}ms` });
-    }
-
-    orderLog.info('Order processed successfully', {
-      duration: `${duration}ms`,
-      items: order.items.length,
-    });
-
-    return order;
-  } catch (error) {
-    const duration = Date.now() - start;
-    orderLog.error('Order processing failed', {
-      duration: `${duration}ms`,
-      error: error.message,
-    });
-    throw error;
-  }
-}
-```
-
-### 5. Structured Data Guidelines
-
-**Use consistent field names across your application:**
-
-```javascript
-// Standardize field names
-const standardFields = {
-  userId: user.id, // Always 'userId', not 'user_id' or 'uid'
-  requestId: req.id, // Always 'requestId'
-  duration: `${ms}ms`, // Always include 'ms' unit
-  timestamp: Date.now(), // Always use timestamp for events
-  component: 'auth-service', // Always identify the component
-};
-
-log.info('User authenticated', standardFields);
-```
-
-**Structure error information consistently:**
-
-```javascript
-// Standard error logging format
-function logError(operation, error, context = {}) {
-  log.error(`${operation} failed`, {
-    operation,
-    error: error.message,
-    stack: error.stack,
-    code: error.code,
-    ...context,
-  });
-}
-
-// Usage
-try {
-  await sendEmail(user.email, template);
-} catch (error) {
-  logError('Email sending', error, {
-    userId: user.id,
-    template: template.name,
-  });
-}
-```
-
-### 6. Environment-Specific Behavior
-
-**Configure logging based on environment:**
-
-```javascript
-// .env.development
-NODE_ENV=development
-VOILA_LOGGING_LEVEL=debug
-VOILA_LOGGING_PRETTY=true
-VOILA_SERVICE_NAME=user-api-dev
-
-// .env.production
-NODE_ENV=production
-VOILA_LOGGING_LEVEL=warn
-VOILA_LOGGING_DIR=/var/log/myapp
-VOILA_LOGGING_RETENTION_DAYS=30
-VOILA_SERVICE_NAME=user-api
-
-// .env.test
-NODE_ENV=test
-VOILA_LOGGING_LEVEL=error
-VOILA_LOGGING_FILE_ENABLED=false  # Disable file logging in tests
-```
-
-### 7. Microservices and Distributed Systems
-
-**Use service-specific loggers:**
-
-```javascript
-// Each service has its own logger context
-const userServiceLog = logger().child({
-  service: 'user-service',
-  version: '2.1.0',
-  instance: process.env.HOSTNAME,
-});
-
-const paymentServiceLog = logger().child({
-  service: 'payment-service',
-  version: '1.8.3',
-  instance: process.env.HOSTNAME,
-});
-
-// Cross-service request tracking
-async function callPaymentService(orderId, correlationId) {
-  const reqLog = userServiceLog.child({
-    correlationId,
-    targetService: 'payment-service',
-    operation: 'processPayment',
-  });
-
-  reqLog.info('Calling payment service', { orderId });
-
-  try {
-    const result = await paymentApi.process(orderId);
-    reqLog.info('Payment service call successful', {
-      transactionId: result.id,
-    });
-    return result;
-  } catch (error) {
-    reqLog.error('Payment service call failed', {
-      error: error.message,
-      statusCode: error.response?.status,
-    });
-    throw error;
-  }
-}
-```
-
-### 8. Common Anti-Patterns to Avoid
+## Common Anti-Patterns to Avoid
 
 **Don't do these:**
 
 ```javascript
-// Bad - String concatenation
+// ❌ Wrong - Function imports (old pattern)
+import { logInfo, logError } from '@voilajsx/appkit/logging';
+
+// ✅ Correct - Object-driven pattern
+import { logger } from '@voilajsx/appkit/logging';
+const log = logger.get();
+
+// ❌ Wrong - String concatenation
 log.info('User ' + userId + ' logged in at ' + new Date());
 
-// Good - Structured logging
+// ✅ Correct - Structured logging
 log.info('User logged in', { userId, timestamp: new Date().toISOString() });
 
-// Bad - Logging in loops without throttling
-users.forEach(user => {
-  log.debug('Processing user', { userId: user.id }); // Spam!
+// ❌ Wrong - No context
+log.error('Operation failed');
+
+// ✅ Correct - Rich context
+log.error('Payment processing failed', {
+  orderId: '123',
+  error: error.message,
+  amount: 99.99,
+  gateway: 'stripe'
 });
 
-// Good - Summary logging
-log.info('Processing users batch', { count: users.length });
-users.forEach(user => processUser(user));
-log.info('Users batch completed', { processed: users.length });
-
-// Bad - Inconsistent error handling
+// ❌ Wrong - Bypassing logging system
 catch (error) {
-  console.log('Error:', error); // Bypasses logging system
+  console.log('Error:', error);
 }
 
-// Good - Use the logging system
+// ✅ Correct - Use the logging system
 catch (error) {
   log.error('Operation failed', { error: error.message });
 }
 ```
+
+## Quick Reference
+
+```javascript
+// Single import pattern
+import { logger } from '@voilajsx/appkit/logging';
+
+// Get logger objects
+const log = logger.get(); // Global logger
+const authLog = logger.get('auth'); // Component logger
+const reqLog = log.child({ requestId }); // Context logger
+
+// Log messages
+log.info('Message', { key: 'value' });
+log.error('Error', { error: error.message });
+log.warn('Warning', { metric: 'high' });
+log.debug('Debug info', { operation: 'cache-set' });
+
+// Testing cleanup
+await logger.clear();
+```
+
+**Remember: One import, one function (`logger.get()`), infinite logging
+possibilities with 5 automatic transports!**
 
 ---
 

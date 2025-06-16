@@ -1,21 +1,22 @@
-# @voilajsx/appkit - Auth Module 🔐
+# @voilajsx/appkit - Authentication Module 🔐
 
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Dead simple, secure authentication for Node.js applications
+> Ultra-simple object-driven authentication with enterprise-grade security and
+> smart role hierarchy
 
-The Auth module provides **6 essential functions** that cover 90% of
-authentication needs with zero learning curve. Production-ready security with
-the simplest possible API.
+**One function** returns an auth object with all methods. Zero configuration
+needed, production-ready security by default, with built-in role inheritance.
 
 ## 🚀 Why Choose This?
 
-- **⚡ Zero Learning Curve** - Intuitive function names, start in 30 seconds
-- **🔒 Production Security** - Enterprise-grade security by default
-- **🎯 Just 6 Functions** - Covers 90% of auth needs without complexity
-- **🌍 Environment-First** - Auto-detects VOILA*AUTH*\* variables
-- **📦 Ultra Lightweight** - No bloat, just essentials
+- **⚡ One Function** - Just `authenticator.get()`, everything else is automatic
+- **🔒 Enterprise Security** - Production-grade security by default
+- **🔧 Zero Configuration** - Smart defaults for everything
+- **👥 Smart Role Hierarchy** - Built-in role inheritance (user → moderator →
+  admin → superadmin)
+- **🛡️ Null-Safe Access** - Safe user extraction with `auth.user(req)`
 
 ## 📦 Installation
 
@@ -25,185 +26,114 @@ npm install @voilajsx/appkit
 
 ## 🏃‍♂️ Quick Start (30 seconds)
 
-### 1. Set your environment variables:
+```bash
+# Set your environment variable
+echo "VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-2024-minimum-32-chars" > .env
+```
+
+```javascript
+import { authenticator } from '@voilajsx/appkit/auth';
+
+const auth = authenticator.get();
+
+// JWT operations
+const token = auth.signToken({ userId: 123, roles: ['admin'] });
+const payload = auth.verifyToken(token);
+
+// Password operations
+const hash = await auth.hashPassword('userPassword123');
+const isValid = await auth.comparePassword('userPassword123', hash);
+
+// Safe user access
+const user = auth.user(req); // Returns null if not authenticated
+
+// Role-based routes
+app.get('/admin', auth.requireLogin(), auth.requireRole('admin'), handler);
+```
+
+## 📖 API Reference
+
+### Core Function
+
+```javascript
+const auth = authenticator.get(); // One function, all methods
+```
+
+### Methods
+
+```javascript
+// JWT
+auth.signToken(payload, expiresIn);
+auth.verifyToken(token);
+
+// Passwords
+auth.hashPassword(password, rounds);
+auth.comparePassword(password, hash);
+
+// User access
+auth.user(req); // Safe user extraction (null if not authenticated)
+
+// Role checking
+auth.hasRole(userRoles, requiredRole);
+
+// Middleware
+auth.requireLogin(options);
+auth.requireToken(options);
+auth.requireRole(...roles);
+```
+
+## 👥 Role Hierarchy
+
+### Built-in Roles (Zero Config)
+
+```javascript
+user → moderator → admin → superadmin
+```
+
+Higher roles automatically inherit lower role permissions.
+
+### Custom Roles for Your Industry
 
 ```bash
-# .env
-VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-2024-minimum-32-chars
-VOILA_AUTH_BCRYPT_ROUNDS=12
+# E-commerce
+VOILA_AUTH_ROLES=customer:1,vendor:2,staff:3,manager:4,admin:5
+
+# Healthcare
+VOILA_AUTH_ROLES=patient:1,nurse:2,doctor:3,admin:4
+
+# SaaS Platform
+VOILA_AUTH_ROLES=viewer:1,editor:2,admin:3,owner:4
 ```
 
-### 2. Start using immediately:
+## 💡 Simple Examples
+
+### Basic Express App
 
 ```javascript
-import {
-  signToken,
-  verifyToken,
-  requireAuth,
-  requireRole,
-  hashPassword,
-} from '@voilajsx/appkit/auth';
+import express from 'express';
+import { authenticator } from '@voilajsx/appkit/auth';
 
-// Hash a password
-const hash = await hashPassword('userPassword123');
-
-// Create a JWT token
-const token = signToken({ userId: 123, roles: ['user'] });
-
-// Verify a token
-const payload = verifyToken(token);
-
-// Protect routes
-app.get('/profile', requireAuth(), (req, res) => {
-  res.json({ user: req.user });
-});
-
-app.get('/admin', requireAuth(), requireRole('admin'), (req, res) => {
-  res.json({ message: 'Admin only!' });
-});
-```
-
-That's it! You're ready for production.
-
-## 📖 Complete API Reference
-
-### JWT Functions
-
-#### `signToken(payload, secret?, expiresIn?)`
-
-Creates a JWT token with your data.
-
-```javascript
-// Uses VOILA_AUTH_SECRET from environment
-const token = signToken({ userId: 123 });
-
-// Override secret
-const token = signToken({ userId: 123 }, 'my-secret');
-
-// Custom expiration
-const token = signToken({ userId: 123 }, 'my-secret', '1h');
-```
-
-#### `verifyToken(token, secret?)`
-
-Verifies and decodes a JWT token.
-
-```javascript
-// Uses VOILA_AUTH_SECRET from environment
-const payload = verifyToken(token);
-
-// Override secret
-const payload = verifyToken(token, 'my-secret');
-```
-
-### Password Functions
-
-#### `hashPassword(password, rounds?)`
-
-Securely hashes a password using bcrypt.
-
-```javascript
-// Uses VOILA_AUTH_BCRYPT_ROUNDS from environment (default: 10)
-const hash = await hashPassword('myPassword123');
-
-// Custom rounds
-const hash = await hashPassword('myPassword123', 12);
-```
-
-#### `comparePassword(password, hash)`
-
-Verifies a password against its hash.
-
-```javascript
-const isValid = await comparePassword('myPassword123', hash);
-if (isValid) {
-  // Password correct
-}
-```
-
-### Middleware Functions
-
-#### `requireAuth(secret?, options?)`
-
-Protects routes with JWT authentication.
-
-```javascript
-// Uses VOILA_AUTH_SECRET from environment
-app.get('/protected', requireAuth(), handler);
-
-// Override secret
-app.get('/protected', requireAuth('my-secret'), handler);
-
-// Custom token extraction
-app.get(
-  '/protected',
-  requireAuth({
-    getToken: (req) => req.headers['x-api-key'],
-  }),
-  handler
-);
-```
-
-**Token Sources (checked in order):**
-
-1. `Authorization: Bearer <token>` header
-2. `token` cookie
-3. `?token=<token>` query parameter
-
-#### `requireRole(...roles)`
-
-Restricts access based on user roles.
-
-```javascript
-// Single role
-app.get('/admin', requireAuth(), requireRole('admin'), handler);
-
-// Multiple roles (OR logic)
-app.get('/content', requireAuth(), requireRole('admin', 'editor'), handler);
-
-// Array syntax
-app.get('/content', requireAuth(), requireRole(['admin', 'editor']), handler);
-```
-
-**Note:** Requires `req.user.roles` array in JWT payload.
-
-## 🌍 Environment Variables
-
-| Variable                   | Description                       | Default    | Example                             |
-| -------------------------- | --------------------------------- | ---------- | ----------------------------------- |
-| `VOILA_AUTH_SECRET`        | JWT signing secret (min 32 chars) | _Required_ | `your-secret-key-2024-min-32-chars` |
-| `VOILA_AUTH_BCRYPT_ROUNDS` | Password hashing rounds (8-15)    | `10`       | `12`                                |
-
-### Security Requirements:
-
-- **JWT Secret**: Must be at least 32 characters
-- **Bcrypt Rounds**: Must be between 8-15 for security/performance balance
-
-## 💡 Real-World Examples
-
-### User Registration & Login
-
-```javascript
-import {
-  signToken,
-  hashPassword,
-  comparePassword,
-} from '@voilajsx/appkit/auth';
+const app = express();
+const auth = authenticator.get();
 
 // Registration
 app.post('/register', async (req, res) => {
   const { email, password } = req.body;
 
-  // Hash password
-  const hashedPassword = await hashPassword(password);
+  const hashedPassword = await auth.hashPassword(password);
+  const user = await db.createUser({
+    email,
+    password: hashedPassword,
+    roles: ['user'],
+  });
 
-  // Save user to database
-  const user = await db.createUser({ email, password: hashedPassword });
+  const token = auth.signToken({
+    userId: user.id,
+    email: user.email,
+    roles: user.roles,
+  });
 
-  // Create token
-  const token = signToken({ userId: user.id, email, roles: ['user'] });
-
-  res.json({ token, user: { id: user.id, email } });
+  res.json({ token });
 });
 
 // Login
@@ -211,213 +141,235 @@ app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   const user = await db.findUserByEmail(email);
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
+  const isValid = await auth.comparePassword(password, user.password);
 
-  const isValid = await comparePassword(password, user.password);
-  if (!isValid) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-
-  const token = signToken({ userId: user.id, email, roles: user.roles });
-  res.json({ token });
-});
-```
-
-### Protected API Routes
-
-```javascript
-import { requireAuth, requireRole } from '@voilajsx/appkit/auth';
-
-// Public route
-app.get('/api/posts', async (req, res) => {
-  const posts = await db.getPosts();
-  res.json({ posts });
-});
-
-// User-only route
-app.get('/api/profile', requireAuth(), async (req, res) => {
-  const user = await db.findUserById(req.user.userId);
-  res.json({ user });
-});
-
-// Admin-only route
-app.get(
-  '/api/admin/users',
-  requireAuth(),
-  requireRole('admin'),
-  async (req, res) => {
-    const users = await db.getAllUsers();
-    res.json({ users });
-  }
-);
-
-// Multi-role route
-app.put(
-  '/api/posts/:id',
-  requireAuth(),
-  requireRole('admin', 'editor'),
-  async (req, res) => {
-    const post = await db.updatePost(req.params.id, req.body);
-    res.json({ post });
-  }
-);
-```
-
-### Complete Express App
-
-```javascript
-import express from 'express';
-import {
-  signToken,
-  verifyToken,
-  requireAuth,
-  requireRole,
-  hashPassword,
-  comparePassword,
-} from '@voilajsx/appkit/auth';
-
-const app = express();
-app.use(express.json());
-
-// Auth routes
-app.post('/auth/register', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const hashedPassword = await hashPassword(password);
-    const user = await db.createUser({
-      email,
-      password: hashedPassword,
-      roles: ['user'],
+  if (isValid) {
+    const token = auth.signToken({
+      userId: user.id,
+      email: user.email,
+      roles: user.roles,
     });
-    const token = signToken({ userId: user.id, email, roles: user.roles });
-    res.json({ token, user: { id: user.id, email } });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.post('/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await db.findUserByEmail(email);
-    if (!user || !(await comparePassword(password, user.password))) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    const token = signToken({ userId: user.id, email, roles: user.roles });
     res.json({ token });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
   }
 });
 
 // Protected routes
-app.get('/api/profile', requireAuth(), async (req, res) => {
-  const user = await db.findUserById(req.user.userId);
+app.get('/profile', auth.requireLogin(), (req, res) => {
+  const user = auth.user(req);
   res.json({ user });
 });
 
-app.get('/api/admin', requireAuth(), requireRole('admin'), (req, res) => {
-  res.json({ message: 'Welcome admin!' });
-});
-
-app.listen(3000, () => console.log('Server running on port 3000'));
+app.get(
+  '/admin',
+  auth.requireLogin(),
+  auth.requireRole('admin'),
+  (req, res) => {
+    res.json({ message: 'Admin access granted' });
+  }
+);
 ```
 
-## 🛡️ Security Features
-
-### Production-Ready Security
-
-- **Strong Secret Validation** - Rejects weak JWT secrets
-- **Algorithm Protection** - Forces HS256 algorithm to prevent attacks
-- **Bcrypt Rounds Validation** - Ensures optimal security/performance balance
-- **Hash Format Validation** - Validates bcrypt hash integrity
-- **Input Sanitization** - Comprehensive input validation
-- **Timing Attack Protection** - Secure password comparison
-
-### Error Handling
+### Role-Based Access
 
 ```javascript
-try {
-  const payload = verifyToken(token);
-} catch (error) {
-  // Handles: 'Token has expired', 'Invalid token', etc.
-  console.log(error.message);
+// Public route
+app.get('/public', (req, res) => {
+  res.json({ message: 'Everyone can see this' });
+});
+
+// User routes (any authenticated user)
+app.get(
+  '/dashboard',
+  auth.requireLogin(),
+  auth.requireRole('user'),
+  (req, res) => {
+    const user = auth.user(req);
+    res.json({ message: `Welcome ${user.email}` });
+  }
+);
+
+// Moderator routes (moderator + admin + superadmin)
+app.get(
+  '/moderate',
+  auth.requireLogin(),
+  auth.requireRole('moderator'),
+  (req, res) => {
+    res.json({ message: 'Moderator panel' });
+  }
+);
+
+// Admin routes (admin + superadmin)
+app.get(
+  '/admin',
+  auth.requireLogin(),
+  auth.requireRole('admin'),
+  (req, res) => {
+    res.json({ message: 'Admin panel' });
+  }
+);
+
+// Multiple roles (OR logic)
+app.get(
+  '/manage',
+  auth.requireLogin(),
+  auth.requireRole('admin', 'moderator'),
+  (req, res) => {
+    res.json({ message: 'Management area' });
+  }
+);
+```
+
+### Business Logic
+
+```javascript
+class PostService {
+  async deletePost(postId, req) {
+    const user = auth.user(req);
+
+    if (!user) {
+      throw new Error('Authentication required');
+    }
+
+    const post = await db.getPost(postId);
+
+    // Users can delete own posts, moderators can delete any
+    const canDelete =
+      post.createdBy === user.userId || auth.hasRole(user.roles, 'moderator');
+
+    if (!canDelete) {
+      throw new Error('Permission denied');
+    }
+
+    await db.deletePost(postId);
+    return { success: true };
+  }
+
+  async createPost(postData, req) {
+    const user = auth.user(req);
+
+    if (!user) {
+      throw new Error('Authentication required');
+    }
+
+    // Moderators can publish immediately, users create drafts
+    const status = auth.hasRole(user.roles, 'moderator')
+      ? 'published'
+      : 'draft';
+
+    const post = await db.createPost({
+      ...postData,
+      createdBy: user.userId,
+      status,
+    });
+
+    return post;
+  }
 }
 ```
 
-## 🔍 Error Messages
-
-| Function       | Error                                       | Meaning                     |
-| -------------- | ------------------------------------------- | --------------------------- |
-| `signToken`    | `JWT secret must be at least 32 characters` | Weak secret detected        |
-| `verifyToken`  | `Token has expired`                         | JWT token expired           |
-| `verifyToken`  | `Invalid token`                             | JWT token corrupted/invalid |
-| `hashPassword` | `Bcrypt rounds must be between 8-15`        | Invalid rounds              |
-| `requireAuth`  | `Authentication required`                   | No token provided           |
-| `requireRole`  | `Insufficient permissions`                  | User lacks required role    |
-
-## 🚀 Migration from Other Libraries
-
-### From `jsonwebtoken`
+### Optional Authentication
 
 ```javascript
-// Before
-import jwt from 'jsonwebtoken';
-const token = jwt.sign(payload, secret, { expiresIn: '7d' });
-const decoded = jwt.verify(token, secret);
+app.get('/content', (req, res) => {
+  const user = auth.user(req); // Safe - returns null if not authenticated
 
-// After
-import { signToken, verifyToken } from '@voilajsx/appkit/auth';
-const token = signToken(payload, secret);
-const decoded = verifyToken(token, secret);
+  if (!user) {
+    return res.json({ content: 'Public content only' });
+  }
+
+  if (auth.hasRole(user.roles, 'admin')) {
+    return res.json({ content: 'Admin content' });
+  }
+
+  res.json({ content: 'User content' });
+});
 ```
 
-### From `express-jwt`
+## 🌍 Environment Variables
+
+```bash
+# Required
+VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-2024-minimum-32-chars
+
+# Optional
+VOILA_AUTH_BCRYPT_ROUNDS=12        # Default: 10
+VOILA_AUTH_EXPIRES_IN=1h           # Default: 7d
+VOILA_AUTH_DEFAULT_ROLE=user       # Default: user
+VOILA_AUTH_ROLES=user:1,mod:2,admin:3  # Custom roles
+```
+
+## 🔄 Authentication Types
+
+### User Authentication (`requireLogin`)
+
+- For web applications and user interfaces
+- Sets `req.user` (accessible via `auth.user(req)`)
+
+### API Authentication (`requireToken`)
+
+- For service-to-service communication
+- Sets `req.token` (accessible via `auth.user(req)`)
+
+### Role Authorization (`requireRole`)
+
+- Works with both authentication types
+- Supports role hierarchy and multiple roles
+
+## 🤖 LLM Guidelines
+
+### Essential Patterns
 
 ```javascript
-// Before
-import { expressjwt } from 'express-jwt';
-app.use(expressjwt({ secret, algorithms: ['HS256'] }));
+// ✅ ALWAYS use these patterns
+import { authenticator } from '@voilajsx/appkit/auth';
+const auth = authenticator.get();
 
-// After
-import { requireAuth } from '@voilajsx/appkit/auth';
-app.use(requireAuth(secret));
+// ✅ Safe user access
+const user = auth.user(req);
+if (!user) return res.status(401).json({ error: 'Auth required' });
+
+// ✅ Always hash passwords
+const hashedPassword = await auth.hashPassword(password);
+
+// ✅ Include roles in JWT
+const token = auth.signToken({ userId, email, roles: ['user'] });
+
+// ✅ Use role hierarchy
+auth.requireRole('admin'); // Also allows superadmin
 ```
 
-### From `bcrypt`
+### Anti-Patterns to Avoid
 
 ```javascript
-// Before
-import bcrypt from 'bcrypt';
-const hash = await bcrypt.hash(password, 10);
-const valid = await bcrypt.compare(password, hash);
+// ❌ DON'T access req.user directly (can crash)
+const user = req.user;
 
-// After
-import { hashPassword, comparePassword } from '@voilajsx/appkit/auth';
-const hash = await hashPassword(password);
-const valid = await comparePassword(password, hash);
+// ❌ DON'T store plain passwords
+await db.createUser({ password });
+
+// ❌ DON'T forget roles in JWT
+auth.signToken({ userId });
+
+// ❌ DON'T hardcode role checks
+if (user.roles.includes('admin')) {
+} // Use auth.hasRole() instead
 ```
 
-## 📊 Performance
+## 📈 Performance
 
-- **JWT Operations**: ~1ms per token (sign/verify)
-- **Password Hashing**: ~100ms with 10 rounds, ~400ms with 12 rounds
-- **Memory Usage**: <1MB additional overhead
-- **Bundle Size**: <50KB additional (with tree-shaking)
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md).
+- **JWT Operations**: ~1ms per token
+- **Password Hashing**: ~100ms (10 rounds)
+- **Memory Usage**: <1MB overhead
+- **Environment Parsing**: Once per app startup
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajsx)
+MIT © [VoilaJSX](https://github.com/voilajsx)
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a>
 </p>
