@@ -3,21 +3,23 @@
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Ultra-simple object-driven database with optional multi-tenancy and smart
-> defaults
+> Ultra-simple database wrapper with auto-discovery, app isolation, and optional
+> multi-tenancy
 
-The Database module provides **one function** that returns a database object
-with all methods. Zero configuration needed, production-ready by default, with
-optional multi-tenancy and environment-aware smart defaults.
+The Database module provides **one simple API** - `database.get()` for
+single-tenant and `database.tenant(id)` for multi-tenant. Zero configuration
+needed, auto-discovers your apps and Prisma clients, production-ready by
+default.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `database.get()`, everything else is automatic
-- **🔧 Zero Configuration** - Smart defaults for everything
-- **🌍 Environment-First** - Auto-detects from `VOILA_DB_*` variables
-- **🎯 Object-Driven** - Clean API, perfect for AI code generation
+- **⚡ One Simple API** - `database.get()` and `database.tenant()` - that's it!
+- **🔍 Auto-Discovery** - Finds your apps and Prisma clients automatically
+- **🎯 App Isolation** - Each app uses its own Prisma schema and client
+- **🔧 Zero Configuration** - Just works with environment variables
 - **🏢 Optional Multi-Tenancy** - Enable when needed, simple when not
-- **🔌 Universal Support** - Prisma (default), Mongoose, Express, Fastify
+- **🌍 Environment-First** - Smart defaults from `DATABASE_URL`
+- **📦 Production-Ready** - Built-in caching, cleanup, and error handling
 
 ## 📦 Installation
 
@@ -27,648 +29,479 @@ npm install @voilajsx/appkit
 
 ## 🏃‍♂️ Quick Start (30 seconds)
 
-```bash
-# Set your environment variable
-echo "VOILA_DB_URL=postgresql://localhost:5432/myapp" > .env
-```
+### Single-Tenant (Simple Database Access)
 
 ```javascript
-// One import, one function call
 import { database } from '@voilajsx/appkit/db';
 
-const db = database.get();
+// Configure once (optional - can use DATABASE_URL env var)
+database.configure('postgresql://localhost:5432/myapp');
 
-// Single-tenant mode (default)
-const client = await db.client();
+// Get database client (auto-detects app from file path)
+const client = await database.get();
 const users = await client.user.findMany();
-
-// Multi-tenant mode (when URL has {tenant} or enabled explicitly)
-const tenantDb = await db.tenant('acme');
-const tenantUsers = await tenantDb.user.findMany(); // Automatically isolated
 ```
 
-**That's it!** Production-ready database with optional multi-tenancy.
-
-## 📖 Essential API Reference
-
-### Main Function
-
-#### `database.get()`
-
-Returns a database object with all methods.
+### Multi-Tenant (Automatic Tenant Isolation)
 
 ```javascript
 import { database } from '@voilajsx/appkit/db';
 
-const db = database.get(); // Environment parsed once for performance
+// Configure once
+database.configure('postgresql://localhost:5432/myapp');
+
+// Get tenant-specific client (auto-filters all queries)
+const tenantClient = await database.tenant('acme-corp');
+const users = await tenantClient.user.findMany(); // Only returns acme-corp users
 ```
 
-### Database Methods
+**That's it!** Auto-discovery + app isolation + optional multi-tenancy in 2
+simple functions.
+
+## 🎯 Core API
+
+### Single-Tenant Mode
 
 ```javascript
-// Single-tenant mode
-await db.client(); // Simple Prisma client
+import { database } from '@voilajsx/appkit/db';
 
-// Multi-tenant mode
-await db.tenant(tenantId); // Tenant-specific client
-await db.createTenant(tenantId); // Create new tenant
-await db.deleteTenant(tenantId, { confirm: true }); // Delete tenant
-await db.exists(tenantId); // Check if tenant exists
-await db.list(); // List all tenants
+// Auto-detects app from file path (/apps/auth/ → 'auth')
+const client = await database.get();
 
-// Middleware
-db.middleware(options); // Universal middleware (Express + Fastify)
+// Explicit app name
+const authClient = await database.get('auth');
+const analyticsClient = await database.get('analytics');
 
-// Utilities
-await db.health(); // Health check
-await db.disconnect(); // Clean shutdown
+// Use like normal Prisma
+const users = await authClient.user.findMany();
 ```
 
-## 💡 Simple Examples
+### Multi-Tenant Mode
 
-### Single-Tenant Application
+```javascript
+import { database } from '@voilajsx/appkit/db';
+
+// Auto-detects app, applies tenant filtering
+const tenantClient = await database.tenant('tenant-123');
+
+// Explicit app + tenant
+const authTenant = await database.tenant('tenant-123', 'auth');
+
+// All queries automatically filtered by tenant
+const users = await tenantClient.user.findMany(); // Only tenant-123 users
+const posts = await tenantClient.post.create({
+  data: { title: 'Hello' }, // Automatically adds tenantId: 'tenant-123'
+});
+```
+
+### Utility Methods
+
+```javascript
+// Health check
+const health = await database.health();
+
+// List discovered apps
+const apps = await database.apps(); // ['auth', 'analytics', 'billing']
+```
+
+## 🗂️ Directory Structure
+
+The module auto-discovers apps in this structure:
+
+```
+your-project/
+├── apps/
+│   ├── auth/
+│   │   ├── prisma/
+│   │   │   ├── schema.prisma
+│   │   │   └── generated/client/index.js  ✅ Auto-discovered
+│   │   └── backend/
+│   ├── analytics/
+│   │   ├── prisma/
+│   │   │   └── generated/client/index.js  ✅ Auto-discovered
+│   │   └── backend/
+│   └── billing/
+│       ├── prisma/
+│       │   └── generated/client/index.js  ✅ Auto-discovered
+│       └── backend/
+├── package.json
+└── .env
+```
+
+## 💡 Real-World Examples
+
+### User Model (Single-Tenant)
 
 ```javascript
 /**
- * Simple single-tenant application
- * @module @voilajsx/appkit/db
- * @file examples/single-tenant.js
+ * User Model with auto-detection
+ * @file /apps/auth/backend/user/user.model.js
  */
-
-import express from 'express';
 import { database } from '@voilajsx/appkit/db';
 
-const app = express();
-const db = database.get();
+// Configure once
+database.configure('postgresql://localhost:5432/myapp');
 
-app.use(express.json());
+export const UserModel = {
+  async create(userData) {
+    const db = await database.get(); // Auto-detects 'auth' app
 
-// Single database for entire application
-app.get('/users', async (req, res) => {
-  const client = await db.client();
-  const users = await client.user.findMany();
-  res.json({ users });
-});
-
-app.post('/users', async (req, res) => {
-  const client = await db.client();
-  const user = await client.user.create({
-    data: req.body,
-  });
-  res.json({ user });
-});
-
-app.listen(3000, () => {
-  console.log('Single-tenant app running on port 3000');
-});
-```
-
-### Multi-Tenant Application (Database-per-Tenant)
-
-```javascript
-/**
- * Multi-tenant application with database isolation
- * @module @voilajsx/appkit/db
- * @file examples/multi-tenant-database.js
- */
-
-import express from 'express';
-import { database } from '@voilajsx/appkit/db';
-
-const app = express();
-const db = database.get();
-
-app.use(express.json());
-
-// Universal middleware for tenant detection
-app.use(db.middleware());
-
-// All routes automatically tenant-aware
-app.get('/users', async (req, res) => {
-  // req.db is tenant-specific database connection
-  const users = await req.db.user.findMany();
-  res.json({ users, tenant: req.tenantId });
-});
-
-app.post('/users', async (req, res) => {
-  // Automatic tenant isolation
-  const user = await req.db.user.create({
-    data: req.body,
-  });
-  res.json({ user });
-});
-
-// Tenant management
-app.post('/admin/tenants', async (req, res) => {
-  const { tenantId } = req.body;
-  await db.createTenant(tenantId);
-  res.json({ success: true, tenant: tenantId });
-});
-
-app.delete('/admin/tenants/:id', async (req, res) => {
-  await db.deleteTenant(req.params.id, { confirm: true });
-  res.json({ success: true });
-});
-
-app.listen(3000, () => {
-  console.log('Multi-tenant app running on port 3000');
-});
-```
-
-### Multi-Tenant Application (Row-Level)
-
-```javascript
-/**
- * Multi-tenant application with shared database
- * @module @voilajsx/appkit/db
- * @file examples/multi-tenant-row.js
- */
-
-import express from 'express';
-import { database } from '@voilajsx/appkit/db';
-
-const app = express();
-const db = database.get();
-
-app.use(express.json());
-app.use(db.middleware());
-
-// All operations automatically filtered by tenantId
-app.get('/posts', async (req, res) => {
-  // Only returns posts for current tenant
-  const posts = await req.db.post.findMany({
-    include: { author: true },
-  });
-  res.json({ posts });
-});
-
-app.post('/posts', async (req, res) => {
-  // tenantId automatically added to new posts
-  const post = await req.db.post.create({
-    data: {
-      title: req.body.title,
-      content: req.body.content,
-      authorId: req.user.id,
-    },
-  });
-  res.json({ post });
-});
-
-// Cross-tenant admin operations
-app.get('/admin/stats', async (req, res) => {
-  const tenants = await db.list();
-  const stats = [];
-
-  for (const tenantId of tenants) {
-    const tenantDb = await db.tenant(tenantId);
-    const userCount = await tenantDb.user.count();
-    const postCount = await tenantDb.post.count();
-
-    stats.push({
-      tenant: tenantId,
-      users: userCount,
-      posts: postCount,
+    return await db.user.create({
+      data: userData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
     });
-  }
+  },
 
-  res.json({ stats });
-});
+  async findById(userId) {
+    const db = await database.get(); // Auto-detects 'auth' app
 
-app.listen(3000, () => {
-  console.log('Row-level multi-tenant app running on port 3000');
-});
+    return await db.user.findUnique({
+      where: { id: userId },
+    });
+  },
+
+  async findAll({ page = 1, limit = 10 } = {}) {
+    const db = await database.get(); // Auto-detects 'auth' app
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      db.user.findMany({ skip, take: limit }),
+      db.user.count(),
+    ]);
+
+    return {
+      users,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    };
+  },
+};
 ```
 
-### Fastify Integration
+### Multi-Tenant API Routes
 
 ```javascript
 /**
- * Fastify application with database integration
- * @module @voilajsx/appkit/db
- * @file examples/fastify-app.js
+ * Multi-tenant API with Express
+ * @file /apps/auth/routes/users.js
  */
-
-import Fastify from 'fastify';
+import express from 'express';
 import { database } from '@voilajsx/appkit/db';
 
-const fastify = Fastify({ logger: true });
-const db = database.get();
+const router = express.Router();
 
-// Register database middleware
-fastify.register(async function (fastify) {
-  fastify.addHook('preHandler', db.middleware());
-});
-
-// Routes automatically have tenant context
-fastify.get('/users', async (request, reply) => {
-  const users = await request.db.user.findMany();
-  return { users, tenant: request.tenantId };
-});
-
-fastify.post('/users', async (request, reply) => {
-  const user = await request.db.user.create({
-    data: request.body,
-  });
-  return { user };
-});
-
-const start = async () => {
+// Single endpoint serves all tenants
+router.get('/users', async (req, res) => {
   try {
-    await fastify.listen({ port: 3000 });
-    console.log('Fastify app running on port 3000');
-  } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
+    const tenantId = req.headers['x-tenant-id'];
+
+    // Get tenant-specific database (auto-detects 'auth' app)
+    const db = await database.tenant(tenantId);
+
+    // All queries auto-filtered by tenant
+    const users = await db.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    res.json({ users, tenant: tenantId });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
+});
+
+router.post('/users', async (req, res) => {
+  try {
+    const tenantId = req.headers['x-tenant-id'];
+    const db = await database.tenant(tenantId);
+
+    // tenantId automatically added to new records
+    const user = await db.user.create({
+      data: req.body,
+    });
+
+    res.status(201).json({ user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export default router;
+```
+
+### Cross-App Operations
+
+```javascript
+/**
+ * Analytics service accessing multiple apps
+ * @file /apps/analytics/services/metrics.js
+ */
+import { database } from '@voilajsx/appkit/db';
+
+export const MetricsService = {
+  async getDashboardStats(tenantId) {
+    // Access different apps for the same tenant
+    const authDB = await database.tenant(tenantId, 'auth');
+    const billingDB = await database.tenant(tenantId, 'billing');
+    const analyticsDB = await database.tenant(tenantId, 'analytics');
+
+    // Aggregate data across apps
+    const [userCount, orderCount, eventCount] = await Promise.all([
+      authDB.user.count(),
+      billingDB.order.count(),
+      analyticsDB.event.count(),
+    ]);
+
+    return {
+      tenant: tenantId,
+      metrics: {
+        users: userCount,
+        orders: orderCount,
+        events: eventCount,
+      },
+    };
+  },
+
+  async getAppsList() {
+    // Discover all available apps
+    const apps = await database.apps();
+    return apps; // ['auth', 'analytics', 'billing']
+  },
 };
-
-start();
 ```
 
-## 🌍 Environment Variables
+## 🌍 Environment Configuration
 
-### Essential Configuration
+### Simple Setup
 
 ```bash
-# Required - Database connection
-VOILA_DB_URL=postgresql://localhost:5432/myapp
-
-# Optional - Auto-detected from URL
-VOILA_DB_STRATEGY=row               # 'row' or 'database'
-VOILA_DB_ADAPTER=prisma             # 'prisma' or 'mongoose'
-VOILA_DB_TENANT=false               # Enable tenant mode
-
-# Optional - Performance tuning
-VOILA_DB_POOL_SIZE=10               # Connection pool size
-VOILA_DB_TIMEOUT=10000              # Connection timeout (ms)
-VOILA_DB_RETRIES=3                  # Connection retries
-VOILA_DB_SSL=true                   # Force SSL in production
-
-# Optional - Tenant configuration
-VOILA_DB_TENANT_FIELD=tenantId      # Tenant field name
-VOILA_DB_TENANT_HEADER=x-tenant-id  # Header for tenant detection
-VOILA_DB_TENANT_REQUIRED=true       # Require tenant in middleware
-VOILA_DB_TENANT_AUTO_CREATE=false   # Auto-create missing tenants
+# Just set your database URL
+DATABASE_URL="postgresql://localhost:5432/myapp"
 ```
 
-### Smart URL Detection
+### Advanced Setup
 
 ```bash
-# Single-tenant (row strategy auto-selected)
-VOILA_DB_URL=postgresql://localhost:5432/myapp
+# Database connection
+DATABASE_URL="postgresql://localhost:5432/myapp"
 
-# Multi-tenant database-per-tenant (database strategy auto-selected)
-VOILA_DB_URL=postgresql://localhost:5432/{tenant}
+# Or use appkit-specific variables
+VOILA_DATABASE_URL="postgresql://localhost:5432/myapp"
 
-# Multi-tenant row-level (explicit strategy)
-VOILA_DB_URL=postgresql://localhost:5432/myapp
-VOILA_DB_STRATEGY=row
-VOILA_DB_TENANT=true
+# Custom apps directory (optional)
+VOILA_APPS_DIR="/custom/path/to/apps"
+
+# App-specific databases (if needed)
+VOILA_AUTH_DATABASE_URL="postgresql://localhost:5432/auth_db"
+VOILA_ANALYTICS_DATABASE_URL="postgresql://localhost:5432/analytics_db"
 ```
 
-## 🔧 Multi-Tenancy Strategies
+## 🏢 Multi-Tenancy Features
 
-### Row-Level Strategy (Shared Database)
+### Automatic Tenant Isolation
 
-**Best for**: Many small tenants, cost-effective, simple setup
+When you use `database.tenant(id)`, the module automatically:
 
-```bash
-VOILA_DB_URL=postgresql://localhost:5432/myapp
-```
+1. **Adds tenant ID** to all create/update operations
+2. **Filters all queries** to only return tenant's data
+3. **Handles complex queries** (AND, OR clauses)
+4. **Isolates by app** - each app manages its own tenant data
 
-**How it works**:
+### Tenant Schema Requirements
 
-- Single shared database
-- `tenantId` column in all tables
-- Automatic filtering by tenant
-- Prisma/Mongoose middleware handles isolation
+Add a `tenantId` field to your Prisma models:
 
-**Pros**: Cost-effective, simple migrations, shared resources **Cons**: Less
-isolation, potential data leakage if misconfigured
+```prisma
+// prisma/schema.prisma
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  name     String
+  tenantId String // Add this field
 
-### Database Strategy (Database-per-Tenant)
-
-**Best for**: Fewer large tenants, maximum isolation, compliance
-
-```bash
-VOILA_DB_URL=postgresql://localhost:5432/{tenant}
-```
-
-**How it works**:
-
-- Separate database per tenant
-- Complete data isolation
-- Individual database management
-- Per-tenant backups and scaling
-
-**Pros**: Maximum isolation, individual scaling, compliance-ready **Cons**:
-Higher resource usage, complex migrations
-
-## 🛡️ Framework Support
-
-### Express Integration
-
-```javascript
-// Automatic tenant detection and database injection
-app.use(db.middleware());
-
-app.get('/api/data', (req, res) => {
-  // req.db - tenant-specific database
-  // req.tenantId - current tenant ID
-});
-```
-
-### Fastify Integration
-
-```javascript
-// Fastify plugin support
-fastify.register(async function (fastify) {
-  fastify.addHook('preHandler', db.middleware());
-});
-
-// Or use helper
-import { fastifyPlugin } from '@voilajsx/appkit/db/middleware';
-fastify.register(fastifyPlugin(db));
-```
-
-### Tenant Detection Sources
-
-1. **Headers**: `x-tenant-id` (configurable)
-2. **URL Parameters**: `/api/:tenantId/users`
-3. **Query Parameters**: `/api/users?tenantId=acme`
-4. **Request Body**: `{ tenantId: 'acme', ...data }`
-5. **User Context**: `req.user.tenantId`
-6. **Subdomain**: `acme.myapp.com` → tenant: `acme`
-
-## 💾 Database Support
-
-### Prisma (Default)
-
-```bash
-# PostgreSQL
-VOILA_DB_URL=postgresql://user:pass@localhost:5432/{tenant}
-
-# MySQL
-VOILA_DB_URL=mysql://user:pass@localhost:3306/{tenant}
-
-# SQLite (development)
-VOILA_DB_URL=file:./data/{tenant}.db
-```
-
-### Mongoose
-
-```bash
-# MongoDB
-VOILA_DB_URL=mongodb://localhost:27017/{tenant}
-
-# MongoDB Atlas
-VOILA_DB_URL=mongodb+srv://user:pass@cluster.mongodb.net/{tenant}
-```
-
-## 🏥 Health Monitoring
-
-```javascript
-// Health check endpoint
-app.get('/health/database', async (req, res) => {
-  const health = await db.health();
-  res.json(health);
-});
-
-// Example response:
-// {
-//   healthy: true,
-//   connections: 5,
-//   strategy: "database",
-//   adapter: "prisma",
-//   tenant: true
-// }
-```
-
-## 🔧 Advanced Usage
-
-### Manual Tenant Operations
-
-```javascript
-// Create tenant programmatically
-await db.createTenant('newcompany');
-
-// Check if tenant exists
-if (await db.exists('acme')) {
-  const tenantDb = await db.tenant('acme');
-  // Use tenant database
+  @@index([tenantId])
+  @@map("auth_users")
 }
 
-// List all tenants
-const tenants = await db.list();
-console.log('All tenants:', tenants);
+model Post {
+  id       String @id @default(cuid())
+  title    String
+  content  String
+  tenantId String // Add this field
 
-// Delete tenant (requires confirmation)
-await db.deleteTenant('oldcompany', { confirm: true });
+  @@index([tenantId])
+  @@map("blog_posts")
+}
 ```
 
-### Custom Middleware Configuration
+## 🔧 App Isolation Features
+
+### Separate Schemas per App
+
+Each app maintains its own:
+
+- **Prisma schema** (`/apps/{app}/prisma/schema.prisma`)
+- **Migrations** (`/apps/{app}/prisma/migrations/`)
+- **Generated client** (`/apps/{app}/prisma/generated/client/`)
+- **Database tables** (with app prefixes like `auth_users`, `blog_posts`)
+
+### Auto-Detection
+
+The module automatically:
+
+1. **Scans `/apps` directory** for Prisma clients
+2. **Detects current app** from file path
+3. **Loads correct client** for each app
+4. **Caches clients** for performance
+
+## 🚀 Migration from Other Solutions
+
+### From Direct Prisma
 
 ```javascript
-// Custom tenant detection
-app.use(
-  db.middleware({
-    headerName: 'x-organization-id',
-    paramName: 'orgId',
-    required: false,
-    autoCreate: true,
-    onError: (error, req, res, next) => {
-      res.status(error.statusCode || 500).json({
-        error: 'Custom database error',
-        message: error.message,
-      });
-    },
-  })
-);
-```
+// Before: Direct Prisma import
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+const users = await prisma.user.findMany();
 
-### Tenant Switching
-
-```javascript
-app.get('/admin/switch/:tenantId', async (req, res) => {
-  try {
-    // Switch to different tenant mid-request
-    const newDb = await req.switchTenant(req.params.tenantId);
-    const users = await newDb.user.findMany();
-
-    res.json({
-      tenant: req.tenantId,
-      users,
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-```
-
-## 🤖 LLM Code Generation Guidelines
-
-### File Headers (Required)
-
-```javascript
-/**
- * Brief description of what the file does
- * @module @voilajsx/appkit/db
- * @file path/to/filename.js
- */
-```
-
-### Function Documentation (Required)
-
-```javascript
-/**
- * Clear description of what the function does
- * @param {Type} paramName - Parameter description
- * @returns {ReturnType} Return value description
- */
-```
-
-### Code Style Requirements
-
-- **ESM imports** with single quotes:
-  `import { database } from '@voilajsx/appkit/db';`
-- **Semicolons required** for all statements
-- **2-space indentation** for consistency
-- **Always include JSDoc** for function documentation
-
-### Essential Patterns for LLM Generation
-
-#### 1. Basic Database Setup
-
-```javascript
-// Always start with this pattern
+// After: AppKit Database
 import { database } from '@voilajsx/appkit/db';
-const db = database.get();
+const db = await database.get();
+const users = await db.user.findMany();
+```
 
-// Single-tenant mode
+### From VoilaJS AppKit v1
+
+```javascript
+// Before: Complex configuration
+import { database } from '@voilajsx/appkit/db';
+const db = database.get({
+  database: { url: 'postgresql://...', adapter: 'prisma' },
+  adapter: { type: 'prisma', client: PrismaClient },
+});
 const client = await db.client();
 
-// Multi-tenant mode
-const tenantDb = await db.tenant('acme');
+// After: Simple configuration
+import { database } from '@voilajsx/appkit/db';
+database.configure('postgresql://...');
+const client = await database.get();
 ```
 
-#### 2. Middleware Integration Pattern
+## 📊 Performance
+
+- **Auto-discovery**: Runs once at startup, cached thereafter
+- **Client caching**: Prisma clients cached per app for reuse
+- **Memory usage**: <2MB additional overhead per app
+- **Connection pooling**: Handled by Prisma (configurable)
+- **Startup time**: <100ms additional for auto-discovery
+
+## 🛡️ Error Handling
+
+The module uses AppKit's standard error system:
 
 ```javascript
-// ✅ ALWAYS add middleware for multi-tenant apps
-app.use(db.middleware());
+import { database } from '@voilajsx/appkit/db';
+import { createDatabaseError } from '@voilajsx/appkit/db/defaults';
 
-// ✅ Use tenant-aware database operations
-app.get('/api/data', async (req, res) => {
-  const data = await req.db.model.findMany(); // Automatically isolated
-  res.json({ data, tenant: req.tenantId });
-});
-```
-
-#### 3. Error Handling Pattern
-
-```javascript
-// ✅ ALWAYS handle database errors properly
 try {
-  const tenantDb = await db.tenant('acme');
-  const users = await tenantDb.user.findMany();
+  const client = await database.get('nonexistent-app');
 } catch (error) {
-  res.status(error.statusCode || 500).json({
-    error: error.message,
-  });
+  console.log(error.statusCode); // 500
+  console.log(error.message); // "App 'nonexistent-app' not found"
 }
-```
 
-#### 4. Tenant Management Pattern
-
-```javascript
-// ✅ ALWAYS validate tenant operations
-app.post('/admin/tenants', async (req, res) => {
-  try {
-    const { tenantId } = req.body;
-
-    // Check if tenant already exists
-    if (await db.exists(tenantId)) {
-      return res.status(409).json({ error: 'Tenant already exists' });
+// In your models, use standard error creation
+export const UserModel = {
+  async create(userData) {
+    try {
+      const db = await database.get();
+      return await db.user.create({ data: userData });
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw createDatabaseError('Email already registered', 409);
+      }
+      throw createDatabaseError('Failed to create user', 500);
     }
+  },
+};
+```
 
-    await db.createTenant(tenantId);
-    res.json({ success: true, tenant: tenantId });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
+## 📈 Best Practices
+
+### Model Organization
+
+```javascript
+// ✅ Good: One model per file, use auto-detection
+export const UserModel = {
+  async create(userData) {
+    const db = await database.get(); // Auto-detects current app
+    return await db.user.create({ data: userData });
+  },
+};
+```
+
+### Configuration
+
+```javascript
+// ✅ Good: Configure once at app startup
+database.configure('postgresql://localhost:5432/myapp');
+
+// ✅ Good: Or use environment variables
+// DATABASE_URL=postgresql://localhost:5432/myapp
+```
+
+### Multi-Tenant Routes
+
+```javascript
+// ✅ Good: Extract tenant ID from request
+router.get('/users', async (req, res) => {
+  const tenantId = req.headers['x-tenant-id'];
+  const db = await database.tenant(tenantId);
+  const users = await db.user.findMany();
+  res.json({ users, tenant: tenantId });
 });
 ```
 
-### Anti-Patterns to Avoid
+## 🔍 Troubleshooting
 
-```javascript
-// ❌ DON'T access database without tenant context in multi-tenant apps
-const users = await prisma.user.findMany(); // No tenant isolation
+### App Not Found
 
-// ❌ DON'T forget middleware in multi-tenant applications
-app.get('/api/data', (req, res) => {
-  // No req.db or req.tenantId available
-});
+```bash
+Error: App 'auth' not found. Available: none
 
-// ❌ DON'T create tenants without validation
-await db.createTenant(userInput); // No validation
-
-// ❌ DON'T delete tenants without confirmation
-await db.deleteTenant(tenantId); // Should require { confirm: true }
-
-// ❌ DON'T hardcode tenant IDs
-const acmeDb = await db.tenant('acme'); // Should be dynamic
+# Solutions:
+1. Run: npx prisma generate (in /apps/auth/)
+2. Check directory structure: /apps/auth/prisma/generated/client/
+3. Set VOILA_APPS_DIR if using custom structure
 ```
 
-### Response Format Guidelines
+### Database Connection Issues
 
-#### Standard Success Response
+```bash
+Error: Database URL not found for auth
 
-```javascript
-res.json({
-  data: results,
-  tenant: req.tenantId, // Include tenant context
-  count: results.length,
-});
+# Solutions:
+1. Set DATABASE_URL environment variable
+2. Use database.configure('your-url')
+3. Check .env file location
 ```
 
-#### Standard Error Response
+### Multi-Tenant Query Issues
 
-```javascript
-res.status(error.statusCode || 500).json({
-  error: error.message,
-  tenant: req.tenantId, // Include tenant context even in errors
-});
+```bash
+Error: Unknown field `tenantId` on model `User`
+
+# Solutions:
+1. Add tenantId field to your Prisma schema
+2. Run: npx prisma migrate dev
+3. Or use single-tenant mode: database.get()
 ```
-
-## 📈 Performance
-
-- **Connection pooling**: Configurable pool sizes per database
-- **Lazy initialization**: Connections created only when needed
-- **Connection caching**: Reuses tenant connections for performance
-- **Memory usage**: <3MB additional overhead
-- **Environment parsing**: Once per application lifecycle
-
-## 🔍 Error Handling
-
-All database functions return standard Error objects with `statusCode`
-properties:
-
-```javascript
-try {
-  await db.createTenant('invalid-tenant-id!');
-} catch (error) {
-  console.log(`Error ${error.statusCode}: ${error.message}`);
-  // Error 400: Invalid tenant ID format
-}
-```
-
-### Common Error Status Codes
-
-- **400** - Invalid tenant ID or configuration
-- **404** - Tenant not found
-- **409** - Tenant already exists
-- **500** - Database connection or operation error
 
 ## 🤝 Contributing
 
@@ -682,5 +515,6 @@ MIT © [VoilaJSX](https://github.com/voilajsx)
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
+  Built with ❤️ for developers who value simplicity and power<br>
+  <a href="https://github.com/voilajsx/appkit">⭐ Star us on GitHub</a>
 </p>
