@@ -1,5 +1,5 @@
 /**
- * Enhanced Prisma adapter with auto-discovery and app detection
+ * Enhanced Prisma adapter with improved auto-discovery and app detection
  * @module @voilajsx/appkit/db
  * @file src/db/adapters/prisma.js
  */
@@ -24,7 +24,7 @@ export class PrismaAdapter {
    */
   async createClient(config = {}) {
     // Auto-detect app if not provided
-    const appName = config.appName || this._detectAppFromPath();
+    const appName = config.appName || this._detectAppFromCallStack();
     const dbUrl = config.url || this._getDefaultUrl();
     const clientKey = `${appName}_${dbUrl}_${JSON.stringify(config.options || {})}`;
 
@@ -291,20 +291,70 @@ export class PrismaAdapter {
   }
 
   /**
-   * Auto-detect app name from path (your proven logic)
+   * IMPROVED: Auto-detect app name from call stack instead of cwd
    * @private
    */
-  _detectAppFromPath() {
-    const cwd = process.cwd();
+  _detectAppFromCallStack() {
+    try {
+      // Create error to get stack trace
+      const stack = new Error().stack;
+      const stackLines = stack.split('\n');
 
-    // Look for /apps/{appName}/ pattern
-    const appsMatch = cwd.match(/\/apps\/([^\/]+)/);
-    if (appsMatch) {
-      return appsMatch[1];
+      if (this.isDevelopment) {
+        console.debug('🔍 [AppKit] Call stack for app detection:');
+        stackLines.slice(1, 6).forEach((line, i) => {
+          console.debug(`  ${i + 1}: ${line.trim()}`);
+        });
+      }
+
+      // Look through stack trace for /apps/{appName}/ pattern
+      for (const line of stackLines) {
+        // Match file:// URLs or regular file paths with /apps/{appName}/
+        const fileMatch = line.match(/(?:file:\/\/)?([^)]+)/);
+        if (fileMatch) {
+          const filePath = fileMatch[1];
+
+          // Look for /apps/{appName}/ pattern in the file path
+          const appsMatch = filePath.match(/\/apps\/([^\/]+)\//);
+          if (appsMatch) {
+            const detectedApp = appsMatch[1];
+            if (this.isDevelopment) {
+              console.log(
+                `✅ [AppKit] Auto-detected app from call stack: ${detectedApp}`
+              );
+              console.debug(`   Source file: ${filePath}`);
+            }
+            return detectedApp;
+          }
+        }
+      }
+
+      // Fallback: try to detect from current working directory
+      const cwd = process.cwd();
+      const appsMatch = cwd.match(/\/apps\/([^\/]+)/);
+      if (appsMatch) {
+        if (this.isDevelopment) {
+          console.log(
+            `⚠️  [AppKit] Fallback: detected app from cwd: ${appsMatch[1]}`
+          );
+        }
+        return appsMatch[1];
+      }
+
+      // Final fallback: use directory name
+      const dirName = path.basename(cwd);
+      if (this.isDevelopment) {
+        console.warn(
+          `⚠️  [AppKit] Final fallback: using directory name as app: ${dirName}`
+        );
+      }
+      return dirName;
+    } catch (error) {
+      if (this.isDevelopment) {
+        console.error('❌ [AppKit] Error in app detection:', error.message);
+      }
+      return 'unknown';
     }
-
-    // Fallback to directory name
-    return path.basename(cwd);
   }
 
   /**
