@@ -302,7 +302,7 @@ export class PrismaAdapter {
 
       if (this.isDevelopment) {
         console.debug('🔍 [AppKit] Call stack for app detection:');
-        stackLines.slice(1, 6).forEach((line, i) => {
+        stackLines.slice(1, 8).forEach((line, i) => {
           console.debug(`  ${i + 1}: ${line.trim()}`);
         });
       }
@@ -329,6 +329,17 @@ export class PrismaAdapter {
         }
       }
 
+      // Special case: if this is a platform-level call (health check, discovery, etc.)
+      // and we have discovered apps, return the first one or 'main'
+      if (this._isPlatformCall(stackLines)) {
+        if (this.isDevelopment) {
+          console.log(
+            `🏗️  [AppKit] Platform-level call detected, using 'main' app`
+          );
+        }
+        return 'main';
+      }
+
       // Fallback: try to detect from current working directory
       const cwd = process.cwd();
       const appsMatch = cwd.match(/\/apps\/([^\/]+)/);
@@ -341,7 +352,17 @@ export class PrismaAdapter {
         return appsMatch[1];
       }
 
-      // Final fallback: use directory name
+      // Final fallback: check if we're in a VoilaJS project and use main
+      if (this._isVoilaJSProject()) {
+        if (this.isDevelopment) {
+          console.log(
+            `🏗️  [AppKit] VoilaJS project detected, using 'main' app`
+          );
+        }
+        return 'main';
+      }
+
+      // Last resort: use directory name
       const dirName = path.basename(cwd);
       if (this.isDevelopment) {
         console.warn(
@@ -353,7 +374,53 @@ export class PrismaAdapter {
       if (this.isDevelopment) {
         console.error('❌ [AppKit] Error in app detection:', error.message);
       }
-      return 'unknown';
+      return 'main';
+    }
+  }
+
+  /**
+   * Check if this is a platform-level call (health check, discovery, etc.)
+   * @private
+   */
+  _isPlatformCall(stackLines) {
+    return stackLines.some(
+      (line) =>
+        line.includes('/platform/') ||
+        line.includes('setupDatabase') ||
+        line.includes('health') ||
+        line.includes('discoverApps')
+    );
+  }
+
+  /**
+   * Check if we're in a VoilaJS project structure
+   * @private
+   */
+  _isVoilaJSProject() {
+    const cwd = process.cwd();
+    const appsDir = path.join(cwd, 'apps');
+    const packageJsonPath = path.join(cwd, 'package.json');
+
+    try {
+      // Check if apps directory exists
+      if (!fs.existsSync(appsDir)) return false;
+
+      // Check if package.json mentions voilajs
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(
+          fs.readFileSync(packageJsonPath, 'utf8')
+        );
+        if (
+          packageJson.dependencies?.['@voilajsx/voilajs'] ||
+          packageJson.name?.includes('voila')
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      return false;
     }
   }
 
