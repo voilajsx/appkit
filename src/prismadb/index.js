@@ -12,8 +12,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Search upwards for apps directory
+ * Auto-detect app name from file path
+ * @param {string} callerPath - Path of the calling file
+ * @returns {string|null} App name or null
  */
+function detectAppFromPath(callerPath = null) {
+  // Get the caller's file path
+  const callPath = callerPath || process.cwd();
+
+  // Look for /apps/{appName}/ pattern in the path
+  const appsMatch = callPath.match(/\/apps\/([^\/]+)/);
+
+  if (appsMatch) {
+    const detectedApp = appsMatch[1];
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        `🔍 [PrismaDB] Auto-detected app: ${detectedApp} from path: ${callPath}`
+      );
+    }
+    return detectedApp;
+  }
+
+  return null;
+}
 function findAppsDirectoryUpwards(startDir) {
   const paths = [];
   let currentDir = startDir;
@@ -111,7 +132,7 @@ async function discoverApps() {
 /**
  * Create Prisma client for app
  */
-async function createClient(appName) {
+async function createClient(appName, config = {}) {
   const apps = await discoverApps();
   const app = apps.find((a) => a.name === appName);
 
@@ -129,11 +150,12 @@ async function createClient(appName) {
     throw new Error(`Failed to load ${appName} client: ${error.message}`);
   }
 
-  // Get database URL
+  // Get database URL with multiple fallbacks
   const dbUrl =
-    process.env.DATABASE_URL ||
-    process.env.VOILA_DATABASE_URL ||
-    process.env[`VOILA_${appName.toUpperCase()}_DATABASE_URL`];
+    config.url || // Direct config
+    process.env.DATABASE_URL || // Global
+    process.env.VOILA_DATABASE_URL || // AppKit
+    process.env[`VOILA_${appName.toUpperCase()}_DATABASE_URL`]; // App-specific
 
   if (!dbUrl) {
     throw new Error(`Database URL not found for ${appName}`);
@@ -157,18 +179,38 @@ async function createClient(appName) {
  */
 export const prismadb = {
   /**
-   * Get client for app
-   * @param {string} appName - App name
+   * Configure global database URL
+   * @param {string} url - Database URL
+   */
+  configure(url) {
+    if (!process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = url;
+    }
+  },
+
+  /**
+   * Get client for app (with auto-detection)
+   * @param {string} appName - App name (optional if can be auto-detected)
+   * @param {Object} config - Optional config with url
    * @returns {Object} Prisma client
    */
-  async get(appName) {
+  async get(appName = null, config = {}) {
+    // Auto-detect app name if not provided
     if (!appName) {
-      throw new Error('App name is required');
+      appName = detectAppFromPath();
+      if (!appName) {
+        throw new Error(
+          'App name is required. Either pass it explicitly or run from /apps/{appName}/ directory'
+        );
+      }
     }
 
-    if (!clients.has(appName)) {
-      const client = await createClient(appName);
-      clients.set(appName, client);
+    // Allow passing URL directly in config
+    const clientKey = config.url ? `${appName}_${config.url}` : appName;
+
+    if (!clients.has(clientKey)) {
+      const client = await createClient(appName, config);
+      clients.set(clientKey, client);
 
       // Setup cleanup on first client
       if (clients.size === 1) {
@@ -189,7 +231,7 @@ export const prismadb = {
       }
     }
 
-    return clients.get(appName);
+    return clients.get(clientKey);
   },
 
   /**
@@ -202,10 +244,12 @@ export const prismadb = {
   },
 
   /**
-   * Health check
-   * @param {string} appName - App name
-   * @returns {Object} Health status
+   * Get current app name based on execution path
+   * @returns {string|null} Current app name
    */
+  currentApp() {
+    return detectAppFromPath();
+  },
   async health(appName) {
     try {
       const client = await this.get(appName);
