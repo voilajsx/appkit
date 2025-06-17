@@ -1,11 +1,11 @@
 /**
- * Smart defaults and environment validation for database
+ * Smart defaults and environment validation for database with app-level detection
  * @module @voilajsx/appkit/db
  * @file src/db/defaults.js
  */
 
 /**
- * Gets smart defaults using VOILA_DB_* environment variables
+ * Gets smart defaults using VOILA_DB_* environment variables with app detection
  * @returns {object} Configuration object with smart defaults
  */
 export function getSmartDefaults() {
@@ -21,6 +21,7 @@ export function getSmartDefaults() {
       strategy: detectStrategy(),
       adapter: detectAdapter(),
       tenant: detectTenantMode(),
+      appId: detectAppId(),
     },
 
     // Connection configuration
@@ -32,11 +33,27 @@ export function getSmartDefaults() {
       ssl: process.env.VOILA_DB_SSL === 'true' || isProduction,
     },
 
+    // Adapter configuration with auto-detection
+    adapter: {
+      type: detectAdapter(),
+      clientPath: process.env.VOILA_DB_PRISMA_CLIENT_PATH,
+      client: null, // Can be injected directly
+      autoDetect: process.env.VOILA_DB_AUTO_DETECT_PRISMA !== 'false',
+    },
+
     // Tenant configuration
     tenant: {
       fieldName: process.env.VOILA_DB_TENANT_FIELD || 'tenantId',
       validation: process.env.VOILA_DB_TENANT_VALIDATION !== 'false',
       autoCreate: process.env.VOILA_DB_TENANT_AUTO_CREATE === 'true',
+    },
+
+    // App-level configuration (for monorepo)
+    app: {
+      fieldName: process.env.VOILA_DB_APP_FIELD || 'appId',
+      autoDetect: process.env.VOILA_DB_APP_AUTO_DETECT !== 'false',
+      isolation: process.env.VOILA_DB_APP_ISOLATION === 'true',
+      tablePrefix: process.env.VOILA_DB_APP_TABLE_PREFIX !== 'false', // Default enabled
     },
 
     // Middleware configuration
@@ -45,6 +62,8 @@ export function getSmartDefaults() {
       paramName: process.env.VOILA_DB_TENANT_PARAM || 'tenantId',
       queryName: process.env.VOILA_DB_TENANT_QUERY || 'tenantId',
       required: process.env.VOILA_DB_TENANT_REQUIRED !== 'false',
+      appHeaderName: process.env.VOILA_DB_APP_HEADER || 'x-app-id',
+      appParamName: process.env.VOILA_DB_APP_PARAM || 'appId',
     },
 
     // Environment info
@@ -52,25 +71,150 @@ export function getSmartDefaults() {
       isDevelopment,
       isProduction,
       nodeEnv: process.env.NODE_ENV || 'development',
+      isMonorepo: isMonorepoEnvironment(),
+      appRoot: getAppRoot(),
     },
   };
 }
 
 /**
- * Detects tenant strategy from environment or URL
- * @returns {string} Strategy name ('row' or 'database')
+ * Detects application ID for monorepo app isolation
+ * @returns {string} Application identifier
+ */
+function detectAppId() {
+  // Explicit app ID override
+  const explicitAppId = process.env.VOILA_DB_APP_ID;
+  if (explicitAppId) {
+    return explicitAppId;
+  }
+
+  // Auto-detect from package.json
+  try {
+    const fs = require('fs');
+    const path = require('path');
+
+    // Look for package.json in current directory
+    const pkgPath = path.join(process.cwd(), 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+
+      // Use package name (remove scope if present)
+      if (pkg.name) {
+        return pkg.name.split('/').pop();
+      }
+    }
+  } catch (error) {
+    // Failed to read package.json
+  }
+
+  // Fallback to directory name
+  try {
+    const path = require('path');
+    const dirName = path.basename(process.cwd());
+
+    // Clean up directory name
+    return dirName.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  } catch (error) {
+    // Ultimate fallback
+    return 'voila';
+  }
+}
+
+/**
+ * Detects if running in a monorepo environment
+ * @returns {boolean} True if in monorepo
+ */
+function isMonorepoEnvironment() {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+
+    // Check for common monorepo indicators
+    const indicators = [
+      'turbo.json',
+      'lerna.json',
+      'nx.json',
+      'rush.json',
+      'pnpm-workspace.yaml',
+      'yarn.lock',
+    ];
+
+    // Check current directory and parent directories
+    let currentDir = process.cwd();
+    const maxDepth = 5;
+
+    for (let i = 0; i < maxDepth; i++) {
+      for (const indicator of indicators) {
+        if (fs.existsSync(path.join(currentDir, indicator))) {
+          return true;
+        }
+      }
+
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) break; // Reached root
+      currentDir = parentDir;
+    }
+
+    // Check for apps/ or packages/ directory structure
+    const cwd = process.cwd();
+    if (cwd.includes('/apps/') || cwd.includes('/packages/')) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Gets the app root directory in monorepo
+ * @returns {string} App root path
+ */
+function getAppRoot() {
+  try {
+    const path = require('path');
+    const cwd = process.cwd();
+
+    // Look for common app directory patterns
+    const patterns = ['/apps/', '/packages/', '/modules/'];
+
+    for (const pattern of patterns) {
+      const index = cwd.indexOf(pattern);
+      if (index !== -1) {
+        return cwd.substring(index + pattern.length).split('/')[0];
+      }
+    }
+
+    return path.basename(cwd);
+  } catch (error) {
+    return 'unknown';
+  }
+}
+
+/**
+ * Detects tenant strategy from environment or URL with app support
+ * @returns {string} Strategy name ('row', 'database', or 'app')
  */
 function detectStrategy() {
   // Explicit strategy override
   const explicitStrategy = process.env.VOILA_DB_STRATEGY;
   if (explicitStrategy) {
-    if (!['row', 'database'].includes(explicitStrategy)) {
+    if (!['row', 'database', 'app'].includes(explicitStrategy)) {
       console.warn(
         `Invalid VOILA_DB_STRATEGY: "${explicitStrategy}". Using auto-detection.`
       );
     } else {
       return explicitStrategy;
     }
+  }
+
+  // Auto-detect app strategy in monorepo
+  if (
+    isMonorepoEnvironment() &&
+    process.env.VOILA_DB_APP_ISOLATION === 'true'
+  ) {
+    return 'app';
   }
 
   // Auto-detect from URL pattern
@@ -134,8 +278,10 @@ function detectTenantMode() {
   const url = process.env.VOILA_DB_URL || process.env.DATABASE_URL;
   const strategy = detectStrategy();
 
-  // Enable tenant mode if URL has {tenant} placeholder or strategy is 'database'
-  return (url && url.includes('{tenant}')) || strategy === 'database';
+  // Enable tenant mode if URL has {tenant} placeholder or strategy supports tenancy
+  return (
+    (url && url.includes('{tenant}')) || ['database', 'app'].includes(strategy)
+  );
 }
 
 /**
@@ -167,11 +313,19 @@ function validateEnvironment() {
     );
   }
 
+  // Validate app field name
+  const appField = process.env.VOILA_DB_APP_FIELD;
+  if (appField && !/^[a-zA-Z][a-zA-Z0-9_]*$/.test(appField)) {
+    console.warn(
+      `Invalid VOILA_DB_APP_FIELD: "${appField}". Must be a valid identifier.`
+    );
+  }
+
   // Validate strategy and adapter
   const strategy = process.env.VOILA_DB_STRATEGY;
-  if (strategy && !['row', 'database'].includes(strategy)) {
+  if (strategy && !['row', 'database', 'app'].includes(strategy)) {
     console.warn(
-      `Invalid VOILA_DB_STRATEGY: "${strategy}". Supported: row, database`
+      `Invalid VOILA_DB_STRATEGY: "${strategy}". Supported: row, database, app`
     );
   }
 
@@ -180,6 +334,30 @@ function validateEnvironment() {
     console.warn(
       `Invalid VOILA_DB_ADAPTER: "${adapter}". Supported: prisma, mongoose`
     );
+  }
+
+  // Validate Prisma client path if provided
+  const prismaClientPath = process.env.VOILA_DB_PRISMA_CLIENT_PATH;
+  if (prismaClientPath) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+
+      // Check if path exists (for relative paths)
+      if (
+        prismaClientPath.startsWith('./') ||
+        prismaClientPath.startsWith('../')
+      ) {
+        const fullPath = path.resolve(prismaClientPath);
+        if (!fs.existsSync(fullPath)) {
+          console.warn(
+            `VOILA_DB_PRISMA_CLIENT_PATH path does not exist: ${prismaClientPath}`
+          );
+        }
+      }
+    } catch (error) {
+      // Ignore validation errors
+    }
   }
 }
 
@@ -296,6 +474,29 @@ export function validateTenantId(tenantId) {
 }
 
 /**
+ * Validates app ID format
+ * @param {string} appId - App ID to validate
+ * @returns {boolean} True if valid
+ */
+export function validateAppId(appId) {
+  if (!appId || typeof appId !== 'string') {
+    return false;
+  }
+
+  // Allow alphanumeric characters, underscores, and hyphens
+  if (!/^[a-zA-Z0-9_-]+$/.test(appId)) {
+    return false;
+  }
+
+  // Length validation
+  if (appId.length < 1 || appId.length > 63) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Creates database error with status code
  * @param {string} message - Error message
  * @param {number} statusCode - HTTP status code
@@ -307,4 +508,142 @@ export function createDatabaseError(message, statusCode = 500, details = {}) {
   error.statusCode = statusCode;
   Object.assign(error, details);
   return error;
+}
+
+/**
+ * Runs comprehensive database diagnostics
+ * @returns {Object} Diagnostic information
+ */
+export function diagnoseDatabase() {
+  console.log('\n🔍 Database Diagnostics:');
+
+  const diagnostics = {
+    environment: {
+      cwd: process.cwd(),
+      nodeEnv: process.env.NODE_ENV,
+      isMonorepo: isMonorepoEnvironment(),
+      appRoot: getAppRoot(),
+    },
+    configuration: {
+      url: process.env.VOILA_DB_URL ? '✅ Set' : '❌ Missing',
+      strategy: detectStrategy(),
+      adapter: detectAdapter(),
+      appId: detectAppId(),
+      tenantMode: detectTenantMode(),
+    },
+    files: {},
+    suggestions: [],
+  };
+
+  // Log basic info
+  console.log(`Working directory: ${diagnostics.environment.cwd}`);
+  console.log(`Node environment: ${diagnostics.environment.nodeEnv}`);
+  console.log(
+    `Monorepo detected: ${diagnostics.environment.isMonorepo ? '✅' : '❌'}`
+  );
+  console.log(`App root: ${diagnostics.environment.appRoot}`);
+  console.log(`Database URL: ${diagnostics.configuration.url}`);
+  console.log(`Strategy: ${diagnostics.configuration.strategy}`);
+  console.log(`Adapter: ${diagnostics.configuration.adapter}`);
+  console.log(`App ID: ${diagnostics.configuration.appId}`);
+  console.log(
+    `Tenant mode: ${diagnostics.configuration.tenantMode ? '✅' : '❌'}`
+  );
+
+  // Check for important files
+  console.log('\n📁 File Check:');
+  const importantFiles = [
+    './package.json',
+    './prisma/schema.prisma',
+    './schema.prisma',
+    './node_modules/@prisma/client',
+    './generated/client',
+    './prisma/generated/client',
+    './.prisma/client',
+    './turbo.json',
+    './lerna.json',
+    './.env',
+    './.env.local',
+  ];
+
+  try {
+    const fs = require('fs');
+
+    importantFiles.forEach((file) => {
+      try {
+        fs.accessSync(file);
+        console.log(`${file}: ✅ Found`);
+        diagnostics.files[file] = true;
+      } catch {
+        console.log(`${file}: ❌ Missing`);
+        diagnostics.files[file] = false;
+      }
+    });
+  } catch (error) {
+    console.log('❌ Unable to check files');
+  }
+
+  // Generate suggestions
+  console.log('\n💡 Suggestions:');
+
+  if (!diagnostics.files['./package.json']) {
+    diagnostics.suggestions.push('Initialize package.json: npm init');
+    console.log('1. Initialize package.json: npm init');
+  }
+
+  if (
+    !diagnostics.files['./prisma/schema.prisma'] &&
+    !diagnostics.files['./schema.prisma']
+  ) {
+    diagnostics.suggestions.push('Initialize Prisma: npx prisma init');
+    console.log('2. Initialize Prisma: npx prisma init');
+  }
+
+  if (
+    !diagnostics.files['./node_modules/@prisma/client'] &&
+    !diagnostics.files['./generated/client'] &&
+    !diagnostics.files['./prisma/generated/client']
+  ) {
+    diagnostics.suggestions.push(
+      'Install Prisma client: npm install @prisma/client'
+    );
+    diagnostics.suggestions.push('Generate Prisma client: npx prisma generate');
+    console.log('3. Install Prisma client: npm install @prisma/client');
+    console.log('4. Generate Prisma client: npx prisma generate');
+  }
+
+  if (diagnostics.configuration.url === '❌ Missing') {
+    diagnostics.suggestions.push(
+      'Set database URL: VOILA_DB_URL=your_database_url'
+    );
+    console.log('5. Set database URL in .env: VOILA_DB_URL=your_database_url');
+  }
+
+  console.log('\n📋 Environment Variables:');
+  const envVars = [
+    'VOILA_DB_URL',
+    'DATABASE_URL',
+    'VOILA_DB_STRATEGY',
+    'VOILA_DB_ADAPTER',
+    'VOILA_DB_APP_ID',
+    'VOILA_DB_TENANT',
+    'VOILA_DB_PRISMA_CLIENT_PATH',
+    'NODE_ENV',
+  ];
+
+  envVars.forEach((envVar) => {
+    const value = process.env[envVar];
+    if (value) {
+      // Mask sensitive values
+      const maskedValue = envVar.includes('URL')
+        ? value.replace(/:\/\/[^@]*@/, '://***:***@')
+        : value;
+      console.log(`${envVar}: ${maskedValue}`);
+    } else {
+      console.log(`${envVar}: ❌ Not set`);
+    }
+  });
+
+  console.log('\n');
+  return diagnostics;
 }
