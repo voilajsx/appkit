@@ -206,32 +206,27 @@ export class PrismaAdapter {
         if (prismaModule.PrismaClient) {
           this.detectedPath = this.clientPath;
           if (this.isDevelopment) {
-            console.log(
-              `✅ [DEV MODE] Using explicit Prisma client from: ${this.clientPath}`
-            );
+            console.log(`✅ [DEV MODE] Using explicit Prisma client from: ${this.clientPath}`);
           }
           return prismaModule.PrismaClient;
         }
       } catch (error) {
-        console.warn(
-          `Failed to load Prisma client from explicit path ${this.clientPath}:`,
-          error.message
-        );
+        console.warn(`Failed to load Prisma client from explicit path ${this.clientPath}:`, error.message);
       }
     }
 
     // Search paths prioritizing app-specific clients over global ones
     const paths = [
-      './prisma/generated/client', // App-specific client (highest priority)
-      '../prisma/generated/client', // Parent directory
-      '../../prisma/generated/client', // Grandparent directory
-      '../../../prisma/generated/client', // Great-grandparent directory
-      './database/generated/client', // Support database/ folder structure
-      './generated/client', // Custom generated folder
-      '@prisma/client', // Global client (lower priority)
-      './node_modules/@prisma/client', // Local node_modules
-      '../node_modules/@prisma/client', // Parent node_modules
-      '../../node_modules/@prisma/client', // Grandparent node_modules
+      './prisma/generated/client',          // App-specific client (highest priority)
+      '../prisma/generated/client',         // Parent directory
+      '../../prisma/generated/client',      // Grandparent directory  
+      '../../../prisma/generated/client',   // Great-grandparent directory
+      './database/generated/client',        // Support database/ folder structure
+      './generated/client',                 // Custom generated folder
+      '@prisma/client',                     // Global client (lower priority)
+      './node_modules/@prisma/client',      // Local node_modules
+      '../node_modules/@prisma/client',     // Parent node_modules
+      '../../node_modules/@prisma/client',  // Grandparent node_modules
     ];
 
     let lastError;
@@ -242,7 +237,7 @@ export class PrismaAdapter {
           console.debug(`  Trying: ${path}`);
         }
         const prismaModule = await import(path);
-
+        
         if (prismaModule.PrismaClient) {
           this.detectedPath = path;
           if (this.isDevelopment) {
@@ -262,11 +257,11 @@ export class PrismaAdapter {
     // If all paths failed, provide helpful error message
     throw createDatabaseError(
       `Prisma client not found. Tried paths: ${paths.join(', ')}.\n\n` +
-        `To fix this:\n` +
-        `1. Run: npx prisma generate\n` +
-        `2. Or set explicit path: VOILA_DB_PRISMA_CLIENT_PATH=./your/path\n` +
-        `3. Or inject client directly in your config\n\n` +
-        `Working directory: ${process.cwd()}`,
+      `To fix this:\n` +
+      `1. Run: npx prisma generate\n` +
+      `2. Or set explicit path: VOILA_DB_PRISMA_CLIENT_PATH=./your/path\n` +
+      `3. Or inject client directly in your config\n\n` +
+      `Working directory: ${process.cwd()}`,
       500
     );
   }
