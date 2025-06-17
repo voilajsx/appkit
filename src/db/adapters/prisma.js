@@ -1,5 +1,5 @@
 /**
- * Enhanced Prisma adapter with improved auto-discovery and app detection
+ * Production-ready Prisma adapter with optimal caching
  * @module @voilajsx/appkit/db
  * @file src/db/adapters/prisma.js
  */
@@ -9,28 +9,44 @@ import path from 'path';
 import { createDatabaseError } from '../defaults.js';
 
 /**
- * Enhanced Prisma adapter - auto-discovery + multi-tenant support
+ * Enhanced Prisma adapter with performance optimizations
  */
 export class PrismaAdapter {
   constructor(options = {}) {
     this.options = options;
     this.clients = new Map(); // Cache clients per app
-    this.discoveredApps = null;
+    this.discoveredApps = null; // Cache apps for process lifetime
     this.isDevelopment = process.env.NODE_ENV === 'development';
+
+    // PERFORMANCE OPTIMIZATION: Cache app detection results
+    this.appDetectionCache = new Map(); // Cache file path -> app name mappings
+    this.callStackCache = new Map(); // Cache call patterns -> app name
+    this.cacheStats = {
+      hits: 0,
+      misses: 0,
+      detectionCalls: 0,
+    };
+
+    if (this.isDevelopment) {
+      console.log(
+        '⚡ [AppKit] Process-lifetime caching enabled - optimal for restart-based deployments'
+      );
+    }
   }
 
   /**
-   * Creates Prisma client with auto-discovery and app detection
+   * Creates Prisma client with cached auto-discovery
    */
   async createClient(config = {}) {
-    // Auto-detect app if not provided
-    const appName = config.appName || this._detectAppFromCallStack();
+    // Use cached app detection for better performance
+    const appName =
+      config.appName || (await this._detectAppFromCallStackCached());
     const dbUrl = config.url || this._getDefaultUrl();
     const clientKey = `${appName}_${dbUrl}_${JSON.stringify(config.options || {})}`;
 
     if (!this.clients.has(clientKey)) {
       try {
-        // Load app-specific Prisma client using your proven discovery
+        // Load app-specific Prisma client using cached discovery
         const PrismaClient = await this._loadPrismaClientForApp(appName);
 
         const client = new PrismaClient({
@@ -49,6 +65,7 @@ export class PrismaAdapter {
 
         if (this.isDevelopment) {
           console.log(`✅ [AppKit] Created Prisma client for app: ${appName}`);
+          this._logCacheStats();
         }
       } catch (error) {
         throw createDatabaseError(
@@ -62,7 +79,320 @@ export class PrismaAdapter {
   }
 
   /**
-   * Applies tenant filtering middleware
+   * OPTIMIZED: Cached app detection with multiple strategies
+   * @private
+   */
+  async _detectAppFromCallStackCached() {
+    this.cacheStats.detectionCalls++;
+
+    try {
+      // Strategy 1: Check if we can determine app from calling file directly (fastest)
+      const callingFile = this._getCallingFile();
+      if (callingFile) {
+        if (this.appDetectionCache.has(callingFile)) {
+          this.cacheStats.hits++;
+          return this.appDetectionCache.get(callingFile);
+        }
+
+        // Quick file path check (fastest)
+        const appFromPath = this._extractAppFromPath(callingFile);
+        if (appFromPath) {
+          this.appDetectionCache.set(callingFile, appFromPath);
+          this.cacheStats.misses++;
+          if (this.isDevelopment) {
+            console.log(`⚡ [AppKit] Fast path detection: ${appFromPath}`);
+          }
+          return appFromPath;
+        }
+      }
+
+      // Strategy 2: Call stack analysis (slower, cached by pattern)
+      return await this._detectFromCallStackWithCache();
+    } catch (error) {
+      if (this.isDevelopment) {
+        console.error(
+          '❌ [AppKit] Error in cached app detection:',
+          error.message
+        );
+      }
+      return 'main';
+    }
+  }
+
+  /**
+   * Get the file that called the database function (fast)
+   * @private
+   */
+  _getCallingFile() {
+    try {
+      const stack = new Error().stack;
+      const stackLines = stack.split('\n');
+
+      // Look for the first non-AppKit file in the stack
+      for (let i = 1; i < Math.min(stackLines.length, 10); i++) {
+        const line = stackLines[i];
+        if (
+          line.includes('file://') &&
+          !line.includes('/node_modules/@voilajsx/appkit/') &&
+          !line.includes('/node_modules/')
+        ) {
+          const fileMatch = line.match(/file:\/\/([^)]+)/);
+          if (fileMatch) {
+            return fileMatch[1].split(':')[0]; // Remove line numbers
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Extract app name from file path (very fast)
+   * @private
+   */
+  _extractAppFromPath(filePath) {
+    const appsMatch = filePath.match(/\/apps\/([^\/]+)\//);
+    return appsMatch ? appsMatch[1] : null;
+  }
+
+  /**
+   * Call stack analysis with caching by pattern
+   * @private
+   */
+  async _detectFromCallStackWithCache() {
+    try {
+      const stack = new Error().stack;
+
+      // Create a cache key from the call pattern
+      const callPattern = this._extractCallPattern(stack);
+
+      if (this.callStackCache.has(callPattern)) {
+        this.cacheStats.hits++;
+        return this.callStackCache.get(callPattern);
+      }
+
+      // Do the expensive call stack analysis
+      const stackLines = stack.split('\n');
+
+      // Look through stack trace for /apps/{appName}/ pattern
+      for (const line of stackLines) {
+        const fileMatch = line.match(/(?:file:\/\/)?([^)]+)/);
+        if (fileMatch) {
+          const filePath = fileMatch[1];
+          const appsMatch = filePath.match(/\/apps\/([^\/]+)\//);
+          if (appsMatch) {
+            const detectedApp = appsMatch[1];
+
+            // Cache this pattern for future calls
+            this.callStackCache.set(callPattern, detectedApp);
+            this.cacheStats.misses++;
+
+            if (this.isDevelopment) {
+              console.log(`🔍 [AppKit] Stack analysis cached: ${detectedApp}`);
+            }
+            return detectedApp;
+          }
+        }
+      }
+
+      // Fallback strategies
+      return this._getFallbackApp();
+    } catch (error) {
+      return 'main';
+    }
+  }
+
+  /**
+   * Extract a pattern from call stack for caching
+   * @private
+   */
+  _extractCallPattern(stack) {
+    const lines = stack.split('\n').slice(1, 6); // First 5 lines
+    return lines
+      .map((line) => {
+        // Extract just the function names and remove file paths
+        const funcMatch = line.match(/at\s+([^(]+)/);
+        return funcMatch ? funcMatch[1].trim() : '';
+      })
+      .filter(Boolean)
+      .join('->');
+  }
+
+  /**
+   * Load Prisma client for app with caching
+   * @private
+   */
+  async _loadPrismaClientForApp(appName) {
+    // Use cached app discovery
+    const apps = await this.discoverAppsCached();
+    const app = apps.find((a) => a.name === appName);
+
+    if (app) {
+      try {
+        const module = await import(app.clientPath);
+        if (module.PrismaClient) {
+          return module.PrismaClient;
+        }
+      } catch (error) {
+        console.warn(
+          `Failed to load discovered client for ${appName}:`,
+          error.message
+        );
+      }
+    }
+
+    // Fallback to path-based search
+    return await this._loadClientWithPathSearch(appName);
+  }
+
+  /**
+   * Cached app discovery (only runs once per process)
+   */
+  async discoverAppsCached() {
+    if (this.discoveredApps !== null) {
+      return this.discoveredApps;
+    }
+
+    return await this.discoverApps(); // This caches in discoveredApps
+  }
+
+  /**
+   * Path-based client loading fallback
+   * @private
+   */
+  async _loadClientWithPathSearch(appName) {
+    const searchPaths = [
+      `./apps/${appName}/prisma/generated/client/index.js`,
+      `../apps/${appName}/prisma/generated/client/index.js`,
+      `../../apps/${appName}/prisma/generated/client/index.js`,
+      `./prisma/generated/client/index.js`,
+      `../prisma/generated/client/index.js`,
+      `../../prisma/generated/client/index.js`,
+      '@prisma/client',
+    ];
+
+    let lastError;
+    for (const clientPath of searchPaths) {
+      try {
+        const module = await import(clientPath);
+        if (module.PrismaClient) {
+          if (this.isDevelopment) {
+            console.log(`✅ [AppKit] Found Prisma client at: ${clientPath}`);
+          }
+          return module.PrismaClient;
+        }
+      } catch (error) {
+        lastError = error;
+        continue;
+      }
+    }
+
+    throw createDatabaseError(
+      `Prisma client not found for app '${appName}'. Tried: ${searchPaths.join(', ')}\n\n` +
+        `To fix this:\n` +
+        `1. Run: npx prisma generate (in /apps/${appName}/)\n` +
+        `2. Or ensure client exists at: /apps/${appName}/prisma/generated/client/`,
+      500
+    );
+  }
+
+  /**
+   * Get fallback app with smart defaults
+   * @private
+   */
+  _getFallbackApp() {
+    // Check if we're in a VoilaJS project
+    if (this._isVoilaJSProject()) {
+      return 'main';
+    }
+
+    // Use directory name as last resort
+    return path.basename(process.cwd());
+  }
+
+  /**
+   * Log cache performance stats
+   * @private
+   */
+  _logCacheStats() {
+    if (this.cacheStats.detectionCalls > 0) {
+      const hitRate = (
+        (this.cacheStats.hits / this.cacheStats.detectionCalls) *
+        100
+      ).toFixed(1);
+      console.log(
+        `📊 [AppKit] Cache stats: ${this.cacheStats.hits} hits, ${this.cacheStats.misses} misses (${hitRate}% hit rate)`
+      );
+    }
+  }
+
+  /**
+   * Auto-discover apps with Prisma clients
+   */
+  async discoverApps() {
+    if (this.discoveredApps) return this.discoveredApps;
+
+    const searchPaths = [
+      process.env.VOILA_APPS_DIR,
+      ...this._findAppsDirectoryUpwards(process.cwd()),
+    ].filter(Boolean);
+
+    let foundAppsDir = null;
+    for (const searchPath of searchPaths) {
+      if (fs.existsSync(searchPath)) {
+        foundAppsDir = searchPath;
+        break;
+      }
+    }
+
+    if (!foundAppsDir) {
+      if (this.isDevelopment) {
+        console.warn('⚠️  [AppKit] No apps directory found');
+      }
+      this.discoveredApps = [];
+      return [];
+    }
+
+    const apps = [];
+    try {
+      const appFolders = fs
+        .readdirSync(foundAppsDir, { withFileTypes: true })
+        .filter((dirent) => dirent.isDirectory())
+        .map((dirent) => dirent.name);
+
+      for (const appName of appFolders) {
+        const clientPath = path.join(
+          foundAppsDir,
+          appName,
+          'prisma/generated/client/index.js'
+        );
+
+        if (fs.existsSync(clientPath)) {
+          apps.push({
+            name: appName,
+            clientPath,
+          });
+
+          if (this.isDevelopment) {
+            console.log(`✅ [AppKit] Found Prisma client for: ${appName}`);
+          }
+        }
+      }
+
+      this.discoveredApps = apps;
+    } catch (error) {
+      console.error('❌ [AppKit] Error discovering apps:', error.message);
+      this.discoveredApps = [];
+      return [];
+    }
+
+    return apps;
+  }
+
+  /**
+   * Apply tenant filtering middleware
    */
   async applyTenantMiddleware(client, tenantId, options = {}) {
     const tenantField = options.fieldName || 'tenantId';
@@ -166,230 +496,21 @@ export class PrismaAdapter {
   }
 
   /**
-   * Auto-discover apps with Prisma clients (your proven logic)
-   */
-  async discoverApps() {
-    if (this.discoveredApps) return this.discoveredApps;
-
-    const searchPaths = [
-      process.env.VOILA_APPS_DIR,
-      ...this._findAppsDirectoryUpwards(process.cwd()),
-    ].filter(Boolean);
-
-    let foundAppsDir = null;
-    for (const searchPath of searchPaths) {
-      if (fs.existsSync(searchPath)) {
-        foundAppsDir = searchPath;
-        break;
-      }
-    }
-
-    if (!foundAppsDir) {
-      if (this.isDevelopment) {
-        console.warn('⚠️  [AppKit] No apps directory found');
-      }
-      return [];
-    }
-
-    const apps = [];
-    try {
-      const appFolders = fs
-        .readdirSync(foundAppsDir, { withFileTypes: true })
-        .filter((dirent) => dirent.isDirectory())
-        .map((dirent) => dirent.name);
-
-      for (const appName of appFolders) {
-        const clientPath = path.join(
-          foundAppsDir,
-          appName,
-          'prisma/generated/client/index.js'
-        );
-
-        if (fs.existsSync(clientPath)) {
-          apps.push({
-            name: appName,
-            clientPath,
-          });
-
-          if (this.isDevelopment) {
-            console.log(`✅ [AppKit] Found Prisma client for: ${appName}`);
-          }
-        }
-      }
-
-      this.discoveredApps = apps;
-    } catch (error) {
-      console.error('❌ [AppKit] Error discovering apps:', error.message);
-      return [];
-    }
-
-    return apps;
-  }
-
-  /**
-   * Auto-detect app-specific Prisma client (your proven logic)
+   * Search upwards for apps directory
    * @private
    */
-  async _loadPrismaClientForApp(appName) {
-    // First try auto-discovery
-    const apps = await this.discoverApps();
-    const app = apps.find((a) => a.name === appName);
+  _findAppsDirectoryUpwards(startDir) {
+    const paths = [];
+    let currentDir = startDir;
 
-    if (app) {
-      try {
-        const module = await import(app.clientPath);
-        if (module.PrismaClient) {
-          return module.PrismaClient;
-        }
-      } catch (error) {
-        console.warn(
-          `Failed to load discovered client for ${appName}:`,
-          error.message
-        );
-      }
+    for (let i = 0; i < 6; i++) {
+      paths.push(path.join(currentDir, 'apps'));
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) break;
+      currentDir = parentDir;
     }
 
-    // Fallback to path-based search (your original logic)
-    const searchPaths = [
-      `./apps/${appName}/prisma/generated/client/index.js`,
-      `../apps/${appName}/prisma/generated/client/index.js`,
-      `../../apps/${appName}/prisma/generated/client/index.js`,
-      `./prisma/generated/client/index.js`, // Current app
-      `../prisma/generated/client/index.js`,
-      `../../prisma/generated/client/index.js`,
-      '@prisma/client', // Global fallback
-    ];
-
-    let lastError;
-    for (const clientPath of searchPaths) {
-      try {
-        if (this.isDevelopment) {
-          console.debug(`  [AppKit] Trying Prisma client: ${clientPath}`);
-        }
-
-        const module = await import(clientPath);
-        if (module.PrismaClient) {
-          if (this.isDevelopment) {
-            console.log(`✅ [AppKit] Found Prisma client at: ${clientPath}`);
-          }
-          return module.PrismaClient;
-        }
-      } catch (error) {
-        lastError = error;
-        continue;
-      }
-    }
-
-    throw createDatabaseError(
-      `Prisma client not found for app '${appName}'. Tried: ${searchPaths.join(', ')}\n\n` +
-        `To fix this:\n` +
-        `1. Run: npx prisma generate (in /apps/${appName}/)\n` +
-        `2. Or ensure client exists at: /apps/${appName}/prisma/generated/client/\n` +
-        `3. Or set VOILA_APPS_DIR environment variable`,
-      500
-    );
-  }
-
-  /**
-   * IMPROVED: Auto-detect app name from call stack instead of cwd
-   * @private
-   */
-  _detectAppFromCallStack() {
-    try {
-      // Create error to get stack trace
-      const stack = new Error().stack;
-      const stackLines = stack.split('\n');
-
-      if (this.isDevelopment) {
-        console.debug('🔍 [AppKit] Call stack for app detection:');
-        stackLines.slice(1, 8).forEach((line, i) => {
-          console.debug(`  ${i + 1}: ${line.trim()}`);
-        });
-      }
-
-      // Look through stack trace for /apps/{appName}/ pattern
-      for (const line of stackLines) {
-        // Match file:// URLs or regular file paths with /apps/{appName}/
-        const fileMatch = line.match(/(?:file:\/\/)?([^)]+)/);
-        if (fileMatch) {
-          const filePath = fileMatch[1];
-
-          // Look for /apps/{appName}/ pattern in the file path
-          const appsMatch = filePath.match(/\/apps\/([^\/]+)\//);
-          if (appsMatch) {
-            const detectedApp = appsMatch[1];
-            if (this.isDevelopment) {
-              console.log(
-                `✅ [AppKit] Auto-detected app from call stack: ${detectedApp}`
-              );
-              console.debug(`   Source file: ${filePath}`);
-            }
-            return detectedApp;
-          }
-        }
-      }
-
-      // Special case: if this is a platform-level call (health check, discovery, etc.)
-      // and we have discovered apps, return the first one or 'main'
-      if (this._isPlatformCall(stackLines)) {
-        if (this.isDevelopment) {
-          console.log(
-            `🏗️  [AppKit] Platform-level call detected, using 'main' app`
-          );
-        }
-        return 'main';
-      }
-
-      // Fallback: try to detect from current working directory
-      const cwd = process.cwd();
-      const appsMatch = cwd.match(/\/apps\/([^\/]+)/);
-      if (appsMatch) {
-        if (this.isDevelopment) {
-          console.log(
-            `⚠️  [AppKit] Fallback: detected app from cwd: ${appsMatch[1]}`
-          );
-        }
-        return appsMatch[1];
-      }
-
-      // Final fallback: check if we're in a VoilaJS project and use main
-      if (this._isVoilaJSProject()) {
-        if (this.isDevelopment) {
-          console.log(
-            `🏗️  [AppKit] VoilaJS project detected, using 'main' app`
-          );
-        }
-        return 'main';
-      }
-
-      // Last resort: use directory name
-      const dirName = path.basename(cwd);
-      if (this.isDevelopment) {
-        console.warn(
-          `⚠️  [AppKit] Final fallback: using directory name as app: ${dirName}`
-        );
-      }
-      return dirName;
-    } catch (error) {
-      if (this.isDevelopment) {
-        console.error('❌ [AppKit] Error in app detection:', error.message);
-      }
-      return 'main';
-    }
-  }
-
-  /**
-   * Check if this is a platform-level call (health check, discovery, etc.)
-   * @private
-   */
-  _isPlatformCall(stackLines) {
-    return stackLines.some(
-      (line) =>
-        line.includes('/platform/') ||
-        line.includes('setupDatabase') ||
-        line.includes('health') ||
-        line.includes('discoverApps')
-    );
+    return paths;
   }
 
   /**
@@ -402,10 +523,8 @@ export class PrismaAdapter {
     const packageJsonPath = path.join(cwd, 'package.json');
 
     try {
-      // Check if apps directory exists
       if (!fs.existsSync(appsDir)) return false;
 
-      // Check if package.json mentions voilajs
       if (fs.existsSync(packageJsonPath)) {
         const packageJson = JSON.parse(
           fs.readFileSync(packageJsonPath, 'utf8')
@@ -425,24 +544,6 @@ export class PrismaAdapter {
   }
 
   /**
-   * Search upwards for apps directory (your proven logic)
-   * @private
-   */
-  _findAppsDirectoryUpwards(startDir) {
-    const paths = [];
-    let currentDir = startDir;
-
-    for (let i = 0; i < 6; i++) {
-      paths.push(path.join(currentDir, 'apps'));
-      const parentDir = path.dirname(currentDir);
-      if (parentDir === currentDir) break;
-      currentDir = parentDir;
-    }
-
-    return paths;
-  }
-
-  /**
    * Get default database URL with environment fallbacks
    * @private
    */
@@ -453,6 +554,44 @@ export class PrismaAdapter {
       process.env.VOILA_DATABASE_URL ||
       process.env.VOILA_DB_URL
     );
+  }
+
+  /**
+   * Clear caches (for testing or memory management)
+   */
+  clearCaches() {
+    this.appDetectionCache.clear();
+    this.callStackCache.clear();
+    this.cacheStats = { hits: 0, misses: 0, detectionCalls: 0 };
+    if (this.isDevelopment) {
+      console.log('🧹 [AppKit] Detection caches cleared');
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return {
+      ...this.cacheStats,
+      appDetectionCacheSize: this.appDetectionCache.size,
+      callStackCacheSize: this.callStackCache.size,
+      clientCacheSize: this.clients.size,
+    };
+  }
+
+  /**
+   * Force refresh app discovery (for special cases)
+   */
+  async refreshApps() {
+    this.discoveredApps = null;
+    const apps = await this.discoverApps();
+    if (this.isDevelopment) {
+      console.log(
+        `🔄 [AppKit] Apps refreshed: ${apps.map((a) => a.name).join(', ')}`
+      );
+    }
+    return apps;
   }
 
   /**
@@ -481,7 +620,7 @@ export class PrismaAdapter {
 
   async getDatabaseStats(client) {
     try {
-      // Basic stats using Prisma raw queries
+      // Basic stats using Prisma
       const dbType = client._engine?.config?.datasourceUrl?.includes(
         'postgresql'
       )
@@ -601,7 +740,7 @@ export class PrismaAdapter {
   }
 
   /**
-   * Disconnect all cached clients
+   * Disconnect all cached clients and cleanup
    */
   async disconnect() {
     const disconnectPromises = [];
@@ -619,5 +758,10 @@ export class PrismaAdapter {
     await Promise.all(disconnectPromises);
     this.clients.clear();
     this.discoveredApps = null;
+    this.clearCaches();
+
+    if (this.isDevelopment) {
+      console.log('👋 [AppKit] Prisma adapter disconnected and cleaned up');
+    }
   }
 }
