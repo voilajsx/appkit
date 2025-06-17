@@ -199,7 +199,11 @@ export class PrismaAdapter {
   async _loadPrismaClient() {
     const paths = [
       '@prisma/client',
-      './prisma/generated/client',
+      './prisma/generated/client', // Root generated client
+      '../prisma/generated/client', // Parent directory
+      '../../prisma/generated/client', // Grandparent directory
+      '../../../prisma/generated/client', // Great-grandparent directory
+      './database/generated/client', // Support database/ folder structure
       './generated/client',
       './node_modules/@prisma/client',
       '../node_modules/@prisma/client',
