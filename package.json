@@ -21,6 +21,9 @@
     "./db": {
       "default": "./src/db/index.js"
     },
+    "./prismadb": {
+      "default": "./src/prismadb/index.js"
+    },
     "./cache": {
       "types": "./types/cache/index.d.ts",
       "default": "./src/cache/index.js"
