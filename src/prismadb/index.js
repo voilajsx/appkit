@@ -12,6 +12,24 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
+ * Search upwards for apps directory
+ */
+function findAppsDirectoryUpwards(startDir) {
+  const paths = [];
+  let currentDir = startDir;
+
+  // Search up to 6 levels up
+  for (let i = 0; i < 6; i++) {
+    paths.push(path.join(currentDir, 'apps'));
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) break; // Reached root
+    currentDir = parentDir;
+  }
+
+  return paths;
+}
+
+/**
  * Global state
  */
 const clients = new Map();
@@ -23,24 +41,35 @@ let discoveredApps = null;
 async function discoverApps() {
   if (discoveredApps) return discoveredApps;
 
-  // Find apps directory
+  // Find apps directory - search upwards from current location
   const searchPaths = [
     process.env.VOILA_APPS_DIR,
-    path.join(process.cwd(), 'apps'),
-    path.join(process.cwd(), '../apps'),
-    path.join(process.cwd(), '../../apps'),
+    // Search upwards from current working directory
+    ...findAppsDirectoryUpwards(process.cwd()),
+    // From node_modules, go back to project root
+    path.join(__dirname, '../../../../../apps'),
+    path.join(__dirname, '../../../../apps'),
+    path.join(__dirname, '../../../apps'),
   ].filter(Boolean);
 
   let foundAppsDir = null;
   for (const searchPath of searchPaths) {
     if (fs.existsSync(searchPath)) {
       foundAppsDir = searchPath;
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 [PrismaDB] Found apps directory: ${searchPath}`);
+      }
       break;
     }
   }
 
   if (!foundAppsDir) {
-    console.warn('⚠️  No apps directory found');
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '⚠️  [PrismaDB] No apps directory found. Searched:',
+        searchPaths
+      );
+    }
     return [];
   }
 
