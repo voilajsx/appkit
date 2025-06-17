@@ -45,6 +45,16 @@ function get(config = {}) {
  */
 export const database = {
   /**
+   * Configure global database URL (like your working prismadb)
+   * @param {string} url - Database URL
+   */
+  configure(url) {
+    if (!process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = url;
+    }
+  },
+
+  /**
    * Get database client - auto-detects app (your working pattern)
    * @param {string} [appName] - App name (auto-detected if not provided)
    * @param {object} [config] - Additional config
