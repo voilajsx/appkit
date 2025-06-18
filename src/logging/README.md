@@ -1,531 +1,474 @@
-# @voilajsx/appkit - Logging Module 📝
+# @voilajsx/appkit/logging
+
+> **Dead simple logging that actually works** - One function, five transports,
+> zero headaches
 
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Ultra-simple object-driven logging with 5 production-ready transports
+## 🤔 Why Another Logging Library?
 
-The Logging module provides **one function** that returns a logger object with
-all methods. Zero configuration needed, production-ready by default, with
-automatic transport detection.
+**Because logging shouldn't be rocket science.**
 
-## 🚀 Why Choose This?
+```javascript
+// Other libraries: 20+ lines of config hell
+const winston = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+    new winston.transports.Console({
+      format: winston.format.simple(),
+    }),
+  ],
+});
 
-- **⚡ One Function** - Just `logger.get()`, everything else is automatic
-- **🔧 Zero Configuration** - Smart defaults for everything
-- **🌍 Environment-First** - Auto-detects transports from environment
-- **📊 5 Transports** - Console, File, Database, HTTP, Webhook
-- **🎯 Object-Driven** - Clean API, perfect for AI code generation
+// This library: 2 lines, production ready
+import { logger } from '@voilajsx/appkit/logging';
+const log = logger.get();
+```
 
-## 📦 Installation
+**The result?** Same features, 90% less code, zero configuration.
+
+## ⚡ 30-Second Start (Seriously)
 
 ```bash
 npm install @voilajsx/appkit
 ```
 
-## 🏃‍♂️ Quick Start (10 seconds)
-
 ```javascript
-// One import, one function call
 import { logger } from '@voilajsx/appkit/logging';
 
 const log = logger.get();
-log.info('Application started');
-log.error('Something went wrong', { error: 'Connection failed' });
+log.info('🚀 App started');
+log.error('💥 Something broke', { error: 'Database timeout' });
 
-// Component-scoped logging
+// Component logging (clean separation)
 const authLog = logger.get('auth');
-authLog.info('User login attempt');
+authLog.warn('⚠️ Suspicious login', { ip: '192.168.1.1' });
 ```
 
-**That's it!** Automatically logs to console + file, with database/HTTP/webhook
-when configured.
+**What you get instantly:**
 
-## 📖 Complete API Reference
+- ✅ Beautiful console output (colors, emojis in dev)
+- ✅ JSON file logging with rotation
+- ✅ Auto-scales from development to production
+- ✅ Database logging (if you have `DATABASE_URL`)
+- ✅ External service integration (Datadog, Slack, etc.)
+
+## 🎯 When to Use This
+
+### ✅ Perfect For
+
+- **Web applications** (Express, Fastify, Next.js)
+- **APIs and microservices**
+- **Background workers and jobs**
+- **Scripts that need proper logging**
+- **Teams that want consistency without meetings**
+
+### ❌ Don't Use When
+
+- You need browser logging (this is Node.js only)
+- You're building a library (don't force logging on users)
+- You have very specific custom transport needs
+- Your app already has a logging solution you're happy with
+
+### 🤷 The Sweet Spot
+
+**Instead of this complexity:**
+
+```javascript
+// Winston: ~30 lines to set up properly
+// Pino: ~15 lines + transport configuration
+// Bunyan: ~20 lines + stream setup
+// Custom: ~50+ lines + maintenance headaches
+```
+
+**You get this simplicity:**
+
+```javascript
+// 2 lines, production ready
+import { logger } from '@voilajsx/appkit/logging';
+const log = logger.get();
+```
+
+## 🏗️ How It Works (The Magic)
+
+### Auto-Transport Detection
+
+The logger **automatically detects** what you need:
+
+| You Have              | We Enable         | You Get                       |
+| --------------------- | ----------------- | ----------------------------- |
+| Nothing               | Console + File    | Development logging           |
+| `DATABASE_URL`        | + Database        | Centralized logs              |
+| `DATADOG_API_KEY` env | + HTTP to Datadog | Professional monitoring       |
+| `SLACK_WEBHOOK` env   | + Slack alerts    | Real-time error notifications |
+
+**Translation:** Set environment variables, get enterprise features. No code
+changes.
+
+### Smart Environment Behavior
+
+```javascript
+// Same code everywhere
+log.info('User logged in', { userId: 123 });
+
+// Development: Pretty colors and details
+// Production: Clean JSON to files + database
+// Test: Minimal output, no files
+```
+
+## 📚 Complete API (It's tiny)
 
 ### Main Function
 
-#### `logger.get(component?)`
-
-Returns a logger object with all logging methods.
-
 ```javascript
+import { logger } from '@voilajsx/appkit/logging';
+
 // Global logger
 const log = logger.get();
 
-// Component-scoped logger
-const authLog = logger.get('auth');
+// Component logger (recommended)
 const dbLog = logger.get('database');
+const authLog = logger.get('auth');
 ```
 
 ### Logging Methods
 
-All logger objects have these methods:
-
 ```javascript
-log.info(message, meta); // Info level
-log.error(message, meta); // Error level
-log.warn(message, meta); // Warning level
-log.debug(message, meta); // Debug level
-log.child(bindings); // Create child logger
-log.flush(); // Flush pending logs
-log.close(); // Close logger
+log.info('Normal stuff', { key: 'value' }); // Blue in dev, hidden in prod
+log.warn('Heads up', { metric: 'high' }); // Yellow, always visible
+log.error('Oh no', { error: err.message }); // Red, always visible, alerts
+log.debug('Nerdy details', { sql: 'SELECT' }); // Gray in dev, hidden in prod
+
+// Context logging (game changer)
+const reqLog = log.child({ requestId: 'req-123' });
+reqLog.info('Request started'); // Automatically includes requestId
 ```
 
-### Utility Function
-
-#### `logger.clear()`
-
-Clears global logger state for testing.
+### Testing Helper
 
 ```javascript
-// In test files
+// Clear state between tests (important!)
 afterEach(async () => {
   await logger.clear();
 });
 ```
 
-## 🚀 Transport System
+## 🌍 Environment Setup (Optional)
 
-### Automatic Transport Detection
-
-The logger automatically enables transports based on your environment:
-
-| Transport    | Auto-Enabled When               | Purpose                 |
-| ------------ | ------------------------------- | ----------------------- |
-| **Console**  | Always (except test)            | Development debugging   |
-| **File**     | Always (except test)            | Local log files         |
-| **Database** | `DATABASE_URL` exists           | Distributed correlation |
-| **HTTP**     | `VOILA_LOGGING_HTTP_URL` set    | External services       |
-| **Webhook**  | `VOILA_LOGGING_WEBHOOK_URL` set | Real-time alerts        |
-
-### Environment Configuration
+**Basic (has smart defaults):**
 
 ```bash
-# Core settings
+# That's it! Everything else is automatic
 VOILA_LOGGING_LEVEL=debug
-VOILA_LOGGING_DIR=./logs
-
-# Database transport (auto-detected)
-DATABASE_URL=postgres://localhost/myapp
-
-# HTTP transport (Datadog, Elasticsearch, etc.)
-VOILA_LOGGING_HTTP_URL=https://http-intake.logs.datadoghq.com/v1/input/API_KEY
-
-# Webhook transport (Slack, Discord, Teams)
-VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
 ```
 
-## 💡 Real-World Examples
+**Advanced (when you're ready):**
 
-### Express Application
+```bash
+# File location
+VOILA_LOGGING_DIR=./logs
+
+# Database logging (auto-detected)
+DATABASE_URL=postgres://localhost/myapp
+
+# External services (auto-enabled when URL provided)
+VOILA_LOGGING_HTTP_URL=https://logs.datadog.com/api/v1/logs
+VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+```
+
+## 💡 Real Examples
+
+### Express API
 
 ```javascript
 import express from 'express';
 import { logger } from '@voilajsx/appkit/logging';
 
-const log = logger.get();
 const app = express();
+const log = logger.get();
 
-// Request logging middleware
+// Request logging (one middleware, all requests logged)
 app.use((req, res, next) => {
-  req.log = logger.get('request').child({
+  req.log = logger.get('api').child({
     requestId: req.headers['x-request-id'] || Math.random().toString(36),
     method: req.method,
     url: req.url,
   });
-
   req.log.info('Request started');
   next();
 });
 
-// Route handlers
-app.get('/api/users', async (req, res) => {
+// Route with automatic context
+app.get('/users/:id', async (req, res) => {
+  const { id } = req.params;
+
   try {
-    req.log.debug('Fetching users from database');
-    const users = await db.getUsers();
-    req.log.info('Users fetched successfully', { count: users.length });
-    res.json({ users });
+    req.log.debug('Fetching user', { userId: id });
+    const user = await db.getUser(id);
+
+    req.log.info('User fetched successfully');
+    res.json({ user });
   } catch (error) {
-    req.log.error('Failed to fetch users', { error: error.message });
-    res.status(500).json({ error: 'Internal server error' });
+    req.log.error('User fetch failed', {
+      userId: id,
+      error: error.message,
+    });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.listen(3000, () => {
-  log.info('Server started', { port: 3000, env: process.env.NODE_ENV });
+  log.info('🚀 Server ready', { port: 3000, env: process.env.NODE_ENV });
 });
 ```
 
-### Microservice with Component Loggers
+### Background Job Worker
 
 ```javascript
 import { logger } from '@voilajsx/appkit/logging';
 
-// Different loggers for different components
-const serviceLog = logger.get('payment-service');
-const dbLog = logger.get('database');
-const paymentLog = logger.get('payment-processor');
-
-async function processPayment(orderId, amount) {
-  const reqLog = paymentLog.child({ orderId });
-
-  reqLog.info('Payment processing started', { amount });
-
-  try {
-    dbLog.debug('Checking order exists', { orderId });
-    const order = await db.findOrder(orderId);
-
-    if (!order) {
-      reqLog.warn('Order not found', { orderId });
-      throw new Error('Order not found');
-    }
-
-    reqLog.info('Processing with payment gateway');
-    const result = await stripe.charge({ amount, orderId });
-
-    dbLog.info('Updating order status', { orderId, status: 'paid' });
-    await db.updateOrder(orderId, { status: 'paid' });
-
-    reqLog.info('Payment completed successfully', {
-      transactionId: result.id,
-      amount,
-    });
-
-    return result;
-  } catch (error) {
-    reqLog.error('Payment failed', {
-      error: error.message,
-      amount,
-      orderId,
-    });
-    throw error;
-  }
-}
-```
-
-### Background Job Processing
-
-```javascript
-import { logger } from '@voilajsx/appkit/logging';
-
-const workerLog = logger.get('job-worker');
+const workerLog = logger.get('worker');
 
 async function processEmailJob(job) {
   const jobLog = workerLog.child({
     jobId: job.id,
-    jobType: 'email',
     userId: job.data.userId,
+    emailType: job.data.type,
   });
 
-  jobLog.info('Job started', { emailType: job.data.type });
+  jobLog.info('📧 Job started');
 
   try {
-    jobLog.debug('Rendering email template', { template: job.data.template });
-    const html = await renderTemplate(job.data);
-
-    jobLog.debug('Sending email', { to: job.data.email });
-    await sendEmail({
-      to: job.data.email,
-      subject: job.data.subject,
-      html,
-    });
-
-    jobLog.info('Job completed successfully');
+    await sendEmail(job.data);
+    jobLog.info('✅ Email sent successfully');
   } catch (error) {
-    jobLog.error('Job failed', {
+    jobLog.error('💥 Email failed', {
       error: error.message,
       retryCount: job.attemptsMade,
     });
-    throw error;
+    throw error; // Re-queue for retry
   }
 }
 ```
 
-## 🔧 Transport Details
+---
 
-### Console Transport
+## 📋 Advanced Reference
 
-- **Development**: Pretty, colored output with emojis
-- **Production**: Structured, plain text output
-- **Features**: Automatic color detection, emoji support
+_This section is for when you need more control or are integrating with external
+systems._
 
-### File Transport
+## 🔧 File Headers & Standards
 
-- **Daily rotation**: New file each day (`app-2024-01-15.log`)
-- **Size rotation**: Splits files when they get too large
-- **Auto cleanup**: Deletes old files based on retention policy
-- **JSON format**: All file logs are structured JSON
+When writing code that uses this logger, include proper documentation:
 
-### Database Transport
+```javascript
+/**
+ * Your module description here
+ * @module your-app-name/your-module-name  // ← Use YOUR app name
+ * @file src/services/payment.js           // ← Use YOUR file path
+ */
 
-- **Multi-database**: PostgreSQL, MySQL, SQLite support
-- **Auto-detection**: Uses `DATABASE_URL` automatically
-- **Batch processing**: Groups logs for performance
-- **Auto-retry**: Handles connection failures gracefully
-- **Schema management**: Creates tables and indexes automatically
+import { logger } from '@voilajsx/appkit/logging';
 
-### HTTP Transport
-
-- **Service optimization**: Datadog, Elasticsearch, Splunk formats
-- **Batch processing**: Groups logs for efficiency
-- **Retry logic**: Exponential backoff on failures
-- **Flexible headers**: Supports authentication headers
-
-### Webhook Transport
-
-- **Real-time alerts**: Immediate sending, no batching
-- **Service formatting**: Slack, Discord, Teams formats
-- **Rate limiting**: Prevents webhook spam
-- **Level filtering**: Only sends important alerts (errors by default)
-
-## 🌍 Environment Variables
-
-| Variable                    | Description         | Default                             | Example                                |
-| --------------------------- | ------------------- | ----------------------------------- | -------------------------------------- |
-| `VOILA_LOGGING_LEVEL`       | Minimum log level   | `info` (prod: `warn`, dev: `debug`) | `debug`, `info`, `warn`, `error`       |
-| `VOILA_LOGGING_DIR`         | Log file directory  | `logs`                              | `./app-logs`, `/var/log/myapp`         |
-| `DATABASE_URL`              | Database connection | None                                | `postgres://localhost/myapp`           |
-| `VOILA_LOGGING_HTTP_URL`    | HTTP endpoint       | None                                | `https://logs.datadog.com/api/v1/logs` |
-| `VOILA_LOGGING_WEBHOOK_URL` | Webhook endpoint    | None                                | `https://hooks.slack.com/services/xxx` |
-
-### Smart Defaults by Environment
-
-**Development:**
-
-- Level: `debug`, Colors: `true`, Pretty: `true`
-- Transports: Console + File
-
-**Production:**
-
-- Level: `warn`, Colors: `false`, Retention: `30 days`
-- Transports: Console + File + Database (if `DATABASE_URL`)
-
-**Test:**
-
-- Level: `info`, File logging: `disabled`
-- Transports: Console only
-
-## 📊 Log Output Examples
-
-### Console Output
-
-**Development:**
-
-```
-2024-01-15T10:30:45.123Z ℹ️  INFO User login
-{
-  "userId": 123,
-  "email": "user@example.com",
-  "component": "auth"
+/**
+ * Process a payment transaction
+ * @param {string} orderId - Order identifier
+ * @param {number} amount - Payment amount
+ * @returns {Promise<object>} Payment result
+ */
+async function processPayment(orderId, amount) {
+  // Your code here
 }
 ```
 
-**Production:**
+## ✅ Do's and ❌ Don'ts
 
-```
-2024-01-15T10:30:45.123Z [INFO] User login {"userId":123,"email":"user@example.com","component":"auth"}
-```
+### ✅ Best Practices
 
-### File Output (JSON)
+```javascript
+// ✅ Use structured logging (not string concatenation)
+log.info('User login successful', { userId: 123, method: 'email' });
 
-```json
-{"timestamp":"2024-01-15T10:30:45.123Z","level":"info","message":"User login","userId":123,"component":"auth","service":"app"}
-{"timestamp":"2024-01-15T10:30:46.456Z","level":"error","message":"Database error","error":"Connection failed","component":"database"}
-```
+// ✅ Use component loggers for separation
+const authLog = logger.get('auth');
+const dbLog = logger.get('database');
 
-### Database Schema
+// ✅ Use child loggers for context
+const reqLog = log.child({ requestId: 'req-123', userId: 456 });
 
-```sql
-CREATE TABLE logs (
-  id SERIAL PRIMARY KEY,
-  timestamp TIMESTAMPTZ NOT NULL,
-  level VARCHAR(10) NOT NULL,
-  message TEXT,
-  meta JSONB,
-  service VARCHAR(100),
-  component VARCHAR(100),
-  request_id VARCHAR(100)
-);
-```
+// ✅ Log errors with context
+log.error('Payment failed', {
+  orderId: '123',
+  error: error.message,
+  amount: 99.99,
+});
 
-### Webhook Alerts (Slack)
-
-```json
-{
-  "text": "🚨 *ERROR* Alert",
-  "attachments": [
-    {
-      "color": "danger",
-      "fields": [
-        {
-          "title": "Message",
-          "value": "Database connection failed"
-        },
-        {
-          "title": "Service",
-          "value": "user-api"
-        }
-      ]
-    }
-  ]
-}
+// ✅ Use appropriate levels
+log.error('System down'); // For ops alerts
+log.warn('Rate limit hit'); // For monitoring
+log.info('User registered'); // For business events
+log.debug('Cache miss'); // For debugging
 ```
 
-## 🏷️ Log Levels
+### ❌ Anti-Patterns
 
-| Level   | When to Use                | Production | Development |
-| ------- | -------------------------- | ---------- | ----------- |
-| `error` | System errors, exceptions  | ✅ Always  | ✅ Always   |
-| `warn`  | Warnings, potential issues | ✅ Always  | ✅ Always   |
-| `info`  | Normal operations, events  | ❌ Hidden  | ✅ Always   |
-| `debug` | Detailed debugging info    | ❌ Hidden  | ✅ Always   |
+```javascript
+// ❌ Don't use console.log
+console.log('Something happened');
 
-## 🔧 Advanced Usage
+// ❌ Don't log sensitive data
+log.info('User login', { password: user.password }); // NEVER!
 
-### Runtime Logger Management
+// ❌ Don't use string concatenation
+log.info('User ' + userId + ' did ' + action);
+
+// ❌ Don't skip context
+log.error('Failed'); // Failed what? Where? Why?
+
+// ❌ Don't forget test cleanup
+// Always: await logger.clear() in test teardown
+```
+
+## 🔒 Security Guidelines
+
+```javascript
+// ✅ Safe: Log business identifiers
+log.info('Payment processed', {
+  orderId: payment.orderId,
+  amount: payment.amount,
+  cardLast4: payment.card.slice(-4), // Only last 4 digits
+  userId: payment.userId,
+});
+
+// ❌ Unsafe: Never log these
+log.info('Payment details', {
+  cardNumber: payment.cardNumber, // Full card numbers
+  cvv: payment.cvv, // Security codes
+  password: user.password, // Passwords
+  apiKey: process.env.API_KEY, // API keys
+  token: user.authToken, // Auth tokens
+});
+```
+
+## 🧪 Testing Patterns
 
 ```javascript
 import { logger } from '@voilajsx/appkit/logging';
 
-const log = logger.get();
+describe('Payment Service', () => {
+  afterEach(async () => {
+    // IMPORTANT: Clear logger state between tests
+    await logger.clear();
+  });
 
-// Check active transports
-console.log(log.getActiveTransports()); // ['console', 'file', 'database']
+  test('should process payment successfully', async () => {
+    const log = logger.get('test');
+    log.info('🧪 Test started');
 
-// Runtime level changes
-log.setLevel('debug');
-console.log(log.isLevelEnabled('debug')); // true
+    const result = await processPayment('order-123', 99.99);
 
-// Custom transport
-log.addTransport('custom', customTransport);
-await log.removeTransport('webhook');
-```
-
-### Child Logger Patterns
-
-```javascript
-// Request correlation
-const reqLog = log.child({ requestId: 'req-123' });
-
-// User context
-const userLog = log.child({ userId: 456 });
-
-// Combined context
-const contextLog = log.child({
-  requestId: 'req-123',
-  userId: 456,
-  operation: 'payment',
+    expect(result.success).toBe(true);
+    log.info('✅ Test passed');
+  });
 });
-
-// All logs include full context automatically
-contextLog.info('Processing payment');
-// → { requestId: 'req-123', userId: 456, operation: 'payment', message: 'Processing payment' }
 ```
 
-### Service Integrations
+## 🔗 External Integrations
 
-#### Datadog
+### Datadog
 
 ```bash
 VOILA_LOGGING_HTTP_URL=https://http-intake.logs.datadoghq.com/v1/input/YOUR_API_KEY
 ```
 
-#### Elasticsearch
-
-```bash
-VOILA_LOGGING_HTTP_URL=https://your-cluster.elastic.co:9200/logs/_bulk
-VOILA_LOGGING_HTTP_HEADERS='{"Authorization":"Basic credentials"}'
-```
-
-#### Slack Alerts
+### Slack Alerts (Errors Only)
 
 ```bash
 VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
-VOILA_LOGGING_WEBHOOK_LEVEL=error  # Only send errors
 ```
 
-## 🧪 Testing
+### Elasticsearch
 
-```javascript
-import { logger } from '@voilajsx/appkit/logging';
+```bash
+VOILA_LOGGING_HTTP_URL=https://your-cluster.elastic.co:9200/logs/_bulk
+```
 
-describe('My Service', () => {
-  afterEach(async () => {
-    // Clear logger state between tests
-    await logger.clear();
-  });
+## 📊 Output Examples
 
-  test('should log user actions', () => {
-    const log = logger.get('test');
-    log.info('Test started');
+### Development Console
 
-    // Test your service
-  });
-});
+```
+2024-01-15T10:30:45.123Z ℹ️  INFO User login {"userId":123,"component":"auth"}
+2024-01-15T10:30:46.456Z ❌ ERROR Payment failed {"orderId":"123","error":"Card declined"}
+```
+
+### Production File (JSON)
+
+```json
+{"timestamp":"2024-01-15T10:30:45.123Z","level":"info","message":"User login","userId":123,"component":"auth","service":"my-app"}
+{"timestamp":"2024-01-15T10:30:46.456Z","level":"error","message":"Payment failed","orderId":"123","error":"Card declined","component":"payment"}
+```
+
+### Slack Alert
+
+```
+🚨 ERROR Alert
+Payment failed
+Service: my-app | Component: payment
+Order: 123 | Error: Card declined
 ```
 
 ## 🚀 Migration Guide
 
-### From Console.log
+### From console.log
 
 ```javascript
 // Before
-console.log('User logged in:', { userId: 123 });
-console.error('Error occurred:', error.message);
+console.log('User action:', userId, action);
+console.error('Error:', error);
 
 // After
+const log = logger.get();
+log.info('User action', { userId, action });
+log.error('Operation failed', { error: error.message });
+```
+
+### From Winston/Pino
+
+```javascript
+// Before: Complex setup
+const winston = require('winston');
+const logger = winston.createLogger({
+  // 30+ lines of configuration...
+});
+
+// After: Zero setup
 import { logger } from '@voilajsx/appkit/logging';
 const log = logger.get();
-log.info('User logged in', { userId: 123 });
-log.error('Error occurred', { error: error.message });
 ```
 
-### From Winston
+## 🎯 LLM Code Generation Rules
 
-```javascript
-// Before
-import winston from 'winston';
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.File({ filename: 'app.log' }),
-    new winston.transports.Console(),
-  ],
-});
+When generating code with this logging system:
 
-// After
-import { logger } from '@voilajsx/appkit/logging';
-const log = logger.get(); // That's it! Smart defaults handle everything
-```
-
-### From Pino
-
-```javascript
-// Before
-import pino from 'pino';
-const logger = pino({
-  level: 'info',
-  transport: { target: 'pino-pretty' },
-});
-
-// After
-import { logger } from '@voilajsx/appkit/logging';
-const log = logger.get(); // Auto-detects environment and configures appropriately
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md).
-
-## 📄 License
-
-MIT © [VoilaJSX](https://github.com/voilajsx)
+1. **Always use**: `import { logger } from '@voilajsx/appkit/logging';`
+2. **Get logger objects**: `const log = logger.get('component-name');`
+3. **Use structured logging**: `log.info('message', { key: 'value' });`
+4. **Include file headers** with user's module name (not @voilajsx)
+5. **Add context with child loggers**: `log.child({ requestId })`
+6. **Never log sensitive data**: passwords, tokens, full card numbers
+7. **Include test cleanup**: `await logger.clear()` in test teardown
 
 ---
 
-<p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a> — powering modern web development.
-</p>
+**Built with ❤️ by [VoilaJSX Team](https://github.com/voilajsx) — Because
+logging should be simple, not a PhD thesis.**

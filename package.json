@@ -41,7 +41,7 @@
       "default": "./src/error/index.js"
     },
     "./logging": {
-      "types": "./types/logging/index.d.ts",
+      "types": "./src/logging/index.d.ts",
       "default": "./src/logging/index.js"
     },
     "./storage": {

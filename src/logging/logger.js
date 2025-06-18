@@ -424,4 +424,142 @@ export class LoggerClass {
   isLevelEnabled(level) {
     return LOG_LEVELS[level] <= this.levelValue;
   }
+
+  /**
+   * Get configuration summary for debugging
+   * @returns {object} Current configuration summary
+   */
+  getConfig() {
+    return {
+      level: this.level,
+      scope: this.config.scope || 'auto',
+      minimal: this.config.minimal || false,
+      transports: this.getActiveTransports(),
+      defaultMeta: { ...this.defaultMeta },
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        VOILA_LOGGING_SCOPE: process.env.VOILA_LOGGING_SCOPE,
+        VOILA_LOGGING_CONSOLE: process.env.VOILA_LOGGING_CONSOLE,
+        VOILA_LOGGING_FILE: process.env.VOILA_LOGGING_FILE,
+        hasDbUrl: !!process.env.DATABASE_URL,
+        hasHttpUrl: !!process.env.VOILA_LOGGING_HTTP_URL,
+        hasWebhookUrl: !!process.env.VOILA_LOGGING_WEBHOOK_URL,
+      },
+    };
+  }
+
+  /**
+   * Get transport statistics for monitoring
+   * @returns {object} Transport statistics
+   */
+  getStats() {
+    const stats = {
+      logger: {
+        level: this.level,
+        levelValue: this.levelValue,
+        totalTransports: this.transports.size,
+        activeTransports: this.getActiveTransports(),
+        pendingWrites: this._pendingWrites?.length || 0,
+        scope: this.config.scope || 'auto',
+        minimal: this.config.minimal || false,
+      },
+      transports: {},
+    };
+
+    // Add transport-specific stats if available
+    for (const [name, transport] of this.transports) {
+      stats.transports[name] = {
+        active: true,
+        hasFlush: typeof transport.flush === 'function',
+        hasClose: typeof transport.close === 'function',
+        config: transport.config || {},
+      };
+
+      // Add transport-specific stats if the transport provides them
+      if (transport.getStats && typeof transport.getStats === 'function') {
+        try {
+          stats.transports[name].stats = transport.getStats();
+        } catch (error) {
+          stats.transports[name].statsError = error.message;
+        }
+      }
+    }
+
+    // Add environment info
+    stats.environment = {
+      NODE_ENV: process.env.NODE_ENV,
+      CI: !!process.env.CI,
+      DEBUG: !!process.env.DEBUG,
+      VOILA_DEBUG: !!process.env.VOILA_DEBUG,
+    };
+
+    return stats;
+  }
+
+  /**
+   * Perform health check on all transports
+   * @returns {Promise<object>} Health check results
+   */
+  async healthCheck() {
+    const results = {
+      overall: 'healthy',
+      timestamp: new Date().toISOString(),
+      logger: {
+        level: this.level,
+        transports: this.transports.size,
+        pendingWrites: this._pendingWrites?.length || 0,
+      },
+      transports: {},
+    };
+
+    let hasUnhealthy = false;
+
+    for (const [name, transport] of this.transports) {
+      const transportResult = {
+        status: 'healthy',
+        name,
+        active: true,
+      };
+
+      try {
+        // Check if transport has a health check method
+        if (
+          transport.healthCheck &&
+          typeof transport.healthCheck === 'function'
+        ) {
+          const healthResult = await transport.healthCheck();
+          transportResult.details = healthResult;
+          if (healthResult.status !== 'healthy') {
+            transportResult.status = healthResult.status;
+            hasUnhealthy = true;
+          }
+        } else {
+          // Basic health check - try to get stats or config
+          if (transport.config) {
+            transportResult.details = {
+              configured: true,
+              hasConfig: true,
+            };
+          }
+        }
+      } catch (error) {
+        transportResult.status = 'unhealthy';
+        transportResult.error = error.message;
+        hasUnhealthy = true;
+      }
+
+      results.transports[name] = transportResult;
+    }
+
+    if (hasUnhealthy) {
+      results.overall = 'degraded';
+    }
+
+    if (this.transports.size === 0) {
+      results.overall = 'unhealthy';
+      results.error = 'No active transports';
+    }
+
+    return results;
+  }
 }

@@ -1,5 +1,5 @@
 /**
- * HTTP transport with batching, retry logic and inline utilities
+ * HTTP transport with scope-based optimization, batching and retry logic
  * @module @voilajsx/appkit/logging
  * @file src/logging/transports/http.js
  */
@@ -8,7 +8,7 @@ import https from 'https';
 import http from 'http';
 
 /**
- * HTTP transport class for sending logs to external services
+ * HTTP transport class for sending logs to external services with scope optimization
  */
 export class HttpTransport {
   /**
@@ -28,6 +28,10 @@ export class HttpTransport {
         'User-Agent': 'VoilaJSX-AppKit-Logging/1.0.0',
       },
       method: 'POST',
+
+      // Scope-based optimization
+      minimal: false,
+      includeMetadata: true,
     };
 
     // Environment overrides
@@ -63,6 +67,146 @@ export class HttpTransport {
 
     // Initialize HTTP transport
     this.initialize();
+  }
+
+  /**
+   * Optimize log entry based on scope settings
+   * @param {object} entry - Original log entry
+   * @returns {object} Optimized log entry
+   */
+  optimizeLogEntry(entry) {
+    if (!this.config.minimal) {
+      return entry; // Full scope - keep everything
+    }
+
+    // Minimal scope optimization
+    return this.createMinimalEntry(entry);
+  }
+
+  /**
+   * Create minimal log entry for HTTP transmission
+   * @param {object} entry - Original entry
+   * @returns {object} Minimal entry
+   */
+  createMinimalEntry(entry) {
+    const {
+      timestamp,
+      level,
+      message,
+      component,
+      requestId,
+      error,
+      userId,
+      method,
+      url,
+      statusCode,
+      durationMs,
+      ...rest
+    } = entry;
+
+    const minimal = {
+      timestamp,
+      level,
+      message,
+    };
+
+    // Add essential context for external services
+    if (component) minimal.component = component;
+    if (requestId) minimal.requestId = requestId;
+    if (userId) minimal.userId = userId;
+
+    // Add HTTP context if present (important for monitoring)
+    if (method) minimal.method = method;
+    if (url) minimal.url = url;
+    if (statusCode) minimal.statusCode = statusCode;
+    if (durationMs) minimal.durationMs = durationMs;
+
+    // Add error information if present
+    if (error) {
+      minimal.error = this.optimizeError(error);
+    }
+
+    // Add only essential metadata in minimal mode
+    if (this.config.includeMetadata) {
+      const essentialMeta = this.filterEssentialMeta(rest);
+      if (Object.keys(essentialMeta).length > 0) {
+        minimal.meta = essentialMeta;
+      }
+    }
+
+    return minimal;
+  }
+
+  /**
+   * Optimize error object for HTTP transmission
+   * @param {object|string} error - Error object or string
+   * @returns {object|string} Optimized error
+   */
+  optimizeError(error) {
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    if (typeof error === 'object') {
+      const optimized = {
+        message: error.message,
+      };
+
+      // Add important error fields for monitoring
+      if (error.name && error.name !== 'Error') {
+        optimized.name = error.name;
+      }
+
+      if (error.code) {
+        optimized.code = error.code;
+      }
+
+      if (error.statusCode) {
+        optimized.statusCode = error.statusCode;
+      }
+
+      // Don't include stack traces in HTTP transmissions for security
+      return optimized;
+    }
+
+    return error;
+  }
+
+  /**
+   * Filter metadata to keep only essential fields for external services
+   * @param {object} meta - Original metadata
+   * @returns {object} Essential metadata
+   */
+  filterEssentialMeta(meta) {
+    const essential = {};
+
+    // Keep correlation and monitoring fields
+    const essentialKeys = [
+      'traceId',
+      'spanId',
+      'sessionId',
+      'tenantId',
+      'appName',
+      'environment',
+      'service',
+      'version',
+      'ip',
+    ];
+
+    for (const key of essentialKeys) {
+      if (meta[key] !== undefined) {
+        essential[key] = meta[key];
+      }
+    }
+
+    // Include correlation IDs
+    for (const [key, value] of Object.entries(meta)) {
+      if (key.endsWith('Id') && !essential[key]) {
+        essential[key] = value;
+      }
+    }
+
+    return essential;
   }
 
   /**
@@ -133,8 +277,11 @@ export class HttpTransport {
    */
   write(entry) {
     try {
+      // Optimize entry based on scope settings
+      const optimizedEntry = this.optimizeLogEntry(entry);
+
       // Add to batch
-      this.batch.push(entry);
+      this.batch.push(optimizedEntry);
 
       // Flush if batch is full
       if (this.batch.length >= this.config.batchSize) {
@@ -190,7 +337,7 @@ export class HttpTransport {
   }
 
   /**
-   * Format log entries into HTTP payload
+   * Format log entries into HTTP payload based on service type and scope
    * @param {Array} entries - Log entries
    * @returns {string} Formatted JSON payload
    */
@@ -205,17 +352,20 @@ export class HttpTransport {
             timestamp: entry.timestamp,
             level: entry.level,
             message: entry.message,
-            attributes: { ...entry },
+            attributes: this.config.minimal
+              ? this.extractDatadogAttributes(entry)
+              : entry,
           })),
         });
 
       case 'elasticsearch':
         return (
           entries
-            .map(
-              (entry) =>
-                JSON.stringify({ index: {} }) + '\n' + JSON.stringify(entry)
-            )
+            .map((entry) => {
+              const indexMeta = JSON.stringify({ index: {} });
+              const logData = JSON.stringify(entry);
+              return indexMeta + '\n' + logData;
+            })
             .join('\n') + '\n'
         );
 
@@ -231,8 +381,32 @@ export class HttpTransport {
 
       default:
         // Generic format - array of log entries
-        return JSON.stringify({ logs: entries });
+        return JSON.stringify({
+          logs: entries,
+          scope: this.config.minimal ? 'minimal' : 'full',
+          count: entries.length,
+        });
     }
+  }
+
+  /**
+   * Extract Datadog-specific attributes from log entry
+   * @param {object} entry - Log entry
+   * @returns {object} Datadog attributes
+   */
+  extractDatadogAttributes(entry) {
+    const { timestamp, level, message, ...attributes } = entry;
+    return {
+      service: attributes.service || 'unknown',
+      component: attributes.component,
+      requestId: attributes.requestId,
+      userId: attributes.userId,
+      method: attributes.method,
+      url: attributes.url,
+      statusCode: attributes.statusCode,
+      durationMs: attributes.durationMs,
+      ...attributes.meta,
+    };
   }
 
   /**

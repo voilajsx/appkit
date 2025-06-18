@@ -1,11 +1,11 @@
 /**
- * Database transport with connection pooling and batch processing
+ * Database transport with scope-based optimization and batch processing
  * @module @voilajsx/appkit/logging
  * @file src/logging/transports/database.js
  */
 
 /**
- * Database transport class with built-in connection management
+ * Database transport class with built-in connection management and scope optimization
  */
 export class DatabaseTransport {
   /**
@@ -21,6 +21,10 @@ export class DatabaseTransport {
       retries: 3,
       retryDelay: 1000,
       connectionTimeout: 10000,
+
+      // Scope-based optimization
+      minimal: false,
+      includeMetadata: true,
     };
 
     // Environment overrides
@@ -52,6 +56,112 @@ export class DatabaseTransport {
 
     // Initialize database connection
     this.initialize();
+  }
+
+  /**
+   * Optimize log entry based on scope settings
+   * @param {object} entry - Original log entry
+   * @returns {object} Optimized log entry
+   */
+  optimizeLogEntry(entry) {
+    if (!this.config.minimal) {
+      return entry; // Full scope - keep everything
+    }
+
+    // Minimal scope optimization
+    return this.createMinimalEntry(entry);
+  }
+
+  /**
+   * Create minimal log entry for database storage
+   * @param {object} entry - Original entry
+   * @returns {object} Minimal entry
+   */
+  createMinimalEntry(entry) {
+    const {
+      timestamp,
+      level,
+      message,
+      component,
+      requestId,
+      error,
+      userId,
+      method,
+      url,
+      statusCode,
+      durationMs,
+      ...rest
+    } = entry;
+
+    const minimal = {
+      timestamp,
+      level,
+      message,
+    };
+
+    // Add essential fields for correlation
+    if (component) minimal.component = component;
+    if (requestId) minimal.request_id = requestId;
+    if (userId) minimal.user_id = userId;
+
+    // Add HTTP context if present
+    if (method) minimal.method = method;
+    if (url) minimal.url = url;
+    if (statusCode) minimal.status_code = statusCode;
+    if (durationMs) minimal.duration_ms = durationMs;
+
+    // Add error information if present
+    if (error) {
+      minimal.error_message = typeof error === 'object' ? error.message : error;
+      if (typeof error === 'object' && error.code) {
+        minimal.error_code = error.code;
+      }
+    }
+
+    // Add only essential metadata in minimal mode
+    if (this.config.includeMetadata) {
+      const essentialMeta = this.filterEssentialMeta(rest);
+      if (Object.keys(essentialMeta).length > 0) {
+        minimal.meta = essentialMeta;
+      }
+    }
+
+    return minimal;
+  }
+
+  /**
+   * Filter metadata to keep only essential fields for database storage
+   * @param {object} meta - Original metadata
+   * @returns {object} Essential metadata
+   */
+  filterEssentialMeta(meta) {
+    const essential = {};
+
+    // Keep correlation IDs and important context
+    const essentialKeys = [
+      'traceId',
+      'spanId',
+      'sessionId',
+      'tenantId',
+      'appName',
+      'ip',
+      'userAgent',
+    ];
+
+    for (const key of essentialKeys) {
+      if (meta[key] !== undefined) {
+        essential[key] = meta[key];
+      }
+    }
+
+    // Include any field ending with 'Id' (correlation)
+    for (const [key, value] of Object.entries(meta)) {
+      if (key.endsWith('Id') && !essential[key]) {
+        essential[key] = value;
+      }
+    }
+
+    return essential;
   }
 
   /**
@@ -176,7 +286,7 @@ export class DatabaseTransport {
   }
 
   /**
-   * Ensure logs table exists
+   * Ensure logs table exists with optimized schema
    */
   async ensureTableExists() {
     if (!this.connected) return;
@@ -190,7 +300,7 @@ export class DatabaseTransport {
   }
 
   /**
-   * Get CREATE TABLE SQL for current database type
+   * Get CREATE TABLE SQL for current database type with scope-optimized schema
    * @returns {string} CREATE TABLE SQL
    */
   getCreateTableSQL() {
@@ -203,15 +313,23 @@ export class DatabaseTransport {
           timestamp TIMESTAMPTZ NOT NULL,
           level VARCHAR(10) NOT NULL,
           message TEXT,
-          meta JSONB,
-          service VARCHAR(100),
           component VARCHAR(100),
           request_id VARCHAR(100),
+          user_id VARCHAR(100),
+          method VARCHAR(10),
+          url TEXT,
+          status_code INTEGER,
+          duration_ms INTEGER,
+          error_message TEXT,
+          error_code VARCHAR(50),
+          meta JSONB,
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
         CREATE INDEX IF NOT EXISTS idx_${this.config.table}_timestamp ON ${this.config.table}(timestamp);
         CREATE INDEX IF NOT EXISTS idx_${this.config.table}_level ON ${this.config.table}(level);
         CREATE INDEX IF NOT EXISTS idx_${this.config.table}_request_id ON ${this.config.table}(request_id);
+        CREATE INDEX IF NOT EXISTS idx_${this.config.table}_user_id ON ${this.config.table}(user_id);
+        CREATE INDEX IF NOT EXISTS idx_${this.config.table}_component ON ${this.config.table}(component);
       `;
     } else if (url.protocol.startsWith('mysql')) {
       return `
@@ -220,14 +338,22 @@ export class DatabaseTransport {
           timestamp DATETIME NOT NULL,
           level VARCHAR(10) NOT NULL,
           message TEXT,
-          meta JSON,
-          service VARCHAR(100),
           component VARCHAR(100),
           request_id VARCHAR(100),
+          user_id VARCHAR(100),
+          method VARCHAR(10),
+          url TEXT,
+          status_code INT,
+          duration_ms INT,
+          error_message TEXT,
+          error_code VARCHAR(50),
+          meta JSON,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           INDEX idx_timestamp (timestamp),
           INDEX idx_level (level),
-          INDEX idx_request_id (request_id)
+          INDEX idx_request_id (request_id),
+          INDEX idx_user_id (user_id),
+          INDEX idx_component (component)
         );
       `;
     } else {
@@ -237,14 +363,21 @@ export class DatabaseTransport {
           timestamp TEXT NOT NULL,
           level TEXT NOT NULL,
           message TEXT,
-          meta TEXT,
-          service TEXT,
           component TEXT,
           request_id TEXT,
+          user_id TEXT,
+          method TEXT,
+          url TEXT,
+          status_code INTEGER,
+          duration_ms INTEGER,
+          error_message TEXT,
+          error_code TEXT,
+          meta TEXT,
           created_at TEXT DEFAULT CURRENT_TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS idx_${this.config.table}_timestamp ON ${this.config.table}(timestamp);
         CREATE INDEX IF NOT EXISTS idx_${this.config.table}_level ON ${this.config.table}(level);
+        CREATE INDEX IF NOT EXISTS idx_${this.config.table}_request_id ON ${this.config.table}(request_id);
       `;
     }
   }
@@ -306,8 +439,11 @@ export class DatabaseTransport {
    */
   write(entry) {
     try {
+      // Optimize entry based on scope settings
+      const optimizedEntry = this.optimizeLogEntry(entry);
+
       // Add to batch
-      this.batch.push(entry);
+      this.batch.push(optimizedEntry);
 
       // Flush if batch is full
       if (this.batch.length >= this.config.batchSize) {
@@ -373,31 +509,48 @@ export class DatabaseTransport {
    * @param {Array} entries - Log entries
    */
   async insertBatchPostgres(entries) {
-    const values = entries
-      .map((entry, index) => {
-        const { timestamp, level, message, ...meta } = entry;
-        const baseIndex = index * 7;
-        return `($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7})`;
+    const fields = [
+      'timestamp',
+      'level',
+      'message',
+      'component',
+      'request_id',
+      'user_id',
+      'method',
+      'url',
+      'status_code',
+      'duration_ms',
+      'error_message',
+      'error_code',
+      'meta',
+    ];
+    const placeholders = entries
+      .map((_, index) => {
+        const startIndex = index * fields.length;
+        return `(${fields.map((_, fieldIndex) => `$${startIndex + fieldIndex + 1}`).join(', ')})`;
       })
       .join(', ');
 
-    const params = entries.flatMap((entry) => {
-      const { timestamp, level, message, service, component, ...meta } = entry;
-      return [
-        timestamp,
-        level,
-        message || '',
-        JSON.stringify(meta),
-        service || null,
-        component || null,
-        meta.requestId || meta.request_id || null,
-      ];
-    });
+    const params = entries.flatMap((entry) => [
+      entry.timestamp,
+      entry.level,
+      entry.message || '',
+      entry.component || null,
+      entry.request_id || null,
+      entry.user_id || null,
+      entry.method || null,
+      entry.url || null,
+      entry.status_code || null,
+      entry.duration_ms || null,
+      entry.error_message || null,
+      entry.error_code || null,
+      entry.meta ? JSON.stringify(entry.meta) : null,
+    ]);
 
     const sql = `
       INSERT INTO ${this.config.table} 
-      (timestamp, level, message, meta, service, component, request_id)
-      VALUES ${values}
+      (${fields.join(', ')})
+      VALUES ${placeholders}
     `;
 
     await this.executeQuery(sql, params);
@@ -408,25 +561,45 @@ export class DatabaseTransport {
    * @param {Array} entries - Log entries
    */
   async insertBatchMySQL(entries) {
-    const values = entries.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+    const fields = [
+      'timestamp',
+      'level',
+      'message',
+      'component',
+      'request_id',
+      'user_id',
+      'method',
+      'url',
+      'status_code',
+      'duration_ms',
+      'error_message',
+      'error_code',
+      'meta',
+    ];
+    const placeholders = entries
+      .map(() => `(${fields.map(() => '?').join(', ')})`)
+      .join(', ');
 
-    const params = entries.flatMap((entry) => {
-      const { timestamp, level, message, service, component, ...meta } = entry;
-      return [
-        timestamp,
-        level,
-        message || '',
-        JSON.stringify(meta),
-        service || null,
-        component || null,
-        meta.requestId || meta.request_id || null,
-      ];
-    });
+    const params = entries.flatMap((entry) => [
+      entry.timestamp,
+      entry.level,
+      entry.message || '',
+      entry.component || null,
+      entry.request_id || null,
+      entry.user_id || null,
+      entry.method || null,
+      entry.url || null,
+      entry.status_code || null,
+      entry.duration_ms || null,
+      entry.error_message || null,
+      entry.error_code || null,
+      entry.meta ? JSON.stringify(entry.meta) : null,
+    ]);
 
     const sql = `
       INSERT INTO ${this.config.table} 
-      (timestamp, level, message, meta, service, component, request_id)
-      VALUES ${values}
+      (${fields.join(', ')})
+      VALUES ${placeholders}
     `;
 
     await this.executeQuery(sql, params);
@@ -437,22 +610,42 @@ export class DatabaseTransport {
    * @param {Array} entries - Log entries
    */
   async insertBatchSQLite(entries) {
+    const fields = [
+      'timestamp',
+      'level',
+      'message',
+      'component',
+      'request_id',
+      'user_id',
+      'method',
+      'url',
+      'status_code',
+      'duration_ms',
+      'error_message',
+      'error_code',
+      'meta',
+    ];
     const sql = `
       INSERT INTO ${this.config.table} 
-      (timestamp, level, message, meta, service, component, request_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (${fields.join(', ')})
+      VALUES (${fields.map(() => '?').join(', ')})
     `;
 
     for (const entry of entries) {
-      const { timestamp, level, message, service, component, ...meta } = entry;
       const params = [
-        timestamp,
-        level,
-        message || '',
-        JSON.stringify(meta),
-        service || null,
-        component || null,
-        meta.requestId || meta.request_id || null,
+        entry.timestamp,
+        entry.level,
+        entry.message || '',
+        entry.component || null,
+        entry.request_id || null,
+        entry.user_id || null,
+        entry.method || null,
+        entry.url || null,
+        entry.status_code || null,
+        entry.duration_ms || null,
+        entry.error_message || null,
+        entry.error_code || null,
+        entry.meta ? JSON.stringify(entry.meta) : null,
       ];
 
       await this.executeQuery(sql, params);

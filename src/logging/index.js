@@ -1,5 +1,5 @@
 /**
- * Ultra-simple, singleton-based logging that just works.
+ * Ultra-simple logging that just works.
  * @module @voilajsx/appkit/logging
  * @file src/logging/index.js
  */
@@ -7,56 +7,63 @@
 import { LoggerClass } from './logger.js';
 import { getSmartDefaults } from './defaults.js';
 
-// --- Module-level cache for logger instances ---
-
-// The main logger instance, created only once.
+// Singleton instances
 let _mainLogger = null;
-// A map to store named child loggers for performance.
 const _namedLoggers = new Map();
 
 /**
- * Retrieves a logger instance.
+ * Get a logger instance.
  *
- * This function implements a singleton pattern.
- * - Calling `logger.get()` returns the main, app-wide logger.
- * - Calling `logger.get('componentName')` returns a dedicated child logger
- *   with the component name automatically added to its context.
+ * @param {string} [name] - Component name for child logger
+ * @returns {LoggerClass} Ready-to-use logger
  *
- * @param {string} [name] - The name of the logger (e.g., 'database', 'app-init').
- * @returns {LoggerClass} A ready-to-use logger instance.
+ * @example
+ * // Main logger
+ * logger.get().info('App started');
+ *
+ * // Component logger
+ * logger.get('database').error('Connection failed');
  */
 function get(name) {
-  // 1. Initialize the main logger if it doesn't exist yet.
+  // Initialize main logger if needed
   if (!_mainLogger) {
     const config = getSmartDefaults();
     _mainLogger = new LoggerClass(config);
   }
 
-  // 2. If no name is provided, return the main singleton logger.
+  // Return main logger if no name provided
   if (!name) {
     return _mainLogger;
   }
 
-  // 3. If a name is provided, return a cached or new child logger.
+  // Return cached or create new child logger
   if (_namedLoggers.has(name)) {
     return _namedLoggers.get(name);
   }
 
-  // Create a new child logger with the component name as a default binding.
   const childLogger = _mainLogger.child({ component: name });
   _namedLoggers.set(name, childLogger);
   return childLogger;
 }
 
 /**
- * The main logger object, providing the .get() method for a consistent API.
+ * Clear all loggers and close transports.
+ * Essential for testing to prevent memory leaks.
+ *
+ * @returns {Promise<void>}
  */
-const logger = {
-  get,
-};
+async function clear() {
+  if (_mainLogger) {
+    await _mainLogger.close();
+    _mainLogger = null;
+  }
+  _namedLoggers.clear();
+}
 
-// Main named export (recommended)
+/**
+ * The main logger object
+ */
+const logger = { get, clear };
+
 export { logger };
-
-// Default export for backward compatibility or different import styles
 export default logger;

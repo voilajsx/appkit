@@ -1,5 +1,6 @@
 /**
- * Webhook transport for real-time alerts with inline formatting
+ * Webhook transport with scope-based optimization for real-time alerts
+ * Supports: Slack and Generic webhooks only
  * @module @voilajsx/appkit/logging
  * @file src/logging/transports/webhook.js
  */
@@ -8,7 +9,7 @@ import https from 'https';
 import http from 'http';
 
 /**
- * Webhook transport class for real-time alerts and notifications
+ * Webhook transport class for real-time alerts and notifications with scope optimization
  */
 export class WebhookTransport {
   /**
@@ -29,17 +30,15 @@ export class WebhookTransport {
       method: 'POST',
       rateLimit: 10, // Max 10 webhooks per minute
       rateLimitWindow: 60000, // 1 minute window
+
+      // Scope-based optimization
+      minimal: false,
+      includeMetadata: true,
     };
 
-    // Environment overrides
+    // Environment overrides (simplified)
     const envOverrides = {
       url: process.env.VOILA_LOGGING_WEBHOOK_URL,
-      level: process.env.VOILA_LOGGING_WEBHOOK_LEVEL || defaults.level,
-      timeout:
-        parseInt(process.env.VOILA_LOGGING_WEBHOOK_TIMEOUT) || defaults.timeout,
-      headers:
-        this.parseHeaders(process.env.VOILA_LOGGING_WEBHOOK_HEADERS) ||
-        defaults.headers,
     };
 
     // Merge configuration with priority: defaults < env < direct config
@@ -48,6 +47,16 @@ export class WebhookTransport {
       ...envOverrides,
       ...config,
     };
+
+    // Adjust level based on scope - minimal mode is more restrictive
+    if (this.config.minimal && this.config.level !== 'error') {
+      this.config.level = 'error'; // Force error-only in minimal mode
+    }
+
+    // Adjust rate limiting based on scope
+    if (this.config.minimal) {
+      this.config.rateLimit = Math.min(this.config.rateLimit, 5); // Max 5 webhooks in minimal
+    }
 
     // Validate required configuration
     this.validateConfig();
@@ -61,19 +70,130 @@ export class WebhookTransport {
   }
 
   /**
-   * Parse headers from environment variable or string
-   * @param {string} headersStr - Headers string (JSON format)
-   * @returns {object|null} Parsed headers object
+   * Optimize log entry based on scope settings
+   * @param {object} entry - Original log entry
+   * @returns {object} Optimized log entry for webhook
    */
-  parseHeaders(headersStr) {
-    if (!headersStr) return null;
-
-    try {
-      return JSON.parse(headersStr);
-    } catch (error) {
-      console.warn('Invalid webhook headers JSON format, using defaults');
-      return null;
+  optimizeLogEntry(entry) {
+    if (!this.config.minimal) {
+      return entry; // Full scope - keep everything
     }
+
+    // Minimal scope optimization for webhooks
+    return this.createMinimalEntry(entry);
+  }
+
+  /**
+   * Create minimal log entry for webhook alerts
+   * @param {object} entry - Original entry
+   * @returns {object} Minimal entry optimized for alerts
+   */
+  createMinimalEntry(entry) {
+    const {
+      timestamp,
+      level,
+      message,
+      component,
+      requestId,
+      error,
+      userId,
+      method,
+      url,
+      statusCode,
+      ...rest
+    } = entry;
+
+    const minimal = {
+      timestamp,
+      level,
+      message,
+    };
+
+    // Add essential context for alerts
+    if (component) minimal.component = component;
+    if (requestId) minimal.requestId = requestId;
+    if (userId) minimal.userId = userId;
+
+    // Add HTTP context if it's an error (important for debugging)
+    if (level === 'error' && method) minimal.method = method;
+    if (level === 'error' && url) minimal.url = url;
+    if (level === 'error' && statusCode) minimal.statusCode = statusCode;
+
+    // Add error information (critical for alerts)
+    if (error) {
+      minimal.error = this.optimizeError(error);
+    }
+
+    // Add only critical metadata for alerts
+    if (this.config.includeMetadata) {
+      const criticalMeta = this.filterCriticalMeta(rest);
+      if (Object.keys(criticalMeta).length > 0) {
+        minimal.meta = criticalMeta;
+      }
+    }
+
+    return minimal;
+  }
+
+  /**
+   * Optimize error object for webhook alerts
+   * @param {object|string} error - Error object or string
+   * @returns {object|string} Optimized error for alerts
+   */
+  optimizeError(error) {
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    if (typeof error === 'object') {
+      const optimized = {
+        message: error.message,
+      };
+
+      // Add important error fields for debugging alerts
+      if (error.name && error.name !== 'Error') {
+        optimized.name = error.name;
+      }
+
+      if (error.code) {
+        optimized.code = error.code;
+      }
+
+      if (error.statusCode) {
+        optimized.statusCode = error.statusCode;
+      }
+
+      // Don't include stack traces in webhooks for security and brevity
+      return optimized;
+    }
+
+    return error;
+  }
+
+  /**
+   * Filter metadata to keep only critical fields for alerts
+   * @param {object} meta - Original metadata
+   * @returns {object} Critical metadata for alerts
+   */
+  filterCriticalMeta(meta) {
+    const critical = {};
+
+    // Keep only the most critical fields for alerts
+    const criticalKeys = [
+      'service',
+      'environment',
+      'version',
+      'tenantId',
+      'appName',
+    ];
+
+    for (const key of criticalKeys) {
+      if (meta[key] !== undefined) {
+        critical[key] = meta[key];
+      }
+    }
+
+    return critical;
   }
 
   /**
@@ -152,8 +272,11 @@ export class WebhookTransport {
         return;
       }
 
+      // Optimize entry based on scope settings
+      const optimizedEntry = this.optimizeLogEntry(entry);
+
       // Send immediately (webhooks are for real-time alerts)
-      await this.sendWebhook(entry);
+      await this.sendWebhook(optimizedEntry);
 
       // Track rate limit
       this.rateLimitQueue.push(Date.now());
@@ -198,34 +321,29 @@ export class WebhookTransport {
   }
 
   /**
-   * Format log entry into webhook payload
+   * Format log entry into webhook payload (Slack + Generic only)
    * @param {object} entry - Log entry
    * @returns {string} Formatted webhook payload
    */
   formatWebhookPayload(entry) {
-    // Different webhook services expect different formats
+    // Detect service type: slack or generic
     const serviceType = this.detectWebhookService();
 
     switch (serviceType) {
       case 'slack':
         return JSON.stringify(this.formatSlackPayload(entry));
 
-      case 'discord':
-        return JSON.stringify(this.formatDiscordPayload(entry));
-
-      case 'teams':
-        return JSON.stringify(this.formatTeamsPayload(entry));
-
       default:
-        // Generic webhook format
+        // Generic webhook format with scope indication
         return JSON.stringify({
           timestamp: entry.timestamp,
           level: entry.level,
           message: entry.message,
+          scope: this.config.minimal ? 'minimal' : 'full',
           data: entry,
           alert: {
             severity: this.mapLevelToSeverity(entry.level),
-            service: entry.service || 'unknown',
+            service: entry.service || entry.meta?.service || 'unknown',
             component: entry.component || 'unknown',
           },
         });
@@ -233,140 +351,89 @@ export class WebhookTransport {
   }
 
   /**
-   * Detect webhook service type based on URL
+   * Detect webhook service type based on URL (Slack only)
    * @returns {string} Service type
    */
   detectWebhookService() {
     const hostname = this.parsedUrl.hostname.toLowerCase();
 
     if (hostname.includes('slack.com')) return 'slack';
-    if (hostname.includes('discord.com') || hostname.includes('discordapp.com'))
-      return 'discord';
-    if (
-      hostname.includes('outlook.office.com') ||
-      this.parsedUrl.pathname.includes('webhookb2')
-    )
-      return 'teams';
 
     return 'generic';
   }
 
   /**
-   * Format payload for Slack webhook
+   * Format payload for Slack webhook with scope optimization
    * @param {object} entry - Log entry
    * @returns {object} Slack-formatted payload
    */
   formatSlackPayload(entry) {
     const color = this.getSlackColor(entry.level);
     const emoji = this.getLevelEmoji(entry.level);
+    const scopeLabel = this.config.minimal ? '🔹' : '🔸';
+
+    const fields = [
+      {
+        title: 'Message',
+        value: entry.message,
+        short: false,
+      },
+    ];
+
+    // Add essential fields based on scope
+    if (entry.component) {
+      fields.push({
+        title: 'Component',
+        value: entry.component,
+        short: true,
+      });
+    }
+
+    if (entry.service || entry.meta?.service) {
+      fields.push({
+        title: 'Service',
+        value: entry.service || entry.meta?.service,
+        short: true,
+      });
+    }
+
+    // Add error details if present
+    if (entry.error) {
+      const errorText =
+        typeof entry.error === 'object' ? entry.error.message : entry.error;
+      fields.push({
+        title: 'Error',
+        value: errorText,
+        short: false,
+      });
+    }
+
+    // Add HTTP context for errors
+    if (
+      entry.level === 'error' &&
+      (entry.method || entry.url || entry.statusCode)
+    ) {
+      let httpInfo = '';
+      if (entry.method && entry.url) httpInfo += `${entry.method} ${entry.url}`;
+      if (entry.statusCode) httpInfo += ` (${entry.statusCode})`;
+
+      if (httpInfo) {
+        fields.push({
+          title: 'HTTP',
+          value: httpInfo,
+          short: true,
+        });
+      }
+    }
 
     return {
-      text: `${emoji} *${entry.level.toUpperCase()}* Alert`,
+      text: `${scopeLabel} ${emoji} *${entry.level.toUpperCase()}* Alert`,
       attachments: [
         {
           color: color,
-          fields: [
-            {
-              title: 'Message',
-              value: entry.message,
-              short: false,
-            },
-            {
-              title: 'Service',
-              value: entry.service || 'unknown',
-              short: true,
-            },
-            {
-              title: 'Component',
-              value: entry.component || 'unknown',
-              short: true,
-            },
-            {
-              title: 'Timestamp',
-              value: new Date(entry.timestamp).toLocaleString(),
-              short: true,
-            },
-          ],
+          fields: fields,
           footer: 'VoilaJSX AppKit Logging',
           ts: Math.floor(new Date(entry.timestamp).getTime() / 1000),
-        },
-      ],
-    };
-  }
-
-  /**
-   * Format payload for Discord webhook
-   * @param {object} entry - Log entry
-   * @returns {object} Discord-formatted payload
-   */
-  formatDiscordPayload(entry) {
-    const color = this.getDiscordColor(entry.level);
-    const emoji = this.getLevelEmoji(entry.level);
-
-    return {
-      embeds: [
-        {
-          title: `${emoji} ${entry.level.toUpperCase()} Alert`,
-          description: entry.message,
-          color: color,
-          fields: [
-            {
-              name: 'Service',
-              value: entry.service || 'unknown',
-              inline: true,
-            },
-            {
-              name: 'Component',
-              value: entry.component || 'unknown',
-              inline: true,
-            },
-            {
-              name: 'Timestamp',
-              value: new Date(entry.timestamp).toISOString(),
-              inline: false,
-            },
-          ],
-          footer: {
-            text: 'VoilaJSX AppKit Logging',
-          },
-          timestamp: entry.timestamp,
-        },
-      ],
-    };
-  }
-
-  /**
-   * Format payload for Microsoft Teams webhook
-   * @param {object} entry - Log entry
-   * @returns {object} Teams-formatted payload
-   */
-  formatTeamsPayload(entry) {
-    const color = this.getTeamsColor(entry.level);
-    const emoji = this.getLevelEmoji(entry.level);
-
-    return {
-      '@type': 'MessageCard',
-      '@context': 'http://schema.org/extensions',
-      themeColor: color,
-      summary: `${entry.level.toUpperCase()} Alert`,
-      sections: [
-        {
-          activityTitle: `${emoji} ${entry.level.toUpperCase()} Alert`,
-          activitySubtitle: entry.message,
-          facts: [
-            {
-              name: 'Service',
-              value: entry.service || 'unknown',
-            },
-            {
-              name: 'Component',
-              value: entry.component || 'unknown',
-            },
-            {
-              name: 'Timestamp',
-              value: new Date(entry.timestamp).toLocaleString(),
-            },
-          ],
         },
       ],
     };
@@ -385,36 +452,6 @@ export class WebhookTransport {
       debug: '#36a64f',
     };
     return colors[level] || 'good';
-  }
-
-  /**
-   * Get Discord color for log level
-   * @param {string} level - Log level
-   * @returns {number} Discord color (decimal)
-   */
-  getDiscordColor(level) {
-    const colors = {
-      error: 0xff0000, // Red
-      warn: 0xffa500, // Orange
-      info: 0x00ff00, // Green
-      debug: 0x808080, // Gray
-    };
-    return colors[level] || 0x00ff00;
-  }
-
-  /**
-   * Get Teams color for log level
-   * @param {string} level - Log level
-   * @returns {string} Teams color (hex)
-   */
-  getTeamsColor(level) {
-    const colors = {
-      error: 'FF0000', // Red
-      warn: 'FFA500', // Orange
-      info: '00FF00', // Green
-      debug: '808080', // Gray
-    };
-    return colors[level] || '00FF00';
   }
 
   /**

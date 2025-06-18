@@ -1,5 +1,5 @@
 /**
- * File transport with rotation, retention and inline utilities
+ * File transport with scope-based optimization and inline utilities
  * @module @voilajsx/appkit/logging
  * @file src/logging/transports/file.js
  */
@@ -8,7 +8,7 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * File transport class with built-in rotation and retention
+ * File transport class with built-in rotation, retention and scope optimization
  */
 export class FileTransport {
   /**
@@ -17,6 +17,7 @@ export class FileTransport {
    */
   constructor(config = {}) {
     const isProduction = process.env.NODE_ENV === 'production';
+    const isDevelopment = process.env.NODE_ENV === 'development';
 
     // Transport defaults
     const defaults = {
@@ -25,6 +26,13 @@ export class FileTransport {
       retentionDays: isProduction ? 30 : 7,
       maxSize: isProduction ? 50 * 1024 * 1024 : 10 * 1024 * 1024,
       rotateDaily: true,
+
+      // Scope-based optimization
+      minimal: false,
+      verbosity: 'full',
+      compactFormat: false,
+      includeStackTraces: true,
+      includeMetadata: true,
     };
 
     // Environment overrides
@@ -54,6 +62,181 @@ export class FileTransport {
   }
 
   /**
+   * Optimize log entry based on scope settings
+   * @param {object} entry - Original log entry
+   * @returns {object} Optimized log entry
+   */
+  optimizeLogEntry(entry) {
+    if (!this.config.minimal) {
+      return entry; // Full scope - keep everything
+    }
+
+    // Minimal scope optimization
+    return this.createMinimalEntry(entry);
+  }
+
+  /**
+   * Create minimal log entry for smaller file size
+   * @param {object} entry - Original entry
+   * @returns {object} Minimal entry
+   */
+  createMinimalEntry(entry) {
+    const {
+      timestamp,
+      level,
+      message,
+      service,
+      version,
+      environment,
+      component,
+      requestId,
+      error,
+      ...rest
+    } = entry;
+
+    const minimal = {
+      timestamp,
+      level,
+      message,
+    };
+
+    // Add essential context fields
+    if (component) {
+      minimal.component = component;
+    }
+
+    if (requestId) {
+      minimal.requestId = requestId;
+    }
+
+    // Add error information if present
+    if (error) {
+      minimal.error = this.optimizeError(error);
+    }
+
+    // Add important metadata only
+    const importantMeta = this.filterImportantMeta(rest);
+    if (Object.keys(importantMeta).length > 0) {
+      Object.assign(minimal, importantMeta);
+    }
+
+    // Apply compact formatting if enabled
+    if (this.config.compactFormat) {
+      return this.applyCompactFormat(minimal);
+    }
+
+    return minimal;
+  }
+
+  /**
+   * Apply compact field naming to reduce file size
+   * @param {object} entry - Log entry
+   * @returns {object} Compacted entry
+   */
+  applyCompactFormat(entry) {
+    const fieldMap = {
+      timestamp: 'ts',
+      message: 'msg',
+      component: 'comp',
+      requestId: 'req',
+      service: 'svc',
+      version: 'ver',
+      environment: 'env',
+      error: 'err',
+      userId: 'uid',
+      method: 'mtd',
+      statusCode: 'status',
+      durationMs: 'dur',
+    };
+
+    const compacted = {};
+
+    for (const [key, value] of Object.entries(entry)) {
+      const compactKey = fieldMap[key] || key;
+      compacted[compactKey] = value;
+    }
+
+    return compacted;
+  }
+
+  /**
+   * Optimize error object to reduce size while keeping useful info
+   * @param {object|string} error - Error object or string
+   * @returns {object|string} Optimized error
+   */
+  optimizeError(error) {
+    if (typeof error === 'string') {
+      return error;
+    }
+
+    if (typeof error === 'object') {
+      const optimized = {
+        message: error.message,
+      };
+
+      // Add important error fields
+      if (error.name && error.name !== 'Error') {
+        optimized.name = error.name;
+      }
+
+      if (error.code) {
+        optimized.code = error.code;
+      }
+
+      if (error.statusCode) {
+        optimized.statusCode = error.statusCode;
+      }
+
+      // Include stack trace only if configured
+      if (this.config.includeStackTraces && error.stack) {
+        optimized.stack = error.stack;
+      }
+
+      return optimized;
+    }
+
+    return error;
+  }
+
+  /**
+   * Filter metadata to keep only important fields in minimal mode
+   * @param {object} meta - Original metadata
+   * @returns {object} Filtered metadata
+   */
+  filterImportantMeta(meta) {
+    const important = {};
+
+    // Essential correlation fields
+    const essentialKeys = [
+      'userId',
+      'sessionId',
+      'traceId',
+      'spanId',
+      'tenantId',
+      'method',
+      'url',
+      'statusCode',
+      'durationMs',
+      'ip',
+    ];
+
+    for (const key of essentialKeys) {
+      if (meta[key] !== undefined) {
+        important[key] = meta[key];
+      }
+    }
+
+    // Include any field ending with 'Id' (correlation IDs)
+    for (const [key, value] of Object.entries(meta)) {
+      if (key.endsWith('Id') && !important[key]) {
+        important[key] = value;
+      }
+    }
+
+    return important;
+  }
+
+  /**
    * Initialize file transport
    */
   initialize() {
@@ -78,8 +261,11 @@ export class FileTransport {
         this.createStream();
       }
 
+      // Optimize the log entry based on scope configuration
+      const optimizedEntry = this.optimizeLogEntry(entry);
+
       // Always write structured JSON to files
-      const line = JSON.stringify(entry) + '\n';
+      const line = JSON.stringify(optimizedEntry) + '\n';
       const size = Buffer.byteLength(line);
 
       await this.writeToStream(line);
