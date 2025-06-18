@@ -7,7 +7,7 @@
  * VOILA_LOGGING_SCOPE=auto|minimal|full     # auto (default), minimal, full
  * VOILA_LOGGING_CONSOLE=true|false          # true (default), false
  * VOILA_LOGGING_FILE=true|false             # true (default), false
- * VOILA_LOGGING_DATABASE=true|false         # false (default), true
+ * VOILA_LOGGING_DATABASE=true|false         # false (default), true - EXPLICIT opt-in only
  * VOILA_LOGGING_HTTP_URL=https://...        # URL auto-enables HTTP transport
  * VOILA_LOGGING_WEBHOOK_URL=https://...     # URL auto-enables webhook transport
  *
@@ -32,7 +32,7 @@ export function getSmartDefaults() {
   const scope = detectScope();
   const isMinimalScope = scope === 'minimal';
 
-  // Individual transport enablement (simplified)
+  // Individual transport enablement (corrected logic)
   const transports = getEnabledTransports();
 
   return {
@@ -146,7 +146,7 @@ function detectScope() {
 }
 
 /**
- * Determines which transports are enabled based on simplified environment variables
+ * Determines which transports are enabled based on EXPLICIT configuration
  * @returns {string[]} Array of enabled transport names
  */
 function getEnabledTransports() {
@@ -166,10 +166,9 @@ function getEnabledTransports() {
     transports.push('file');
   }
 
-  // Database transport - VOILA_LOGGING_DATABASE or auto-detect DATABASE_URL
-  const dbExplicitlyEnabled = process.env.VOILA_LOGGING_DATABASE === 'true';
-  const hasDbUrl = !!process.env.DATABASE_URL;
-  if (dbExplicitlyEnabled || hasDbUrl) {
+  // Database transport - ONLY when EXPLICITLY enabled (no auto-detection)
+  // This prevents unexpected database connections and table creation
+  if (process.env.VOILA_LOGGING_DATABASE === 'true') {
     transports.push('database');
   }
 
@@ -240,6 +239,21 @@ function validateEnvironment() {
       `Invalid VOILA_LOGGING_WEBHOOK_URL: "${process.env.VOILA_LOGGING_WEBHOOK_URL}". Must be a valid HTTP/HTTPS URL`
     );
   }
+
+  // Validate database configuration if explicitly enabled
+  if (process.env.VOILA_LOGGING_DATABASE === 'true') {
+    if (!process.env.DATABASE_URL) {
+      throw new Error(
+        'VOILA_LOGGING_DATABASE is enabled but DATABASE_URL is not provided. Either set DATABASE_URL or disable database logging with VOILA_LOGGING_DATABASE=false'
+      );
+    }
+
+    if (!isValidDatabaseUrl(process.env.DATABASE_URL)) {
+      throw new Error(
+        `Invalid DATABASE_URL: "${process.env.DATABASE_URL}". Must be a valid database connection string`
+      );
+    }
+  }
 }
 
 /**
@@ -251,6 +265,21 @@ function isValidUrl(string) {
   try {
     const url = new URL(string);
     return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Validates if a string is a valid database URL
+ * @param {string} string - Database URL string to validate
+ * @returns {boolean} True if valid database URL
+ */
+function isValidDatabaseUrl(string) {
+  try {
+    const url = new URL(string);
+    const validProtocols = ['postgres:', 'postgresql:', 'mysql:', 'sqlite:'];
+    return validProtocols.includes(url.protocol);
   } catch (error) {
     return false;
   }
