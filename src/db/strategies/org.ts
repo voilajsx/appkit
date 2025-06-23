@@ -1,10 +1,10 @@
 /**
- * Organization-level database strategy implementation
+ * Organization-level database strategy implementation with enterprise URL resolution
  * @module @voilajsx/appkit/db
  * @file src/db/strategies/org.ts
  */
 
-import { createDatabaseError, type DatabaseConfig } from '../defaults';
+import { createDatabaseError, OrgUrlResolver, type DatabaseConfig } from '../defaults';
 
 export interface OrgStrategyAdapter {
   createClient(config: any): Promise<any>;
@@ -18,20 +18,38 @@ export interface OrgStrategyAdapter {
 }
 
 /**
- * Organization-level strategy
- * Each organization has its own separate database for maximum isolation
+ * Organization-level strategy with enterprise-grade URL resolution
+ * Each organization can have its own separate database on different servers/clouds
  * Tenants within each org use row-level isolation
  */
 export class OrgStrategy {
   private connections = new Map<string, any>(); // Cache org/tenant connections
   private systemConnection: any = null; // Cached system connection
-  private baseUrl: { prefix: string; suffix: string };
+  private urlResolver: OrgUrlResolver; // Enterprise URL resolver
+  private baseUrl: { prefix: string; suffix: string } | null = null;
 
   constructor(
     private config: DatabaseConfig,
     private adapter: OrgStrategyAdapter
   ) {
-    this.baseUrl = this._parseBaseUrl(config.database.url!);
+    // Initialize enterprise URL resolver with built-in caching and error handling
+    this.urlResolver = new OrgUrlResolver(
+      config.orgUrlResolver,
+      config.orgUrlCacheTTL,
+      config.environment.isDevelopment
+    );
+
+    // Parse base URL for fallback scenarios
+    if (config.database.url) {
+      try {
+        this.baseUrl = this._parseBaseUrl(config.database.url);
+      } catch (error: any) {
+        // If URL parsing fails, log warning but continue (resolver might provide URLs)
+        if (config.environment.isDevelopment) {
+          console.warn(`[AppKit] Could not parse base URL, relying on custom resolver: ${error.message}`);
+        }
+      }
+    }
   }
 
   /**
@@ -53,8 +71,8 @@ export class OrgStrategy {
     }
 
     try {
-      // Build org-specific database URL
-      const databaseUrl = this._buildDatabaseUrl(orgId);
+      // Use enterprise URL resolver to get org-specific database URL
+      const databaseUrl = await this.urlResolver.resolve(orgId);
 
       // Create client connection for org database
       const client = await this.adapter.createClient({
@@ -75,8 +93,17 @@ export class OrgStrategy {
         );
       }
 
+      // Add metadata for debugging and monitoring
+      finalClient._orgId = orgId;
+      finalClient._tenantId = tenantId;
+      finalClient._appKit = true;
+
       // Cache the connection
       this.connections.set(cacheKey, finalClient);
+
+      if (this.config.environment.isDevelopment) {
+        console.log(`✅ [AppKit] Connected to org '${orgId}' database for tenant '${tenantId}'`);
+      }
 
       return finalClient;
     } catch (error: any) {
@@ -111,7 +138,14 @@ export class OrgStrategy {
         const client = await this._getOrgConnection(orgId);
         
         // Optional: Create tenant registry entry if adapter supports it
-        // This is similar to row strategy but within the org database
+        if (this.adapter.createDatabase) {
+          // This is for database-level tenant isolation within org
+          // Most use cases will use row-level isolation instead
+        }
+
+        if (this.config.environment.isDevelopment) {
+          console.log(`✅ [AppKit] Tenant '${tenantId}' ready in organization '${orgId}'`);
+        }
       }
     } catch (error: any) {
       throw createDatabaseError(
@@ -144,6 +178,10 @@ export class OrgStrategy {
       // Delete all tenant data within the org database
       const orgClient = await this._getOrgConnection(orgId);
       await this._deleteAllTenantData(orgClient, tenantId);
+
+      if (this.config.environment.isDevelopment) {
+        console.log(`✅ [AppKit] Deleted tenant '${tenantId}' from organization '${orgId}'`);
+      }
     } catch (error: any) {
       throw createDatabaseError(
         `Failed to delete tenant '${tenantId}' in organization '${orgId}': ${error.message}`,
@@ -218,8 +256,6 @@ export class OrgStrategy {
    */
   async createOrg(orgId: string): Promise<void> {
     try {
-      const dbName = this._sanitizeDatabaseName(orgId);
-
       // Check if organization already exists
       if (await this.orgExists(orgId)) {
         throw createDatabaseError(
@@ -228,14 +264,31 @@ export class OrgStrategy {
         );
       }
 
+      // For enterprise setups, the database might already exist on the target server
+      // Try to connect first, if it fails, then try to create
+      try {
+        await this._getOrgConnection(orgId);
+        if (this.config.environment.isDevelopment) {
+          console.log(`✅ [AppKit] Organization '${orgId}' database already exists and is accessible`);
+        }
+        return;
+      } catch (connectionError) {
+        // Database doesn't exist or isn't accessible, try to create it
+      }
+
       // Create the organization database if adapter supports it
       if (this.adapter.createDatabase) {
-        const systemClient = await this._getSystemConnection();
+        const dbName = this._sanitizeDatabaseName(orgId);
+        const systemClient = await this._getSystemConnection(orgId);
         await this.adapter.createDatabase(dbName, systemClient);
       }
 
       // Run initial schema setup if needed
       await this._setupOrgDatabase(orgId);
+
+      if (this.config.environment.isDevelopment) {
+        console.log(`✅ [AppKit] Created organization database: ${orgId}`);
+      }
     } catch (error: any) {
       // If it's already a database error, re-throw
       if (error.statusCode) {
@@ -254,8 +307,6 @@ export class OrgStrategy {
    */
   async deleteOrg(orgId: string): Promise<void> {
     try {
-      const dbName = this._sanitizeDatabaseName(orgId);
-
       // Check if organization exists
       if (!(await this.orgExists(orgId))) {
         throw createDatabaseError(
@@ -267,10 +318,18 @@ export class OrgStrategy {
       // Close and remove all cached connections for this org
       this._removeOrgFromCache(orgId);
 
+      // Clear URL resolver cache for this org
+      this.urlResolver.clearCache(orgId);
+
       // Drop the organization database if adapter supports it
       if (this.adapter.dropDatabase) {
-        const systemClient = await this._getSystemConnection();
+        const dbName = this._sanitizeDatabaseName(orgId);
+        const systemClient = await this._getSystemConnection(orgId);
         await this.adapter.dropDatabase(dbName, systemClient);
+      }
+
+      if (this.config.environment.isDevelopment) {
+        console.log(`✅ [AppKit] Deleted organization database: ${orgId}`);
       }
     } catch (error: any) {
       // If it's already a database error, re-throw
@@ -290,29 +349,22 @@ export class OrgStrategy {
    */
   async orgExists(orgId: string): Promise<boolean> {
     try {
-      const dbName = this._sanitizeDatabaseName(orgId);
-
-      // If adapter supports listing databases, use that
-      if (this.adapter.listDatabases) {
-        const systemClient = await this._getSystemConnection();
-        const databases = await this.adapter.listDatabases(systemClient);
-        return databases.includes(dbName);
+      // Try to connect to the org database using the resolver
+      const testClient = await this._getOrgConnection(orgId);
+      
+      // Simple test query to verify database accessibility
+      if (testClient.$queryRaw) {
+        // Prisma client
+        await testClient.$queryRaw`SELECT 1`;
+      } else if (testClient.db) {
+        // Mongoose connection
+        await testClient.db.admin().ping();
       }
-
-      // Fallback: try to connect to the org database
-      try {
-        const databaseUrl = this._buildDatabaseUrl(orgId);
-        const testClient = await this.adapter.createClient({ url: databaseUrl });
-        await this._closeClient(testClient);
-        return true;
-      } catch {
-        return false;
-      }
-    } catch (error: any) {
-      throw createDatabaseError(
-        `Failed to check organization existence for '${orgId}': ${error.message}`,
-        500
-      );
+      
+      return true;
+    } catch (error) {
+      // If connection or query fails, org doesn't exist or isn't accessible
+      return false;
     }
   }
 
@@ -321,8 +373,20 @@ export class OrgStrategy {
    */
   async listOrgs(): Promise<string[]> {
     try {
-      // If adapter supports listing databases, use that
-      if (this.adapter.listDatabases) {
+      // For enterprise setups with custom resolvers, we can't easily list all orgs
+      // since they might be on different servers. This would need to be implemented
+      // by the developer's custom resolver or a registry system.
+      
+      if (this.config.orgUrlResolver) {
+        // With custom resolver, we don't know all orgs without a registry
+        throw createDatabaseError(
+          'Listing organizations with custom URL resolver requires implementing a registry system',
+          501
+        );
+      }
+
+      // Fallback to adapter's database listing (only works with default URL pattern)
+      if (this.adapter.listDatabases && this.baseUrl) {
         const systemClient = await this._getSystemConnection();
         const databases = await this.adapter.listDatabases(systemClient);
         return this._filterSystemDatabases(databases);
@@ -365,12 +429,19 @@ export class OrgStrategy {
 
     this.connections.clear();
     this.systemConnection = null;
+
+    // Clear URL resolver caches
+    this.urlResolver.clearCache();
+
+    if (this.config.environment.isDevelopment) {
+      console.log('👋 [AppKit] Org strategy disconnected and cleaned up');
+    }
   }
 
   // Private helper methods
 
   /**
-   * Parses base URL for database connections
+   * Parses base URL for database connections (fallback only)
    */
   private _parseBaseUrl(url: string): { prefix: string; suffix: string } {
     // Handle URLs like: postgresql://user:pass@host:5432/{org}
@@ -392,40 +463,26 @@ export class OrgStrategy {
     }
 
     throw createDatabaseError(
-      'Invalid database URL for org strategy. Use {org} placeholder or standard database URL.',
+      'Invalid database URL for org strategy. Use {org} placeholder or provide custom orgUrlResolver',
       500
     );
   }
 
   /**
-   * Builds database URL for specific organization
-   */
-  private _buildDatabaseUrl(orgId: string): string {
-    const dbName = this._sanitizeDatabaseName(orgId);
-    
-    if (this.config.database.url!.includes('{org}')) {
-      return `${this.baseUrl.prefix}/${dbName}${this.baseUrl.suffix}`;
-    }
-    
-    // Append org to existing database name
-    const originalUrl = this.config.database.url!;
-    const urlParts = originalUrl.match(/^(.*\/)([^/?]+)(.*)$/);
-    if (urlParts) {
-      return `${urlParts[1]}${orgId}_${urlParts[2]}${urlParts[3]}`;
-    }
-    
-    return originalUrl;
-  }
-
-  /**
-   * Gets organization database connection
+   * Gets organization database connection using enterprise resolver
    */
   private async _getOrgConnection(orgId: string): Promise<any> {
     const cacheKey = `org_${orgId}`;
     
     if (!this.connections.has(cacheKey)) {
-      const databaseUrl = this._buildDatabaseUrl(orgId);
+      // Use the enterprise URL resolver
+      const databaseUrl = await this.urlResolver.resolve(orgId);
       const client = await this.adapter.createClient({ url: databaseUrl });
+      
+      // Add metadata
+      client._orgId = orgId;
+      client._appKit = true;
+      
       this.connections.set(cacheKey, client);
     }
     
@@ -433,20 +490,72 @@ export class OrgStrategy {
   }
 
   /**
-   * Gets or creates system database connection
+   * Gets or creates system database connection for management operations
    */
-  private async _getSystemConnection(): Promise<any> {
-    if (!this.systemConnection) {
-      const systemUrl = this._buildSystemUrl();
-      this.systemConnection = await this.adapter.createClient({ url: systemUrl });
+  private async _getSystemConnection(orgId?: string): Promise<any> {
+    // For enterprise setups, system connection might be org-specific
+    const cacheKey = orgId ? `system_${orgId}` : 'system_default';
+    
+    if (!this.systemConnection || (orgId && this.systemConnection._orgId !== orgId)) {
+      if (this.config.orgUrlResolver && orgId) {
+        // For custom resolvers, use the org's URL but connect to system database
+        const orgUrl = await this.urlResolver.resolve(orgId);
+        const systemUrl = this._buildSystemUrlFromOrgUrl(orgUrl);
+        this.systemConnection = await this.adapter.createClient({ url: systemUrl });
+        this.systemConnection._orgId = orgId;
+      } else if (this.baseUrl) {
+        // Use default system URL pattern
+        const systemUrl = this._buildSystemUrl();
+        this.systemConnection = await this.adapter.createClient({ url: systemUrl });
+      } else {
+        throw createDatabaseError(
+          'Cannot create system connection without base URL or custom resolver context',
+          500
+        );
+      }
     }
+    
     return this.systemConnection;
   }
 
   /**
-   * Builds system database URL for management operations
+   * Builds system database URL from organization URL
+   */
+  private _buildSystemUrlFromOrgUrl(orgUrl: string): string {
+    const provider = this._detectProviderFromUrl(orgUrl);
+
+    // Replace database name with system database
+    const urlParts = orgUrl.match(/^(.*\/)([^/?]+)(.*)$/);
+    if (!urlParts) {
+      throw createDatabaseError('Invalid organization database URL format', 500);
+    }
+
+    let systemDbName: string;
+    switch (provider) {
+      case 'postgresql':
+        systemDbName = 'postgres';
+        break;
+      case 'mysql':
+        systemDbName = 'mysql';
+        break;
+      case 'mongodb':
+        systemDbName = 'admin';
+        break;
+      default:
+        throw createDatabaseError(`Unsupported database provider: ${provider}`, 500);
+    }
+
+    return `${urlParts[1]}${systemDbName}${urlParts[3]}`;
+  }
+
+  /**
+   * Builds system database URL for management operations (fallback)
    */
   private _buildSystemUrl(): string {
+    if (!this.baseUrl) {
+      throw createDatabaseError('Base URL not available for system connection', 500);
+    }
+
     const provider = this._detectProvider();
 
     switch (provider) {
@@ -465,11 +574,20 @@ export class OrgStrategy {
   }
 
   /**
-   * Detects database provider from URL
+   * Detects database provider from base URL
    */
   private _detectProvider(): string {
-    const url = this.config.database.url!;
+    if (!this.config.database.url) {
+      throw createDatabaseError('Database URL not available', 500);
+    }
 
+    return this._detectProviderFromUrl(this.config.database.url);
+  }
+
+  /**
+   * Detects database provider from any URL
+   */
+  private _detectProviderFromUrl(url: string): string {
     if (url.includes('postgresql://') || url.includes('postgres://')) {
       return 'postgresql';
     }
@@ -502,7 +620,12 @@ export class OrgStrategy {
       const orgClient = await this._getOrgConnection(orgId);
       
       // This would be where you run migrations or initial schema setup
-      // For now, we'll just ensure the connection works
+      // For now, we'll just ensure the connection works with a simple test
+      if (orgClient.$queryRaw) {
+        await orgClient.$queryRaw`SELECT 1`;
+      } else if (orgClient.db) {
+        await orgClient.db.admin().ping();
+      }
     } catch (error: any) {
       console.warn(
         `Failed to setup schema for organization '${orgId}':`,

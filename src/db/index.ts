@@ -1,5 +1,20 @@
 /**
- * Simplified Database API - org/tenant with auto app detection
+ * Simplified Database API - org/tenant with auto app detection and vector support
+ * 
+ * Environment Variables Required:
+ * - DATABASE_URL: PostgreSQL connection string
+ * 
+ * Environment Variables Optional:
+ * - VOILA_DB_ORGS: Enable organization mode (true/false)
+ * - VOILA_DB_TENANTS: Enable tenant mode (true/false)
+ * - VOILA_DB_VECTORS: Enable vector operations (true/false)
+ * 
+ * Usage Examples:
+ * - const db = await database.get()
+ * - const tenantDB = await database.tenant('team-1')
+ * - const orgDB = await database.org('acme').get()
+ * - const vectorDB = await database.vectors()
+ * 
  * @module @voilajsx/appkit/db
  * @file src/db/index.ts
  */
@@ -17,7 +32,7 @@ import {
 const instances = new Map<string, DatabaseClass>();
 
 /**
- * Organization Database - provides tenant method within organization
+ * Organization Database - provides tenant and vector methods within organization
  */
 class OrgDatabase {
   constructor(
@@ -39,6 +54,19 @@ class OrgDatabase {
   async get(): Promise<any> {
     const db = this._getDatabase();
     return await db.client({ orgId: this.orgId });
+  }
+
+  /**
+   * Get vector operations for this organization
+   */
+  async vectors(): Promise<any> {
+    if (!this.config.vector.enabled) {
+      throw createDatabaseError(createApiError('vectors', this.config), 400);
+    }
+
+    const db = this._getDatabase();
+    const orgClient = await db.client({ orgId: this.orgId });
+    return orgClient; // Same database, vector tables
   }
 
   private _getDatabase(): DatabaseClass {
@@ -95,6 +123,22 @@ export const database = {
 
     const db = this._getDatabase('main', config);
     return await db.tenant(tenantId);
+  },
+
+  /**
+   * Get vector operations (same database, vector tables)
+   */
+  async vectors(): Promise<any> {
+    const config = getSmartDefaults();
+
+    // Validate vector mode is enabled
+    if (!config.vector.enabled) {
+      throw createDatabaseError(createApiError('vectors', config), 400);
+    }
+
+    const db = this._getDatabase('main', config);
+    const client = await db.client();
+    return client; // Same database, vector tables
   },
 
   /**
