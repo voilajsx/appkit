@@ -1,7 +1,7 @@
 /**
  * Universal middleware for Express, Fastify, Koa and other frameworks
  * @module @voilajsx/appkit/db
- * @file src/db/middleware.ts
+ * @file src/db/middleware.js
  */
 
 import { 
@@ -10,7 +10,7 @@ import {
   validateOrgId,
   type DatabaseConfig 
 } from './defaults';
-import type { DatabaseClass } from './database';
+import type { DatabaseClass } from './database.js';
 
 export interface MiddlewareConfig {
   tenantHeader?: string;

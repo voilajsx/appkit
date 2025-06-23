@@ -1,10 +1,10 @@
 /**
  * Organization-level database strategy implementation with enterprise URL resolution
  * @module @voilajsx/appkit/db
- * @file src/db/strategies/org.ts
+ * @file src/db/strategies/org.js
  */
 
-import { createDatabaseError, OrgUrlResolver, type DatabaseConfig } from '../defaults';
+import { createDatabaseError, OrgUrlResolver, type DatabaseConfig } from '../defaults.js';
 
 export interface OrgStrategyAdapter {
   createClient(config: any): Promise<any>;

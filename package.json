@@ -19,7 +19,7 @@
       "default": "./src/tenantdb/index.js"
     },
     "./db": {
-      "default": "./src/db/index.ts"
+      "default": "./src/db/index.js"
     },
     "./prismadb": {
       "default": "./src/prismadb/index.js"

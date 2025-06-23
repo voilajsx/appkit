@@ -1,12 +1,12 @@
 /**
  * Production-ready Prisma adapter with app isolation and tenant middleware
  * @module @voilajsx/appkit/db
- * @file src/db/adapters/prisma.ts
+ * @file src/db/adapters/prisma.js
  */
 
 import fs from 'fs';
 import path from 'path';
-import { createDatabaseError } from '../defaults';
+import { createDatabaseError } from '../defaults.js';
 
 export interface DiscoveredApp {
   name: string;

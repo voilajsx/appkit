@@ -16,17 +16,17 @@
  * - const vectorDB = await database.vectors()
  * 
  * @module @voilajsx/appkit/db
- * @file src/db/index.ts
+ * @file src/db/index.js
  */
 
-import { DatabaseClass } from './database';
+import { DatabaseClass } from './database.js';
 import { 
   getSmartDefaults, 
   validateApiUsage, 
   createApiError, 
   createDatabaseError, 
   type DatabaseConfig 
-} from './defaults';
+} from './defaults.js';
 
 // Global database instances cache
 const instances = new Map<string, DatabaseClass>();

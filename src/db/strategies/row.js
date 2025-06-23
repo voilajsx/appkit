@@ -1,10 +1,10 @@
 /**
  * Row-level multi-tenancy strategy implementation
  * @module @voilajsx/appkit/db
- * @file src/db/strategies/row.ts
+ * @file src/db/strategies/row.js
  */
 
-import { createDatabaseError, type DatabaseConfig } from '../defaults';
+import { createDatabaseError, type DatabaseConfig } from '../defaults.js';
 
 export interface RowStrategyAdapter {
   createClient(config: any): Promise<any>;

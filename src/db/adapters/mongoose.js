@@ -1,10 +1,10 @@
 /**
  * Mongoose adapter for multi-tenant MongoDB operations
  * @module @voilajsx/appkit/db
- * @file src/db/adapters/mongoose.ts
+ * @file src/db/adapters/mongoose.js
  */
 
-import { createDatabaseError } from '../defaults';
+import { createDatabaseError } from '../defaults.js';
 
 export interface MongooseClientConfig {
   url: string;

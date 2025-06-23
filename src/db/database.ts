@@ -1,20 +1,20 @@
 /**
  * Core database class with org/tenant support and smart connection management
  * @module @voilajsx/appkit/db
- * @file src/db/database.ts
+ * @file src/db/database.js
  */
 
-import { RowStrategy } from './strategies/row';
-import { OrgStrategy } from './strategies/org';
-import { PrismaAdapter } from './adapters/prisma';
-import { MongooseAdapter } from './adapters/mongoose';
+import { RowStrategy } from './strategies/row.js';
+import { OrgStrategy } from './strategies/org.js';
+import { PrismaAdapter } from './adapters/prisma.js';
+import { MongooseAdapter } from './adapters/mongoose.js';
 import { 
   createDatabaseError, 
   validateTenantId, 
   validateOrgId, 
   validateSchema,
   type DatabaseConfig 
-} from './defaults';
+} from './defaults.js';
 
 export interface ClientOptions {
   orgId?: string;
