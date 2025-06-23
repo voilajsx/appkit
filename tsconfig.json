@@ -15,7 +15,7 @@
     "noImplicitAny": false,
     "strictNullChecks": false
   },
-  "include": ["src/**/*.js"],
+  "include": ["src/**/*.js","src/**/*.ts"],
   "exclude": [
     "node_modules",
     "types",
