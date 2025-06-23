@@ -1,6 +1,7 @@
 /**
- * @voilajs/appkit - Base storage provider
- * @module @voilajs/appkit/storage/providers/base
+ * Base storage provider interface with essential methods only
+ * @module @voilajsx/storage/providers/base
+ * @file src/storage/providers/base.js
  */
 /**
  * Base storage provider interface
@@ -14,23 +15,24 @@ export class StorageProvider {
      */
     initialize(): Promise<void>;
     /**
-     * Uploads a file
-     * @param {Buffer|Stream} file - File content
+     * Uploads a file with automatic large file handling
+     * @param {Buffer|Stream|string} file - File content or path to file
      * @param {string} path - Storage path
      * @param {Object} [options] - Upload options
+     * @param {Function} [onProgress] - Progress callback (percent: number) => void
      * @returns {Promise<{url: string, size: number, etag?: string}>} Upload result
      */
-    upload(file: Buffer | Stream, path: string, options?: any): Promise<{
+    upload(file: Buffer | Stream | string, path: string, options?: any, onProgress?: Function): Promise<{
         url: string;
         size: number;
         etag?: string;
     }>;
     /**
-     * Downloads a file
+     * Gets a file's content
      * @param {string} path - Storage path
      * @returns {Promise<Buffer>} File content
      */
-    download(path: string): Promise<Buffer>;
+    get(path: string): Promise<Buffer>;
     /**
      * Deletes a file
      * @param {string} path - Storage path
@@ -53,37 +55,7 @@ export class StorageProvider {
     /**
      * Lists files in a directory
      * @param {string} [prefix] - Path prefix
-     * @param {Object} [options] - List options
-     * @returns {Promise<Array<{path: string, size: number, modified: Date}>>} File list
+     * @returns {Promise<Array<string>>} Array of file paths
      */
-    list(prefix?: string, options?: any): Promise<Array<{
-        path: string;
-        size: number;
-        modified: Date;
-    }>>;
-    /**
-     * Gets file metadata
-     * @param {string} path - Storage path
-     * @returns {Promise<{size: number, modified: Date, etag?: string, contentType?: string}>} File metadata
-     */
-    getMetadata(path: string): Promise<{
-        size: number;
-        modified: Date;
-        etag?: string;
-        contentType?: string;
-    }>;
-    /**
-     * Copies a file
-     * @param {string} source - Source path
-     * @param {string} destination - Destination path
-     * @returns {Promise<boolean>} Success status
-     */
-    copy(source: string, destination: string): Promise<boolean>;
-    /**
-     * Moves/renames a file
-     * @param {string} source - Source path
-     * @param {string} destination - Destination path
-     * @returns {Promise<boolean>} Success status
-     */
-    move(source: string, destination: string): Promise<boolean>;
+    list(prefix?: string): Promise<Array<string>>;
 }

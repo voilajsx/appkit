@@ -12,3 +12,8 @@ export function initQueue(adapter: string, config?: any): Promise<QueueAdapter>;
  * @throws {Error} If queue is not initialized
  */
 export function getQueue(): QueueAdapter;
+/**
+ * Closes the current queue instance and releases resources
+ * @returns {Promise<void>}
+ */
+export function closeQueue(): Promise<void>;

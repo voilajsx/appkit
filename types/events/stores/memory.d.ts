@@ -3,9 +3,19 @@
  * @extends EventStore
  */
 export class MemoryStore extends EventStore {
-    constructor(options?: {});
+    /**
+     * Creates a new in-memory store
+     * @param {Object} options - Store options
+     * @param {number} [options.maxEvents=10000] - Maximum events to store
+     * @param {number} [options.maxEventSize=1048576] - Maximum event size in bytes (1MB default)
+     */
+    constructor(options?: {
+        maxEvents?: number;
+        maxEventSize?: number;
+    });
     events: any[];
-    maxEvents: any;
+    maxEvents: number;
+    maxEventSize: number;
     /**
      * Gets events by event name
      * @param {string} eventName - Event name to filter by
@@ -24,5 +34,11 @@ export class MemoryStore extends EventStore {
      * @returns {Array<Object>} Recent events
      */
     getRecentEvents(count?: number): Array<any>;
+    /**
+     * Adds multiple events at once
+     * @param {Array<Object>} events - Array of events to add
+     * @returns {Array<string>} Array of added event IDs
+     */
+    addEvents(events: Array<any>): Array<string>;
 }
 import { EventStore } from './base.js';

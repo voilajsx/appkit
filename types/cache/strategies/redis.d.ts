@@ -3,6 +3,22 @@
  * @extends CacheStrategy
  */
 export class RedisStrategy extends CacheStrategy {
+    /**
+     * Create a new Redis cache strategy
+     * @param {Object} config - Strategy configuration
+     * @param {string} [config.url] - Redis connection URL
+     * @param {string} [config.password] - Redis password
+     * @param {Object} [config.options] - Redis client options
+     * @param {string} [config.keyPrefix] - Key prefix
+     * @param {number} [config.defaultTTL] - Default TTL in seconds
+     */
+    constructor(config: {
+        url?: string;
+        password?: string;
+        options?: any;
+        keyPrefix?: string;
+        defaultTTL?: number;
+    });
     client: import("@redis/client").RedisClientType<{
         graph: {
             CONFIG_GET: typeof import("@redis/graph/dist/commands/CONFIG_GET.js");
@@ -294,22 +310,30 @@ export class RedisStrategy extends CacheStrategy {
         };
     } & import("redis").RedisModules, import("redis").RedisFunctions, import("redis").RedisScripts>;
     serializer: any;
-    keyPrefix: any;
-    defaultTTL: any;
-    get(key: any): Promise<any>;
-    set(key: any, value: any, ttl?: any): Promise<boolean>;
-    delete(key: any): Promise<boolean>;
     /**
-     * Delete keys matching pattern (Redis-specific)
+     * Delete keys matching pattern
      * @param {string} pattern - Key pattern
      * @returns {Promise<number>} Number of keys deleted
      */
     deletePattern(pattern: string): Promise<number>;
     /**
-     * Get remaining TTL for a key (Redis-specific)
+     * Get all keys matching pattern
+     * @param {string} pattern - Key pattern
+     * @returns {Promise<string[]>} Matching keys
+     */
+    keys(pattern: string): Promise<string[]>;
+    /**
+     * Get TTL for a key
      * @param {string} key - Cache key
      * @returns {Promise<number>} TTL in seconds, -1 if no TTL, -2 if key doesn't exist
      */
     ttl(key: string): Promise<number>;
+    /**
+     * Update expiration for a key
+     * @param {string} key - Cache key
+     * @param {number} ttl - New TTL in seconds
+     * @returns {Promise<boolean>} Success status
+     */
+    expire(key: string, ttl: number): Promise<boolean>;
 }
 import { CacheStrategy } from './base.js';

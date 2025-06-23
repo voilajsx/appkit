@@ -72,6 +72,7 @@
   "files": [
     "types/",
     "src/**/*.js",
+    "src/**/*.ts",
     "!src/**/*.md",
     "!src/**/docs/**",
     "!src/**/tests/**",

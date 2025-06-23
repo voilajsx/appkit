@@ -1,111 +1,120 @@
 /**
- * @typedef {import('./base.js').TransportOptions} TransportOptions
- * @typedef {import('./base.js').LogEntry} LogEntry
+ * File transport class with built-in rotation, retention and scope optimization
  */
-/**
- * @typedef {Object} FileTransportOptions
- * @property {string} [dirname='logs'] - Directory for log files
- * @property {string} [filename='app.log'] - Base filename for logs
- * @property {number} [maxSize=10485760] - Maximum file size before rotation (10MB default)
- * @property {number} [retentionDays=5] - Days to retain log files
- * @property {string} [datePattern='YYYY-MM-DD'] - Date pattern for filename
- */
-/**
- * File transport implementation with rotation and retention
- * @extends BaseTransport
- */
-export class FileTransport extends BaseTransport {
+export class FileTransport {
     /**
-     * Creates a new FileTransport instance
-     * @param {FileTransportOptions & TransportOptions} [options={}] - File transport options
+     * Creates a new File transport
+     * @param {object} [config={}] - File transport configuration
      */
-    constructor(options?: FileTransportOptions & TransportOptions);
-    dirname: string;
-    filename: string;
-    maxSize: number;
-    retentionDays: number;
-    datePattern: string;
+    constructor(config?: object);
+    config: any;
     currentSize: number;
     currentDate: string;
     stream: any;
     /**
-     * Ensures log directory exists
-     * @private
-     * @returns {void}
+     * Optimize log entry based on scope settings
+     * @param {object} entry - Original log entry
+     * @returns {object} Optimized log entry
      */
-    private ensureDirectoryExists;
+    optimizeLogEntry(entry: object): object;
     /**
-     * Gets current date string for filename
-     * @private
-     * @returns {string} Formatted date
+     * Create minimal log entry for smaller file size
+     * @param {object} entry - Original entry
+     * @returns {object} Minimal entry
      */
-    private getCurrentDate;
+    createMinimalEntry(entry: object): object;
     /**
-     * Gets current log filename
-     * @private
-     * @returns {string} Current log filename
+     * Apply compact field naming to reduce file size
+     * @param {object} entry - Log entry
+     * @returns {object} Compacted entry
      */
-    private getCurrentFilename;
+    applyCompactFormat(entry: object): object;
     /**
-     * Creates write stream for current log file
-     * @private
-     * @returns {void}
+     * Optimize error object to reduce size while keeping useful info
+     * @param {object|string} error - Error object or string
+     * @returns {object|string} Optimized error
      */
-    private createStream;
+    optimizeError(error: object | string): object | string;
     /**
-     * Rotates log file if needed
-     * @private
-     * @returns {void}
+     * Filter metadata to keep only important fields in minimal mode
+     * @param {object} meta - Original metadata
+     * @returns {object} Filtered metadata
      */
-    private checkRotation;
+    filterImportantMeta(meta: object): object;
     /**
-     * Performs date-based rotation
-     * @private
-     * @returns {void}
+     * Initialize file transport
      */
-    private rotate;
+    initialize(): void;
     /**
-     * Performs size-based rotation
-     * @private
-     * @returns {void}
+     * Writes log entry to file
+     * @param {object} entry - Log entry object
      */
-    private rotateSizeBased;
+    write(entry: object): Promise<void>;
     /**
-     * Sets up retention cleanup
-     * @private
-     * @returns {void}
-     */
-    private setupRetentionCleanup;
-    cleanupInterval: any;
-    /**
-     * Cleans old log files based on retention policy
-     * @private
+     * Write line to stream with timeout protection
+     * @param {string} line - Log line to write
      * @returns {Promise<void>}
      */
-    private cleanOldLogs;
+    writeToStream(line: string): Promise<void>;
+    /**
+     * Check if rotation is needed and perform it
+     */
+    checkRotation(): Promise<void>;
+    /**
+     * Perform date-based rotation
+     */
+    rotateDateBased(): Promise<void>;
+    /**
+     * Perform size-based rotation
+     */
+    rotateSizeBased(): Promise<void>;
+    /**
+     * Create write stream for current log file
+     */
+    createStream(): void;
+    /**
+     * Close the current stream
+     * @returns {Promise<void>}
+     */
+    closeStream(): Promise<void>;
+    /**
+     * Get current date string for file naming
+     * @returns {string} Date string in YYYY-MM-DD format
+     */
+    getCurrentDate(): string;
+    /**
+     * Get current log file path
+     * @returns {string} Full file path
+     */
+    getCurrentFilepath(): string;
+    /**
+     * Ensure log directory exists
+     */
+    ensureDirectoryExists(): void;
+    /**
+     * Setup automatic cleanup of old log files
+     */
+    setupRetentionCleanup(): void;
+    cleanupInterval: any;
+    /**
+     * Clean old log files based on retention policy
+     */
+    cleanOldLogs(): Promise<void>;
+    /**
+     * Check if this transport can handle the given log level
+     * @param {string} level - Log level to check
+     * @param {string} configLevel - Configured minimum level
+     * @returns {boolean} True if level should be logged
+     */
+    shouldLog(level: string, configLevel: string): boolean;
+    /**
+     * Flush any pending logs
+     * @returns {Promise<void>}
+     */
+    flush(): Promise<void>;
+    /**
+     * Close the file transport
+     * @returns {Promise<void>}
+     */
+    close(): Promise<void>;
 }
-export type TransportOptions = import("./base.js").TransportOptions;
-export type LogEntry = import("./base.js").LogEntry;
-export type FileTransportOptions = {
-    /**
-     * - Directory for log files
-     */
-    dirname?: string;
-    /**
-     * - Base filename for logs
-     */
-    filename?: string;
-    /**
-     * - Maximum file size before rotation (10MB default)
-     */
-    maxSize?: number;
-    /**
-     * - Days to retain log files
-     */
-    retentionDays?: number;
-    /**
-     * - Date pattern for filename
-     */
-    datePattern?: string;
-};
-import { BaseTransport } from './base.js';

@@ -6,26 +6,22 @@ export class LocalProvider extends StorageProvider {
     basePath: any;
     baseUrl: any;
     /**
-     * Uploads a file
-     * @param {Buffer|Stream} file - File content
+     * Uploads a file with automatic directory creation
+     * @param {Buffer|Stream|string} file - File content or path to file
      * @param {string} filePath - Storage path
      * @param {Object} [options] - Upload options
+     * @param {Function} [onProgress] - Progress callback (percent: number) => void
      * @returns {Promise<{url: string, size: number, path: string}>} Upload result
      */
-    upload(file: Buffer | Stream, filePath: string, options?: any): Promise<{
+    upload(file: Buffer | Stream | string, filePath: string, options?: any, onProgress?: Function): Promise<{
         url: string;
         size: number;
         path: string;
     }>;
     /**
-     * Gets file metadata
-     * @param {string} filePath - Storage path
-     * @returns {Promise<{size: number, modified: Date, contentType?: string}>} File metadata
+     * Helper method to upload streams with progress tracking
+     * @private
      */
-    getMetadata(filePath: string): Promise<{
-        size: number;
-        modified: Date;
-        contentType?: string;
-    }>;
+    private _uploadStream;
 }
 import { StorageProvider } from './base.js';

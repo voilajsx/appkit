@@ -1,19 +1,20 @@
 /**
- * @voilajs/appkit - Row-level multi-tenancy strategy
- * @module @voilajs/appkit/tenantdb/strategies/row
+ * @voilajsx/appkit - Row-level multi-tenancy strategy
+ * @module @voilajsx/appkit/tenantdb
+ * @file src/tenantdb/strategies/row.js
  */
 /**
  * Row-level multi-tenancy strategy
  * All tenants share the same database and tables, with tenant isolation via a tenantId column
  */
 export class RowStrategy {
-    constructor(options: any);
+    constructor(options: any, adapter: any);
     options: any;
-    prismaClient: any;
+    adapter: any;
     /**
      * Gets database connection for tenant
      * @param {string} tenantId - Tenant identifier
-     * @returns {Promise<Object>} Prisma client with tenant middleware
+     * @returns {Promise<Object>} Database client with tenant middleware
      */
     getConnection(tenantId: string): Promise<any>;
     /**
@@ -29,22 +30,16 @@ export class RowStrategy {
      */
     deleteTenant(tenantId: string): Promise<void>;
     /**
-     * Runs migrations (no-op for row-level strategy)
-     * @param {string} tenantId - Tenant identifier
-     * @returns {Promise<void>}
-     */
-    migrateTenant(tenantId: string): Promise<void>;
-    /**
-     * Lists all tenants
-     * @returns {Promise<string[]>} Array of tenant IDs
-     */
-    listTenants(): Promise<string[]>;
-    /**
      * Checks if tenant exists
      * @param {string} tenantId - Tenant identifier
      * @returns {Promise<boolean>}
      */
     tenantExists(tenantId: string): Promise<boolean>;
+    /**
+     * Lists all tenants
+     * @returns {Promise<string[]>} Array of tenant IDs
+     */
+    listTenants(): Promise<string[]>;
     /**
      * Disconnects all connections
      * @returns {Promise<void>}

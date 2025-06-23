@@ -8,11 +8,32 @@
 export class QueueAdapter {
     constructor(config?: {});
     config: {};
+    isInitialized: boolean;
     /**
      * Initializes the queue adapter
      * @returns {Promise<void>}
      */
     initialize(): Promise<void>;
+    /**
+     * Validates that the adapter is initialized
+     * @private
+     * @throws {Error} If the adapter is not initialized
+     */
+    private _validateInitialized;
+    /**
+     * Validates queue name
+     * @protected
+     * @param {string} queue - Queue name to validate
+     * @throws {Error} If queue name is invalid
+     */
+    protected _validateQueue(queue: string): void;
+    /**
+     * Validates job ID
+     * @protected
+     * @param {string} jobId - Job ID to validate
+     * @throws {Error} If job ID is invalid
+     */
+    protected _validateJobId(jobId: string): void;
     /**
      * Adds a job to a queue
      * @param {string} queue - Queue name
@@ -68,4 +89,19 @@ export class QueueAdapter {
      * @returns {Promise<void>}
      */
     stop(): Promise<void>;
+    /**
+     * Standardizes a job object format
+     * @protected
+     * @param {Object} job - Job data to standardize
+     * @returns {Object} Standardized job object
+     */
+    protected _standardizeJob(job: any): any;
+    /**
+     * Calculates retry delay using backoff strategy
+     * @protected
+     * @param {number} attempts - Current attempt count
+     * @param {Object} options - Job options
+     * @returns {number} Delay in milliseconds
+     */
+    protected _calculateRetryDelay(attempts: number, options?: any): number;
 }

@@ -1,28 +1,24 @@
 /**
- * Database queue adapter (PostgreSQL/MySQL)
+ * Database queue adapter with support for multiple database drivers
  * @extends QueueAdapter
  */
 export class DatabaseAdapter extends QueueAdapter {
-    dbType: any;
-    connectionString: any;
+    databaseType: any;
+    connectionConfig: any;
+    tableName: any;
     connection: any;
+    driver: any;
     processors: Map<any, any>;
     processing: boolean;
     pollInterval: any;
+    maxConcurrency: any;
     /**
-     * Creates the jobs table
+     * Loads the appropriate database driver for the specified database type
      * @private
-     * @returns {Promise<void>}
+     * @param {string} databaseType - The type of database to use
+     * @returns {Promise<Object>} The database driver
      */
-    private createJobsTable;
-    /**
-     * Executes a query
-     * @private
-     * @param {string} sql - SQL query
-     * @param {Array} [params] - Query parameters
-     * @returns {Promise<Object>} Query result
-     */
-    private query;
+    private loadDatabaseDriver;
     /**
      * Processes jobs from a queue
      * @param {string} queue - Queue name
@@ -46,38 +42,12 @@ export class DatabaseAdapter extends QueueAdapter {
      */
     private processNextBatch;
     /**
-     * Gets the next available jobs
-     * @private
-     * @param {string} queue - Queue name
-     * @param {number} limit - Number of jobs to get
-     * @returns {Promise<Array>} Jobs
-     */
-    private getNextJobs;
-    /**
      * Processes a single job
      * @private
      * @param {Object} job - Job data
      * @param {Function} processor - Job processor function
      */
     private processJob;
-    /**
-     * Formats a job from database row
-     * @private
-     * @param {Object} row - Database row
-     * @returns {Object} Formatted job
-     */
-    private formatJob;
-    /**
-     * Calculates retry delay
-     * @private
-     * @param {number} attempts - Current attempt count
-     * @param {Object} options - Job options
-     * @returns {number} Delay in milliseconds
-     */
-    private calculateRetryDelay;
-    /**
-     * Additional database-specific methods
-     */
     /**
      * Gets failed jobs
      * @param {string} queue - Queue name
@@ -103,9 +73,25 @@ export class DatabaseAdapter extends QueueAdapter {
     /**
      * Cleans up old completed jobs
      * @param {string} queue - Queue name
-     * @param {number} [daysOld=7] - Age of jobs to remove
+     * @param {number} [daysOld=7] - Age of jobs to remove in days
      * @returns {Promise<number>} Number of jobs removed
      */
     cleanupOldJobs(queue: string, daysOld?: number): Promise<number>;
+    /**
+     * Gets job processing metrics
+     * @param {string} queue - Queue name
+     * @param {number} [timeSpan=86400000] - Time span in milliseconds (default: 24 hours)
+     * @returns {Promise<Object>} Processing metrics
+     */
+    getProcessingMetrics(queue: string, timeSpan?: number): Promise<any>;
+    /**
+     * Creates a recurring job
+     * @param {string} queue - Queue name
+     * @param {Object} data - Job data
+     * @param {Object} options - Job options
+     * @param {string} cronExpression - Cron expression for scheduling
+     * @returns {Promise<Object>} Job info
+     */
+    createRecurringJob(queue: string, data: any, options: any, cronExpression: string): Promise<any>;
 }
 import { QueueAdapter } from './base.js';

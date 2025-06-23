@@ -1,180 +1,151 @@
 /**
- * Creates a logger instance
- * @param {LoggerOptions} [options={}] - Logger configuration
- * @returns {Logger} Logger instance
+ * Logger class with built-in transport management
  */
-export function createLogger(options?: LoggerOptions): Logger;
-/**
- * @typedef {'error'|'warn'|'info'|'debug'} LogLevel
- */
-/**
- * @typedef {Object} LogEntry
- * @property {string} timestamp - ISO timestamp
- * @property {LogLevel} level - Log level
- * @property {string} message - Log message
- * @property {Object<string, any>} [meta] - Additional metadata
- */
-/**
- * @typedef {Object} LoggerOptions
- * @property {LogLevel} [level='info'] - Minimum log level
- * @property {Object<string, any>} [defaultMeta] - Default metadata included in all logs
- * @property {BaseTransport[]} [transports] - Custom log transports
- * @property {boolean} [enableFileLogging=true] - Enable file logging
- * @property {string} [dirname='logs'] - Directory for log files
- * @property {string} [filename='app.log'] - Base filename for logs
- * @property {number} [retentionDays=5] - Days to retain log files
- * @property {number} [maxSize=10485760] - Maximum file size before rotation
- */
-/**
- * Logger class
- */
-export class Logger {
+export class LoggerClass {
     /**
      * Creates a new Logger instance
-     * @param {LoggerOptions} [options={}] - Logger configuration
+     * @param {object} [options={}] - Logger configuration
      */
-    constructor(options?: LoggerOptions);
-    level: LogLevel;
-    defaultMeta: {
-        [x: string]: any;
-    };
-    transports: BaseTransport[];
-    levelValue: number;
+    constructor(options?: object);
+    level: any;
+    defaultMeta: any;
+    levelValue: any;
+    config: any;
+    transports: Map<any, any>;
     /**
-     * Gets default transports based on environment
-     * @private
-     * @param {LoggerOptions} options - Logger options
-     * @returns {BaseTransport[]} Default transports
+     * Initialize all enabled transports
      */
-    private getDefaultTransports;
+    initializeTransports(): void;
+    /**
+     * Create transport instance based on name
+     * @param {string} name - Transport name
+     * @returns {object|null} Transport instance
+     */
+    createTransport(name: string): object | null;
     /**
      * Logs info message
      * @param {string} message - Log message
-     * @param {Object<string, any>} [meta={}] - Additional metadata
-     * @returns {void}
+     * @param {object} [meta={}] - Additional metadata
      */
-    info(message: string, meta?: {
-        [x: string]: any;
-    }): void;
+    info(message: string, meta?: object): void;
     /**
      * Logs error message
      * @param {string} message - Log message
-     * @param {Object<string, any>} [meta={}] - Additional metadata
-     * @returns {void}
+     * @param {object} [meta={}] - Additional metadata
      */
-    error(message: string, meta?: {
-        [x: string]: any;
-    }): void;
+    error(message: string, meta?: object): void;
     /**
      * Logs warning message
      * @param {string} message - Log message
-     * @param {Object<string, any>} [meta={}] - Additional metadata
-     * @returns {void}
+     * @param {object} [meta={}] - Additional metadata
      */
-    warn(message: string, meta?: {
-        [x: string]: any;
-    }): void;
+    warn(message: string, meta?: object): void;
     /**
      * Logs debug message
      * @param {string} message - Log message
-     * @param {Object<string, any>} [meta={}] - Additional metadata
-     * @returns {void}
+     * @param {object} [meta={}] - Additional metadata
      */
-    debug(message: string, meta?: {
-        [x: string]: any;
-    }): void;
+    debug(message: string, meta?: object): void;
     /**
      * Creates child logger with additional context
-     * @param {Object<string, any>} bindings - Additional context bindings
-     * @returns {Logger} Child logger instance
+     * @param {object} bindings - Additional context bindings
+     * @returns {LoggerClass} Child logger instance
      */
-    child(bindings: {
-        [x: string]: any;
-    }): Logger;
+    child(bindings: object): LoggerClass;
     /**
      * Core logging method
-     * @private
-     * @param {LogLevel} level - Log level
+     * @param {string} level - Log level
      * @param {string} message - Log message
-     * @param {Object<string, any>} meta - Metadata
-     * @returns {void}
+     * @param {object} meta - Metadata
      */
-    private log;
+    log(level: string, message: string, meta: object): void;
     /**
-     * Flushes all transports
+     * Create standardized log entry
+     * @param {string} level - Log level
+     * @param {string} message - Log message
+     * @param {object} meta - Metadata
+     * @returns {object} Log entry object
+     */
+    createLogEntry(level: string, message: string, meta: object): object;
+    /**
+     * Write log entry to all transports
+     * @param {object} entry - Log entry
+     */
+    writeToTransports(entry: object): void;
+    _pendingWrites: any[];
+    /**
+     * Wait for all pending writes to complete
+     * @returns {Promise<void>}
+     */
+    waitForWrites(): Promise<void>;
+    /**
+     * Flushes all pending logs across all transports
      * @returns {Promise<void>}
      */
     flush(): Promise<void>;
     /**
-     * Closes all transports
+     * Closes all transports and cleans up resources
      * @returns {Promise<void>}
      */
     close(): Promise<void>;
-}
-export type LogLevel = "error" | "warn" | "info" | "debug";
-export type LogEntry = {
     /**
-     * - ISO timestamp
+     * Get list of active transport names
+     * @returns {string[]} Array of active transport names
      */
-    timestamp: string;
+    getActiveTransports(): string[];
     /**
-     * - Log level
+     * Check if a specific transport is active
+     * @param {string} name - Transport name
+     * @returns {boolean} True if transport is active
      */
-    level: LogLevel;
+    hasTransport(name: string): boolean;
     /**
-     * - Log message
+     * Get transport instance by name (for advanced usage)
+     * @param {string} name - Transport name
+     * @returns {object|null} Transport instance or null
      */
-    message: string;
+    getTransport(name: string): object | null;
     /**
-     * - Additional metadata
+     * Add a custom transport at runtime
+     * @param {string} name - Transport name
+     * @param {object} transport - Transport instance
      */
-    meta?: {
-        [x: string]: any;
-    };
-};
-export type LoggerOptions = {
+    addTransport(name: string, transport: object): void;
     /**
-     * - Minimum log level
+     * Remove a transport at runtime
+     * @param {string} name - Transport name
+     * @returns {Promise<void>}
      */
-    level?: LogLevel;
+    removeTransport(name: string): Promise<void>;
     /**
-     * - Default metadata included in all logs
+     * Update log level at runtime
+     * @param {string} level - New log level
      */
-    defaultMeta?: {
-        [x: string]: any;
-    };
+    setLevel(level: string): void;
     /**
-     * - Custom log transports
+     * Get current log level
+     * @returns {string} Current log level
      */
-    transports?: BaseTransport[];
+    getLevel(): string;
     /**
-     * - Enable file logging
+     * Check if a specific level would be logged
+     * @param {string} level - Log level to check
+     * @returns {boolean} True if level would be logged
      */
-    enableFileLogging?: boolean;
+    isLevelEnabled(level: string): boolean;
     /**
-     * - Directory for log files
+     * Get configuration summary for debugging
+     * @returns {object} Current configuration summary
      */
-    dirname?: string;
+    getConfig(): object;
     /**
-     * - Base filename for logs
+     * Get transport statistics for monitoring
+     * @returns {object} Transport statistics
      */
-    filename?: string;
+    getStats(): object;
     /**
-     * - Days to retain log files
+     * Perform health check on all transports
+     * @returns {Promise<object>} Health check results
      */
-    retentionDays?: number;
-    /**
-     * - Maximum file size before rotation
-     */
-    maxSize?: number;
-};
-/**
- * Log levels enumeration
- */
-export type LogLevels = number;
-export namespace LogLevels {
-    let error: number;
-    let warn: number;
-    let info: number;
-    let debug: number;
+    healthCheck(): Promise<object>;
 }

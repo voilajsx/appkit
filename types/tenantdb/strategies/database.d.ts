@@ -1,14 +1,16 @@
 /**
- * @voilajs/appkit - Database-per-tenant strategy
- * @module @voilajs/appkit/tenantdb/strategies/database
+ * @voilajsx/appkit - Database-per-tenant strategy
+ * @module @voilajsx/appkit/tenantdb
+ * @file src/tenantdb/strategies/database.js
  */
 /**
  * Database-per-tenant strategy
  * Each tenant has their own separate database
  */
 export class DatabaseStrategy {
-    constructor(options: any);
+    constructor(options: any, adapter: any);
     options: any;
+    adapter: any;
     baseUrl: any;
     /**
      * Parses base URL for database connections
@@ -20,16 +22,15 @@ export class DatabaseStrategy {
     /**
      * Gets database connection for tenant
      * @param {string} tenantId - Tenant identifier
-     * @returns {Promise<Object>} Prisma client for tenant database
+     * @returns {Promise<Object>} Database client for tenant database
      */
     getConnection(tenantId: string): Promise<any>;
     /**
      * Creates a new tenant database
      * @param {string} tenantId - Tenant identifier
-     * @param {Object} [options] - Creation options
      * @returns {Promise<void>}
      */
-    createTenant(tenantId: string, options?: any): Promise<void>;
+    createTenant(tenantId: string): Promise<void>;
     /**
      * Deletes a tenant database
      * @param {string} tenantId - Tenant identifier
@@ -37,22 +38,16 @@ export class DatabaseStrategy {
      */
     deleteTenant(tenantId: string): Promise<void>;
     /**
-     * Runs migrations for a tenant database
-     * @param {string} tenantId - Tenant identifier
-     * @returns {Promise<void>}
-     */
-    migrateTenant(tenantId: string): Promise<void>;
-    /**
-     * Lists all tenant databases
-     * @returns {Promise<string[]>} Array of tenant IDs
-     */
-    listTenants(): Promise<string[]>;
-    /**
      * Checks if tenant database exists
      * @param {string} tenantId - Tenant identifier
      * @returns {Promise<boolean>}
      */
     tenantExists(tenantId: string): Promise<boolean>;
+    /**
+     * Lists all tenant databases
+     * @returns {Promise<string[]>} Array of tenant IDs
+     */
+    listTenants(): Promise<string[]>;
     /**
      * Builds database URL for tenant
      * @private

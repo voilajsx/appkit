@@ -11,8 +11,9 @@ export class EventStore {
      * Adds event to store
      * @abstract
      * @param {Object} event - Event record
+     * @returns {string} Event ID
      */
-    addEvent(event: any): void;
+    addEvent(event: any): string;
     /**
      * Gets all events
      * @abstract
@@ -29,4 +30,10 @@ export class EventStore {
      * @returns {number} Number of events
      */
     getCount(): number;
+    /**
+     * Validates event structure
+     * @param {Object} event - Event to validate
+     * @returns {boolean} True if valid
+     */
+    validateEvent(event: any): boolean;
 }

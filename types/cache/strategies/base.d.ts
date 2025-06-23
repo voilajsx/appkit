@@ -7,8 +7,14 @@
  * @abstract
  */
 export class CacheStrategy {
+    /**
+     * Create a new cache strategy
+     * @param {Object} config - Strategy configuration
+     */
     constructor(config: any);
     config: any;
+    keyPrefix: any;
+    defaultTTL: any;
     /**
      * Connect to cache backend
      * @abstract

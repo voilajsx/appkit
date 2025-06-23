@@ -38,12 +38,10 @@ export * as cache from "./cache/index.js";
 export * as events from "./events/index.js";
 export * as security from "./security/index.js";
 export * as error from "./error/index.js";
-export * as logging from "./logging/index.js";
 export * as storage from "./storage/index.js";
+export * as session from "./session/index.js";
 export * as email from "./email/index.js";
 export * as queue from "./queue/index.js";
-export * as config from "./config/index.js";
-export * as validation from "./validation/index.js";
 export * as utils from "./utils/index.js";
 /**
  * Library version

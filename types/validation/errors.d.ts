@@ -1,9 +1,10 @@
 /**
- * @voilajs/appkit - Validation errors
- * @module @voilajs/appkit/validation/errors
+ * @voilajsx/appkit - Validation errors
+ * @module @voilajsx/appkit/validation/errors
+ * @file src/validation/errors.js
  */
 /**
- * Validation error class
+ * Minimal validation error class
  */
 export class ValidationError extends Error {
     constructor(message: any, errors?: any[]);
@@ -14,20 +15,8 @@ export class ValidationError extends Error {
      */
     getMessages(): Array<string>;
     /**
-     * Get errors by field path
-     * @param {string} path - Field path
-     * @returns {Array<Object>} Field errors
+     * Check if there are any errors
+     * @returns {boolean} Has any errors
      */
-    getFieldErrors(path: string): Array<any>;
-    /**
-     * Check if field has errors
-     * @param {string} path - Field path
-     * @returns {boolean} Has errors
-     */
-    hasFieldErrors(path: string): boolean;
-    /**
-     * Convert to plain object
-     * @returns {Object} Error object
-     */
-    toJSON(): any;
+    hasErrors(): boolean;
 }
