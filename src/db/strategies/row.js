@@ -4,35 +4,27 @@
  * @file src/db/strategies/row.js
  */
 
-import { createDatabaseError, type DatabaseConfig } from '../defaults.js';
-
-export interface RowStrategyAdapter {
-  createClient(config: any): Promise<any>;
-  applyTenantMiddleware(client: any, tenantId: string, options: any): Promise<any>;
-  hasTenantRegistry?(client: any): Promise<boolean>;
-  createTenantRegistryEntry?(client: any, tenantId: string): Promise<void>;
-  deleteTenantRegistryEntry?(client: any, tenantId: string): Promise<void>;
-  tenantExistsInRegistry?(client: any, tenantId: string): Promise<boolean>;
-  getTenantsFromRegistry?(client: any): Promise<string[]>;
-}
+import { createDatabaseError } from '../defaults.js';
 
 /**
  * Row-level multi-tenancy strategy
  * All tenants share the same database and tables, with tenant isolation via tenant_id column
  */
 export class RowStrategy {
-  private connections = new Map<string, any>(); // Cache connections per tenant
-  private baseClient: any = null; // Shared base client for non-tenant operations
-
-  constructor(
-    private config: DatabaseConfig,
-    private adapter: RowStrategyAdapter
-  ) {}
+  constructor(config, adapter) {
+    this.config = config;
+    this.adapter = adapter;
+    this.connections = new Map(); // Cache connections per tenant
+    this.baseClient = null; // Shared base client for non-tenant operations
+  }
 
   /**
    * Gets database connection for tenant with automatic filtering
+   * @param {string} tenantId - Tenant ID
+   * @param {string} [orgId] - Organization ID
+   * @returns {Promise<any>} Database client
    */
-  async getConnection(tenantId: string, orgId?: string): Promise<any> {
+  async getConnection(tenantId, orgId) {
     const cacheKey = this._buildCacheKey(tenantId, orgId);
 
     // Check cache first
@@ -60,7 +52,7 @@ export class RowStrategy {
       this.connections.set(cacheKey, tenantClient);
 
       return tenantClient;
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to create tenant connection for '${tenantId}': ${error.message}`,
         500
@@ -71,13 +63,19 @@ export class RowStrategy {
   /**
    * Creates a new tenant (implicit creation for row-level strategy)
    * Tenant is created when first record is inserted with tenant_id
+   * @param {string} tenantId - Tenant ID
+   * @param {string} [orgId] - Organization ID
+   * @returns {Promise<void>}
    */
-  async createTenant(tenantId: string, orgId?: string): Promise<void> {
+  async createTenant(tenantId, orgId) {
     try {
       const client = await this._getBaseClient(orgId);
 
       // Check if we have a tenant registry table and create entry
-      if (this.adapter.hasTenantRegistry && this.adapter.createTenantRegistryEntry) {
+      if (
+        this.adapter.hasTenantRegistry &&
+        this.adapter.createTenantRegistryEntry
+      ) {
         const hasRegistry = await this.adapter.hasTenantRegistry(client);
         if (hasRegistry) {
           await this.adapter.createTenantRegistryEntry(client, tenantId);
@@ -86,7 +84,7 @@ export class RowStrategy {
 
       // For row-level strategy, tenant creation is mostly implicit
       // The tenant exists when the first record with tenant_id is created
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to register tenant '${tenantId}': ${error.message}`,
         500
@@ -96,8 +94,11 @@ export class RowStrategy {
 
   /**
    * Deletes all data for a tenant
+   * @param {string} tenantId - Tenant ID
+   * @param {string} [orgId] - Organization ID
+   * @returns {Promise<void>}
    */
-  async deleteTenant(tenantId: string, orgId?: string): Promise<void> {
+  async deleteTenant(tenantId, orgId) {
     try {
       const client = await this._getBaseClient(orgId);
 
@@ -116,7 +117,7 @@ export class RowStrategy {
       if (this.adapter.deleteTenantRegistryEntry) {
         await this.adapter.deleteTenantRegistryEntry(client, tenantId);
       }
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to delete tenant data for '${tenantId}': ${error.message}`,
         500
@@ -126,14 +127,20 @@ export class RowStrategy {
 
   /**
    * Checks if tenant exists by looking for any records with the tenant ID
+   * @param {string} tenantId - Tenant ID
+   * @param {string} [orgId] - Organization ID
+   * @returns {Promise<boolean>}
    */
-  async tenantExists(tenantId: string, orgId?: string): Promise<boolean> {
+  async tenantExists(tenantId, orgId) {
     try {
       const client = await this._getBaseClient(orgId);
 
       // Check tenant registry first if available
       if (this.adapter.tenantExistsInRegistry) {
-        const existsInRegistry = await this.adapter.tenantExistsInRegistry(client, tenantId);
+        const existsInRegistry = await this.adapter.tenantExistsInRegistry(
+          client,
+          tenantId
+        );
         if (existsInRegistry !== undefined) {
           return existsInRegistry;
         }
@@ -141,7 +148,7 @@ export class RowStrategy {
 
       // Fallback: check if tenant has any data in any table
       return await this._tenantHasData(client, tenantId);
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to check tenant existence for '${tenantId}': ${error.message}`,
         500
@@ -151,8 +158,10 @@ export class RowStrategy {
 
   /**
    * Lists all tenants by finding distinct tenant IDs across all tables
+   * @param {string} [orgId] - Organization ID
+   * @returns {Promise<string[]>}
    */
-  async listTenants(orgId?: string): Promise<string[]> {
+  async listTenants(orgId) {
     try {
       const client = await this._getBaseClient(orgId);
 
@@ -170,7 +179,7 @@ export class RowStrategy {
 
       // Fallback: scan all tables for distinct tenant IDs
       return await this._getDistinctTenantIds(client);
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to list tenants: ${error.message}`,
         500
@@ -180,14 +189,15 @@ export class RowStrategy {
 
   /**
    * Disconnects all cached connections
+   * @returns {Promise<void>}
    */
-  async disconnect(): Promise<void> {
+  async disconnect() {
     const disconnectPromises = [];
 
     // Disconnect all tenant connections
     for (const [tenantId, connection] of this.connections) {
       disconnectPromises.push(
-        this._closeClient(connection).catch((error: any) =>
+        this._closeClient(connection).catch((error) =>
           console.warn(`Error disconnecting tenant ${tenantId}:`, error.message)
         )
       );
@@ -196,14 +206,14 @@ export class RowStrategy {
     // Disconnect base client
     if (this.baseClient) {
       disconnectPromises.push(
-        this._closeClient(this.baseClient).catch((error: any) =>
+        this._closeClient(this.baseClient).catch((error) =>
           console.warn('Error disconnecting base client:', error.message)
         )
       );
     }
 
     await Promise.all(disconnectPromises);
-    
+
     this.connections.clear();
     this.baseClient = null;
   }
@@ -212,26 +222,28 @@ export class RowStrategy {
 
   /**
    * Gets or creates base client for non-tenant operations
+   * @private
    */
-  private async _getBaseClient(orgId?: string): Promise<any> {
+  async _getBaseClient(orgId) {
     const cacheKey = `base_${orgId || 'default'}`;
-    
+
     if (!this.baseClient || (orgId && !this.baseClient._orgId === orgId)) {
       this.baseClient = await this.adapter.createClient({
         url: this._buildConnectionUrl(orgId),
       });
       this.baseClient._orgId = orgId;
     }
-    
+
     return this.baseClient;
   }
 
   /**
    * Builds connection URL for organization
+   * @private
    */
-  private _buildConnectionUrl(orgId?: string): string {
-    const baseUrl = this.config.database.url!;
-    
+  _buildConnectionUrl(orgId) {
+    const baseUrl = this.config.database.url;
+
     if (!orgId || !this.config.database.org) {
       return baseUrl;
     }
@@ -252,15 +264,17 @@ export class RowStrategy {
 
   /**
    * Builds cache key for tenant connections
+   * @private
    */
-  private _buildCacheKey(tenantId: string, orgId?: string): string {
+  _buildCacheKey(tenantId, orgId) {
     return orgId ? `${orgId}_${tenantId}` : tenantId;
   }
 
   /**
    * Checks if tenant has any data in database
+   * @private
    */
-  private async _tenantHasData(client: any, tenantId: string): Promise<boolean> {
+  async _tenantHasData(client, tenantId) {
     try {
       const tenantField = this.config.tenant.fieldName;
 
@@ -284,7 +298,7 @@ export class RowStrategy {
       else if (client.models) {
         const models = Object.values(client.models);
 
-        for (const model of models as any[]) {
+        for (const model of models) {
           try {
             const record = await model.findOne({
               [tenantField]: tenantId,
@@ -305,9 +319,10 @@ export class RowStrategy {
 
   /**
    * Gets distinct tenant IDs from all tables
+   * @private
    */
-  private async _getDistinctTenantIds(client: any): Promise<string[]> {
-    const tenantIds = new Set<string>();
+  async _getDistinctTenantIds(client) {
+    const tenantIds = new Set();
     const tenantField = this.config.tenant.fieldName;
 
     try {
@@ -325,7 +340,7 @@ export class RowStrategy {
               },
             });
 
-            records.forEach((record: any) => {
+            records.forEach((record) => {
               const tenantId = record[tenantField];
               if (tenantId) tenantIds.add(tenantId);
             });
@@ -339,10 +354,10 @@ export class RowStrategy {
       else if (client.models) {
         const models = Object.values(client.models);
 
-        for (const model of models as any[]) {
+        for (const model of models) {
           try {
             const distinctIds = await model.distinct(tenantField);
-            distinctIds.forEach((id: string) => {
+            distinctIds.forEach((id) => {
               if (id) tenantIds.add(id);
             });
           } catch (error) {
@@ -353,7 +368,7 @@ export class RowStrategy {
       }
 
       return Array.from(tenantIds).sort();
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to get tenant IDs: ${error.message}`,
         500
@@ -363,8 +378,9 @@ export class RowStrategy {
 
   /**
    * Deletes all data for a tenant
+   * @private
    */
-  private async _deleteAllTenantData(client: any, tenantId: string): Promise<void> {
+  async _deleteAllTenantData(client, tenantId) {
     const tenantField = this.config.tenant.fieldName;
 
     try {
@@ -394,7 +410,7 @@ export class RowStrategy {
       else if (client.models) {
         const models = Object.values(client.models);
 
-        for (const model of models as any[]) {
+        for (const model of models) {
           try {
             await model.deleteMany({ [tenantField]: tenantId });
           } catch (error) {
@@ -403,7 +419,7 @@ export class RowStrategy {
           }
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to delete tenant data: ${error.message}`,
         500
@@ -413,8 +429,9 @@ export class RowStrategy {
 
   /**
    * Gets list of Prisma model names
+   * @private
    */
-  private _getPrismaModels(client: any): string[] {
+  _getPrismaModels(client) {
     return Object.keys(client).filter(
       (key) =>
         !key.startsWith('$') &&
@@ -426,8 +443,9 @@ export class RowStrategy {
 
   /**
    * Closes database client connection
+   * @private
    */
-  private async _closeClient(client: any): Promise<void> {
+  async _closeClient(client) {
     try {
       if (client.$disconnect) {
         await client.$disconnect();

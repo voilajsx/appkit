@@ -8,56 +8,42 @@ import { RowStrategy } from './strategies/row.js';
 import { OrgStrategy } from './strategies/org.js';
 import { PrismaAdapter } from './adapters/prisma.js';
 import { MongooseAdapter } from './adapters/mongoose.js';
-import { 
-  createDatabaseError, 
-  validateTenantId, 
-  validateOrgId, 
+import {
+  createDatabaseError,
+  validateTenantId,
+  validateOrgId,
   validateSchema,
-  type DatabaseConfig 
 } from './defaults.js';
-
-export interface ClientOptions {
-  orgId?: string;
-  tenantId?: string;
-}
-
-export interface TenantOptions {
-  orgId?: string;
-}
-
-export interface HealthStatus {
-  healthy: boolean;
-  strategy: string;
-  adapter: string;
-  org: boolean;
-  tenant: boolean;
-  connections: number;
-  error?: string;
-}
 
 /**
  * Database class with built-in org/tenant support and connection management
  */
 export class DatabaseClass {
-  private config: DatabaseConfig;
-  private strategy: RowStrategy | OrgStrategy | null = null;
-  private adapter: PrismaAdapter | MongooseAdapter | null = null;
-  private initialized = false;
-  private connections = new Map<string, any>(); // Cache connections
-
-  constructor(config: DatabaseConfig) {
+  constructor(config) {
     this.config = config;
+    this.strategy = null;
+    this.adapter = null;
+    this.initialized = false;
+    this.connections = new Map(); // Cache connections
     this._setupCleanup();
   }
 
   /**
    * Gets database client (single-tenant mode or org-specific)
+   * @param {Object} options - Options object
+   * @param {string} [options.orgId] - Organization ID
+   * @param {string} [options.tenantId] - Tenant ID
+   * @returns {Promise<any>} Database client
    */
-  async client(options: ClientOptions = {}): Promise<any> {
+  async client(options = {}) {
     await this._initialize();
 
     // If tenant mode is enabled without org context, throw error
-    if (this.config.database.tenant && !this.config.database.org && !options.tenantId) {
+    if (
+      this.config.database.tenant &&
+      !this.config.database.org &&
+      !options.tenantId
+    ) {
       throw createDatabaseError(
         'Tenant mode is enabled. Use tenant(id) method or disable tenant mode.',
         400
@@ -65,13 +51,13 @@ export class DatabaseClass {
     }
 
     const cacheKey = this._buildCacheKey('client', options);
-    
+
     if (this.connections.has(cacheKey)) {
       return this.connections.get(cacheKey);
     }
 
     try {
-      const client = await this.adapter!.createClient({
+      const client = await this.adapter.createClient({
         url: this._buildConnectionUrl(options.orgId),
         ...options,
       });
@@ -83,7 +69,7 @@ export class DatabaseClass {
 
       this.connections.set(cacheKey, client);
       return client;
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to create database client: ${error.message}`,
         500
@@ -93,8 +79,12 @@ export class DatabaseClass {
 
   /**
    * Gets database client for specific tenant
+   * @param {string} tenantId - Tenant ID
+   * @param {Object} options - Options object
+   * @param {string} [options.orgId] - Organization ID
+   * @returns {Promise<any>} Database client
    */
-  async tenant(tenantId: string, options: TenantOptions = {}): Promise<any> {
+  async tenant(tenantId, options = {}) {
     await this._initialize();
 
     if (!tenantId) {
@@ -109,19 +99,22 @@ export class DatabaseClass {
     }
 
     const cacheKey = this._buildCacheKey('tenant', { tenantId, ...options });
-    
+
     if (this.connections.has(cacheKey)) {
       return this.connections.get(cacheKey);
     }
 
     try {
       // Get connection from strategy
-      const connection = await this.strategy!.getConnection(tenantId, options.orgId);
-      
+      const connection = await this.strategy.getConnection(
+        tenantId,
+        options.orgId
+      );
+
       // Cache connection
       this.connections.set(cacheKey, connection);
       return connection;
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to get tenant connection for '${tenantId}': ${error.message}`,
         500
@@ -131,8 +124,12 @@ export class DatabaseClass {
 
   /**
    * Creates a new tenant
+   * @param {string} tenantId - Tenant ID
+   * @param {Object} options - Options object
+   * @param {string} [options.orgId] - Organization ID
+   * @returns {Promise<void>}
    */
-  async createTenant(tenantId: string, options: TenantOptions = {}): Promise<void> {
+  async createTenant(tenantId, options = {}) {
     await this._initialize();
 
     if (!tenantId) {
@@ -147,8 +144,8 @@ export class DatabaseClass {
     }
 
     try {
-      await this.strategy!.createTenant(tenantId, options.orgId);
-    } catch (error: any) {
+      await this.strategy.createTenant(tenantId, options.orgId);
+    } catch (error) {
       throw createDatabaseError(
         `Failed to create tenant '${tenantId}': ${error.message}`,
         500
@@ -158,8 +155,13 @@ export class DatabaseClass {
 
   /**
    * Deletes a tenant and all its data
+   * @param {string} tenantId - Tenant ID
+   * @param {Object} options - Options object
+   * @param {string} [options.orgId] - Organization ID
+   * @param {boolean} [options.confirm] - Confirmation flag
+   * @returns {Promise<void>}
    */
-  async deleteTenant(tenantId: string, options: TenantOptions & { confirm?: boolean } = {}): Promise<void> {
+  async deleteTenant(tenantId, options = {}) {
     await this._initialize();
 
     if (!tenantId) {
@@ -177,9 +179,9 @@ export class DatabaseClass {
     try {
       // Remove from cache
       this._removeTenantFromCache(tenantId, options.orgId);
-      
-      await this.strategy!.deleteTenant(tenantId, options.orgId);
-    } catch (error: any) {
+
+      await this.strategy.deleteTenant(tenantId, options.orgId);
+    } catch (error) {
       throw createDatabaseError(
         `Failed to delete tenant '${tenantId}': ${error.message}`,
         500
@@ -189,8 +191,12 @@ export class DatabaseClass {
 
   /**
    * Checks if tenant exists
+   * @param {string} tenantId - Tenant ID
+   * @param {Object} options - Options object
+   * @param {string} [options.orgId] - Organization ID
+   * @returns {Promise<boolean>}
    */
-  async exists(tenantId: string, options: TenantOptions = {}): Promise<boolean> {
+  async exists(tenantId, options = {}) {
     await this._initialize();
 
     if (!tenantId) {
@@ -198,8 +204,8 @@ export class DatabaseClass {
     }
 
     try {
-      return await this.strategy!.tenantExists(tenantId, options.orgId);
-    } catch (error: any) {
+      return await this.strategy.tenantExists(tenantId, options.orgId);
+    } catch (error) {
       throw createDatabaseError(
         `Failed to check tenant existence: ${error.message}`,
         500
@@ -209,12 +215,17 @@ export class DatabaseClass {
 
   /**
    * Lists all tenants
+   * @param {Object} options - Options object
+   * @param {string} [options.orgId] - Organization ID
+   * @param {Function} [options.filter] - Filter function
+   * @param {number} [options.limit] - Limit results
+   * @returns {Promise<string[]>}
    */
-  async list(options: TenantOptions & { filter?: (id: string) => boolean; limit?: number } = {}): Promise<string[]> {
+  async list(options = {}) {
     await this._initialize();
 
     try {
-      const tenants = await this.strategy!.listTenants(options.orgId);
+      const tenants = await this.strategy.listTenants(options.orgId);
 
       // Apply filtering if provided
       let filtered = options.filter ? tenants.filter(options.filter) : tenants;
@@ -225,7 +236,7 @@ export class DatabaseClass {
       }
 
       return filtered;
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to list tenants: ${error.message}`,
         500
@@ -235,8 +246,12 @@ export class DatabaseClass {
 
   /**
    * Creates an organization
+   * @param {string} orgId - Organization ID
+   * @param {Object} options - Options object
+   * @param {boolean} [options.confirm] - Confirmation flag
+   * @returns {Promise<void>}
    */
-  async createOrg(orgId: string, options: { confirm?: boolean } = {}): Promise<void> {
+  async createOrg(orgId, options = {}) {
     if (!this.config.database.org) {
       throw createDatabaseError('Organization mode not enabled', 400);
     }
@@ -258,7 +273,7 @@ export class DatabaseClass {
       if (this.strategy instanceof OrgStrategy) {
         await this.strategy.createOrg(orgId);
       }
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to create organization '${orgId}': ${error.message}`,
         500
@@ -268,8 +283,12 @@ export class DatabaseClass {
 
   /**
    * Deletes an organization and all its data
+   * @param {string} orgId - Organization ID
+   * @param {Object} options - Options object
+   * @param {boolean} [options.confirm] - Confirmation flag
+   * @returns {Promise<void>}
    */
-  async deleteOrg(orgId: string, options: { confirm?: boolean } = {}): Promise<void> {
+  async deleteOrg(orgId, options = {}) {
     if (!this.config.database.org) {
       throw createDatabaseError('Organization mode not enabled', 400);
     }
@@ -291,11 +310,11 @@ export class DatabaseClass {
     try {
       // Remove from cache
       this._removeOrgFromCache(orgId);
-      
+
       if (this.strategy instanceof OrgStrategy) {
         await this.strategy.deleteOrg(orgId);
       }
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to delete organization '${orgId}': ${error.message}`,
         500
@@ -305,9 +324,10 @@ export class DatabaseClass {
 
   /**
    * Gets health status of database connections
+   * @returns {Promise<Object>} Health status
    */
-  async health(): Promise<HealthStatus> {
-    const status: HealthStatus = {
+  async health() {
+    const status = {
       healthy: true,
       connections: this.connections.size,
       strategy: this.config.database.strategy,
@@ -321,12 +341,12 @@ export class DatabaseClass {
 
       // Test basic connection
       const testClient = await this.client();
-      
+
       // Simple health check - try to access the client
       if (testClient.$queryRaw || testClient.db) {
         // Connection is healthy
       }
-    } catch (error: any) {
+    } catch (error) {
       status.healthy = false;
       status.error = error.message;
     }
@@ -336,15 +356,14 @@ export class DatabaseClass {
 
   /**
    * Disconnects all connections and cleans up
+   * @returns {Promise<void>}
    */
-  async disconnect(): Promise<void> {
+  async disconnect() {
     // Close all cached connections
     const disconnectPromises = [];
-    
+
     for (const [key, connection] of this.connections) {
-      disconnectPromises.push(
-        this._closeConnection(connection, key)
-      );
+      disconnectPromises.push(this._closeConnection(connection, key));
     }
 
     await Promise.all(disconnectPromises);
@@ -366,8 +385,9 @@ export class DatabaseClass {
 
   /**
    * Lazy initialization of strategy and adapter
+   * @private
    */
-  private async _initialize(): Promise<void> {
+  async _initialize() {
     if (this.initialized) return;
 
     if (!this.config.database.url) {
@@ -392,8 +412,9 @@ export class DatabaseClass {
 
   /**
    * Gets adapter class by name
+   * @private
    */
-  private _getAdapterClass(): typeof PrismaAdapter | typeof MongooseAdapter {
+  _getAdapterClass() {
     const adapters = {
       prisma: PrismaAdapter,
       mongoose: MongooseAdapter,
@@ -412,8 +433,9 @@ export class DatabaseClass {
 
   /**
    * Gets strategy class by name
+   * @private
    */
-  private _getStrategyClass(): typeof RowStrategy | typeof OrgStrategy {
+  _getStrategyClass() {
     const strategies = {
       row: RowStrategy,
       org: OrgStrategy,
@@ -432,10 +454,11 @@ export class DatabaseClass {
 
   /**
    * Builds connection URL for organization
+   * @private
    */
-  private _buildConnectionUrl(orgId?: string): string {
-    const baseUrl = this.config.database.url!;
-    
+  _buildConnectionUrl(orgId) {
+    const baseUrl = this.config.database.url;
+
     if (!orgId || this.config.database.strategy !== 'org') {
       return baseUrl;
     }
@@ -456,22 +479,24 @@ export class DatabaseClass {
 
   /**
    * Builds cache key for connections
+   * @private
    */
-  private _buildCacheKey(type: string, options: any = {}): string {
+  _buildCacheKey(type, options = {}) {
     const parts = [type];
-    
+
     if (options.orgId) parts.push(`org:${options.orgId}`);
     if (options.tenantId) parts.push(`tenant:${options.tenantId}`);
-    
+
     return parts.join('_');
   }
 
   /**
    * Removes tenant connections from cache
+   * @private
    */
-  private _removeTenantFromCache(tenantId: string, orgId?: string): void {
+  _removeTenantFromCache(tenantId, orgId) {
     const keysToRemove = [];
-    
+
     for (const [key] of this.connections) {
       if (key.includes(`tenant:${tenantId}`)) {
         if (!orgId || key.includes(`org:${orgId}`)) {
@@ -480,7 +505,7 @@ export class DatabaseClass {
       }
     }
 
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       const connection = this.connections.get(key);
       if (connection) {
         this._closeConnection(connection, key);
@@ -491,17 +516,18 @@ export class DatabaseClass {
 
   /**
    * Removes organization connections from cache
+   * @private
    */
-  private _removeOrgFromCache(orgId: string): void {
+  _removeOrgFromCache(orgId) {
     const keysToRemove = [];
-    
+
     for (const [key] of this.connections) {
       if (key.includes(`org:${orgId}`)) {
         keysToRemove.push(key);
       }
     }
 
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       const connection = this.connections.get(key);
       if (connection) {
         this._closeConnection(connection, key);
@@ -512,23 +538,25 @@ export class DatabaseClass {
 
   /**
    * Closes a database connection
+   * @private
    */
-  private async _closeConnection(connection: any, key: string): Promise<void> {
+  async _closeConnection(connection, key) {
     try {
       if (connection.$disconnect) {
         await connection.$disconnect();
       } else if (connection.close) {
         await connection.close();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.warn(`Error closing connection ${key}:`, error.message);
     }
   }
 
   /**
    * Sets up cleanup handlers
+   * @private
    */
-  private _setupCleanup(): void {
+  _setupCleanup() {
     const cleanup = async () => {
       try {
         await this.disconnect();

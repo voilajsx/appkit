@@ -1,63 +1,36 @@
 /**
  * Smart defaults and configuration for AppKit Database
  * Supports multi-org, multi-tenant, and vector operations
- * 
+ *
  * Required Environment Variables:
  * - DATABASE_URL: PostgreSQL connection string
- * 
+ *
  * Optional Environment Variables:
  * - VOILA_DB_ORGS: Enable org mode (true/false)
  * - VOILA_DB_TENANTS: Enable tenant mode (true/false)
  * - VOILA_DB_VECTORS: Enable vector support (true/false)
  * - VOILA_DB_STRATEGY: Database strategy (row/org)
  * - VOILA_DB_ADAPTER: Database adapter (prisma/mongoose)
- * 
+ *
  * @module @voilajsx/appkit/db
- * @file src/db/defaults.ts
+ * @file src/db/defaults.js
  */
 
 import fs from 'fs';
 import path from 'path';
 
-export interface DatabaseConfig {
-  database: {
-    url: string | null;
-    strategy: 'row' | 'org';
-    adapter: 'prisma' | 'mongoose';
-    org: boolean;
-    tenant: boolean;
-  };
-  vector: {
-    enabled: boolean;
-  };
-  tenant: {
-    fieldName: string;
-  };
-  environment: {
-    isDevelopment: boolean;
-    isProduction: boolean;
-  };
-  orgUrlResolver?: (orgId: string) => Promise<string> | string;
-  orgUrlCacheTTL?: number;
-}
-
-export interface ApiUsage {
-  allowDirectTenant: boolean;
-  requireOrgForTenant: boolean;
-  suggestedPattern: string;
-}
-
 /**
  * Get smart defaults with environment-based configuration
+ * @returns {Object} Configuration object
  */
-export function getSmartDefaults(): DatabaseConfig {
+export function getSmartDefaults() {
   const isDevelopment = process.env.NODE_ENV === 'development';
-  
+
   return {
     database: {
       url: process.env.DATABASE_URL || process.env.VOILA_DB_URL || null,
-      strategy: (process.env.VOILA_DB_STRATEGY as 'row' | 'org') || _detectStrategy(),
-      adapter: (process.env.VOILA_DB_ADAPTER as 'prisma' | 'mongoose') || _detectAdapter(),
+      strategy: process.env.VOILA_DB_STRATEGY || _detectStrategy(),
+      adapter: process.env.VOILA_DB_ADAPTER || _detectAdapter(),
       org: process.env.VOILA_DB_ORGS === 'true',
       tenant: process.env.VOILA_DB_TENANTS === 'true',
     },
@@ -77,10 +50,12 @@ export function getSmartDefaults(): DatabaseConfig {
 
 /**
  * Validate API usage patterns and provide helpful guidance
+ * @param {Object} config - Configuration object
+ * @returns {Object} API usage validation
  */
-export function validateApiUsage(config: DatabaseConfig): ApiUsage {
+export function validateApiUsage(config) {
   const { org, tenant } = config.database;
-  
+
   if (org && tenant) {
     return {
       allowDirectTenant: false,
@@ -88,7 +63,7 @@ export function validateApiUsage(config: DatabaseConfig): ApiUsage {
       suggestedPattern: 'database.org(orgId).tenant(tenantId)',
     };
   }
-  
+
   if (tenant && !org) {
     return {
       allowDirectTenant: true,
@@ -96,7 +71,7 @@ export function validateApiUsage(config: DatabaseConfig): ApiUsage {
       suggestedPattern: 'database.tenant(tenantId)',
     };
   }
-  
+
   if (org && !tenant) {
     return {
       allowDirectTenant: false,
@@ -104,7 +79,7 @@ export function validateApiUsage(config: DatabaseConfig): ApiUsage {
       suggestedPattern: 'database.org(orgId).get()',
     };
   }
-  
+
   return {
     allowDirectTenant: true,
     requireOrgForTenant: false,
@@ -114,50 +89,64 @@ export function validateApiUsage(config: DatabaseConfig): ApiUsage {
 
 /**
  * Create API error with helpful guidance
+ * @param {string} attemptedMethod - Method that was attempted
+ * @param {Object} config - Configuration object
+ * @returns {string} Error message
  */
-export function createApiError(attemptedMethod: string, config: DatabaseConfig): string {
+export function createApiError(attemptedMethod, config) {
   const usage = validateApiUsage(config);
   const { org, tenant } = config.database;
-  
+
   if (attemptedMethod === 'tenant' && org && tenant) {
-    return `Cannot use database.tenant() when organizations are enabled.\n` +
-           `Use: ${usage.suggestedPattern}\n` +
-           `Or disable orgs: VOILA_DB_ORGS=false`;
+    return (
+      `Cannot use database.tenant() when organizations are enabled.\n` +
+      `Use: ${usage.suggestedPattern}\n` +
+      `Or disable orgs: VOILA_DB_ORGS=false`
+    );
   }
-  
+
   if (attemptedMethod === 'org' && !org) {
-    return `Organization mode not enabled.\n` +
-           `Enable: VOILA_DB_ORGS=true\n` +
-           `Or use: database.get()`;
+    return (
+      `Organization mode not enabled.\n` +
+      `Enable: VOILA_DB_ORGS=true\n` +
+      `Or use: database.get()`
+    );
   }
-  
+
   if (attemptedMethod === 'vectors' && !config.vector.enabled) {
-    return `Vector mode not enabled.\n` +
-           `Enable: VOILA_DB_VECTORS=true`;
+    return `Vector mode not enabled.\n` + `Enable: VOILA_DB_VECTORS=true`;
   }
-  
+
   return `Invalid API usage. Suggested pattern: ${usage.suggestedPattern}`;
 }
 
 /**
  * Validate tenant ID format
+ * @param {string} tenantId - Tenant ID to validate
+ * @returns {boolean} Whether the ID is valid
  */
-export function validateTenantId(tenantId: string): boolean {
+export function validateTenantId(tenantId) {
   return /^[a-zA-Z0-9_-]+$/.test(tenantId) && tenantId.length <= 63;
 }
 
 /**
  * Validate organization ID format
+ * @param {string} orgId - Organization ID to validate
+ * @returns {boolean} Whether the ID is valid
  */
-export function validateOrgId(orgId: string): boolean {
+export function validateOrgId(orgId) {
   return /^[a-zA-Z0-9_-]+$/.test(orgId) && orgId.length <= 63;
 }
 
 /**
  * Create database error with consistent formatting
+ * @param {string} message - Error message
+ * @param {number} [statusCode=500] - HTTP status code
+ * @param {any} [details] - Additional error details
+ * @returns {Error} Formatted error
  */
-export function createDatabaseError(message: string, statusCode = 500, details?: any): Error {
-  const error = new Error(message) as any;
+export function createDatabaseError(message, statusCode = 500, details) {
+  const error = new Error(message);
   error.statusCode = statusCode;
   error.details = details;
   return error;
@@ -165,10 +154,12 @@ export function createDatabaseError(message: string, statusCode = 500, details?:
 
 /**
  * Validate schema compatibility (for development)
+ * @param {any} client - Database client
+ * @param {Object} config - Configuration object
  */
-export function validateSchema(client: any, config: DatabaseConfig): void {
+export function validateSchema(client, config) {
   if (!config.environment.isDevelopment) return;
-  
+
   // Add schema validation logic here
   // Check if tenant_id columns exist when tenant mode is enabled
   // Check if vector columns exist when vector mode is enabled
@@ -178,8 +169,9 @@ export function validateSchema(client: any, config: DatabaseConfig): void {
 
 /**
  * Auto-detect database strategy based on URL patterns
+ * @private
  */
-function _detectStrategy(): 'row' | 'org' {
+function _detectStrategy() {
   const url = process.env.DATABASE_URL;
   if (url?.includes('{org}')) {
     return 'org';
@@ -189,8 +181,9 @@ function _detectStrategy(): 'row' | 'org' {
 
 /**
  * Auto-detect database adapter based on available dependencies
+ * @private
  */
-function _detectAdapter(): 'prisma' | 'mongoose' {
+function _detectAdapter() {
   try {
     require.resolve('@prisma/client');
     return 'prisma';
@@ -206,79 +199,54 @@ function _detectAdapter(): 'prisma' | 'mongoose' {
 
 /**
  * Enhanced Enterprise Organization URL Resolver
- * @module @voilajsx/appkit/db
- * @file src/db/defaults.ts (enhanced version)
- */
-
-interface CachedUrl {
-  url: string;
-  expires: number;
-  source: 'resolver' | 'fallback';
-  resolvedAt: string;
-  lastAccessed: number; // For LRU cleanup
-  accessCount: number;  // For popularity tracking
-}
-
-interface FailureRecord {
-  count: number;
-  lastFailure: number;
-  lastError: string;
-  consecutiveFailures: number; // Circuit breaker enhancement
-}
-
-interface ResolverMetrics {
-  totalResolves: number;
-  cacheHits: number;
-  cacheMisses: number;
-  resolverSuccesses: number;
-  resolverFailures: number;
-  averageResolveTime: number;
-  circuitBreakerTrips: number;
-}
-
-/**
- * Enterprise-grade organization URL resolver with enhanced monitoring and resilience
+ * @class
  */
 export class OrgUrlResolver {
-  private cache = new Map<string, CachedUrl>();
-  private failureCache = new Map<string, FailureRecord>();
-  private metrics: ResolverMetrics = {
-    totalResolves: 0,
-    cacheHits: 0,
-    cacheMisses: 0,
-    resolverSuccesses: 0,
-    resolverFailures: 0,
-    averageResolveTime: 0,
-    circuitBreakerTrips: 0,
-  };
-
-  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
-  private readonly FAILURE_TTL = 30 * 1000; // 30 seconds
-  private readonly MAX_RETRIES = 3;
-  private readonly TIMEOUT_MS = 10000; // 10 seconds
-  private readonly CIRCUIT_BREAKER_THRESHOLD = 5; // Consecutive failures
-  private readonly MAX_CACHE_SIZE = 1000; // Prevent memory leaks
-
   constructor(
-    private userResolver?: (orgId: string) => Promise<string> | string,
-    private cacheTTL = 5 * 60 * 1000,
-    private isDevelopment = process.env.NODE_ENV === 'development',
-    private options: {
-      enableMetrics?: boolean;
-      healthCheckInterval?: number;
-      connectionValidation?: boolean;
-    } = {}
+    userResolver,
+    cacheTTL = 5 * 60 * 1000,
+    isDevelopment = process.env.NODE_ENV === 'development',
+    options = {}
   ) {
+    this.userResolver = userResolver;
+    this.cacheTTL = cacheTTL;
+    this.isDevelopment = isDevelopment;
+    this.options = options;
+
+    this.cache = new Map();
+    this.failureCache = new Map();
+    this.metrics = {
+      totalResolves: 0,
+      cacheHits: 0,
+      cacheMisses: 0,
+      resolverSuccesses: 0,
+      resolverFailures: 0,
+      averageResolveTime: 0,
+      circuitBreakerTrips: 0,
+    };
+
+    this.DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+    this.FAILURE_TTL = 30 * 1000; // 30 seconds
+    this.MAX_RETRIES = 3;
+    this.TIMEOUT_MS = 10000; // 10 seconds
+    this.CIRCUIT_BREAKER_THRESHOLD = 5; // Consecutive failures
+    this.MAX_CACHE_SIZE = 1000; // Prevent memory leaks
+
     // Start periodic health checks and cache cleanup
     if (options.healthCheckInterval) {
       this._startPeriodicMaintenance();
     }
   }
 
-  async resolve(orgId: string): Promise<string> {
+  /**
+   * Resolve organization URL with caching and fallbacks
+   * @param {string} orgId - Organization ID
+   * @returns {Promise<string>} Database URL
+   */
+  async resolve(orgId) {
     const startTime = Date.now();
     this.metrics.totalResolves++;
-    
+
     try {
       // 1. Validate input
       this._validateOrgId(orgId);
@@ -286,7 +254,10 @@ export class OrgUrlResolver {
       // 2. Check circuit breaker
       if (this._isCircuitBreakerOpen(orgId)) {
         this.metrics.circuitBreakerTrips++;
-        this._log('warn', `Circuit breaker OPEN for '${orgId}', using fallback`);
+        this._log(
+          'warn',
+          `Circuit breaker OPEN for '${orgId}', using fallback`
+        );
         return this._getDefaultUrlWithLog(orgId, 'circuit-breaker');
       }
 
@@ -296,15 +267,18 @@ export class OrgUrlResolver {
         cached.lastAccessed = Date.now();
         cached.accessCount++;
         this.metrics.cacheHits++;
-        this._log('debug', `Cache hit for org '${orgId}' (${Date.now() - startTime}ms)`);
+        this._log(
+          'debug',
+          `Cache hit for org '${orgId}' (${Date.now() - startTime}ms)`
+        );
         return cached.url;
       }
 
       this.metrics.cacheMisses++;
       this._log('debug', `Cache miss for org '${orgId}', resolving...`);
 
-      let url: string;
-      let source: 'resolver' | 'fallback';
+      let url;
+      let source;
 
       // 4. Try user resolver with enhanced retry logic
       if (this.userResolver) {
@@ -313,8 +287,11 @@ export class OrgUrlResolver {
           source = 'resolver';
           this._recordSuccess(orgId);
           this.metrics.resolverSuccesses++;
-          this._log('info', `✅ Resolved org '${orgId}' via custom resolver (${Date.now() - startTime}ms)`);
-        } catch (error: any) {
+          this._log(
+            'info',
+            `✅ Resolved org '${orgId}' via custom resolver (${Date.now() - startTime}ms)`
+          );
+        } catch (error) {
           this._recordFailure(orgId, error);
           this.metrics.resolverFailures++;
           url = this._getDefaultUrlWithLog(orgId, 'resolver-failure', error);
@@ -334,47 +311,52 @@ export class OrgUrlResolver {
       // 7. Update metrics
       this._updateMetrics(startTime);
 
-      this._log('info', `🎯 Org '${orgId}' resolved to database via ${source} (${Date.now() - startTime}ms)`);
+      this._log(
+        'info',
+        `🎯 Org '${orgId}' resolved to database via ${source} (${Date.now() - startTime}ms)`
+      );
       return url;
-
-    } catch (error: any) {
+    } catch (error) {
       this.metrics.resolverFailures++;
-      this._log('error', `❌ Critical error resolving org '${orgId}': ${error.message}`);
-      
+      this._log(
+        'error',
+        `❌ Critical error resolving org '${orgId}': ${error.message}`
+      );
+
       // Last resort: use emergency fallback
       const fallbackUrl = this._getEmergencyFallback(orgId);
-      this._log('warn', `🚨 Using emergency fallback for org '${orgId}': ${fallbackUrl}`);
-      
+      this._log(
+        'warn',
+        `🚨 Using emergency fallback for org '${orgId}': ${fallbackUrl}`
+      );
+
       return fallbackUrl;
     }
   }
 
   /**
    * Enhanced health check with connection validation
+   * @param {string} [orgId] - Organization ID to test
+   * @returns {Promise<Object>} Health status
    */
-  async healthCheck(orgId?: string): Promise<{
-    healthy: boolean;
-    latency: number;
-    source: string;
-    error?: string;
-  }> {
+  async healthCheck(orgId) {
     const startTime = Date.now();
-    
+
     try {
       const testOrgId = orgId || 'health-check-test';
       const url = await this.resolve(testOrgId);
-      
+
       // Optional: Test actual database connection
       if (this.options.connectionValidation) {
         await this._testDatabaseConnection(url);
       }
-      
+
       return {
         healthy: true,
         latency: Date.now() - startTime,
         source: this.cache.get(testOrgId)?.source || 'unknown',
       };
-    } catch (error: any) {
+    } catch (error) {
       return {
         healthy: false,
         latency: Date.now() - startTime,
@@ -386,30 +368,26 @@ export class OrgUrlResolver {
 
   /**
    * Get comprehensive metrics for monitoring
+   * @returns {Object} Metrics object
    */
-  getMetrics(): ResolverMetrics & {
-    cacheStats: {
-      size: number;
-      hitRate: number;
-      mostAccessed: Array<{ orgId: string; accessCount: number }>;
-    };
-    circuitBreakerStatus: Array<{ orgId: string; status: 'open' | 'closed'; failures: number }>;
-  } {
-    const hitRate = this.metrics.totalResolves > 0 
-      ? (this.metrics.cacheHits / this.metrics.totalResolves) * 100 
-      : 0;
+  getMetrics() {
+    const hitRate =
+      this.metrics.totalResolves > 0
+        ? (this.metrics.cacheHits / this.metrics.totalResolves) * 100
+        : 0;
 
     const mostAccessed = Array.from(this.cache.entries())
       .map(([orgId, cached]) => ({ orgId, accessCount: cached.accessCount }))
       .sort((a, b) => b.accessCount - a.accessCount)
       .slice(0, 10);
 
-    const circuitBreakerStatus = Array.from(this.failureCache.entries())
-      .map(([orgId, failure]) => ({
+    const circuitBreakerStatus = Array.from(this.failureCache.entries()).map(
+      ([orgId, failure]) => ({
         orgId,
-        status: this._isCircuitBreakerOpen(orgId) ? 'open' as const : 'closed' as const,
+        status: this._isCircuitBreakerOpen(orgId) ? 'open' : 'closed',
         failures: failure.consecutiveFailures,
-      }));
+      })
+    );
 
     return {
       ...this.metrics,
@@ -422,35 +400,107 @@ export class OrgUrlResolver {
     };
   }
 
+  /**
+   * Clear cache for specific org or all orgs
+   * @param {string} [orgId] - Organization ID (optional)
+   */
+  clearCache(orgId) {
+    if (orgId) {
+      this.cache.delete(orgId);
+      this.failureCache.delete(orgId);
+      this._log('info', `🗑️ Cleared cache for org '${orgId}'`);
+    } else {
+      this.cache.clear();
+      this.failureCache.clear();
+      this._log('info', '🗑️ Cleared all org URL caches');
+    }
+  }
+
+  /**
+   * Refresh organization URL (bypass cache)
+   * @param {string} orgId - Organization ID
+   * @returns {Promise<string>} Fresh URL
+   */
+  async refreshOrg(orgId) {
+    this.clearCache(orgId);
+    return await this.resolve(orgId);
+  }
+
+  /**
+   * Manually open/close circuit breaker for testing
+   * @param {string} orgId - Organization ID
+   * @param {string} state - 'open' or 'closed'
+   */
+  setCircuitBreakerState(orgId, state) {
+    if (state === 'open') {
+      this.failureCache.set(orgId, {
+        count: this.CIRCUIT_BREAKER_THRESHOLD,
+        lastFailure: Date.now(),
+        lastError: 'Manually opened',
+        consecutiveFailures: this.CIRCUIT_BREAKER_THRESHOLD,
+      });
+    } else {
+      this.failureCache.delete(orgId);
+    }
+
+    this._log(
+      'info',
+      `🔧 Circuit breaker ${state.toUpperCase()} for org '${orgId}'`
+    );
+  }
+
+  /**
+   * Preload orgs into cache for faster resolution
+   * @param {string[]} orgIds - Array of organization IDs
+   * @returns {Promise<void>}
+   */
+  async preloadOrgs(orgIds) {
+    this._log(
+      'info',
+      `⚡ Preloading ${orgIds.length} organizations into cache...`
+    );
+
+    const promises = orgIds.map(async (orgId) => {
+      try {
+        await this.resolve(orgId);
+      } catch (error) {
+        this._log('warn', `Failed to preload org '${orgId}': ${error.message}`);
+      }
+    });
+
+    await Promise.allSettled(promises);
+    this._log('info', `✅ Preloading complete. Cache size: ${this.cache.size}`);
+  }
+
   // Private enhanced methods
 
-  private _validateOrgId(orgId: string): void {
+  _validateOrgId(orgId) {
     if (!orgId || typeof orgId !== 'string') {
       throw new Error('Organization ID is required and must be a string');
     }
-    
+
     if (orgId.length > 63) {
       throw new Error('Organization ID too long (max 63 characters)');
     }
-    
+
     if (!/^[a-zA-Z0-9_-]+$/.test(orgId)) {
       throw new Error('Organization ID contains invalid characters');
     }
   }
 
-  private _isCircuitBreakerOpen(orgId: string): boolean {
+  _isCircuitBreakerOpen(orgId) {
     const failure = this.failureCache.get(orgId);
     if (!failure) return false;
 
     return failure.consecutiveFailures >= this.CIRCUIT_BREAKER_THRESHOLD;
   }
 
-  private _recordSuccess(orgId: string): void {
+  _recordSuccess(orgId) {
     // Reset circuit breaker on success
     this.failureCache.delete(orgId);
   }
 
-  private _recordFailure(orgId: string, error: Error): void {
+  _recordFailure(orgId, error) {
     const existing = this.failureCache.get(orgId);
     this.failureCache.set(orgId, {
       count: existing ? existing.count + 1 : 1,
@@ -460,26 +510,29 @@ export class OrgUrlResolver {
     });
   }
 
-  private async _validateAndTestUrl(url: string, orgId: string): Promise<void> {
+  async _validateAndTestUrl(url, orgId) {
     // Enhanced URL validation
     this._validateUrl(url, orgId);
-    
+
     // Optional connection testing
     if (this.options.connectionValidation) {
       try {
         await this._testDatabaseConnection(url);
-      } catch (error: any) {
-        this._log('warn', `Database connection test failed for org '${orgId}': ${error.message}`);
+      } catch (error) {
+        this._log(
+          'warn',
+          `Database connection test failed for org '${orgId}': ${error.message}`
+        );
         // Don't throw - URL might be valid but database temporarily unavailable
       }
     }
   }
 
-  private async _testDatabaseConnection(url: string): Promise<void> {
+  async _testDatabaseConnection(url) {
     // Quick connection test without full client setup
     // This would be implemented based on the database provider
     const provider = this._detectProviderFromUrl(url);
-    
+
     switch (provider) {
       case 'postgresql':
         // Could use pg.Pool for quick test
@@ -491,7 +544,7 @@ export class OrgUrlResolver {
         // Could use MongoDB driver for quick ping
         break;
     }
-    
+
     // For now, just validate URL format more thoroughly
     try {
       new URL(url.replace('postgresql://', 'http://'));
@@ -500,7 +553,7 @@ export class OrgUrlResolver {
     }
   }
 
-  private _cacheWithLRU(orgId: string, url: string, source: 'resolver' | 'fallback'): void {
+  _cacheWithLRU(orgId, url, source) {
     // LRU cache management
     if (this.cache.size >= this.MAX_CACHE_SIZE) {
       this._evictLRUEntries();
@@ -508,7 +561,7 @@ export class OrgUrlResolver {
 
     const cacheTTL = source === 'resolver' ? this.cacheTTL : 60000; // Shorter TTL for fallbacks
     const now = Date.now();
-    
+
     this.cache.set(orgId, {
       url,
       expires: now + cacheTTL,
@@ -519,81 +572,85 @@ export class OrgUrlResolver {
     });
   }
 
-  private _evictLRUEntries(): void {
+  _evictLRUEntries() {
     // Remove oldest accessed entries (keep top 90%)
-    const entries = Array.from(this.cache.entries())
-      .sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
-    
+    const entries = Array.from(this.cache.entries()).sort(
+      (a, b) => a[1].lastAccessed - b[1].lastAccessed
+    );
+
     const toRemove = Math.floor(this.cache.size * 0.1);
     for (let i = 0; i < toRemove; i++) {
       this.cache.delete(entries[i][0]);
     }
-    
+
     this._log('debug', `Evicted ${toRemove} LRU cache entries`);
   }
 
-  private _updateMetrics(startTime: number): void {
+  _updateMetrics(startTime) {
     const resolveTime = Date.now() - startTime;
-    
+
     // Update rolling average
     if (this.metrics.averageResolveTime === 0) {
       this.metrics.averageResolveTime = resolveTime;
     } else {
-      this.metrics.averageResolveTime = 
-        (this.metrics.averageResolveTime * 0.9) + (resolveTime * 0.1);
+      this.metrics.averageResolveTime =
+        this.metrics.averageResolveTime * 0.9 + resolveTime * 0.1;
     }
   }
 
-  private _startPeriodicMaintenance(): void {
+  _startPeriodicMaintenance() {
     const interval = this.options.healthCheckInterval || 5 * 60 * 1000; // 5 minutes
-    
+
     setInterval(() => {
       try {
         this._cleanupExpiredEntries();
         this._logMetricsSummary();
-      } catch (error: any) {
+      } catch (error) {
         this._log('error', `Periodic maintenance error: ${error.message}`);
       }
     }, interval);
   }
 
-  private _cleanupExpiredEntries(): void {
+  _cleanupExpiredEntries() {
     const now = Date.now();
     const beforeSize = this.cache.size;
-    
+
     for (const [orgId, cached] of this.cache.entries()) {
       if (cached.expires <= now) {
         this.cache.delete(orgId);
       }
     }
-    
+
     // Clean old failures (older than 1 hour)
     for (const [orgId, failure] of this.failureCache.entries()) {
       if (now - failure.lastFailure > 60 * 60 * 1000) {
         this.failureCache.delete(orgId);
       }
     }
-    
+
     const cleaned = beforeSize - this.cache.size;
     if (cleaned > 0) {
       this._log('debug', `Cleaned up ${cleaned} expired cache entries`);
     }
   }
 
-  private _logMetricsSummary(): void {
+  _logMetricsSummary() {
     if (!this.isDevelopment || this.metrics.totalResolves === 0) return;
-    
+
     const metrics = this.getMetrics();
-    this._log('info', [
-      `📊 Resolver Metrics Summary:`,
-      `  Cache: ${metrics.cacheStats.size} entries, ${metrics.cacheStats.hitRate}% hit rate`,
-      `  Performance: ${metrics.averageResolveTime.toFixed(1)}ms avg`,
-      `  Success Rate: ${((metrics.resolverSuccesses / Math.max(metrics.totalResolves, 1)) * 100).toFixed(1)}%`,
-      `  Circuit Breakers: ${metrics.circuitBreakerStatus.filter(cb => cb.status === 'open').length} open`,
-    ].join('\n'));
+    this._log(
+      'info',
+      [
+        `📊 Resolver Metrics Summary:`,
+        `  Cache: ${metrics.cacheStats.size} entries, ${metrics.cacheStats.hitRate}% hit rate`,
+        `  Performance: ${metrics.averageResolveTime.toFixed(1)}ms avg`,
+        `  Success Rate: ${((metrics.resolverSuccesses / Math.max(metrics.totalResolves, 1)) * 100).toFixed(1)}%`,
+        `  Circuit Breakers: ${metrics.circuitBreakerStatus.filter((cb) => cb.status === 'open').length} open`,
+      ].join('\n')
+    );
   }
 
-  private _detectProviderFromUrl(url: string): string {
+  _detectProviderFromUrl(url) {
     if (url.includes('postgresql://') || url.includes('postgres://')) {
       return 'postgresql';
     }
@@ -606,7 +663,7 @@ export class OrgUrlResolver {
     return 'unknown';
   }
 
-  private _validateUrl(url: string, orgId: string): void {
+  _validateUrl(url, orgId) {
     try {
       if (!url.includes('://')) {
         throw new Error('URL must include protocol (e.g., postgresql://)');
@@ -616,43 +673,62 @@ export class OrgUrlResolver {
         throw new Error('URL contains suspicious characters');
       }
 
-      const validProtocols = ['postgresql', 'postgres', 'mysql', 'mongodb', 'sqlite'];
-      const hasValidProtocol = validProtocols.some(protocol => url.startsWith(`${protocol}://`));
-      
-      if (!hasValidProtocol) {
-        this._log('warn', `⚠️ Unusual database protocol for org '${orgId}': ${url.split('://')[0]}`);
-      }
+      const validProtocols = [
+        'postgresql',
+        'postgres',
+        'mysql',
+        'mongodb',
+        'sqlite',
+      ];
+      const hasValidProtocol = validProtocols.some((protocol) =>
+        url.startsWith(`${protocol}://`)
+      );
 
-    } catch (error: any) {
-      throw new Error(`Invalid database URL for org '${orgId}': ${error.message}`);
+      if (!hasValidProtocol) {
+        this._log(
+          'warn',
+          `⚠️ Unusual database protocol for org '${orgId}': ${url.split('://')[0]}`
+        );
+      }
+    } catch (error) {
+      throw new Error(
+        `Invalid database URL for org '${orgId}': ${error.message}`
+      );
     }
   }
 
-  private async _resolveWithRetries(orgId: string): Promise<string> {
-    let lastError: Error;
+  async _resolveWithRetries(orgId) {
+    let lastError;
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        this._log('debug', `🔄 Resolver attempt ${attempt}/${this.MAX_RETRIES} for org '${orgId}'`);
-        
+        this._log(
+          'debug',
+          `🔄 Resolver attempt ${attempt}/${this.MAX_RETRIES} for org '${orgId}'`
+        );
+
         const url = await Promise.race([
-          Promise.resolve(this.userResolver!(orgId)),
-          this._createTimeout(this.TIMEOUT_MS)
+          Promise.resolve(this.userResolver(orgId)),
+          this._createTimeout(this.TIMEOUT_MS),
         ]);
 
         if (typeof url !== 'string' || !url.trim()) {
-          throw new Error('Resolver returned invalid URL (empty or non-string)');
+          throw new Error(
+            'Resolver returned invalid URL (empty or non-string)'
+          );
         }
 
         return url.trim();
-
-      } catch (error: any) {
+      } catch (error) {
         lastError = error;
-        this._log('warn', `⚠️ Resolver attempt ${attempt} failed for org '${orgId}': ${error.message}`);
-        
+        this._log(
+          'warn',
+          `⚠️ Resolver attempt ${attempt} failed for org '${orgId}': ${error.message}`
+        );
+
         if (attempt < this.MAX_RETRIES) {
           const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
@@ -660,19 +736,25 @@ export class OrgUrlResolver {
     throw lastError;
   }
 
-  private _getDefaultUrlWithLog(orgId: string, reason: string, error?: Error): string {
+  _getDefaultUrlWithLog(orgId, reason, error) {
     const url = this._getDefaultUrl(orgId);
-    
+
     if (error) {
-      this._log('warn', `🔄 Using fallback URL for org '${orgId}' (${reason}): ${error.message}`);
+      this._log(
+        'warn',
+        `🔄 Using fallback URL for org '${orgId}' (${reason}): ${error.message}`
+      );
     } else {
-      this._log('info', `📋 Using default URL pattern for org '${orgId}' (${reason})`);
+      this._log(
+        'info',
+        `📋 Using default URL pattern for org '${orgId}' (${reason})`
+      );
     }
-    
+
     return url;
   }
 
-  private _getDefaultUrl(orgId: string): string {
+  _getDefaultUrl(orgId) {
     const baseUrl = process.env.DATABASE_URL;
     if (!baseUrl) {
       throw new Error('DATABASE_URL environment variable is required');
@@ -690,19 +772,22 @@ export class OrgUrlResolver {
     return `${baseUrl}_${orgId}`;
   }
 
-  private _getEmergencyFallback(orgId: string): string {
+  _getEmergencyFallback(orgId) {
     const fallback = `postgresql://localhost:5432/${orgId}_database`;
-    this._log('error', `🚨 Using emergency fallback URL for org '${orgId}': ${fallback}`);
+    this._log(
+      'error',
+      `🚨 Using emergency fallback URL for org '${orgId}': ${fallback}`
+    );
     return fallback;
   }
 
-  private async _createTimeout(ms: number): Promise<never> {
+  async _createTimeout(ms) {
     return new Promise((_, reject) => {
       setTimeout(() => reject(new Error(`Resolver timeout after ${ms}ms`)), ms);
     });
   }
 
-  private _log(level: 'debug' | 'info' | 'warn' | 'error', message: string): void {
+  _log(level, message) {
     const timestamp = new Date().toISOString();
     const prefix = `[AppKit OrgResolver ${timestamp}]`;
 
@@ -724,60 +809,5 @@ export class OrgUrlResolver {
         console.error(`${prefix} ${message}`);
         break;
     }
-  }
-
-  // Public methods for enhanced enterprise features
-  
-  clearCache(orgId?: string): void {
-    if (orgId) {
-      this.cache.delete(orgId);
-      this.failureCache.delete(orgId);
-      this._log('info', `🗑️ Cleared cache for org '${orgId}'`);
-    } else {
-      this.cache.clear();
-      this.failureCache.clear();
-      this._log('info', '🗑️ Cleared all org URL caches');
-    }
-  }
-
-  async refreshOrg(orgId: string): Promise<string> {
-    this.clearCache(orgId);
-    return await this.resolve(orgId);
-  }
-
-  /**
-   * Manually open/close circuit breaker for testing
-   */
-  setCircuitBreakerState(orgId: string, state: 'open' | 'closed'): void {
-    if (state === 'open') {
-      this.failureCache.set(orgId, {
-        count: this.CIRCUIT_BREAKER_THRESHOLD,
-        lastFailure: Date.now(),
-        lastError: 'Manually opened',
-        consecutiveFailures: this.CIRCUIT_BREAKER_THRESHOLD,
-      });
-    } else {
-      this.failureCache.delete(orgId);
-    }
-    
-    this._log('info', `🔧 Circuit breaker ${state.toUpperCase()} for org '${orgId}'`);
-  }
-
-  /**
-   * Preload orgs into cache for faster resolution
-   */
-  async preloadOrgs(orgIds: string[]): Promise<void> {
-    this._log('info', `⚡ Preloading ${orgIds.length} organizations into cache...`);
-    
-    const promises = orgIds.map(async (orgId) => {
-      try {
-        await this.resolve(orgId);
-      } catch (error: any) {
-        this._log('warn', `Failed to preload org '${orgId}': ${error.message}`);
-      }
-    });
-    
-    await Promise.allSettled(promises);
-    this._log('info', `✅ Preloading complete. Cache size: ${this.cache.size}`);
   }
 }

@@ -6,28 +6,17 @@
 
 import { createDatabaseError } from '../defaults.js';
 
-export interface MongooseClientConfig {
-  url: string;
-  maxPoolSize?: number;
-  timeout?: number;
-  connectionOptions?: any;
-}
-
-export interface TenantMiddlewareOptions {
-  fieldName?: string;
-  orgId?: string;
-}
-
 /**
  * Mongoose adapter implementation for MongoDB
  * Supports both database-per-tenant and collection-level isolation
  */
 export class MongooseAdapter {
-  private mongoose: any = null;
-  private connections = new Map<string, any>(); // Cache connections
-  private isDevelopment = process.env.NODE_ENV === 'development';
+  constructor(options = {}) {
+    this.options = options;
+    this.mongoose = null;
+    this.connections = new Map(); // Cache connections
+    this.isDevelopment = process.env.NODE_ENV === 'development';
 
-  constructor(private options: any = {}) {
     if (this.isDevelopment) {
       console.log('⚡ [AppKit] Mongoose adapter initialized');
     }
@@ -35,12 +24,18 @@ export class MongooseAdapter {
 
   /**
    * Creates a new Mongoose connection instance
+   * @param {Object} config - Client configuration
+   * @param {string} config.url - Database URL
+   * @param {number} [config.maxPoolSize=10] - Maximum pool size
+   * @param {number} [config.timeout=10000] - Connection timeout in ms
+   * @param {Object} [config.connectionOptions] - Additional connection options
+   * @returns {Promise<any>} Mongoose connection
    */
-  async createClient(config: MongooseClientConfig): Promise<any> {
+  async createClient(config) {
     if (!this.mongoose) {
       try {
         this.mongoose = (await import('mongoose')).default;
-      } catch (error: any) {
+      } catch (error) {
         throw createDatabaseError(
           'Mongoose not found. Install with: npm install mongoose',
           500
@@ -49,7 +44,7 @@ export class MongooseAdapter {
     }
 
     const cacheKey = this._buildCacheKey(config);
-    
+
     if (this.connections.has(cacheKey)) {
       return this.connections.get(cacheKey);
     }
@@ -72,11 +67,13 @@ export class MongooseAdapter {
       this.connections.set(cacheKey, connection);
 
       if (this.isDevelopment) {
-        console.log(`✅ [AppKit] Created Mongoose connection: ${this._maskUrl(config.url)}`);
+        console.log(
+          `✅ [AppKit] Created Mongoose connection: ${this._maskUrl(config.url)}`
+        );
       }
 
       return connection;
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to create Mongoose connection: ${error.message}`,
         500
@@ -86,19 +83,21 @@ export class MongooseAdapter {
 
   /**
    * Applies tenant middleware to Mongoose connection for automatic isolation
+   * @param {any} connection - Mongoose connection
+   * @param {string} tenantId - Tenant ID
+   * @param {Object} [options={}] - Middleware options
+   * @param {string} [options.fieldName='tenant_id'] - Tenant field name
+   * @param {string} [options.orgId] - Organization ID
+   * @returns {Promise<any>} Connection with tenant middleware
    */
-  async applyTenantMiddleware(
-    connection: any,
-    tenantId: string,
-    options: TenantMiddlewareOptions = {}
-  ): Promise<any> {
+  async applyTenantMiddleware(connection, tenantId, options = {}) {
     const tenantField = options.fieldName || 'tenant_id';
 
     // Store original model function
     const originalModel = connection.model.bind(connection);
 
     // Override model function to add middleware
-    connection.model = function (name: string, schema?: any, collection?: string) {
+    connection.model = function (name, schema, collection) {
       if (schema && !schema._tenantMiddlewareApplied) {
         // Mark schema as having middleware applied
         schema._tenantMiddlewareApplied = true;
@@ -122,7 +121,7 @@ export class MongooseAdapter {
         });
 
         // Pre-insertMany middleware - add tenant ID to all documents
-        schema.pre('insertMany', function (next: any, docs: any[]) {
+        schema.pre('insertMany', function (next, docs) {
           if (Array.isArray(docs)) {
             docs.forEach((doc) => {
               if (!doc[tenantField]) {
@@ -195,7 +194,7 @@ export class MongooseAdapter {
 
           // Check if tenant filter already exists in pipeline
           const hasMatch = pipeline.some(
-            (stage: any) => stage.$match && stage.$match[tenantField]
+            (stage) => stage.$match && stage.$match[tenantField]
           );
 
           if (!hasMatch) {
@@ -217,8 +216,11 @@ export class MongooseAdapter {
 
   /**
    * Creates a new database
+   * @param {string} name - Database name
+   * @param {any} [systemClient] - System client (optional)
+   * @returns {Promise<void>}
    */
-  async createDatabase(name: string, systemClient?: any): Promise<void> {
+  async createDatabase(name, systemClient) {
     try {
       const dbUrl = this._buildDatabaseUrl(name);
       const connection = await this.createClient({ url: dbUrl });
@@ -241,7 +243,7 @@ export class MongooseAdapter {
       if (this.isDevelopment) {
         console.log(`✅ [AppKit] Created MongoDB database: ${name}`);
       }
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to create MongoDB database '${name}': ${error.message}`,
         500
@@ -251,22 +253,25 @@ export class MongooseAdapter {
 
   /**
    * Drops a database
+   * @param {string} name - Database name
+   * @param {any} [systemClient] - System client (optional)
+   * @returns {Promise<void>}
    */
-  async dropDatabase(name: string, systemClient?: any): Promise<void> {
+  async dropDatabase(name, systemClient) {
     try {
       const dbUrl = this._buildDatabaseUrl(name);
       const connection = await this.createClient({ url: dbUrl });
 
       try {
         await connection.db.dropDatabase();
-        
+
         if (this.isDevelopment) {
           console.log(`✅ [AppKit] Dropped MongoDB database: ${name}`);
         }
       } finally {
         await connection.close();
       }
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to drop MongoDB database '${name}': ${error.message}`,
         500
@@ -276,8 +281,10 @@ export class MongooseAdapter {
 
   /**
    * Lists all databases
+   * @param {any} [systemClient] - System client (optional)
+   * @returns {Promise<string[]>} Array of database names
    */
-  async listDatabases(systemClient?: any): Promise<string[]> {
+  async listDatabases(systemClient) {
     let connection = null;
 
     try {
@@ -293,12 +300,12 @@ export class MongooseAdapter {
       const result = await admin.listDatabases();
 
       const databases = result.databases
-        .map((db: any) => db.name)
-        .filter((name: string) => !this._isSystemDatabase(name))
+        .map((db) => db.name)
+        .filter((name) => !this._isSystemDatabase(name))
         .sort();
 
       return databases;
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to list MongoDB databases: ${error.message}`,
         500
@@ -312,8 +319,10 @@ export class MongooseAdapter {
 
   /**
    * Gets database statistics
+   * @param {any} client - Database client
+   * @returns {Promise<Object>} Database statistics
    */
-  async getDatabaseStats(client: any): Promise<any> {
+  async getDatabaseStats(client) {
     try {
       const db = client.db;
 
@@ -323,7 +332,7 @@ export class MongooseAdapter {
       // Get collection count
       const collections = await db.listCollections().toArray();
       const collectionCount = collections.filter(
-        (col: any) => !col.name.startsWith('system.')
+        (col) => !col.name.startsWith('system.')
       ).length;
 
       return {
@@ -335,7 +344,7 @@ export class MongooseAdapter {
         avgObjSize: this._formatBytes(dbStats.avgObjSize || 0),
         storageSize: this._formatBytes(dbStats.storageSize || 0),
       };
-    } catch (error: any) {
+    } catch (error) {
       throw createDatabaseError(
         `Failed to get MongoDB database stats: ${error.message}`,
         500
@@ -345,8 +354,10 @@ export class MongooseAdapter {
 
   /**
    * Checks if tenant registry collection exists
+   * @param {any} client - Database client
+   * @returns {Promise<boolean>}
    */
-  async hasTenantRegistry(client: any): Promise<boolean> {
+  async hasTenantRegistry(client) {
     try {
       const collections = await client.db
         .listCollections({
@@ -362,8 +373,11 @@ export class MongooseAdapter {
 
   /**
    * Creates tenant registry entry
+   * @param {any} client - Database client
+   * @param {string} tenantId - Tenant ID
+   * @returns {Promise<void>}
    */
-  async createTenantRegistryEntry(client: any, tenantId: string): Promise<void> {
+  async createTenantRegistryEntry(client, tenantId) {
     try {
       const collection = client.db.collection('tenant_registry');
       await collection.updateOne(
@@ -377,7 +391,7 @@ export class MongooseAdapter {
         },
         { upsert: true }
       );
-    } catch (error: any) {
+    } catch (error) {
       if (this.isDevelopment) {
         console.debug('Failed to create tenant registry entry:', error.message);
       }
@@ -386,12 +400,15 @@ export class MongooseAdapter {
 
   /**
    * Deletes tenant registry entry
+   * @param {any} client - Database client
+   * @param {string} tenantId - Tenant ID
+   * @returns {Promise<void>}
    */
-  async deleteTenantRegistryEntry(client: any, tenantId: string): Promise<void> {
+  async deleteTenantRegistryEntry(client, tenantId) {
     try {
       const collection = client.db.collection('tenant_registry');
       await collection.deleteOne({ tenant_id: tenantId });
-    } catch (error: any) {
+    } catch (error) {
       if (this.isDevelopment) {
         console.debug('Failed to delete tenant registry entry:', error.message);
       }
@@ -400,8 +417,11 @@ export class MongooseAdapter {
 
   /**
    * Checks if tenant exists in registry
+   * @param {any} client - Database client
+   * @param {string} tenantId - Tenant ID
+   * @returns {Promise<boolean>}
    */
-  async tenantExistsInRegistry(client: any, tenantId: string): Promise<boolean> {
+  async tenantExistsInRegistry(client, tenantId) {
     try {
       const collection = client.db.collection('tenant_registry');
       const doc = await collection.findOne({ tenant_id: tenantId });
@@ -413,8 +433,10 @@ export class MongooseAdapter {
 
   /**
    * Gets all tenants from registry
+   * @param {any} client - Database client
+   * @returns {Promise<string[]>} Array of tenant IDs
    */
-  async getTenantsFromRegistry(client: any): Promise<string[]> {
+  async getTenantsFromRegistry(client) {
     try {
       const collection = client.db.collection('tenant_registry');
       const docs = await collection
@@ -427,7 +449,7 @@ export class MongooseAdapter {
         .sort({ tenant_id: 1 })
         .toArray();
 
-      return docs.map((doc: any) => doc.tenant_id);
+      return docs.map((doc) => doc.tenant_id);
     } catch (error) {
       return [];
     }
@@ -435,15 +457,16 @@ export class MongooseAdapter {
 
   /**
    * Disconnects the adapter
+   * @returns {Promise<void>}
    */
-  async disconnect(): Promise<void> {
+  async disconnect() {
     const disconnectPromises = [];
 
     for (const [key, connection] of this.connections) {
       disconnectPromises.push(
         connection
           .close()
-          .catch((error: any) =>
+          .catch((error) =>
             console.warn(`Error disconnecting ${key}:`, error.message)
           )
       );
@@ -461,15 +484,17 @@ export class MongooseAdapter {
 
   /**
    * Builds cache key for connections
+   * @private
    */
-  private _buildCacheKey(config: MongooseClientConfig): string {
+  _buildCacheKey(config) {
     return `${config.url}_${config.maxPoolSize || 10}_${config.timeout || 10000}`;
   }
 
   /**
    * Builds database URL for specific tenant/org
+   * @private
    */
-  private _buildDatabaseUrl(name: string): string {
+  _buildDatabaseUrl(name) {
     const url = this.options.url || process.env.DATABASE_URL;
     if (!url) {
       throw createDatabaseError('Database URL not configured', 500);
@@ -490,8 +515,9 @@ export class MongooseAdapter {
 
   /**
    * Builds admin database URL
+   * @private
    */
-  private _buildAdminUrl(): string {
+  _buildAdminUrl() {
     const url = this.options.url || process.env.DATABASE_URL;
     if (!url) {
       throw createDatabaseError('Database URL not configured', 500);
@@ -509,24 +535,27 @@ export class MongooseAdapter {
 
   /**
    * Checks if database name is a system database
+   * @private
    */
-  private _isSystemDatabase(name: string): boolean {
+  _isSystemDatabase(name) {
     const systemDatabases = ['admin', 'config', 'local'];
     return systemDatabases.includes(name) || name.startsWith('_');
   }
 
   /**
    * Sanitizes database name to prevent injection
+   * @private
    */
-  private _sanitizeName(name: string): string {
+  _sanitizeName(name) {
     // MongoDB database names have specific restrictions
     return name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
   }
 
   /**
    * Formats bytes to human readable format
+   * @private
    */
-  private _formatBytes(bytes: number): string {
+  _formatBytes(bytes) {
     if (bytes === 0) return '0 B';
 
     const k = 1024;
@@ -538,22 +567,24 @@ export class MongooseAdapter {
 
   /**
    * Masks URL for logging (hides credentials)
+   * @private
    */
-  private _maskUrl(url: string): string {
+  _maskUrl(url) {
     return url.replace(/:\/\/[^@]*@/, '://***:***@');
   }
 
   /**
    * Sets up connection event handlers
+   * @private
    */
-  private _setupConnectionEvents(connection: any, url: string): void {
+  _setupConnectionEvents(connection, url) {
     connection.on('connected', () => {
       if (this.isDevelopment) {
         console.debug(`MongoDB connected: ${this._maskUrl(url)}`);
       }
     });
 
-    connection.on('error', (error: any) => {
+    connection.on('error', (error) => {
       console.error(`MongoDB connection error: ${error.message}`);
     });
 

@@ -8,30 +8,20 @@ import fs from 'fs';
 import path from 'path';
 import { createDatabaseError } from '../defaults.js';
 
-export interface DiscoveredApp {
-  name: string;
-  clientPath: string;
-}
-
-export interface PrismaClientConfig {
-  url?: string;
-  appName?: string;
-  options?: any;
-}
-
 /**
  * Enhanced Prisma adapter with app-level schema isolation and tenant middleware
  */
 export class PrismaAdapter {
-  private clients = new Map<string, any>(); // Cache clients per app/url combo
-  private discoveredApps: DiscoveredApp[] | null = null; // Cache apps for process lifetime
-  private isDevelopment = process.env.NODE_ENV === 'development';
+  constructor(options = {}) {
+    this.options = options;
+    this.clients = new Map(); // Cache clients per app/url combo
+    this.discoveredApps = null; // Cache apps for process lifetime
+    this.isDevelopment = process.env.NODE_ENV === 'development';
 
-  // Performance optimization: Cache app detection results
-  private appDetectionCache = new Map<string, string>(); // file path -> app name
-  private cacheStats = { hits: 0, misses: 0, detectionCalls: 0 };
+    // Performance optimization: Cache app detection results
+    this.appDetectionCache = new Map(); // file path -> app name
+    this.cacheStats = { hits: 0, misses: 0, detectionCalls: 0 };
 
-  constructor(private options: any = {}) {
     if (this.isDevelopment) {
       console.log('⚡ [AppKit] Prisma adapter initialized with app isolation');
     }
@@ -39,9 +29,15 @@ export class PrismaAdapter {
 
   /**
    * Creates Prisma client with cached auto-discovery
+   * @param {Object} [config={}] - Client configuration
+   * @param {string} [config.url] - Database URL
+   * @param {string} [config.appName] - App name (auto-detected if not provided)
+   * @param {Object} [config.options] - Additional Prisma options
+   * @returns {Promise<any>} Prisma client
    */
-  async createClient(config: PrismaClientConfig = {}): Promise<any> {
-    const appName = config.appName || (await this._detectAppFromCallStackCached());
+  async createClient(config = {}) {
+    const appName =
+      config.appName || (await this._detectAppFromCallStackCached());
     const dbUrl = config.url || this._getDefaultUrl();
     const clientKey = `${appName}_${dbUrl}_${JSON.stringify(config.options || {})}`;
 
@@ -72,7 +68,7 @@ export class PrismaAdapter {
           console.log(`✅ [AppKit] Created Prisma client for app: ${appName}`);
           this._logCacheStats();
         }
-      } catch (error: any) {
+      } catch (error) {
         throw createDatabaseError(
           `Failed to create Prisma client for app '${appName}': ${error.message}`,
           500
@@ -85,16 +81,18 @@ export class PrismaAdapter {
 
   /**
    * Apply tenant filtering middleware to Prisma client
+   * @param {any} client - Prisma client
+   * @param {string} tenantId - Tenant ID
+   * @param {Object} [options={}] - Middleware options
+   * @param {string} [options.fieldName='tenant_id'] - Tenant field name
+   * @param {string} [options.orgId] - Organization ID
+   * @returns {Promise<any>} Client with tenant middleware
    */
-  async applyTenantMiddleware(
-    client: any, 
-    tenantId: string, 
-    options: { fieldName?: string; orgId?: string } = {}
-  ): Promise<any> {
+  async applyTenantMiddleware(client, tenantId, options = {}) {
     const tenantField = options.fieldName || 'tenant_id';
 
     // Add tenant middleware for automatic filtering
-    client.$use(async (params: any, next: any) => {
+    client.$use(async (params, next) => {
       // Add tenant to creates
       if (params.action === 'create' && params.args.data) {
         params.args.data[tenantField] = tenantId;
@@ -102,7 +100,7 @@ export class PrismaAdapter {
 
       // Add tenant to createMany
       if (params.action === 'createMany' && params.args.data) {
-        params.args.data = params.args.data.map((item: any) => ({
+        params.args.data = params.args.data.map((item) => ({
           ...item,
           [tenantField]: tenantId,
         }));
@@ -122,18 +120,28 @@ export class PrismaAdapter {
       }
 
       // Add tenant filter to reads/updates/deletes
-      if ([
-        'findFirst', 'findMany', 'findUnique', 'update', 'updateMany',
-        'delete', 'deleteMany', 'count', 'aggregate', 'groupBy'
-      ].includes(params.action)) {
+      if (
+        [
+          'findFirst',
+          'findMany',
+          'findUnique',
+          'update',
+          'updateMany',
+          'delete',
+          'deleteMany',
+          'count',
+          'aggregate',
+          'groupBy',
+        ].includes(params.action)
+      ) {
         if (!params.args) params.args = {};
         if (!params.args.where) params.args.where = {};
 
         // Handle complex where clauses
         if (params.args.where.AND) {
           // Add to existing AND clause
-          const hasTenantFilter = params.args.where.AND.some((condition: any) => 
-            condition[tenantField] !== undefined
+          const hasTenantFilter = params.args.where.AND.some(
+            (condition) => condition[tenantField] !== undefined
           );
           if (!hasTenantFilter) {
             params.args.where.AND.push({ [tenantField]: tenantId });
@@ -141,10 +149,7 @@ export class PrismaAdapter {
         } else if (params.args.where.OR) {
           // Wrap OR in AND with tenant filter
           params.args.where = {
-            AND: [
-              { [tenantField]: tenantId },
-              { OR: params.args.where.OR }
-            ],
+            AND: [{ [tenantField]: tenantId }, { OR: params.args.where.OR }],
           };
           delete params.args.where.OR;
         } else {
@@ -167,8 +172,9 @@ export class PrismaAdapter {
 
   /**
    * Auto-discover apps with Prisma clients (cached)
+   * @returns {Promise<Array>} Array of discovered app objects
    */
-  async discoverApps(): Promise<DiscoveredApp[]> {
+  async discoverApps() {
     if (this.discoveredApps) return this.discoveredApps;
 
     const searchPaths = [
@@ -176,7 +182,7 @@ export class PrismaAdapter {
       ...this._findAppsDirectoryUpwards(process.cwd()),
     ].filter(Boolean);
 
-    let foundAppsDir: string | null = null;
+    let foundAppsDir = null;
     for (const searchPath of searchPaths) {
       if (fs.existsSync(searchPath)) {
         foundAppsDir = searchPath;
@@ -186,13 +192,15 @@ export class PrismaAdapter {
 
     if (!foundAppsDir) {
       if (this.isDevelopment) {
-        console.warn('⚠️  [AppKit] No apps directory found, using single app mode');
+        console.warn(
+          '⚠️  [AppKit] No apps directory found, using single app mode'
+        );
       }
       this.discoveredApps = [];
       return [];
     }
 
-    const apps: DiscoveredApp[] = [];
+    const apps = [];
     try {
       const appFolders = fs
         .readdirSync(foundAppsDir, { withFileTypes: true })
@@ -216,21 +224,25 @@ export class PrismaAdapter {
             console.log(`✅ [AppKit] Found Prisma client for app: ${appName}`);
           }
         } else if (this.isDevelopment) {
-          console.log(`⚠️  [AppKit] No Prisma client found for app: ${appName}`);
+          console.log(
+            `⚠️  [AppKit] No Prisma client found for app: ${appName}`
+          );
           console.log(`   Expected: ${clientPath}`);
           console.log(`   Run: cd apps/${appName} && npx prisma generate`);
         }
       }
 
       this.discoveredApps = apps;
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ [AppKit] Error discovering apps:', error.message);
       this.discoveredApps = [];
       return [];
     }
 
     if (this.isDevelopment) {
-      console.log(`🔍 [AppKit] Discovered ${apps.length} apps with Prisma clients`);
+      console.log(
+        `🔍 [AppKit] Discovered ${apps.length} apps with Prisma clients`
+      );
     }
 
     return apps;
@@ -238,8 +250,10 @@ export class PrismaAdapter {
 
   /**
    * Check if tenant registry exists (simplified for Prisma)
+   * @param {any} client - Prisma client
+   * @returns {Promise<boolean>}
    */
-  async hasTenantRegistry(client: any): Promise<boolean> {
+  async hasTenantRegistry(client) {
     try {
       const models = Object.keys(client).filter(
         (key) =>
@@ -248,7 +262,7 @@ export class PrismaAdapter {
           typeof client[key] === 'object'
       );
       return (
-        models.includes('tenantRegistry') || 
+        models.includes('tenantRegistry') ||
         models.includes('TenantRegistry') ||
         models.includes('tenant_registry')
       );
@@ -259,8 +273,11 @@ export class PrismaAdapter {
 
   /**
    * Create tenant registry entry
+   * @param {any} client - Prisma client
+   * @param {string} tenantId - Tenant ID
+   * @returns {Promise<void>}
    */
-  async createTenantRegistryEntry(client: any, tenantId: string): Promise<void> {
+  async createTenantRegistryEntry(client, tenantId) {
     try {
       const registryModel = this._getTenantRegistryModel(client);
       if (registryModel) {
@@ -270,7 +287,7 @@ export class PrismaAdapter {
           update: { updatedAt: new Date() },
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       if (this.isDevelopment) {
         console.debug('Failed to create tenant registry entry:', error.message);
       }
@@ -279,8 +296,11 @@ export class PrismaAdapter {
 
   /**
    * Delete tenant registry entry
+   * @param {any} client - Prisma client
+   * @param {string} tenantId - Tenant ID
+   * @returns {Promise<void>}
    */
-  async deleteTenantRegistryEntry(client: any, tenantId: string): Promise<void> {
+  async deleteTenantRegistryEntry(client, tenantId) {
     try {
       const registryModel = this._getTenantRegistryModel(client);
       if (registryModel) {
@@ -288,7 +308,7 @@ export class PrismaAdapter {
           where: { tenantId },
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       if (this.isDevelopment) {
         console.debug('Failed to delete tenant registry entry:', error.message);
       }
@@ -297,8 +317,11 @@ export class PrismaAdapter {
 
   /**
    * Check if tenant exists in registry
+   * @param {any} client - Prisma client
+   * @param {string} tenantId - Tenant ID
+   * @returns {Promise<boolean>}
    */
-  async tenantExistsInRegistry(client: any, tenantId: string): Promise<boolean> {
+  async tenantExistsInRegistry(client, tenantId) {
     try {
       const registryModel = this._getTenantRegistryModel(client);
       if (registryModel) {
@@ -315,8 +338,10 @@ export class PrismaAdapter {
 
   /**
    * Get all tenants from registry
+   * @param {any} client - Prisma client
+   * @returns {Promise<string[]>}
    */
-  async getTenantsFromRegistry(client: any): Promise<string[]> {
+  async getTenantsFromRegistry(client) {
     try {
       const registryModel = this._getTenantRegistryModel(client);
       if (registryModel) {
@@ -324,7 +349,7 @@ export class PrismaAdapter {
           select: { tenantId: true },
           orderBy: { tenantId: 'asc' },
         });
-        return entries.map((entry: any) => entry.tenantId);
+        return entries.map((entry) => entry.tenantId);
       }
       return [];
     } catch (error) {
@@ -334,15 +359,16 @@ export class PrismaAdapter {
 
   /**
    * Disconnect all cached clients and cleanup
+   * @returns {Promise<void>}
    */
-  async disconnect(): Promise<void> {
+  async disconnect() {
     const disconnectPromises = [];
 
     for (const [key, client] of this.clients) {
       disconnectPromises.push(
         client
           .$disconnect()
-          .catch((error: any) =>
+          .catch((error) =>
             console.warn(`Error disconnecting client ${key}:`, error.message)
           )
       );
@@ -362,8 +388,9 @@ export class PrismaAdapter {
 
   /**
    * OPTIMIZED: Cached app detection with multiple strategies
+   * @private
    */
-  private async _detectAppFromCallStackCached(): Promise<string> {
+  async _detectAppFromCallStackCached() {
     this.cacheStats.detectionCalls++;
 
     try {
@@ -372,7 +399,7 @@ export class PrismaAdapter {
       if (callingFile) {
         if (this.appDetectionCache.has(callingFile)) {
           this.cacheStats.hits++;
-          return this.appDetectionCache.get(callingFile)!;
+          return this.appDetectionCache.get(callingFile);
         }
 
         // Quick file path check
@@ -396,8 +423,9 @@ export class PrismaAdapter {
 
   /**
    * Get the file that called the database function
+   * @private
    */
-  private _getCallingFile(): string | null {
+  _getCallingFile() {
     try {
       const stack = new Error().stack;
       if (!stack) return null;
@@ -426,8 +454,9 @@ export class PrismaAdapter {
 
   /**
    * Extract app name from file path (respects your existing structure)
+   * @private
    */
-  private _extractAppFromPath(filePath: string): string | null {
+  _extractAppFromPath(filePath) {
     // Your existing pattern: /apps/{appName}/
     const appsMatch = filePath.match(/\/apps\/([^\/]+)\//);
     return appsMatch ? appsMatch[1] : null;
@@ -435,8 +464,9 @@ export class PrismaAdapter {
 
   /**
    * Load Prisma client for app with caching
+   * @private
    */
-  private async _loadPrismaClientForApp(appName: string): Promise<any> {
+  async _loadPrismaClientForApp(appName) {
     // Use cached app discovery
     const apps = await this.discoverApps();
     const app = apps.find((a) => a.name === appName);
@@ -450,9 +480,12 @@ export class PrismaAdapter {
         if (module.default?.PrismaClient) {
           return module.default.PrismaClient;
         }
-      } catch (error: any) {
+      } catch (error) {
         if (this.isDevelopment) {
-          console.warn(`Failed to load discovered client for ${appName}:`, error.message);
+          console.warn(
+            `Failed to load discovered client for ${appName}:`,
+            error.message
+          );
         }
       }
     }
@@ -463,8 +496,9 @@ export class PrismaAdapter {
 
   /**
    * Path-based client loading fallback (respects your prisma folder structure)
+   * @private
    */
-  private async _loadClientWithPathSearch(appName: string): Promise<any> {
+  async _loadClientWithPathSearch(appName) {
     const searchPaths = [
       // Your existing structure: relative prisma folder from app directory
       './prisma/generated/client/index.js',
@@ -475,7 +509,7 @@ export class PrismaAdapter {
       '@prisma/client', // Global fallback
     ];
 
-    let lastError: any;
+    let lastError;
     for (const clientPath of searchPaths) {
       try {
         const module = await import(clientPath);
@@ -505,11 +539,12 @@ export class PrismaAdapter {
 
   /**
    * Get fallback app with smart defaults
+   * @private
    */
-  private _getFallbackApp(): string {
+  _getFallbackApp() {
     try {
       const cwd = process.cwd();
-      
+
       // Check if we're inside an app directory
       const appsMatch = cwd.match(/\/apps\/([^\/]+)/);
       if (appsMatch) {
@@ -517,7 +552,10 @@ export class PrismaAdapter {
       }
 
       // Use directory name as fallback
-      return path.basename(cwd).toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+      return path
+        .basename(cwd)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '_');
     } catch {
       return 'main';
     }
@@ -525,8 +563,9 @@ export class PrismaAdapter {
 
   /**
    * Search upwards for apps directory
+   * @private
    */
-  private _findAppsDirectoryUpwards(startDir: string): string[] {
+  _findAppsDirectoryUpwards(startDir) {
     const paths = [];
     let currentDir = startDir;
 
@@ -542,37 +581,43 @@ export class PrismaAdapter {
 
   /**
    * Get default database URL with environment fallbacks
+   * @private
    */
-  private _getDefaultUrl(): string {
+  _getDefaultUrl() {
     return (
-      this.options.url ||
-      process.env.DATABASE_URL ||
-      process.env.VOILA_DB_URL
+      this.options.url || process.env.DATABASE_URL || process.env.VOILA_DB_URL
     );
   }
 
   /**
    * Get tenant registry model (handles different naming conventions)
+   * @private
    */
-  private _getTenantRegistryModel(client: any): any {
-    const possibleNames = ['tenantRegistry', 'TenantRegistry', 'tenant_registry'];
-    
+  _getTenantRegistryModel(client) {
+    const possibleNames = [
+      'tenantRegistry',
+      'TenantRegistry',
+      'tenant_registry',
+    ];
+
     for (const name of possibleNames) {
       if (client[name] && typeof client[name].findUnique === 'function') {
         return client[name];
       }
     }
-    
+
     return null;
   }
 
   /**
    * Log cache performance stats
+   * @private
    */
-  private _logCacheStats(): void {
+  _logCacheStats() {
     if (this.cacheStats.detectionCalls > 0) {
       const hitRate = (
-        (this.cacheStats.hits / this.cacheStats.detectionCalls) * 100
+        (this.cacheStats.hits / this.cacheStats.detectionCalls) *
+        100
       ).toFixed(1);
       console.log(
         `📊 [AppKit] Cache stats: ${this.cacheStats.hits} hits, ${this.cacheStats.misses} misses (${hitRate}% hit rate)`
@@ -582,8 +627,9 @@ export class PrismaAdapter {
 
   /**
    * Clear caches (for testing or memory management)
+   * @private
    */
-  private _clearCaches(): void {
+  _clearCaches() {
     this.appDetectionCache.clear();
     this.cacheStats = { hits: 0, misses: 0, detectionCalls: 0 };
   }

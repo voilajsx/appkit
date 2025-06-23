@@ -4,50 +4,35 @@
  * @file src/db/middleware.js
  */
 
-import { 
-  createDatabaseError, 
-  validateTenantId, 
+import {
+  createDatabaseError,
+  validateTenantId,
   validateOrgId,
-  type DatabaseConfig 
-} from './defaults';
-import type { DatabaseClass } from './database.js';
-
-export interface MiddlewareConfig {
-  tenantHeader?: string;
-  tenantParam?: string;
-  tenantRequired?: boolean;
-  orgHeader?: string;
-  orgParam?: string;
-  orgRequired?: boolean;
-  autoCreate?: boolean;
-  onError?: (error: Error, req: any, res: any, next: any) => void;
-  extractTenant?: (req: any) => string | null;
-  extractOrg?: (req: any) => string | null;
-}
-
-export interface RequestWithDatabase {
-  db?: any;
-  tenantId?: string;
-  orgId?: string;
-  switchTenant?: (tenantId: string) => Promise<any>;
-  switchOrg?: (orgId: string) => Promise<any>;
-}
-
-type FrameworkType = 'express' | 'fastify' | 'koa' | 'hapi' | 'unknown';
+} from './defaults.js';
 
 /**
  * Creates universal middleware for automatic tenant/org detection
+ * @param {Object} db - Database instance
+ * @param {Object} [options={}] - Middleware configuration options
+ * @param {string} [options.tenantHeader='x-tenant-id'] - Header name for tenant ID
+ * @param {string} [options.tenantParam='tenantId'] - URL parameter name for tenant ID
+ * @param {boolean} [options.tenantRequired=false] - Require tenant ID
+ * @param {string} [options.orgHeader='x-org-id'] - Header name for org ID
+ * @param {string} [options.orgParam='orgId'] - URL parameter name for org ID
+ * @param {boolean} [options.orgRequired=false] - Require org ID
+ * @param {boolean} [options.autoCreate=false] - Auto-create missing tenants/orgs
+ * @param {Function} [options.onError] - Custom error handler
+ * @param {Function} [options.extractTenant] - Custom tenant extraction function
+ * @param {Function} [options.extractOrg] - Custom org extraction function
+ * @returns {Function} Middleware function
  */
-export function createMiddleware(
-  db: DatabaseClass,
-  options: MiddlewareConfig = {}
-): Function {
+export function createMiddleware(db, options = {}) {
   if (!db) {
     throw createDatabaseError('Database instance is required', 500);
   }
 
   // Default options with smart defaults
-  const config: Required<MiddlewareConfig> = {
+  const config = {
     tenantHeader: 'x-tenant-id',
     tenantParam: 'tenantId',
     tenantRequired: false,
@@ -59,9 +44,9 @@ export function createMiddleware(
     extractTenant: null,
     extractOrg: null,
     ...options,
-  } as Required<MiddlewareConfig>;
+  };
 
-  return async (req: RequestWithDatabase, res: any, next: any) => {
+  return async (req, res, next) => {
     try {
       const framework = detectFramework(req, res);
 
@@ -89,33 +74,25 @@ export function createMiddleware(
 
       // Handle missing org ID
       if (config.orgRequired && !orgId) {
-        const error = createDatabaseError(
-          'Organization ID is required',
-          400,
-          {
-            sources: [
-              `Header: ${config.orgHeader}`,
-              `Param: ${config.orgParam}`,
-              'User: user.orgId',
-            ],
-          }
-        );
+        const error = createDatabaseError('Organization ID is required', 400, {
+          sources: [
+            `Header: ${config.orgHeader}`,
+            `Param: ${config.orgParam}`,
+            'User: user.orgId',
+          ],
+        });
         return handleError(error, req, res, next, framework, config);
       }
 
       // Handle missing tenant ID
       if (config.tenantRequired && !tenantId) {
-        const error = createDatabaseError(
-          'Tenant ID is required',
-          400,
-          {
-            sources: [
-              `Header: ${config.tenantHeader}`,
-              `Param: ${config.tenantParam}`,
-              'User: user.tenantId',
-            ],
-          }
-        );
+        const error = createDatabaseError('Tenant ID is required', 400, {
+          sources: [
+            `Header: ${config.tenantHeader}`,
+            `Param: ${config.tenantParam}`,
+            'User: user.tenantId',
+          ],
+        });
         return handleError(error, req, res, next, framework, config);
       }
 
@@ -138,7 +115,7 @@ export function createMiddleware(
       addHelperMethods(req, db, orgId, tenantId);
 
       callNext(next, framework);
-    } catch (error: any) {
+    } catch (error) {
       handleError(error, req, res, next, framework, config);
     }
   };
@@ -146,14 +123,13 @@ export function createMiddleware(
 
 /**
  * Sets up org + tenant database connection
+ * @param {Object} req - Request object
+ * @param {Object} db - Database instance
+ * @param {string} orgId - Organization ID
+ * @param {string} tenantId - Tenant ID
+ * @param {Object} config - Middleware config
  */
-async function setupOrgTenantDatabase(
-  req: RequestWithDatabase,
-  db: DatabaseClass,
-  orgId: string,
-  tenantId: string,
-  config: Required<MiddlewareConfig>
-): Promise<void> {
+async function setupOrgTenantDatabase(req, db, orgId, tenantId, config) {
   // Check if org exists
   const orgExists = await checkOrgExists(db, orgId);
   if (!orgExists) {
@@ -185,13 +161,12 @@ async function setupOrgTenantDatabase(
 
 /**
  * Sets up org-only database connection
+ * @param {Object} req - Request object
+ * @param {Object} db - Database instance
+ * @param {string} orgId - Organization ID
+ * @param {Object} config - Middleware config
  */
-async function setupOrgDatabase(
-  req: RequestWithDatabase,
-  db: DatabaseClass,
-  orgId: string,
-  config: Required<MiddlewareConfig>
-): Promise<void> {
+async function setupOrgDatabase(req, db, orgId, config) {
   // Check if org exists
   const orgExists = await checkOrgExists(db, orgId);
   if (!orgExists) {
@@ -209,13 +184,12 @@ async function setupOrgDatabase(
 
 /**
  * Sets up tenant-only database connection
+ * @param {Object} req - Request object
+ * @param {Object} db - Database instance
+ * @param {string} tenantId - Tenant ID
+ * @param {Object} config - Middleware config
  */
-async function setupTenantDatabase(
-  req: RequestWithDatabase,
-  db: DatabaseClass,
-  tenantId: string,
-  config: Required<MiddlewareConfig>
-): Promise<void> {
+async function setupTenantDatabase(req, db, tenantId, config) {
   // Check if tenant exists
   const tenantExists = await db.exists(tenantId);
   if (!tenantExists) {
@@ -233,12 +207,15 @@ async function setupTenantDatabase(
 
 /**
  * Checks if organization exists (with fallback for different strategies)
+ * @param {Object} db - Database instance
+ * @param {string} orgId - Organization ID
+ * @returns {Promise<boolean>}
  */
-async function checkOrgExists(db: DatabaseClass, orgId: string): Promise<boolean> {
+async function checkOrgExists(db, orgId) {
   try {
     // Try the standard org existence check
-    if (typeof (db as any).orgExists === 'function') {
-      return await (db as any).orgExists(orgId);
+    if (typeof db.orgExists === 'function') {
+      return await db.orgExists(orgId);
     }
 
     // Fallback: try to get org client and see if it works
@@ -255,15 +232,14 @@ async function checkOrgExists(db: DatabaseClass, orgId: string): Promise<boolean
 
 /**
  * Adds helper methods to the request object
+ * @param {Object} req - Request object
+ * @param {Object} db - Database instance
+ * @param {string} [orgId] - Organization ID
+ * @param {string} [tenantId] - Tenant ID
  */
-function addHelperMethods(
-  req: RequestWithDatabase,
-  db: DatabaseClass,
-  orgId?: string,
-  tenantId?: string
-): void {
+function addHelperMethods(req, db, orgId, tenantId) {
   // Switch tenant within current org
-  req.switchTenant = async (newTenantId: string) => {
+  req.switchTenant = async (newTenantId) => {
     if (!validateTenantId(newTenantId)) {
       throw createDatabaseError('Invalid tenant ID format', 400);
     }
@@ -279,7 +255,7 @@ function addHelperMethods(
   };
 
   // Switch org (if org mode is supported)
-  req.switchOrg = async (newOrgId: string) => {
+  req.switchOrg = async (newOrgId) => {
     if (!validateOrgId(newOrgId)) {
       throw createDatabaseError('Invalid organization ID format', 400);
     }
@@ -296,7 +272,7 @@ function addHelperMethods(
       // Switch to org-only database
       req.db = await db.client({ orgId: newOrgId });
     }
-    
+
     req.orgId = newOrgId;
     return req.db;
   };
@@ -304,8 +280,11 @@ function addHelperMethods(
 
 /**
  * Detects the web framework being used
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @returns {string} Framework type
  */
-function detectFramework(req: any, res: any): FrameworkType {
+function detectFramework(req, res) {
   // Fastify detection
   if (
     res.code &&
@@ -341,8 +320,11 @@ function detectFramework(req: any, res: any): FrameworkType {
 
 /**
  * Extracts organization ID from various request sources
+ * @param {Object} req - Request object
+ * @param {Object} config - Middleware config
+ * @returns {string|null} Organization ID or null
  */
-function extractOrgId(req: any, config: Required<MiddlewareConfig>): string | null {
+function extractOrgId(req, config) {
   // Use custom extractor if provided
   if (config.extractOrg) {
     const customOrgId = config.extractOrg(req);
@@ -352,7 +334,9 @@ function extractOrgId(req: any, config: Required<MiddlewareConfig>): string | nu
   // Check sources in order of preference
   const sources = [
     // Headers (most reliable for APIs)
-    () => req.headers?.[config.orgHeader] || req.headers?.[config.orgHeader.toLowerCase()],
+    () =>
+      req.headers?.[config.orgHeader] ||
+      req.headers?.[config.orgHeader.toLowerCase()],
 
     // URL parameters (for REST APIs)
     () => req.params?.[config.orgParam],
@@ -388,8 +372,11 @@ function extractOrgId(req: any, config: Required<MiddlewareConfig>): string | nu
 
 /**
  * Extracts tenant ID from various request sources
+ * @param {Object} req - Request object
+ * @param {Object} config - Middleware config
+ * @returns {string|null} Tenant ID or null
  */
-function extractTenantId(req: any, config: Required<MiddlewareConfig>): string | null {
+function extractTenantId(req, config) {
   // Use custom extractor if provided
   if (config.extractTenant) {
     const customTenantId = config.extractTenant(req);
@@ -399,7 +386,9 @@ function extractTenantId(req: any, config: Required<MiddlewareConfig>): string |
   // Check sources in order of preference
   const sources = [
     // Headers (most reliable for APIs)
-    () => req.headers?.[config.tenantHeader] || req.headers?.[config.tenantHeader.toLowerCase()],
+    () =>
+      req.headers?.[config.tenantHeader] ||
+      req.headers?.[config.tenantHeader.toLowerCase()],
 
     // URL parameters (for REST APIs)
     () => req.params?.[config.tenantParam],
@@ -435,8 +424,11 @@ function extractTenantId(req: any, config: Required<MiddlewareConfig>): string |
 
 /**
  * Extracts ID from subdomain
+ * @param {Object} req - Request object
+ * @param {string} type - 'org' or 'tenant'
+ * @returns {string|null} Extracted ID or null
  */
-function extractFromSubdomain(req: any, type: 'org' | 'tenant'): string | null {
+function extractFromSubdomain(req, type) {
   try {
     const host = req.headers?.host || req.hostname || req.get?.('host');
     if (!host) return null;
@@ -466,15 +458,14 @@ function extractFromSubdomain(req: any, type: 'org' | 'tenant'): string | null {
 
 /**
  * Handles errors in a framework-specific way
+ * @param {Error} error - Error object
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} next - Next function
+ * @param {string} framework - Framework type
+ * @param {Object} config - Middleware config
  */
-function handleError(
-  error: any,
-  req: any,
-  res: any,
-  next: any,
-  framework: FrameworkType,
-  config: Required<MiddlewareConfig>
-): void {
+function handleError(error, req, res, next, framework, config) {
   console.error('Database middleware error:', error.message);
 
   // Use custom error handler if provided
@@ -518,8 +509,10 @@ function handleError(
 
 /**
  * Calls next function in a framework-appropriate way
+ * @param {Function} next - Next function
+ * @param {string} framework - Framework type
  */
-function callNext(next: any, framework: FrameworkType): void {
+function callNext(next, framework) {
   if (framework === 'koa') {
     // Koa uses async/await, so we just return
     return;
@@ -531,27 +524,27 @@ function callNext(next: any, framework: FrameworkType): void {
 
 /**
  * Creates Express-style middleware (backward compatibility)
+ * @param {Object} db - Database instance
+ * @param {Object} [options={}] - Middleware options
+ * @returns {Function} Express middleware
  */
-export function expressMiddleware(
-  db: DatabaseClass,
-  options: MiddlewareConfig = {}
-): Function {
+export function expressMiddleware(db, options = {}) {
   return createMiddleware(db, options);
 }
 
 /**
  * Creates Fastify plugin
+ * @param {Object} db - Database instance
+ * @param {Object} [options={}] - Plugin options
+ * @returns {Function} Fastify plugin
  */
-export function fastifyPlugin(
-  db: DatabaseClass,
-  options: MiddlewareConfig = {}
-): Function {
-  return async function (fastify: any, opts: any) {
+export function fastifyPlugin(db, options = {}) {
+  return async function (fastify, opts) {
     const middleware = createMiddleware(db, { ...options, ...opts });
 
-    fastify.addHook('preHandler', async (request: any, reply: any) => {
+    fastify.addHook('preHandler', async (request, reply) => {
       return new Promise((resolve, reject) => {
-        middleware(request, reply, (error: any) => {
+        middleware(request, reply, (error) => {
           if (error) {
             reject(error);
           } else {
@@ -565,16 +558,16 @@ export function fastifyPlugin(
 
 /**
  * Creates Koa middleware
+ * @param {Object} db - Database instance
+ * @param {Object} [options={}] - Middleware options
+ * @returns {Function} Koa middleware
  */
-export function koaMiddleware(
-  db: DatabaseClass,
-  options: MiddlewareConfig = {}
-): Function {
+export function koaMiddleware(db, options = {}) {
   const middleware = createMiddleware(db, options);
 
-  return async (ctx: any, next: any) => {
+  return async (ctx, next) => {
     return new Promise((resolve, reject) => {
-      middleware(ctx.request, ctx.response, (error: any) => {
+      middleware(ctx.request, ctx.response, (error) => {
         if (error) {
           reject(error);
         } else {
