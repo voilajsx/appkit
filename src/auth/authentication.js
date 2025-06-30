@@ -1,15 +1,20 @@
 /**
- * Core authentication class with Fastify-native middleware and Express adapter
+ * Core authentication class with role-level-permission system
  * @module @voilajsx/appkit/auth
  * @file src/auth/authentication.js
  */
 
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { validateSecret, validateRounds, validateRole } from './defaults.js';
+import {
+  validateSecret,
+  validateRounds,
+  validateRoleLevel,
+  validatePermission,
+} from './defaults.js';
 
 /**
- * Authentication class with built-in JWT, password, and Fastify-native middleware
+ * Authentication class with JWT, password, and role-level-permission system
  */
 export class AuthenticationClass {
   /**
@@ -21,7 +26,7 @@ export class AuthenticationClass {
   }
 
   /**
-   * Creates and signs a JWT token
+   * Creates and signs a JWT token with role-level-permission structure
    * @param {Object} payload - Data to encode in the token
    * @param {string} [expiresIn] - Token expiration (uses config default if not provided)
    * @returns {string} Signed JWT token
@@ -29,6 +34,21 @@ export class AuthenticationClass {
   signToken(payload, expiresIn) {
     if (!payload || typeof payload !== 'object') {
       throw new Error('Payload must be an object');
+    }
+
+    // Validate required fields for new structure
+    if (!payload.userId) {
+      throw new Error('Payload must include userId');
+    }
+
+    if (!payload.role || !payload.level) {
+      throw new Error('Payload must include both role and level');
+    }
+
+    // Validate role.level exists
+    const roleLevel = `${payload.role}.${payload.level}`;
+    if (!validateRoleLevel(roleLevel, this.config.roles)) {
+      throw new Error(`Invalid role.level: "${roleLevel}"`);
     }
 
     const jwtSecret = this.config.jwt.secret;
@@ -69,9 +89,16 @@ export class AuthenticationClass {
     }
 
     try {
-      return jwt.verify(token, jwtSecret, {
+      const decoded = jwt.verify(token, jwtSecret, {
         algorithms: [this.config.jwt.algorithm],
       });
+
+      // Validate decoded token has required structure
+      if (!decoded.role || !decoded.level) {
+        throw new Error('Token missing required role or level information');
+      }
+
+      return decoded;
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         throw new Error('Token has expired');
@@ -139,44 +166,87 @@ export class AuthenticationClass {
   }
 
   /**
-   * Checks if user has a specific role (with inheritance)
-   * @param {string|string[]} userRoles - User's roles
-   * @param {string} requiredRole - Required role to check
-   * @returns {boolean} True if user has the role
+   * Checks if user has a specific role.level (with inheritance)
+   * @param {string} userRoleLevel - User's role.level (e.g., 'admin.tenant')
+   * @param {string} requiredRoleLevel - Required role.level to check
+   * @returns {boolean} True if user has the role.level or higher
    */
-  hasRole(userRoles, requiredRole) {
-    if (!userRoles) {
+  hasRole(userRoleLevel, requiredRoleLevel) {
+    if (!userRoleLevel || !requiredRoleLevel) {
       return false;
     }
 
-    // Normalize to array
-    const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
-
-    // Validate required role exists
-    if (!validateRole(requiredRole, this.config.roles)) {
-      throw new Error(`Invalid role: "${requiredRole}"`);
+    // Validate both role levels exist
+    if (!validateRoleLevel(userRoleLevel, this.config.roles)) {
+      throw new Error(`Invalid user role.level: "${userRoleLevel}"`);
     }
 
-    // Check direct role match
-    if (roles.includes(requiredRole)) {
+    if (!validateRoleLevel(requiredRoleLevel, this.config.roles)) {
+      throw new Error(`Invalid required role.level: "${requiredRoleLevel}"`);
+    }
+
+    // Direct match
+    if (userRoleLevel === requiredRoleLevel) {
       return true;
     }
 
-    // Check inherited roles
-    const roleConfig = this.config.roles[requiredRole];
-    if (!roleConfig || !roleConfig.inherits) {
+    // Check inheritance
+    const userRoleConfig = this.config.roles[userRoleLevel];
+    return userRoleConfig.inherits.includes(requiredRoleLevel);
+  }
+
+  /**
+   * Checks if user has a specific permission
+   * @param {Object} user - User object with permissions array
+   * @param {string} permission - Permission to check (e.g., 'edit:tenant')
+   * @returns {boolean} True if user has the permission
+   */
+  can(user, permission) {
+    if (!user || !permission) {
       return false;
     }
 
-    // Check if user has any higher-level role that inherits this role
-    return Object.keys(this.config.roles).some((userRole) => {
-      if (!roles.includes(userRole)) {
-        return false;
+    // Validate permission format
+    if (!validatePermission(permission)) {
+      throw new Error(`Invalid permission format: "${permission}"`);
+    }
+
+    // Check if user has the specific permission
+    if (user.permissions && Array.isArray(user.permissions)) {
+      if (user.permissions.includes(permission)) {
+        return true;
       }
 
-      const userRoleConfig = this.config.roles[userRole];
-      return userRoleConfig && userRoleConfig.inherits.includes(requiredRole);
-    });
+      // Check for manage permission (includes all other actions)
+      const [action, scope] = permission.split(':');
+      if (action !== 'manage') {
+        const managePermission = `manage:${scope}`;
+        if (user.permissions.includes(managePermission)) {
+          return true;
+        }
+      }
+    }
+
+    // Fallback: check default permissions for user's role.level
+    const userRoleLevel = `${user.role}.${user.level}`;
+    const defaultPermissions = this.config.permissions.defaults[userRoleLevel];
+
+    if (defaultPermissions && Array.isArray(defaultPermissions)) {
+      if (defaultPermissions.includes(permission)) {
+        return true;
+      }
+
+      // Check for manage permission in defaults
+      const [action, scope] = permission.split(':');
+      if (action !== 'manage') {
+        const managePermission = `manage:${scope}`;
+        if (defaultPermissions.includes(managePermission)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -270,98 +340,115 @@ export class AuthenticationClass {
   }
 
   /**
-   * Creates Fastify-native role-based authorization middleware
-   * @param {...string|string[]} roles - Required roles (can be multiple arguments or array)
+   * Creates Fastify-native role-level authorization middleware
+   * @param {string} requiredRoleLevel - Required role.level (e.g., 'admin.tenant')
    * @returns {Function} Fastify preHandler function
    */
-  requireRole(...roles) {
-    let allowedRoles;
-
-    // Handle different argument patterns
-    if (roles.length === 1 && Array.isArray(roles[0])) {
-      // requireRole(['admin', 'editor'])
-      allowedRoles = roles[0];
-    } else {
-      // requireRole('admin', 'editor') or requireRole('admin')
-      allowedRoles = roles;
+  requireRole(requiredRoleLevel) {
+    if (!requiredRoleLevel) {
+      throw new Error('Role.level must be specified (e.g., "admin.tenant")');
     }
 
-    if (!allowedRoles || allowedRoles.length === 0) {
-      throw new Error('At least one role must be specified');
+    // Validate role.level exists
+    if (!validateRoleLevel(requiredRoleLevel, this.config.roles)) {
+      throw new Error(`Invalid role.level: "${requiredRoleLevel}"`);
     }
-
-    // Validate all roles exist
-    allowedRoles.forEach((role) => {
-      if (!validateRole(role, this.config.roles)) {
-        throw new Error(`Invalid role: "${role}"`);
-      }
-    });
 
     return async (request, reply) => {
       try {
+        let user = null;
+
         // Check for user authentication (from requireLogin)
         if (request.user) {
-          const userRoles = request.user.roles || [];
-
-          if (!Array.isArray(userRoles) || userRoles.length === 0) {
-            throw {
-              statusCode: 403,
-              error: 'Authorization failed',
-              message: this.config.middleware.errorMessages.noRoles,
-            };
-          }
-
-          // Use role hierarchy checking
-          const hasRequiredRole = allowedRoles.some((role) =>
-            this.hasRole(userRoles, role)
-          );
-
-          if (!hasRequiredRole) {
-            throw {
-              statusCode: 403,
-              error: 'Authorization failed',
-              message:
-                this.config.middleware.errorMessages.insufficientPermissions,
-            };
-          }
-
-          return;
+          user = request.user;
         }
-
         // Check for token authentication (from requireToken)
-        if (request.token) {
-          const tokenRoles = request.token.roles || [];
-
-          if (!Array.isArray(tokenRoles) || tokenRoles.length === 0) {
-            throw {
-              statusCode: 403,
-              error: 'Authorization failed',
-              message: 'No roles found in token',
-            };
-          }
-
-          // Use role hierarchy checking for tokens too
-          const hasRequiredRole = allowedRoles.some((role) =>
-            this.hasRole(tokenRoles, role)
-          );
-
-          if (!hasRequiredRole) {
-            throw {
-              statusCode: 403,
-              error: 'Authorization failed',
-              message: 'Insufficient token permissions',
-            };
-          }
-
-          return;
+        else if (request.token) {
+          user = request.token;
         }
 
-        // Neither user nor token found
+        if (!user) {
+          throw {
+            statusCode: 401,
+            error: 'Authentication required',
+            message: 'Please authenticate first',
+          };
+        }
+
+        if (!user.role || !user.level) {
+          throw {
+            statusCode: 403,
+            error: 'Authorization failed',
+            message: this.config.middleware.errorMessages.noRole,
+          };
+        }
+
+        const userRoleLevel = `${user.role}.${user.level}`;
+
+        // Use role hierarchy checking
+        if (!this.hasRole(userRoleLevel, requiredRoleLevel)) {
+          throw {
+            statusCode: 403,
+            error: 'Authorization failed',
+            message: this.config.middleware.errorMessages.insufficientRole,
+          };
+        }
+      } catch (error) {
+        const statusCode = error.statusCode || 500;
         throw {
-          statusCode: 401,
-          error: 'Authentication required',
-          message: 'Please authenticate first',
+          statusCode,
+          error: error.error || 'Server error',
+          message: error.message || 'Authorization check failed',
         };
+      }
+    };
+  }
+
+  /**
+   * Creates Fastify-native permission-based authorization middleware
+   * @param {string} requiredPermission - Required permission (e.g., 'edit:tenant')
+   * @returns {Function} Fastify preHandler function
+   */
+  requirePermission(requiredPermission) {
+    if (!requiredPermission) {
+      throw new Error('Permission must be specified (e.g., "edit:tenant")');
+    }
+
+    // Validate permission format
+    if (!validatePermission(requiredPermission)) {
+      throw new Error(`Invalid permission format: "${requiredPermission}"`);
+    }
+
+    return async (request, reply) => {
+      try {
+        let user = null;
+
+        // Check for user authentication (from requireLogin)
+        if (request.user) {
+          user = request.user;
+        }
+        // Check for token authentication (from requireToken)
+        else if (request.token) {
+          user = request.token;
+        }
+
+        if (!user) {
+          throw {
+            statusCode: 401,
+            error: 'Authentication required',
+            message: 'Please authenticate first',
+          };
+        }
+
+        // Use permission checking
+        if (!this.can(user, requiredPermission)) {
+          throw {
+            statusCode: 403,
+            error: 'Authorization failed',
+            message:
+              this.config.middleware.errorMessages.insufficientPermissions,
+          };
+        }
       } catch (error) {
         const statusCode = error.statusCode || 500;
         throw {
@@ -462,7 +549,11 @@ export class AuthenticationClass {
     return this.toExpress(this.requireToken(options));
   }
 
-  requireRoleExpress(...roles) {
-    return this.toExpress(this.requireRole(...roles));
+  requireRoleExpress(requiredRoleLevel) {
+    return this.toExpress(this.requireRole(requiredRoleLevel));
+  }
+
+  requirePermissionExpress(requiredPermission) {
+    return this.toExpress(this.requirePermission(requiredPermission));
   }
 }
