@@ -1,7 +1,12 @@
 /**
  * Core authentication class with role-level-permission system
  * @module @voilajsx/appkit/auth
- * @file src/auth/authentication.js
+ * @file src/auth/authentication.ts
+ * 
+ * @llm-rule WHEN: Building apps that need JWT operations, password hashing, and role-based middleware
+ * @llm-rule AVOID: Using directly - always get instance via authenticator.get()
+ * @llm-rule NOTE: Use requireRole() for hierarchy-based access, requirePermission() for action-specific access
+ * @llm-rule NOTE: Uses role.level format (user.basic, admin.tenant) with automatic inheritance
  */
 
 import jwt from 'jsonwebtoken';
@@ -11,32 +16,78 @@ import {
   validateRounds,
   validateRoleLevel,
   validatePermission,
-} from './defaults.js';
+  type AuthConfig,
+} from './defaults';
+
+export interface JwtPayload {
+  userId: string | number;
+  role: string;
+  level: string;
+  permissions?: string[];
+  [key: string]: any;
+  iat?: number;
+  exp?: number;
+  iss?: string;
+  aud?: string;
+}
+
+export interface FastifyRequest {
+  headers: { [key: string]: string | string[] | undefined };
+  cookies?: { [key: string]: string };
+  query?: { [key: string]: any };
+  user?: JwtPayload;
+  token?: JwtPayload;
+}
+
+export interface FastifyReply {
+  code: (statusCode: number) => { send: (data: any) => void };
+  send: (data: any) => void;
+}
+
+export interface FastifyError {
+  statusCode: number;
+  error: string;
+  message: string;
+}
+
+export interface ExpressRequest extends FastifyRequest {
+  [key: string]: any;
+}
+
+export interface ExpressResponse {
+  status: (code: number) => { json: (data: any) => void };
+  json: (data: any) => void;
+}
+
+export interface MiddlewareOptions {
+  getToken?: (request: FastifyRequest) => string | null;
+}
+
+export type FastifyPreHandler = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+export type ExpressMiddleware = (req: ExpressRequest, res: ExpressResponse, next: () => void) => void;
 
 /**
  * Authentication class with JWT, password, and role-level-permission system
  */
 export class AuthenticationClass {
-  /**
-   * Creates a new Authentication instance
-   * @param {object} [config={}] - Authentication configuration
-   */
-  constructor(config = {}) {
+  public config: AuthConfig;
+
+  constructor(config: AuthConfig) {
     this.config = config;
   }
 
   /**
    * Creates and signs a JWT token with role-level-permission structure
-   * @param {Object} payload - Data to encode in the token
-   * @param {string} [expiresIn] - Token expiration (uses config default if not provided)
-   * @returns {string} Signed JWT token
+   * @llm-rule WHEN: Creating tokens for authenticated users with role-based access
+   * @llm-rule AVOID: Missing userId, role, or level in payload - token will be invalid
+   * @llm-rule AVOID: Using {userId, roles: ['admin']} format - use {userId, role: 'admin', level: 'tenant'}
+   * @llm-rule NOTE: permissions array is optional - defaults are used from role.level config
    */
-  signToken(payload, expiresIn) {
+  signToken(payload: Omit<JwtPayload, 'iat' | 'exp' | 'iss' | 'aud'>, expiresIn?: string): string {
     if (!payload || typeof payload !== 'object') {
       throw new Error('Payload must be an object');
     }
 
-    // Validate required fields for new structure
     if (!payload.userId) {
       throw new Error('Payload must include userId');
     }
@@ -58,25 +109,24 @@ export class AuthenticationClass {
       );
     }
 
-    // Use provided expiration or config default
     const tokenExpiration = expiresIn || this.config.jwt.expiresIn;
 
     try {
       return jwt.sign(payload, jwtSecret, {
         expiresIn: tokenExpiration,
-        algorithm: this.config.jwt.algorithm,
+        algorithm: this.config.jwt.algorithm as jwt.Algorithm,
       });
     } catch (error) {
-      throw new Error(`Failed to generate token: ${error.message}`);
+      throw new Error(`Failed to generate token: ${(error as Error).message}`);
     }
   }
 
   /**
    * Verifies and decodes a JWT token
-   * @param {string} token - JWT token to verify
-   * @returns {Object} Decoded token payload
+   * @llm-rule WHEN: Validating incoming tokens from requests
+   * @llm-rule AVOID: Using jwt.verify directly - this handles errors and validates structure
    */
-  verifyToken(token) {
+  verifyToken(token: string): JwtPayload {
     if (!token || typeof token !== 'string') {
       throw new Error('Token must be a string');
     }
@@ -90,8 +140,8 @@ export class AuthenticationClass {
 
     try {
       const decoded = jwt.verify(token, jwtSecret, {
-        algorithms: [this.config.jwt.algorithm],
-      });
+        algorithms: [this.config.jwt.algorithm as jwt.Algorithm],
+      }) as JwtPayload;
 
       // Validate decoded token has required structure
       if (!decoded.role || !decoded.level) {
@@ -100,23 +150,23 @@ export class AuthenticationClass {
 
       return decoded;
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
+      if ((error as any).name === 'TokenExpiredError') {
         throw new Error('Token has expired');
       }
-      if (error.name === 'JsonWebTokenError') {
+      if ((error as any).name === 'JsonWebTokenError') {
         throw new Error('Invalid token');
       }
-      throw new Error(`Token verification failed: ${error.message}`);
+      throw new Error(`Token verification failed: ${(error as Error).message}`);
     }
   }
 
   /**
    * Hashes a password using bcrypt
-   * @param {string} password - Plain text password to hash
-   * @param {number} [rounds] - Number of salt rounds (uses config default if not provided)
-   * @returns {Promise<string>} Hashed password
+   * @llm-rule WHEN: Storing user passwords - always hash before saving to database
+   * @llm-rule AVOID: Storing plain text passwords - major security vulnerability
+   * @llm-rule NOTE: Takes ~100ms with default 10 rounds - don't call in tight loops
    */
-  async hashPassword(password, rounds) {
+  async hashPassword(password: string, rounds?: number): Promise<string> {
     if (!password || typeof password !== 'string') {
       throw new Error('Password must be a non-empty string');
     }
@@ -125,26 +175,22 @@ export class AuthenticationClass {
       throw new Error('Password cannot be empty');
     }
 
-    // Use provided rounds or config default
     const saltRounds = rounds || this.config.password.saltRounds;
-
-    // Validate rounds for production security
     validateRounds(saltRounds);
 
     try {
       return await bcrypt.hash(password, saltRounds);
     } catch (error) {
-      throw new Error(`Failed to hash password: ${error.message}`);
+      throw new Error(`Failed to hash password: ${(error as Error).message}`);
     }
   }
 
   /**
    * Compares a plain text password against a hashed password
-   * @param {string} password - Plain text password to verify
-   * @param {string} hash - Hashed password to compare against
-   * @returns {Promise<boolean>} True if password matches the hash
+   * @llm-rule WHEN: User login - verify input password against stored hash
+   * @llm-rule AVOID: Comparing hashed passwords directly - use this method for timing attack protection
    */
-  async comparePassword(password, hash) {
+  async comparePassword(password: string, hash: string): Promise<boolean> {
     if (!password || typeof password !== 'string') {
       throw new Error('Password must be a non-empty string');
     }
@@ -153,7 +199,6 @@ export class AuthenticationClass {
       throw new Error('Hash must be a non-empty string');
     }
 
-    // Validate hash format (bcrypt hashes start with $2a$, $2b$, or $2y$)
     if (!hash.match(/^\$2[aby]\$\d{2}\$/)) {
       throw new Error('Invalid hash format');
     }
@@ -161,22 +206,22 @@ export class AuthenticationClass {
     try {
       return await bcrypt.compare(password, hash);
     } catch (error) {
-      throw new Error(`Failed to compare password: ${error.message}`);
+      throw new Error(`Failed to compare password: ${(error as Error).message}`);
     }
   }
 
   /**
    * Checks if user has a specific role.level (with inheritance)
-   * @param {string} userRoleLevel - User's role.level (e.g., 'admin.tenant')
-   * @param {string} requiredRoleLevel - Required role.level to check
-   * @returns {boolean} True if user has the role.level or higher
+   * @llm-rule WHEN: Checking if user meets minimum role requirement
+   * @llm-rule AVOID: Exact string matching - use this for hierarchy checking
+   * @llm-rule NOTE: Inheritance works upward - admin.org has admin.tenant access, not vice versa
+   * @llm-rule NOTE: admin.org automatically has admin.tenant access via inheritance
    */
-  hasRole(userRoleLevel, requiredRoleLevel) {
+  hasRole(userRoleLevel: string, requiredRoleLevel: string): boolean {
     if (!userRoleLevel || !requiredRoleLevel) {
       return false;
     }
 
-    // Validate both role levels exist
     if (!validateRoleLevel(userRoleLevel, this.config.roles)) {
       throw new Error(`Invalid user role.level: "${userRoleLevel}"`);
     }
@@ -197,16 +242,15 @@ export class AuthenticationClass {
 
   /**
    * Checks if user has a specific permission
-   * @param {Object} user - User object with permissions array
-   * @param {string} permission - Permission to check (e.g., 'edit:tenant')
-   * @returns {boolean} True if user has the permission
+   * @llm-rule WHEN: Checking fine-grained permissions beyond role hierarchy
+   * @llm-rule AVOID: Manual permission array checking - this handles manage:scope fallbacks
+   * @llm-rule NOTE: manage:tenant permission automatically grants edit:tenant, view:tenant, etc.
    */
-  can(user, permission) {
+  can(user: JwtPayload, permission: string): boolean {
     if (!user || !permission) {
       return false;
     }
 
-    // Validate permission format
     if (!validatePermission(permission)) {
       throw new Error(`Invalid permission format: "${permission}"`);
     }
@@ -251,19 +295,18 @@ export class AuthenticationClass {
 
   /**
    * Creates Fastify-native authentication middleware for login-based routes
-   * @param {Object} [options] - Additional middleware options
-   * @param {Function} [options.getToken] - Custom token extraction function
-   * @returns {Function} Fastify preHandler function
+   * @llm-rule WHEN: Protecting routes that need authenticated users (Fastify framework)
+   * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
+   * @llm-rule AVOID: Using with Express - use requireLoginExpress() for Express apps
    */
-  requireLogin(options = {}) {
+  requireLogin(options: MiddlewareOptions = {}): FastifyPreHandler {
     if (!this.config.jwt.secret) {
       throw new Error('JWT secret required for authentication middleware');
     }
 
-    // Default token extraction function
     const getToken = options.getToken || this.getDefaultTokenExtractor();
 
-    return async (request, reply) => {
+    return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       try {
         const token = getToken(request);
 
@@ -272,14 +315,14 @@ export class AuthenticationClass {
             statusCode: 401,
             error: 'Authentication required',
             message: this.config.middleware.errorMessages.noToken,
-          };
+          } as FastifyError;
         }
 
         const payload = this.verifyToken(token);
-        request.user = payload; // Set user information for login-based routes
+        request.user = payload;
       } catch (error) {
-        const isExpired = error.message === 'Token has expired';
-        const statusCode = error.statusCode || 401;
+        const isExpired = (error as Error).message === 'Token has expired';
+        const statusCode = (error as FastifyError).statusCode || 401;
 
         const message = isExpired
           ? this.config.middleware.errorMessages.expiredToken
@@ -289,26 +332,25 @@ export class AuthenticationClass {
           statusCode,
           error: 'Authentication failed',
           message,
-        };
+        } as FastifyError;
       }
     };
   }
 
   /**
    * Creates Fastify-native token validation middleware for API-to-API communication
-   * @param {Object} [options] - Additional middleware options
-   * @param {Function} [options.getToken] - Custom token extraction function
-   * @returns {Function} Fastify preHandler function
+   * @llm-rule WHEN: Protecting API endpoints for service-to-service calls (Fastify framework)
+   * @llm-rule AVOID: Using for user-facing routes - use requireLogin instead
+   * @llm-rule AVOID: Using with Express - use requireTokenExpress() for Express apps
    */
-  requireToken(options = {}) {
+  requireToken(options: MiddlewareOptions = {}): FastifyPreHandler {
     if (!this.config.jwt.secret) {
       throw new Error('JWT secret required for token validation middleware');
     }
 
-    // Default token extraction function
     const getToken = options.getToken || this.getDefaultTokenExtractor();
 
-    return async (request, reply) => {
+    return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       try {
         const token = getToken(request);
 
@@ -317,14 +359,14 @@ export class AuthenticationClass {
             statusCode: 401,
             error: 'Token required',
             message: 'Valid token required for API access',
-          };
+          } as FastifyError;
         }
 
         const payload = this.verifyToken(token);
-        request.token = payload; // Set token payload for API routes (different from request.user)
+        request.token = payload;
       } catch (error) {
-        const isExpired = error.message === 'Token has expired';
-        const statusCode = error.statusCode || 401;
+        const isExpired = (error as Error).message === 'Token has expired';
+        const statusCode = (error as FastifyError).statusCode || 401;
 
         const message = isExpired
           ? 'Token has expired'
@@ -334,36 +376,34 @@ export class AuthenticationClass {
           statusCode,
           error: 'Token validation failed',
           message,
-        };
+        } as FastifyError;
       }
     };
   }
 
   /**
    * Creates Fastify-native role-level authorization middleware
-   * @param {string} requiredRoleLevel - Required role.level (e.g., 'admin.tenant')
-   * @returns {Function} Fastify preHandler function
+   * @llm-rule WHEN: Protecting routes that need minimum role.level access (Fastify framework)
+   * @llm-rule AVOID: Using with exact role matching - this uses inheritance hierarchy
+   * @llm-rule AVOID: Using with Express - use requireRoleExpress() for Express apps
+   * @llm-rule NOTE: Use this for hierarchy-based access (admin.org gets admin.tenant access)
    */
-  requireRole(requiredRoleLevel) {
+  requireRole(requiredRoleLevel: string): FastifyPreHandler {
     if (!requiredRoleLevel) {
       throw new Error('Role.level must be specified (e.g., "admin.tenant")');
     }
 
-    // Validate role.level exists
     if (!validateRoleLevel(requiredRoleLevel, this.config.roles)) {
       throw new Error(`Invalid role.level: "${requiredRoleLevel}"`);
     }
 
-    return async (request, reply) => {
+    return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       try {
-        let user = null;
+        let user: JwtPayload | null = null;
 
-        // Check for user authentication (from requireLogin)
         if (request.user) {
           user = request.user;
-        }
-        // Check for token authentication (from requireToken)
-        else if (request.token) {
+        } else if (request.token) {
           user = request.token;
         }
 
@@ -372,7 +412,7 @@ export class AuthenticationClass {
             statusCode: 401,
             error: 'Authentication required',
             message: 'Please authenticate first',
-          };
+          } as FastifyError;
         }
 
         if (!user.role || !user.level) {
@@ -380,55 +420,52 @@ export class AuthenticationClass {
             statusCode: 403,
             error: 'Authorization failed',
             message: this.config.middleware.errorMessages.noRole,
-          };
+          } as FastifyError;
         }
 
         const userRoleLevel = `${user.role}.${user.level}`;
 
-        // Use role hierarchy checking
         if (!this.hasRole(userRoleLevel, requiredRoleLevel)) {
           throw {
             statusCode: 403,
             error: 'Authorization failed',
             message: this.config.middleware.errorMessages.insufficientRole,
-          };
+          } as FastifyError;
         }
       } catch (error) {
-        const statusCode = error.statusCode || 500;
+        const statusCode = (error as FastifyError).statusCode || 500;
         throw {
           statusCode,
-          error: error.error || 'Server error',
-          message: error.message || 'Authorization check failed',
-        };
+          error: (error as FastifyError).error || 'Server error',
+          message: (error as FastifyError).message || 'Authorization check failed',
+        } as FastifyError;
       }
     };
   }
 
   /**
    * Creates Fastify-native permission-based authorization middleware
-   * @param {string} requiredPermission - Required permission (e.g., 'edit:tenant')
-   * @returns {Function} Fastify preHandler function
+   * @llm-rule WHEN: Protecting routes that need specific action:scope permissions (Fastify framework)
+   * @llm-rule AVOID: Using for simple role checks - use requireRole for hierarchy-based access
+   * @llm-rule AVOID: Using with Express - use requirePermissionExpress() for Express apps
+   * @llm-rule NOTE: Use this for action-specific access (edit:tenant, view:org, etc.)
    */
-  requirePermission(requiredPermission) {
+  requirePermission(requiredPermission: string): FastifyPreHandler {
     if (!requiredPermission) {
       throw new Error('Permission must be specified (e.g., "edit:tenant")');
     }
 
-    // Validate permission format
     if (!validatePermission(requiredPermission)) {
       throw new Error(`Invalid permission format: "${requiredPermission}"`);
     }
 
-    return async (request, reply) => {
+    return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       try {
-        let user = null;
+        let user: JwtPayload | null = null;
 
-        // Check for user authentication (from requireLogin)
         if (request.user) {
           user = request.user;
-        }
-        // Check for token authentication (from requireToken)
-        else if (request.token) {
+        } else if (request.token) {
           user = request.token;
         }
 
@@ -437,57 +474,51 @@ export class AuthenticationClass {
             statusCode: 401,
             error: 'Authentication required',
             message: 'Please authenticate first',
-          };
+          } as FastifyError;
         }
 
-        // Use permission checking
         if (!this.can(user, requiredPermission)) {
           throw {
             statusCode: 403,
             error: 'Authorization failed',
-            message:
-              this.config.middleware.errorMessages.insufficientPermissions,
-          };
+            message: this.config.middleware.errorMessages.insufficientPermissions,
+          } as FastifyError;
         }
       } catch (error) {
-        const statusCode = error.statusCode || 500;
+        const statusCode = (error as FastifyError).statusCode || 500;
         throw {
           statusCode,
-          error: error.error || 'Server error',
-          message: error.message || 'Authorization check failed',
-        };
+          error: (error as FastifyError).error || 'Server error',
+          message: (error as FastifyError).message || 'Authorization check failed',
+        } as FastifyError;
       }
     };
   }
 
   /**
    * Gets user from request object safely (works with both requireLogin and requireToken)
-   * @param {Object} request - Fastify request object
-   * @returns {Object|null} User object or null if not authenticated
+   * @llm-rule WHEN: Need to access user data from authenticated requests
+   * @llm-rule AVOID: Accessing req.user or req.token directly - WILL crash app when undefined
+   * @llm-rule NOTE: Always returns null safely - never throws undefined errors
    */
-  user(request) {
-    // Return user from requireLogin() first, then token from requireToken()
+  user(request: FastifyRequest): JwtPayload | null {
     return request.user || request.token || null;
   }
 
   /**
    * Gets default token extraction function for Fastify
-   * @returns {Function} Token extraction function
    */
-  getDefaultTokenExtractor() {
-    return (request) => {
-      // Check Authorization header first (Bearer token)
+  getDefaultTokenExtractor(): (request: FastifyRequest) => string | null {
+    return (request: FastifyRequest): string | null => {
       const authHeader = request.headers.authorization;
-      if (authHeader?.startsWith('Bearer ')) {
+      if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
         return authHeader.slice(7);
       }
 
-      // Check cookies
       if (request.cookies?.token) {
         return request.cookies.token;
       }
 
-      // Check query params (less secure, but sometimes needed)
       if (request.query?.token) {
         return request.query.token;
       }
@@ -498,41 +529,37 @@ export class AuthenticationClass {
 
   /**
    * Express adapter - converts Fastify middleware to work with Express
-   * @param {Function} fastifyMiddleware - Fastify preHandler function
-   * @returns {Function} Express middleware function
+   * @llm-rule WHEN: Using Express framework instead of Fastify
+   * @llm-rule AVOID: Using Fastify methods directly in Express - use *Express variants
    */
-  toExpress(fastifyMiddleware) {
-    return async (req, res, next) => {
+  toExpress(fastifyMiddleware: FastifyPreHandler): ExpressMiddleware {
+    return async (req: ExpressRequest, res: ExpressResponse, next: () => void): Promise<void> => {
       try {
-        // Create Fastify-like request object
-        const request = {
+        const request: FastifyRequest = {
           ...req,
           headers: req.headers,
           cookies: req.cookies,
           query: req.query,
         };
 
-        // Create Fastify-like reply object (minimal)
-        const reply = {
-          code: (statusCode) => ({
-            send: (data) => res.status(statusCode).json(data),
+        const reply: FastifyReply = {
+          code: (statusCode: number) => ({
+            send: (data: any) => res.status(statusCode).json(data),
           }),
-          send: (data) => res.json(data),
+          send: (data: any) => res.json(data),
         };
 
-        // Execute Fastify middleware
         await fastifyMiddleware(request, reply);
 
-        // Copy user/token back to Express req
         if (request.user) req.user = request.user;
         if (request.token) req.token = request.token;
 
         next();
       } catch (error) {
-        const statusCode = error.statusCode || 500;
+        const statusCode = (error as FastifyError).statusCode || 500;
         res.status(statusCode).json({
-          error: error.error || 'Error',
-          message: error.message || 'An error occurred',
+          error: (error as FastifyError).error || 'Error',
+          message: (error as FastifyError).message || 'An error occurred',
         });
       }
     };
@@ -540,20 +567,23 @@ export class AuthenticationClass {
 
   /**
    * Express convenience methods (using the adapter)
+   * @llm-rule WHEN: Using Express framework - these handle Fastify-to-Express conversion automatically
+   * @llm-rule AVOID: Mixing Fastify and Express methods - stick to one framework's methods
+   * @llm-rule AVOID: Using requireLogin() with Express - use these Express variants instead
    */
-  requireLoginExpress(options = {}) {
+  requireLoginExpress(options: MiddlewareOptions = {}): ExpressMiddleware {
     return this.toExpress(this.requireLogin(options));
   }
 
-  requireTokenExpress(options = {}) {
+  requireTokenExpress(options: MiddlewareOptions = {}): ExpressMiddleware {
     return this.toExpress(this.requireToken(options));
   }
 
-  requireRoleExpress(requiredRoleLevel) {
+  requireRoleExpress(requiredRoleLevel: string): ExpressMiddleware {
     return this.toExpress(this.requireRole(requiredRoleLevel));
   }
 
-  requirePermissionExpress(requiredPermission) {
+  requirePermissionExpress(requiredPermission: string): ExpressMiddleware {
     return this.toExpress(this.requirePermission(requiredPermission));
   }
 }

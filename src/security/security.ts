@@ -1,36 +1,106 @@
 /**
- * Core security class with built-in CSRF, rate limiting, sanitization, and encryption methods
+ * Core security class with CSRF, rate limiting, sanitization, and encryption
  * @module @voilajsx/appkit/security
- * @file src/security/security.js
+ * @file src/security/security.ts
+ * 
+ * @llm-rule WHEN: Building apps that need security protection (CSRF, rate limiting, input sanitization, encryption)
+ * @llm-rule AVOID: Using directly - always get instance via security.get()
+ * @llm-rule NOTE: Provides enterprise-grade security with CSRF tokens, rate limiting, XSS prevention, and AES-256-GCM encryption
  */
 
 import crypto from 'crypto';
-import { createSecurityError } from './defaults.js';
+import type { SecurityConfig, SecurityError } from './defaults';
+import { createSecurityError } from './defaults';
+
+// Extended crypto interfaces for GCM mode
+interface CipherGCM extends crypto.Cipheriv {
+  setAAD(buffer: Buffer): this;
+  getAuthTag(): Buffer;
+}
+
+interface DecipherGCM extends crypto.Decipheriv {
+  setAAD(buffer: Buffer): this;
+  setAuthTag(buffer: Buffer): this;
+}
+
+export interface ExpressRequest {
+  method: string;
+  session?: any;
+  body?: any;
+  headers?: Record<string, string | string[] | undefined>;
+  query?: any;
+  ip?: string;
+  connection?: { remoteAddress?: string };
+  csrfToken?: () => string;
+  [key: string]: any;
+}
+
+export interface ExpressResponse {
+  setHeader?: (name: string, value: string | number) => void;
+  [key: string]: any;
+}
+
+export interface ExpressNextFunction {
+  (error?: any): void;
+}
+
+export type ExpressMiddleware = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction
+) => void;
+
+export interface CSRFOptions {
+  secret?: string;
+  tokenField?: string;
+  headerField?: string;
+  expiryMinutes?: number;
+}
+
+export interface RateLimitOptions {
+  maxRequests?: number;
+  windowMs?: number;
+  message?: string;
+  keyGenerator?: (req: ExpressRequest) => string;
+}
+
+export interface InputOptions {
+  maxLength?: number;
+  trim?: boolean;
+  removeXSS?: boolean;
+}
+
+export interface HTMLOptions {
+  allowedTags?: string[];
+  stripAllTags?: boolean;
+}
+
+interface RateLimitRecord {
+  count: number;
+  resetTime: number;
+}
 
 /**
- * Security class with built-in protection functionality
+ * Security class with enterprise-grade protection functionality
  */
 export class SecurityClass {
-  /**
-   * Creates a new Security instance
-   * @param {object} [config={}] - Security configuration
-   */
-  constructor(config = {}) {
+  public config: SecurityConfig;
+  private requestStore: Map<string, RateLimitRecord>;
+  private cleanupInitialized: boolean;
+
+  constructor(config: SecurityConfig) {
     this.config = config;
     this.requestStore = new Map();
     this.cleanupInitialized = false;
   }
 
   /**
-   * Creates CSRF protection middleware
-   * @param {Object} [options] - CSRF options
-   * @param {string} [options.secret] - CSRF secret override
-   * @param {string} [options.tokenField] - Form field name override
-   * @param {string} [options.headerField] - Header name override
-   * @param {number} [options.expiryMinutes] - Token expiry override
-   * @returns {Function} Express middleware for CSRF protection
+   * Creates CSRF protection middleware for forms and AJAX requests
+   * @llm-rule WHEN: Protecting forms and state-changing requests from CSRF attacks
+   * @llm-rule AVOID: Using without session middleware - CSRF requires sessions for token storage
+   * @llm-rule NOTE: Automatically validates tokens on POST/PUT/DELETE/PATCH requests, adds req.csrfToken() method
    */
-  forms(options = {}) {
+  forms(options: CSRFOptions = {}): ExpressMiddleware {
     const csrfSecret = options.secret || this.config.csrf.secret;
 
     if (!csrfSecret) {
@@ -42,21 +112,17 @@ export class SecurityClass {
 
     const tokenField = options.tokenField || this.config.csrf.tokenField;
     const headerField = options.headerField || this.config.csrf.headerField;
-    const expiryMinutes =
-      options.expiryMinutes || this.config.csrf.expiryMinutes;
+    const expiryMinutes = options.expiryMinutes || this.config.csrf.expiryMinutes;
 
-    return (req, res, next) => {
+    return (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction): void => {
       // Ensure session exists
       if (!req.session || typeof req.session !== 'object') {
-        const error = createSecurityError(
-          'Session required for CSRF protection',
-          500
-        );
+        const error = createSecurityError('Session required for CSRF protection', 500);
         return next(error);
       }
 
       // Add token generation method to request
-      req.csrfToken = () => this._generateCSRFToken(req.session, expiryMinutes);
+      req.csrfToken = (): string => this.generateCSRFToken(req.session, expiryMinutes);
 
       // Skip CSRF verification for safe HTTP methods
       if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -64,13 +130,12 @@ export class SecurityClass {
       }
 
       // Extract token from request
-      const token =
-        (req.body && req.body[tokenField]) ||
-        (req.headers && req.headers[headerField.toLowerCase()]) ||
-        (req.query && req.query[tokenField]);
+      const token = (req.body && req.body[tokenField]) ||
+                   (req.headers && req.headers[headerField.toLowerCase()]) ||
+                   (req.query && req.query[tokenField]);
 
       // Verify token
-      if (!this._verifyCSRFToken(token, req.session)) {
+      if (!this.verifyCSRFToken(token, req.session)) {
         const error = createSecurityError('Invalid or missing CSRF token', 403);
         return next(error);
       }
@@ -80,15 +145,12 @@ export class SecurityClass {
   }
 
   /**
-   * Creates rate limiting middleware
-   * @param {number} [maxRequests] - Max requests per window
-   * @param {number} [windowMs] - Time window in milliseconds
-   * @param {Object} [options] - Rate limiting options
-   * @param {string} [options.message] - Custom error message
-   * @param {Function} [options.keyGenerator] - Custom key generation function
-   * @returns {Function} Express middleware for rate limiting
+   * Creates rate limiting middleware with configurable limits and windows
+   * @llm-rule WHEN: Protecting endpoints from abuse and brute force attacks
+   * @llm-rule AVOID: Using same limits for all endpoints - auth should have stricter limits than API
+   * @llm-rule NOTE: Uses in-memory storage with automatic cleanup, sets standard rate limit headers
    */
-  requests(maxRequests, windowMs, options = {}) {
+  requests(maxRequests?: number, windowMs?: number, options: RateLimitOptions = {}): ExpressMiddleware {
     // Handle argument polymorphism
     if (typeof maxRequests === 'object') {
       options = maxRequests;
@@ -103,7 +165,7 @@ export class SecurityClass {
     const max = maxRequests || this.config.rateLimit.maxRequests;
     const window = windowMs || this.config.rateLimit.windowMs;
     const message = options.message || this.config.rateLimit.message;
-    const keyGenerator = options.keyGenerator || this._getClientKey;
+    const keyGenerator = options.keyGenerator || this.getClientKey;
 
     // Validate configuration
     if (max < 0 || window <= 0) {
@@ -111,9 +173,9 @@ export class SecurityClass {
     }
 
     // Initialize cleanup for memory management
-    this._initializeCleanup(window);
+    this.initializeCleanup(window);
 
-    return (req, res, next) => {
+    return (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction): void => {
       const key = keyGenerator(req);
       const now = Date.now();
 
@@ -161,15 +223,12 @@ export class SecurityClass {
   }
 
   /**
-   * Cleans text input with XSS prevention
-   * @param {string} text - Text to clean
-   * @param {Object} [options] - Cleaning options
-   * @param {number} [options.maxLength] - Maximum length override
-   * @param {boolean} [options.trim] - Trim whitespace (default: true)
-   * @param {boolean} [options.removeXSS] - Remove XSS patterns (default: true)
-   * @returns {string} Cleaned text safe for storage/display
+   * Cleans text input with XSS prevention and length limiting
+   * @llm-rule WHEN: Processing any user text input before storage or display
+   * @llm-rule AVOID: Storing raw user input - always clean to prevent XSS attacks
+   * @llm-rule NOTE: Removes dangerous patterns like <script>, javascript:, event handlers
    */
-  input(text, options = {}) {
+  input(text: any, options: InputOptions = {}): string {
     if (typeof text !== 'string') {
       return '';
     }
@@ -192,7 +251,9 @@ export class SecurityClass {
         .replace(/javascript:/gi, '') // Remove javascript: protocol
         .replace(/on\w+\s*=/gi, '') // Remove inline event handlers
         .replace(/data:/gi, '') // Remove data: protocol
-        .replace(/vbscript:/gi, ''); // Remove vbscript: protocol
+        .replace(/vbscript:/gi, '') // Remove vbscript: protocol
+        .replace(/expression\s*\(/gi, '') // Remove CSS expressions
+        .replace(/url\s*\(/gi, ''); // Remove CSS url() functions
     }
 
     // Length limiting
@@ -204,24 +265,20 @@ export class SecurityClass {
   }
 
   /**
-   * Cleans HTML allowing specific tags
-   * @param {string} html - HTML to clean
-   * @param {Object} [options] - HTML cleaning options
-   * @param {string[]} [options.allowedTags] - Allowed HTML tags override
-   * @param {boolean} [options.stripAllTags] - Remove all HTML tags override
-   * @returns {string} Safe HTML with dangerous elements removed
+   * Cleans HTML content allowing only specified safe tags
+   * @llm-rule WHEN: Processing user HTML content like rich text editor input
+   * @llm-rule AVOID: Allowing all HTML tags - only whitelist safe formatting tags
+   * @llm-rule NOTE: Removes script, iframe, object tags and dangerous attributes like onclick
    */
-  html(html, options = {}) {
+  html(html: any, options: HTMLOptions = {}): string {
     if (typeof html !== 'string') {
       return '';
     }
 
-    const allowedTags =
-      options.allowedTags || this.config.sanitization.allowedTags;
-    const stripAllTags =
-      options.stripAllTags !== undefined
-        ? options.stripAllTags
-        : this.config.sanitization.stripAllTags;
+    const allowedTags = options.allowedTags || this.config.sanitization.allowedTags;
+    const stripAllTags = options.stripAllTags !== undefined 
+      ? options.stripAllTags 
+      : this.config.sanitization.stripAllTags;
 
     let result = html;
 
@@ -236,27 +293,24 @@ export class SecurityClass {
       .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '') // Remove iframe tags
       .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '') // Remove object tags
       .replace(/<embed\b[^>]*>/gi, '') // Remove embed tags
+      .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '') // Remove form tags
       .replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove inline event handlers
       .replace(/javascript\s*:/gi, '') // Remove javascript: protocol
       .replace(/data\s*:/gi, '') // Remove data: protocol
-      .replace(/vbscript\s*:/gi, ''); // Remove vbscript: protocol
+      .replace(/vbscript\s*:/gi, '') // Remove vbscript: protocol
+      .replace(/expression\s*\(/gi, ''); // Remove CSS expressions
 
     // Filter allowed tags if specified
     if (allowedTags.length > 0) {
       try {
         const allowedPattern = allowedTags
-          .map((tag) => tag.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'))
+          .map(tag => tag.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'))
           .join('|');
 
-        const tagPattern = new RegExp(
-          `<(?!\/?(?:${allowedPattern})\\b)[^>]+>`,
-          'gi'
-        );
+        const tagPattern = new RegExp(`<(?!\/?(?:${allowedPattern})\\b)[^>]+>`, 'gi');
         result = result.replace(tagPattern, '');
       } catch (error) {
-        console.warn(
-          'HTML sanitization: Invalid allowed tags, stripping all tags'
-        );
+        console.warn('HTML sanitization: Invalid allowed tags, stripping all tags');
         result = result.replace(/<[^>]*>/g, '');
       }
     }
@@ -265,35 +319,37 @@ export class SecurityClass {
   }
 
   /**
-   * Escapes HTML special characters for safe display
-   * @param {string} text - Text to escape
-   * @returns {string} HTML-safe text with entities escaped
+   * Escapes HTML special characters for safe display in HTML content
+   * @llm-rule WHEN: Displaying user text content in HTML without allowing any HTML tags
+   * @llm-rule AVOID: Direct interpolation of user content in HTML - always escape first
+   * @llm-rule NOTE: Converts &, <, >, quotes to HTML entities for safe display
    */
-  escape(text) {
+  escape(text: any): string {
     if (typeof text !== 'string') {
       return '';
     }
 
-    const HTML_ESCAPE_MAP = {
+    const HTML_ESCAPE_MAP: Record<string, string> = {
       '&': '&amp;',
       '<': '&lt;',
       '>': '&gt;',
       '"': '&quot;',
       "'": '&#x27;',
       '/': '&#x2F;',
+      '`': '&#x60;',
+      '=': '&#x3D;',
     };
 
-    return text.replace(/[&<>"'/]/g, (char) => HTML_ESCAPE_MAP[char]);
+    return text.replace(/[&<>"'/`=]/g, (char) => HTML_ESCAPE_MAP[char]);
   }
 
   /**
-   * Encrypts sensitive data with AES-256-GCM
-   * @param {string|Buffer} data - Data to encrypt
-   * @param {string|Buffer} [key] - Encryption key override
-   * @param {Buffer} [associatedData] - Optional Associated Data (AAD)
-   * @returns {string} Encrypted data as "IV:ciphertext:authTag" hex string
+   * Encrypts sensitive data using AES-256-GCM with authentication
+   * @llm-rule WHEN: Storing sensitive data like SSNs, credit cards, personal info
+   * @llm-rule AVOID: Storing sensitive data in plain text - always encrypt before database storage
+   * @llm-rule NOTE: Uses random IV per encryption, includes authentication tag to prevent tampering
    */
-  encrypt(data, key, associatedData = null) {
+  encrypt(data: string | Buffer, key?: string | Buffer, associatedData?: Buffer): string {
     if (!data) {
       throw createSecurityError('Data to encrypt cannot be empty');
     }
@@ -307,21 +363,16 @@ export class SecurityClass {
       );
     }
 
-    this._validateEncryptionKey(encryptionKey);
+    this.validateEncryptionKey(encryptionKey);
 
-    const keyBuffer =
-      typeof encryptionKey === 'string'
-        ? Buffer.from(encryptionKey, 'hex')
-        : encryptionKey;
+    const keyBuffer = typeof encryptionKey === 'string' 
+      ? Buffer.from(encryptionKey, 'hex')
+      : encryptionKey;
 
     try {
       // Generate random IV for each encryption
       const iv = crypto.randomBytes(this.config.encryption.ivLength);
-      const cipher = crypto.createCipheriv(
-        this.config.encryption.algorithm,
-        keyBuffer,
-        iv
-      );
+      const cipher = crypto.createCipheriv(this.config.encryption.algorithm, keyBuffer, iv) as CipherGCM;
 
       // Set AAD if provided
       if (associatedData) {
@@ -332,9 +383,7 @@ export class SecurityClass {
       }
 
       // Encrypt data
-      const dataBuffer = Buffer.isBuffer(data)
-        ? data
-        : Buffer.from(data, 'utf8');
+      const dataBuffer = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf8');
       let encrypted = cipher.update(dataBuffer);
       encrypted = Buffer.concat([encrypted, cipher.final()]);
 
@@ -344,18 +393,17 @@ export class SecurityClass {
       // Combine IV, ciphertext, and auth tag
       return `${iv.toString('hex')}:${encrypted.toString('hex')}:${authTag.toString('hex')}`;
     } catch (error) {
-      throw createSecurityError(`Encryption failed: ${error.message}`, 500);
+      throw createSecurityError(`Encryption failed: ${(error as Error).message}`, 500);
     }
   }
 
   /**
-   * Decrypts previously encrypted data
-   * @param {string} encryptedData - Encrypted data string in "IV:ciphertext:authTag" format
-   * @param {string|Buffer} [key] - Decryption key override
-   * @param {Buffer} [associatedData] - Optional Associated Data (AAD)
-   * @returns {string} Original plaintext data
+   * Decrypts previously encrypted data with authentication verification
+   * @llm-rule WHEN: Retrieving sensitive data that was encrypted with encrypt() method
+   * @llm-rule AVOID: Using with data not encrypted by this module - will fail authentication
+   * @llm-rule NOTE: Automatically verifies authentication tag to detect tampering
    */
-  decrypt(encryptedData, key, associatedData = null) {
+  decrypt(encryptedData: string, key?: string | Buffer, associatedData?: Buffer): string {
     if (!encryptedData || typeof encryptedData !== 'string') {
       throw createSecurityError('Encrypted data must be a non-empty string');
     }
@@ -369,12 +417,11 @@ export class SecurityClass {
       );
     }
 
-    this._validateEncryptionKey(decryptionKey);
+    this.validateEncryptionKey(decryptionKey);
 
-    const keyBuffer =
-      typeof decryptionKey === 'string'
-        ? Buffer.from(decryptionKey, 'hex')
-        : decryptionKey;
+    const keyBuffer = typeof decryptionKey === 'string'
+      ? Buffer.from(decryptionKey, 'hex')
+      : decryptionKey;
 
     // Parse encrypted data format
     const parts = encryptedData.split(':');
@@ -390,19 +437,13 @@ export class SecurityClass {
       const authTag = Buffer.from(parts[2], 'hex');
 
       // Validate component lengths
-      if (
-        iv.length !== this.config.encryption.ivLength ||
-        authTag.length !== this.config.encryption.tagLength
-      ) {
+      if (iv.length !== this.config.encryption.ivLength || 
+          authTag.length !== this.config.encryption.tagLength) {
         throw createSecurityError('Invalid IV or authentication tag length');
       }
 
       // Create decipher
-      const decipher = crypto.createDecipheriv(
-        this.config.encryption.algorithm,
-        keyBuffer,
-        iv
-      );
+      const decipher = crypto.createDecipheriv(this.config.encryption.algorithm, keyBuffer, iv) as DecipherGCM;
 
       // Set AAD if provided
       if (associatedData) {
@@ -420,7 +461,7 @@ export class SecurityClass {
       decrypted = Buffer.concat([decrypted, decipher.final()]);
 
       return decrypted.toString('utf8');
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'EBADTAG') {
         throw createSecurityError(
           'Authentication failed: Data may be tampered with or incorrect key/AAD provided',
@@ -432,16 +473,16 @@ export class SecurityClass {
   }
 
   /**
-   * Generates a secure encryption key for production use
-   * @returns {string} 32-byte encryption key as hex string
+   * Generates a cryptographically secure 256-bit encryption key
+   * @llm-rule WHEN: Setting up encryption for the first time or rotating keys
+   * @llm-rule AVOID: Using weak or predictable keys - always use this method for key generation
+   * @llm-rule NOTE: Returns 64-character hex string suitable for VOILA_SECURITY_ENCRYPTION_KEY
    */
-  generateKey() {
+  generateKey(): string {
     try {
-      return crypto
-        .randomBytes(this.config.encryption.keyLength)
-        .toString('hex');
+      return crypto.randomBytes(this.config.encryption.keyLength).toString('hex');
     } catch (error) {
-      throw createSecurityError(`Key generation failed: ${error.message}`, 500);
+      throw createSecurityError(`Key generation failed: ${(error as Error).message}`, 500);
     }
   }
 
@@ -449,14 +490,10 @@ export class SecurityClass {
 
   /**
    * Generates a cryptographically secure CSRF token
-   * @private
    */
-  _generateCSRFToken(session, expiryMinutes) {
+  private generateCSRFToken(session: any, expiryMinutes: number): string {
     if (!session || typeof session !== 'object') {
-      throw createSecurityError(
-        'Session object required for CSRF token generation',
-        500
-      );
+      throw createSecurityError('Session object required for CSRF token generation', 500);
     }
 
     const token = crypto.randomBytes(16).toString('hex');
@@ -468,9 +505,8 @@ export class SecurityClass {
 
   /**
    * Verifies CSRF token using timing-safe comparison
-   * @private
    */
-  _verifyCSRFToken(token, session) {
+  private verifyCSRFToken(token: any, session: any): boolean {
     if (!token || typeof token !== 'string' || !session?.csrfToken) {
       return false;
     }
@@ -496,22 +532,18 @@ export class SecurityClass {
 
   /**
    * Gets unique identifier for the client
-   * @private
    */
-  _getClientKey(req) {
-    return (
-      req.ip ||
-      req.connection?.remoteAddress ||
-      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-      'unknown'
-    );
-  }
+  private getClientKey = (req: ExpressRequest): string => {
+    return req.ip ||
+           req.connection?.remoteAddress ||
+           (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+           'unknown';
+  };
 
   /**
    * Initializes cleanup interval for memory management
-   * @private
    */
-  _initializeCleanup(windowMs) {
+  private initializeCleanup(windowMs: number): void {
     if (this.cleanupInitialized) return;
 
     const cleanupInterval = Math.min(windowMs, 60 * 1000);
@@ -530,9 +562,8 @@ export class SecurityClass {
 
   /**
    * Validates encryption key format and length
-   * @private
    */
-  _validateEncryptionKey(key) {
+  private validateEncryptionKey(key: string | Buffer): void {
     if (!key) {
       throw createSecurityError('Encryption key is required', 500);
     }

@@ -1,13 +1,70 @@
 /**
  * Smart defaults and environment validation for role-level-permission authentication
  * @module @voilajsx/appkit/auth
- * @file src/auth/defaults.js
+ * @file src/auth/defaults.ts
+ * 
+ * @llm-rule WHEN: App startup - need to parse auth environment variables and build role hierarchy
+ * @llm-rule AVOID: Calling multiple times - expensive validation, use lazy loading in get()
+ * @llm-rule NOTE: Called once at startup, cached globally for performance
  */
+
+export interface RoleConfig {
+  level: number;
+  inherits: string[];
+}
+
+export interface RoleHierarchy {
+  [roleLevel: string]: RoleConfig;
+}
+
+export interface PermissionDefaults {
+  [roleLevel: string]: string[];
+}
+
+export interface AuthConfig {
+  jwt: {
+    secret: string;
+    expiresIn: string;
+    algorithm: string;
+  };
+  password: {
+    saltRounds: number;
+  };
+  roles: RoleHierarchy;
+  permissions: {
+    coreActions: string[];
+    coreScopes: string[];
+    defaults: PermissionDefaults;
+  };
+  user: {
+    defaultRole: string;
+    defaultLevel: string;
+  };
+  middleware: {
+    tokenSources: string[];
+    errorMessages: {
+      noToken: string;
+      invalidToken: string;
+      expiredToken: string;
+      noRole: string;
+      noPermissions: string;
+      insufficientRole: string;
+      insufficientPermissions: string;
+      invalidRole: string;
+      invalidPermission: string;
+    };
+  };
+  environment: {
+    isDevelopment: boolean;
+    isProduction: boolean;
+    nodeEnv: string;
+  };
+}
 
 /**
  * Default role hierarchy with semantic level names and clear inheritance
  */
-const DEFAULT_ROLE_HIERARCHY = {
+const DEFAULT_ROLE_HIERARCHY: RoleHierarchy = {
   'user.basic': {
     level: 1,
     inherits: [],
@@ -20,7 +77,6 @@ const DEFAULT_ROLE_HIERARCHY = {
     level: 3,
     inherits: ['user.pro', 'user.basic'],
   },
-
   'moderator.review': {
     level: 4,
     inherits: ['user.max', 'user.pro', 'user.basic'],
@@ -39,7 +95,6 @@ const DEFAULT_ROLE_HIERARCHY = {
       'user.basic',
     ],
   },
-
   'admin.tenant': {
     level: 7,
     inherits: [
@@ -90,35 +145,14 @@ const CORE_SCOPES = ['own', 'tenant', 'org', 'system'];
 
 /**
  * Default permissions for each role.level
- *
- * USER LEVELS:
- * - All user levels get 'manage:own' - full control over their own data
- * - Feature-level restrictions (file limits, premium features) should be
- *   handled at application level, not permission level
- *
- * MODERATOR LEVELS:
- * - review: Can only view content for moderation
- * - approve: Can view, create, and edit content (but not delete)
- * - manage: Same as approve (delete reserved for admin levels)
- *
- * ADMIN LEVELS:
- * - All admin levels get 'manage' permission which includes delete capability
- * - tenant: Manages single branch/location
- * - org: Manages organization + all its tenants
- * - system: Manages entire platform
  */
-const DEFAULT_PERMISSIONS = {
-  // Users: Full control over own data, feature restrictions at app level
+const DEFAULT_PERMISSIONS: PermissionDefaults = {
   'user.basic': ['manage:own'],
   'user.pro': ['manage:own'],
   'user.max': ['manage:own'],
-
-  // Moderators: Content moderation without delete capability
   'moderator.review': ['view:tenant'],
   'moderator.approve': ['view:tenant', 'create:tenant', 'edit:tenant'],
   'moderator.manage': ['view:tenant', 'create:tenant', 'edit:tenant'],
-
-  // Admins: Full management including delete capability
   'admin.tenant': ['manage:tenant'],
   'admin.org': ['manage:tenant', 'manage:org'],
   'admin.system': ['manage:tenant', 'manage:org', 'manage:system'],
@@ -126,44 +160,36 @@ const DEFAULT_PERMISSIONS = {
 
 /**
  * Gets smart defaults using VOILA_AUTH_* environment variables
- * @returns {object} Configuration object with smart defaults
+ * @llm-rule WHEN: App startup to get production-ready auth configuration
+ * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
+ * @llm-rule AVOID: Calling in request handlers - expensive environment parsing
+ * @llm-rule NOTE: Called once at startup, cached globally for performance
  */
-export function getSmartDefaults() {
+export function getSmartDefaults(): AuthConfig {
   validateEnvironment();
 
   const isDevelopment = process.env.NODE_ENV === 'development';
   const isProduction = process.env.NODE_ENV === 'production';
 
   return {
-    // JWT configuration
     jwt: {
-      secret: process.env.VOILA_AUTH_SECRET,
+      secret: process.env.VOILA_AUTH_SECRET!,
       expiresIn: process.env.VOILA_AUTH_EXPIRES_IN || '7d',
       algorithm: 'HS256',
     },
-
-    // Password configuration
     password: {
-      saltRounds: parseInt(process.env.VOILA_AUTH_BCRYPT_ROUNDS) || 10,
+      saltRounds: parseInt(process.env.VOILA_AUTH_BCRYPT_ROUNDS || '10'),
     },
-
-    // Role configuration with level-based hierarchy
     roles: parseRoleHierarchy(),
-
-    // Permission configuration
     permissions: {
       coreActions: CORE_ACTIONS,
       coreScopes: CORE_SCOPES,
       defaults: parseDefaultPermissions(),
     },
-
-    // User configuration
     user: {
       defaultRole: process.env.VOILA_AUTH_DEFAULT_ROLE || 'user',
       defaultLevel: process.env.VOILA_AUTH_DEFAULT_LEVEL || 'basic',
     },
-
-    // Middleware configuration
     middleware: {
       tokenSources: ['header', 'cookie', 'query'],
       errorMessages: {
@@ -178,8 +204,6 @@ export function getSmartDefaults() {
         invalidPermission: 'Invalid permission format',
       },
     },
-
-    // Environment info
     environment: {
       isDevelopment,
       isProduction,
@@ -190,9 +214,8 @@ export function getSmartDefaults() {
 
 /**
  * Parses role hierarchy from environment or uses defaults
- * @returns {object} Role hierarchy configuration
  */
-function parseRoleHierarchy() {
+function parseRoleHierarchy(): RoleHierarchy {
   const customRoles = process.env.VOILA_AUTH_ROLES;
 
   if (!customRoles) {
@@ -200,8 +223,7 @@ function parseRoleHierarchy() {
   }
 
   try {
-    // Parse format: "user.basic:1,user.pro:2,admin.system:9"
-    const roles = {};
+    const roles: RoleHierarchy = {};
     const rolePairs = customRoles.split(',');
 
     rolePairs.forEach((pair) => {
@@ -220,13 +242,13 @@ function parseRoleHierarchy() {
       const currentLevel = roles[roleLevel].level;
       roles[roleLevel].inherits = Object.keys(roles)
         .filter((otherRole) => roles[otherRole].level < currentLevel)
-        .sort((a, b) => roles[b].level - roles[a].level); // Higher levels first
+        .sort((a, b) => roles[b].level - roles[a].level);
     });
 
     return roles;
   } catch (error) {
     console.warn(
-      `Invalid VOILA_AUTH_ROLES format: ${error.message}. Using defaults.`
+      `Invalid VOILA_AUTH_ROLES format: ${(error as Error).message}. Using defaults.`
     );
     return DEFAULT_ROLE_HIERARCHY;
   }
@@ -234,9 +256,8 @@ function parseRoleHierarchy() {
 
 /**
  * Parses default permissions from environment or uses defaults
- * @returns {object} Default permissions configuration
  */
-function parseDefaultPermissions() {
+function parseDefaultPermissions(): PermissionDefaults {
   const customPermissions = process.env.VOILA_AUTH_PERMISSIONS;
 
   if (!customPermissions) {
@@ -244,8 +265,7 @@ function parseDefaultPermissions() {
   }
 
   try {
-    // Parse format: "user.basic:view:own,admin.tenant:manage:tenant"
-    const permissions = {};
+    const permissions: PermissionDefaults = {};
     const permissionPairs = customPermissions.split(',');
 
     permissionPairs.forEach((pair) => {
@@ -271,7 +291,7 @@ function parseDefaultPermissions() {
     return permissions;
   } catch (error) {
     console.warn(
-      `Invalid VOILA_AUTH_PERMISSIONS format: ${error.message}. Using defaults.`
+      `Invalid VOILA_AUTH_PERMISSIONS format: ${(error as Error).message}. Using defaults.`
     );
     return DEFAULT_PERMISSIONS;
   }
@@ -279,20 +299,19 @@ function parseDefaultPermissions() {
 
 /**
  * Validates if a role.level combination exists in the hierarchy
- * @param {string} roleLevel - Role.level to validate (e.g., 'admin.tenant')
- * @param {object} roleHierarchy - Role hierarchy to check against
- * @returns {boolean} True if role.level is valid
+ * @llm-rule WHEN: Before using role.level in authorization checks
+ * @llm-rule AVOID: Skipping validation - invalid roles cause silent authorization failures
  */
-export function validateRoleLevel(roleLevel, roleHierarchy) {
+export function validateRoleLevel(roleLevel: string, roleHierarchy: RoleHierarchy): boolean {
   return roleHierarchy && roleHierarchy[roleLevel] !== undefined;
 }
 
 /**
  * Validates if a permission has correct format
- * @param {string} permission - Permission to validate (e.g., 'edit:tenant')
- * @returns {boolean} True if permission format is valid
+ * @llm-rule WHEN: Before using custom permissions in authorization
+ * @llm-rule AVOID: Assuming all permission strings are valid - malformed permissions always fail
  */
-export function validatePermission(permission) {
+export function validatePermission(permission: string): boolean {
   if (!permission || typeof permission !== 'string') {
     return false;
   }
@@ -315,10 +334,10 @@ export function validatePermission(permission) {
 
 /**
  * Validates JWT secret strength for production security
- * @param {string} secret - JWT secret to validate
- * @throws {Error} If secret is weak or invalid
+ * @llm-rule WHEN: App startup or when setting custom JWT secret
+ * @llm-rule AVOID: Using secrets shorter than 32 chars - creates security vulnerability
  */
-export function validateSecret(secret) {
+export function validateSecret(secret: string): void {
   if (!secret || typeof secret !== 'string') {
     throw new Error('JWT secret must be a non-empty string');
   }
@@ -329,7 +348,6 @@ export function validateSecret(secret) {
     );
   }
 
-  // Warn about common weak secrets
   const weakSecrets = ['secret', 'password', 'key', 'token', 'jwt'];
   if (weakSecrets.includes(secret.toLowerCase())) {
     throw new Error('JWT secret is too weak. Use a strong, random secret');
@@ -338,10 +356,10 @@ export function validateSecret(secret) {
 
 /**
  * Validates bcrypt rounds for security and performance
- * @param {number} rounds - Number of salt rounds
- * @throws {Error} If rounds are outside safe range
+ * @llm-rule WHEN: Setting custom bcrypt rounds for password hashing
+ * @llm-rule AVOID: Using rounds below 8 (insecure) or above 15 (too slow)
  */
-export function validateRounds(rounds) {
+export function validateRounds(rounds: number): void {
   if (rounds < 8) {
     throw new Error('Bcrypt rounds must be at least 8 for security');
   }
@@ -354,13 +372,12 @@ export function validateRounds(rounds) {
 /**
  * Validates environment variables
  */
-function validateEnvironment() {
+function validateEnvironment(): void {
   const secret = process.env.VOILA_AUTH_SECRET;
   if (secret) {
     validateSecret(secret);
   }
 
-  // Validate bcrypt rounds
   const rounds = process.env.VOILA_AUTH_BCRYPT_ROUNDS;
   if (rounds) {
     const roundsNum = parseInt(rounds);
@@ -372,7 +389,6 @@ function validateEnvironment() {
     validateRounds(roundsNum);
   }
 
-  // Validate JWT expiration format
   const expiresIn = process.env.VOILA_AUTH_EXPIRES_IN;
   if (expiresIn && !isValidTimespan(expiresIn)) {
     throw new Error(
@@ -380,7 +396,6 @@ function validateEnvironment() {
     );
   }
 
-  // Validate default role.level
   const defaultRole = process.env.VOILA_AUTH_DEFAULT_ROLE;
   const defaultLevel = process.env.VOILA_AUTH_DEFAULT_LEVEL;
   if (defaultRole && defaultLevel) {
@@ -394,7 +409,6 @@ function validateEnvironment() {
     }
   }
 
-  // Validate NODE_ENV
   const nodeEnv = process.env.NODE_ENV;
   if (nodeEnv && !['development', 'production', 'test'].includes(nodeEnv)) {
     console.warn(
@@ -405,29 +419,22 @@ function validateEnvironment() {
 
 /**
  * Validates if a string is a valid JWT timespan
- * @param {string} timespan - Timespan to validate
- * @returns {boolean} True if valid timespan
  */
-function isValidTimespan(timespan) {
-  // JWT library accepts: number (seconds), string with units (1h, 7d, 30m, etc.)
+function isValidTimespan(timespan: string | number): boolean {
   if (typeof timespan === 'number') {
     return timespan > 0;
   }
 
   if (typeof timespan === 'string') {
-    // Check for valid format: number followed by unit (s, m, h, d, w, y)
     return /^\d+[smhdwy]$/.test(timespan.toLowerCase());
   }
 
   return false;
 }
 
-// Export constants and validation functions
 export {
   DEFAULT_ROLE_HIERARCHY,
   DEFAULT_PERMISSIONS,
   CORE_ACTIONS,
   CORE_SCOPES,
-  validateSecret,
-  validateRounds,
 };
