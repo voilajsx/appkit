@@ -39,7 +39,6 @@ coverage/
 Thumbs.db
 
 # Build files
-dist/
 build/
 scripts/
 
