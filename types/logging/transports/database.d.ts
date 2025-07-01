@@ -1,140 +1,152 @@
 /**
- * Database transport with scope-based optimization and batch processing
+ * Database transport with automatic connection management and batch processing
  * @module @voilajsx/appkit/logging
- * @file src/logging/transports/database.js
+ * @file src/logging/transports/database.ts
+ *
+ * @llm-rule WHEN: Need centralized log storage with database persistence
+ * @llm-rule AVOID: Manual database setup - auto-detects from DATABASE_URL and creates tables
+ * @llm-rule NOTE: Supports PostgreSQL, MySQL, SQLite with automatic batching and retry logic
  */
+import type { LogEntry, Transport } from '../logger';
+import type { LoggingConfig } from '../defaults';
 /**
- * Database transport class with built-in connection management and scope optimization
+ * Database transport with automatic connection and table management
  */
-export class DatabaseTransport {
+export declare class DatabaseTransport implements Transport {
+    private url;
+    private table;
+    private batchSize;
+    private minimal;
+    private client;
+    private connected;
+    private batch;
+    private flushTimer;
+    private dbType;
     /**
-     * Creates a new Database transport
-     * @param {object} [config={}] - Database transport configuration
+     * Creates database transport with direct environment access (like auth pattern)
+     * @llm-rule WHEN: Logger initialization with DATABASE_URL environment variable
+     * @llm-rule AVOID: Manual database configuration - environment detection handles this
+     * @llm-rule NOTE: Auto-detects database type from URL and creates appropriate connection
      */
-    constructor(config?: object);
-    config: any;
-    client: any;
-    connected: boolean;
-    batch: any[];
-    flushTimer: any;
+    constructor(config: LoggingConfig);
     /**
-     * Optimize log entry based on scope settings
-     * @param {object} entry - Original log entry
-     * @returns {object} Optimized log entry
+     * Detect database type from connection URL
+     * @llm-rule WHEN: Determining which database client to use
+     * @llm-rule AVOID: Manual database type configuration - URL detection is automatic
      */
-    optimizeLogEntry(entry: object): object;
+    private detectDatabaseType;
     /**
-     * Create minimal log entry for database storage
-     * @param {object} entry - Original entry
-     * @returns {object} Minimal entry
+     * Initialize database transport with connection and table setup
+     * @llm-rule WHEN: Transport creation - establishes connection and ensures table exists
+     * @llm-rule AVOID: Calling manually - constructor handles initialization
      */
-    createMinimalEntry(entry: object): object;
+    private initialize;
     /**
-     * Filter metadata to keep only essential fields for database storage
-     * @param {object} meta - Original metadata
-     * @returns {object} Essential metadata
+     * Write log entry to database via batching
+     * @llm-rule WHEN: Storing logs to database for centralized logging
+     * @llm-rule AVOID: Calling directly - logger routes entries automatically
      */
-    filterEssentialMeta(meta: object): object;
+    write(entry: LogEntry): void;
     /**
-     * Validate database configuration
+     * Optimize log entry for database storage
+     * @llm-rule WHEN: Reducing database storage size and improving query performance
+     * @llm-rule AVOID: Always using full entries - minimal scope reduces storage significantly
      */
-    validateConfig(): void;
+    private optimizeEntry;
     /**
-     * Validate database URL format
-     * @param {string} url - Database URL to validate
-     * @returns {boolean} True if valid
+     * Filter metadata for essential correlation fields
+     * @llm-rule WHEN: Keeping database size manageable while preserving correlation data
+     * @llm-rule AVOID: Storing all metadata - focus on correlation and debugging fields
      */
-    isValidDatabaseUrl(url: string): boolean;
+    private filterEssentialMeta;
     /**
-     * Initialize database transport
+     * Connect to database with appropriate client
+     * @llm-rule WHEN: Establishing database connection based on detected type
+     * @llm-rule AVOID: Manual connection setup - auto-detection handles client selection
      */
-    initialize(): Promise<void>;
+    private connect;
     /**
-     * Connect to database
+     * Connect to PostgreSQL database
+     * @llm-rule WHEN: DATABASE_URL starts with postgres:// or postgresql://
+     * @llm-rule AVOID: Manual PostgreSQL setup - uses standard pg client
      */
-    connect(): Promise<void>;
+    private connectPostgres;
     /**
-     * Connect to PostgreSQL
+     * Connect to MySQL database
+     * @llm-rule WHEN: DATABASE_URL starts with mysql://
+     * @llm-rule AVOID: Manual MySQL setup - uses standard mysql2 client
      */
-    connectPostgres(): Promise<void>;
+    private connectMySQL;
     /**
-     * Connect to MySQL
+     * Connect to SQLite database
+     * @llm-rule WHEN: DATABASE_URL starts with sqlite://
+     * @llm-rule AVOID: Manual SQLite setup - uses standard sqlite3 client
      */
-    connectMySQL(): Promise<void>;
-    /**
-     * Connect to SQLite
-     */
-    connectSQLite(): Promise<void>;
+    private connectSQLite;
     /**
      * Ensure logs table exists with optimized schema
+     * @llm-rule WHEN: Database connection established - creates table if needed
+     * @llm-rule AVOID: Manual table creation - automatic schema handles different databases
      */
-    ensureTableExists(): Promise<void>;
+    private ensureTableExists;
     /**
-     * Get CREATE TABLE SQL for current database type with scope-optimized schema
-     * @returns {string} CREATE TABLE SQL
+     * Get CREATE TABLE SQL for current database type
+     * @llm-rule WHEN: Creating logs table with database-specific optimizations
+     * @llm-rule AVOID: Generic SQL - each database has optimal data types and indexes
      */
-    getCreateTableSQL(): string;
+    private getCreateTableSQL;
     /**
-     * Execute database query with retry logic
-     * @param {string} sql - SQL query
-     * @param {Array} params - Query parameters
-     * @returns {Promise<any>} Query result
+     * Execute database query with error handling
+     * @llm-rule WHEN: Running SQL queries against the database
+     * @llm-rule AVOID: Direct client usage - this handles database-specific differences
      */
-    executeQuery(sql: string, params?: any[]): Promise<any>;
-    /**
-     * Sleep for specified milliseconds
-     * @param {number} ms - Milliseconds to sleep
-     * @returns {Promise<void>}
-     */
-    sleep(ms: number): Promise<void>;
-    /**
-     * Writes log entry to database (batched)
-     * @param {object} entry - Log entry object
-     */
-    write(entry: object): void;
+    private executeQuery;
     /**
      * Setup automatic batch flushing
+     * @llm-rule WHEN: Transport initialization - ensures logs are written regularly
+     * @llm-rule AVOID: Manual flushing - automatic batching improves performance
      */
-    setupBatchFlush(): void;
+    private setupBatchFlush;
     /**
      * Flush current batch to database
+     * @llm-rule WHEN: Batch is full or timer triggers
+     * @llm-rule AVOID: Individual inserts - batching significantly improves performance
      */
-    flushBatch(): Promise<void>;
+    private flushBatch;
     /**
-     * Insert batch of log entries
-     * @param {Array} entries - Log entries to insert
+     * Insert batch of log entries efficiently
+     * @llm-rule WHEN: Batch flush with multiple log entries
+     * @llm-rule AVOID: Individual inserts - batch inserts are much faster
      */
-    insertBatch(entries: any[]): Promise<void>;
+    private insertBatch;
     /**
-     * Insert batch for PostgreSQL
-     * @param {Array} entries - Log entries
+     * Insert batch for PostgreSQL with parameter placeholders
      */
-    insertBatchPostgres(entries: any[]): Promise<void>;
+    private insertBatchPostgres;
     /**
-     * Insert batch for MySQL
-     * @param {Array} entries - Log entries
+     * Insert batch for MySQL with question mark placeholders
      */
-    insertBatchMySQL(entries: any[]): Promise<void>;
+    private insertBatchMySQL;
     /**
-     * Insert batch for SQLite
-     * @param {Array} entries - Log entries
+     * Insert batch for SQLite with individual statements
      */
-    insertBatchSQLite(entries: any[]): Promise<void>;
+    private insertBatchSQLite;
     /**
-     * Check if this transport can handle the given log level
-     * @param {string} level - Log level to check
-     * @param {string} configLevel - Configured minimum level
-     * @returns {boolean} True if level should be logged
+     * Check if this transport should log the given level
+     * @llm-rule WHEN: Logger asks if transport handles this level
+     * @llm-rule AVOID: Complex level logic - simple comparison is sufficient
      */
     shouldLog(level: string, configLevel: string): boolean;
     /**
-     * Flush any pending logs
-     * @returns {Promise<void>}
+     * Flush pending logs to database
+     * @llm-rule WHEN: App shutdown or ensuring logs are persisted
+     * @llm-rule AVOID: Frequent flushing - impacts performance
      */
     flush(): Promise<void>;
     /**
-     * Close the database transport
-     * @returns {Promise<void>}
+     * Close database transport and cleanup resources
+     * @llm-rule WHEN: App shutdown or logger cleanup
+     * @llm-rule AVOID: Abrupt shutdown - graceful close prevents data loss
      */
     close(): Promise<void>;
 }

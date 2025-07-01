@@ -61,7 +61,7 @@ function clearCache(): void {
  */
 function getEnvironment(): string {
   const config = get();
-  return config.get('app.environment', 'development');
+  return config.get('app.environment', 'development') || 'development';
 }
 
 /**

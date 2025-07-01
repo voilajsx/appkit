@@ -536,7 +536,7 @@ export class SecurityClass {
   private getClientKey = (req: ExpressRequest): string => {
     return req.ip ||
            req.connection?.remoteAddress ||
-           (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+           (req.headers && (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()) ||
            'unknown';
   };
 

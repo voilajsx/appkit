@@ -1,151 +1,152 @@
 /**
- * Logger class with built-in transport management
+ * Core logger class with simplified transport management and built-in functionality
+ * @module @voilajsx/appkit/logging
+ * @file src/logging/logger.ts
+ *
+ * @llm-rule WHEN: Building logger instances - called via logger.get(), not directly
+ * @llm-rule AVOID: Creating LoggerClass directly - always use logger.get() for proper setup
+ * @llm-rule NOTE: Handles all transports automatically based on environment detection
  */
-export class LoggerClass {
+import type { LoggingConfig } from './defaults';
+import type { LogMeta, Logger } from './index';
+export interface LogEntry {
+    timestamp: string;
+    level: 'debug' | 'info' | 'warn' | 'error';
+    message: string;
+    [key: string]: any;
+}
+export interface Transport {
+    write(entry: LogEntry): void | Promise<void>;
+    shouldLog?(level: string, configLevel: string): boolean;
+    flush?(): Promise<void>;
+    close?(): Promise<void>;
+}
+/**
+ * Logger class with automatic transport management (like auth class pattern)
+ */
+export declare class LoggerClass implements Logger {
+    private level;
+    private levelValue;
+    private defaultMeta;
+    private config;
+    private transports;
+    private pendingWrites;
     /**
-     * Creates a new Logger instance
-     * @param {object} [options={}] - Logger configuration
+     * Creates logger with simplified constructor (like auth module)
+     * @llm-rule WHEN: Called by logger.get() - environment config already parsed
+     * @llm-rule AVOID: Complex config objects - uses direct environment values
      */
-    constructor(options?: object);
-    level: any;
-    defaultMeta: any;
-    levelValue: any;
-    config: any;
-    transports: Map<any, any>;
+    constructor(config: LoggingConfig);
     /**
-     * Initialize all enabled transports
+     * Initialize enabled transports automatically
+     * @llm-rule WHEN: Logger startup - creates transports based on environment
+     * @llm-rule AVOID: Manual transport setup - environment detection handles this
      */
-    initializeTransports(): void;
+    private initializeTransports;
     /**
-     * Create transport instance based on name
-     * @param {string} name - Transport name
-     * @returns {object|null} Transport instance
+     * Log informational message
+     * @llm-rule WHEN: Normal application events, user actions, business logic flow
+     * @llm-rule AVOID: Sensitive data in meta - passwords, tokens, full card numbers
      */
-    createTransport(name: string): object | null;
+    info(message: string, meta?: LogMeta): void;
     /**
-     * Logs info message
-     * @param {string} message - Log message
-     * @param {object} [meta={}] - Additional metadata
+     * Log error message
+     * @llm-rule WHEN: Exceptions, failures, critical issues requiring attention
+     * @llm-rule AVOID: Using for warnings - errors should indicate actual problems
      */
-    info(message: string, meta?: object): void;
+    error(message: string, meta?: LogMeta): void;
     /**
-     * Logs error message
-     * @param {string} message - Log message
-     * @param {object} [meta={}] - Additional metadata
+     * Log warning message
+     * @llm-rule WHEN: Potential issues, deprecated usage, performance concerns
+     * @llm-rule AVOID: Using for normal recoverable errors - use error() for those
      */
-    error(message: string, meta?: object): void;
+    warn(message: string, meta?: LogMeta): void;
     /**
-     * Logs warning message
-     * @param {string} message - Log message
-     * @param {object} [meta={}] - Additional metadata
+     * Log debug message
+     * @llm-rule WHEN: Development debugging, detailed flow information
+     * @llm-rule AVOID: Production debug spam - automatically filtered in production
      */
-    warn(message: string, meta?: object): void;
+    debug(message: string, meta?: LogMeta): void;
     /**
-     * Logs debug message
-     * @param {string} message - Log message
-     * @param {object} [meta={}] - Additional metadata
+     * Create child logger with additional context (like auth pattern)
+     * @llm-rule WHEN: Adding component context or request-specific data
+     * @llm-rule AVOID: Creating many child loggers - reuse component loggers
      */
-    debug(message: string, meta?: object): void;
+    child(bindings: LogMeta): LoggerClass;
     /**
-     * Creates child logger with additional context
-     * @param {object} bindings - Additional context bindings
-     * @returns {LoggerClass} Child logger instance
+     * Core logging method with automatic transport routing
+     * @llm-rule WHEN: Called by info/error/warn/debug methods
+     * @llm-rule AVOID: Calling directly - use specific level methods instead
      */
-    child(bindings: object): LoggerClass;
+    private log;
     /**
-     * Core logging method
-     * @param {string} level - Log level
-     * @param {string} message - Log message
-     * @param {object} meta - Metadata
+     * Write log entry to all active transports
+     * @llm-rule WHEN: Distributing log entries across console, file, database, etc
+     * @llm-rule AVOID: Manual transport selection - automatic routing is better
      */
-    log(level: string, message: string, meta: object): void;
+    private writeToTransports;
     /**
-     * Create standardized log entry
-     * @param {string} level - Log level
-     * @param {string} message - Log message
-     * @param {object} meta - Metadata
-     * @returns {object} Log entry object
-     */
-    createLogEntry(level: string, message: string, meta: object): object;
-    /**
-     * Write log entry to all transports
-     * @param {object} entry - Log entry
-     */
-    writeToTransports(entry: object): void;
-    _pendingWrites: any[];
-    /**
-     * Wait for all pending writes to complete
-     * @returns {Promise<void>}
-     */
-    waitForWrites(): Promise<void>;
-    /**
-     * Flushes all pending logs across all transports
-     * @returns {Promise<void>}
+     * Flush all pending logs across all transports
+     * @llm-rule WHEN: App shutdown, test cleanup, ensuring logs are written
+     * @llm-rule AVOID: Calling frequently - only needed for cleanup
      */
     flush(): Promise<void>;
     /**
-     * Closes all transports and cleans up resources
-     * @returns {Promise<void>}
+     * Close all transports and cleanup resources
+     * @llm-rule WHEN: App shutdown, test cleanup, logger reset
+     * @llm-rule AVOID: Calling without flush() first - may lose pending logs
      */
     close(): Promise<void>;
     /**
      * Get list of active transport names
-     * @returns {string[]} Array of active transport names
+     * @llm-rule WHEN: Debugging transport setup or checking configuration
+     * @llm-rule AVOID: Using for business logic - transport selection is automatic
      */
     getActiveTransports(): string[];
     /**
-     * Check if a specific transport is active
-     * @param {string} name - Transport name
-     * @returns {boolean} True if transport is active
+     * Check if specific transport is active
+     * @llm-rule WHEN: Conditional logic based on transport availability
+     * @llm-rule AVOID: Complex transport detection - just log normally
      */
     hasTransport(name: string): boolean;
     /**
-     * Get transport instance by name (for advanced usage)
-     * @param {string} name - Transport name
-     * @returns {object|null} Transport instance or null
+     * Set log level at runtime
+     * @llm-rule WHEN: Dynamic log level changes based on debug flags
+     * @llm-rule AVOID: Frequent level changes - set once at startup usually
      */
-    getTransport(name: string): object | null;
-    /**
-     * Add a custom transport at runtime
-     * @param {string} name - Transport name
-     * @param {object} transport - Transport instance
-     */
-    addTransport(name: string, transport: object): void;
-    /**
-     * Remove a transport at runtime
-     * @param {string} name - Transport name
-     * @returns {Promise<void>}
-     */
-    removeTransport(name: string): Promise<void>;
-    /**
-     * Update log level at runtime
-     * @param {string} level - New log level
-     */
-    setLevel(level: string): void;
+    setLevel(level: 'debug' | 'info' | 'warn' | 'error'): void;
     /**
      * Get current log level
-     * @returns {string} Current log level
+     * @llm-rule WHEN: Checking current log level for conditional logging
+     * @llm-rule AVOID: Using for level filtering - logger handles this automatically
      */
     getLevel(): string;
     /**
-     * Check if a specific level would be logged
-     * @param {string} level - Log level to check
-     * @returns {boolean} True if level would be logged
+     * Check if specific level would be logged
+     * @llm-rule WHEN: Expensive log message computation - check before building
+     * @llm-rule AVOID: Regular usage - just call log methods, they filter automatically
      */
-    isLevelEnabled(level: string): boolean;
+    isLevelEnabled(level: 'debug' | 'info' | 'warn' | 'error'): boolean;
     /**
      * Get configuration summary for debugging
-     * @returns {object} Current configuration summary
+     * @llm-rule WHEN: Debugging logger setup or environment detection issues
+     * @llm-rule AVOID: Using for runtime decisions - config is set at startup
      */
-    getConfig(): object;
-    /**
-     * Get transport statistics for monitoring
-     * @returns {object} Transport statistics
-     */
-    getStats(): object;
-    /**
-     * Perform health check on all transports
-     * @returns {Promise<object>} Health check results
-     */
-    healthCheck(): Promise<object>;
+    getConfig(): {
+        level: "error" | "warn" | "debug" | "info";
+        scope: "minimal" | "full";
+        minimal: boolean;
+        transports: string[];
+        service: {
+            name: string;
+            version: string;
+            environment: string;
+        };
+        environment: {
+            NODE_ENV: string | undefined;
+            hasDbUrl: boolean;
+            hasHttpUrl: boolean;
+            hasWebhookUrl: boolean;
+        };
+    };
 }

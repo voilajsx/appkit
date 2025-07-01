@@ -439,7 +439,7 @@ export class WebhookTransport implements Transport {
       try {
         await this.executeHttpRequest(payload);
         return; // Success
-      } catch (error) {
+      } catch (error: any) {
         lastError = error as Error;
 
         if (attempt < maxRetries) {

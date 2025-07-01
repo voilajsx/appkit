@@ -1,106 +1,105 @@
 /**
- * Mongoose adapter for multi-tenant MongoDB operations
+ * Simplified Mongoose adapter with app discovery and tenant middleware
  * @module @voilajsx/appkit/db
  * @file src/db/adapters/mongoose.ts
+ *
+ * @llm-rule WHEN: Using Mongoose ODM with MongoDB databases in VoilaJSX framework
+ * @llm-rule AVOID: Using with SQL databases - use prisma adapter instead
+ * @llm-rule NOTE: Auto-discovers apps from /apps directory structure, applies tenant filtering
  */
-export interface MongooseClientConfig {
+interface MongooseClientConfig {
     url: string;
+    appName?: string;
     maxPoolSize?: number;
     timeout?: number;
-    connectionOptions?: any;
+    connectionOptions?: Record<string, any>;
 }
-export interface TenantMiddlewareOptions {
+interface DiscoveredApp {
+    name: string;
+    modelsPath: string;
+}
+interface TenantMiddlewareOptions {
     fieldName?: string;
     orgId?: string;
 }
+interface MongooseConnection {
+    db: any;
+    close: () => Promise<void>;
+    model: (name: string, schema?: any, collection?: string) => any;
+    models: Record<string, any>;
+    on: (event: string, callback: (...args: any[]) => void) => void;
+    _appKit?: boolean;
+    _appName?: string;
+    _url?: string;
+    _tenantId?: string;
+    _tenantFiltered?: boolean;
+    [key: string]: any;
+}
 /**
- * Mongoose adapter implementation for MongoDB
- * Supports both database-per-tenant and collection-level isolation
+ * Simplified Mongoose adapter with VoilaJSX app discovery
  */
 export declare class MongooseAdapter {
     private options;
-    private mongoose;
     private connections;
+    private discoveredApps;
     private isDevelopment;
-    constructor(options?: any);
+    private mongoose;
+    constructor(options?: Record<string, any>);
     /**
-     * Creates a new Mongoose connection instance
+     * Creates Mongoose connection with app discovery and automatic connection management
      */
-    createClient(config: MongooseClientConfig): Promise<any>;
+    createClient(config: MongooseClientConfig): Promise<MongooseConnection>;
     /**
-     * Applies tenant middleware to Mongoose connection for automatic isolation
+     * Apply tenant filtering middleware to Mongoose connection
      */
-    applyTenantMiddleware(connection: any, tenantId: string, options?: TenantMiddlewareOptions): Promise<any>;
+    applyTenantMiddleware(connection: MongooseConnection, tenantId: string, options?: TenantMiddlewareOptions): Promise<MongooseConnection>;
     /**
-     * Creates a new database
+     * Auto-discover VoilaJSX apps with Mongoose models
      */
-    createDatabase(name: string, systemClient?: any): Promise<void>;
+    discoverApps(): Promise<DiscoveredApp[]>;
     /**
-     * Drops a database
+     * Check if tenant registry collection exists
      */
-    dropDatabase(name: string, systemClient?: any): Promise<void>;
+    hasTenantRegistry(connection: MongooseConnection): Promise<boolean>;
     /**
-     * Lists all databases
+     * Create tenant registry entry
      */
-    listDatabases(systemClient?: any): Promise<string[]>;
+    createTenantRegistryEntry(connection: MongooseConnection, tenantId: string): Promise<void>;
     /**
-     * Gets database statistics
+     * Delete tenant registry entry
      */
-    getDatabaseStats(client: any): Promise<any>;
+    deleteTenantRegistryEntry(connection: MongooseConnection, tenantId: string): Promise<void>;
     /**
-     * Checks if tenant registry collection exists
+     * Check if tenant exists in registry
      */
-    hasTenantRegistry(client: any): Promise<boolean>;
+    tenantExistsInRegistry(connection: MongooseConnection, tenantId: string): Promise<boolean>;
     /**
-     * Creates tenant registry entry
+     * Get all tenants from registry
      */
-    createTenantRegistryEntry(client: any, tenantId: string): Promise<void>;
+    getTenantsFromRegistry(connection: MongooseConnection): Promise<string[]>;
     /**
-     * Deletes tenant registry entry
-     */
-    deleteTenantRegistryEntry(client: any, tenantId: string): Promise<void>;
-    /**
-     * Checks if tenant exists in registry
-     */
-    tenantExistsInRegistry(client: any, tenantId: string): Promise<boolean>;
-    /**
-     * Gets all tenants from registry
-     */
-    getTenantsFromRegistry(client: any): Promise<string[]>;
-    /**
-     * Disconnects the adapter
+     * Disconnect all cached connections
      */
     disconnect(): Promise<void>;
     /**
-     * Builds cache key for connections
+     * Detect current app from file path (VoilaJSX structure)
      */
-    private _buildCacheKey;
+    private _detectCurrentApp;
     /**
-     * Builds database URL for specific tenant/org
+     * Find apps directory in project structure
      */
-    private _buildDatabaseUrl;
+    private _findAppsDirectory;
     /**
-     * Builds admin database URL
+     * Load models for specific app
      */
-    private _buildAdminUrl;
+    private _loadModelsForApp;
     /**
-     * Checks if database name is a system database
-     */
-    private _isSystemDatabase;
-    /**
-     * Sanitizes database name to prevent injection
-     */
-    private _sanitizeName;
-    /**
-     * Formats bytes to human readable format
-     */
-    private _formatBytes;
-    /**
-     * Masks URL for logging (hides credentials)
-     */
-    private _maskUrl;
-    /**
-     * Sets up connection event handlers
+     * Setup connection event handlers
      */
     private _setupConnectionEvents;
+    /**
+     * Mask URL for logging (hide credentials)
+     */
+    private _maskUrl;
 }
+export {};

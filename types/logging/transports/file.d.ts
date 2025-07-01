@@ -1,120 +1,145 @@
 /**
- * File transport class with built-in rotation, retention and scope optimization
+ * File transport with automatic rotation, retention and scope optimization
+ * @module @voilajsx/appkit/logging
+ * @file src/logging/transports/file.ts
+ *
+ * @llm-rule WHEN: Need persistent log storage with automatic file management
+ * @llm-rule AVOID: Manual file handling - this manages rotation and cleanup automatically
+ * @llm-rule NOTE: Auto-rotates daily and by size, cleans old files, optimizes for minimal/full scope
  */
-export class FileTransport {
+import type { LogEntry, Transport } from '../logger';
+import type { LoggingConfig } from '../defaults';
+/**
+ * File transport with built-in rotation, retention and scope optimization
+ */
+export declare class FileTransport implements Transport {
+    private dir;
+    private filename;
+    private maxSize;
+    private retentionDays;
+    private minimal;
+    private currentSize;
+    private currentDate;
+    private stream;
+    private cleanupInterval;
     /**
-     * Creates a new File transport
-     * @param {object} [config={}] - File transport configuration
+     * Creates file transport with direct environment access (like auth pattern)
+     * @llm-rule WHEN: Logger initialization - gets config from environment defaults
+     * @llm-rule AVOID: Manual file configuration - environment detection handles this
      */
-    constructor(config?: object);
-    config: any;
-    currentSize: number;
-    currentDate: string;
-    stream: any;
+    constructor(config: LoggingConfig);
+    /**
+     * Initialize file transport with directory and stream setup
+     * @llm-rule WHEN: Transport creation - sets up directory and initial file
+     * @llm-rule AVOID: Calling manually - constructor handles initialization
+     */
+    private initialize;
+    /**
+     * Write log entry to file with automatic rotation
+     * @llm-rule WHEN: Storing logs to persistent file storage
+     * @llm-rule AVOID: Calling directly - logger routes entries automatically
+     */
+    write(entry: LogEntry): Promise<void>;
     /**
      * Optimize log entry based on scope settings
-     * @param {object} entry - Original log entry
-     * @returns {object} Optimized log entry
+     * @llm-rule WHEN: Reducing file size and focusing on essential data
+     * @llm-rule AVOID: Always using full entries - minimal scope saves significant space
      */
-    optimizeLogEntry(entry: object): object;
+    private optimizeEntry;
     /**
-     * Create minimal log entry for smaller file size
-     * @param {object} entry - Original entry
-     * @returns {object} Minimal entry
+     * Optimize error object for file storage
+     * @llm-rule WHEN: Storing error information efficiently in minimal mode
+     * @llm-rule AVOID: Including full stack traces in production - security and size concerns
      */
-    createMinimalEntry(entry: object): object;
+    private optimizeError;
     /**
-     * Apply compact field naming to reduce file size
-     * @param {object} entry - Log entry
-     * @returns {object} Compacted entry
+     * Filter metadata to keep only essential fields
+     * @llm-rule WHEN: Minimizing file size while preserving correlation data
+     * @llm-rule AVOID: Storing all metadata - focus on correlation and debugging fields
      */
-    applyCompactFormat(entry: object): object;
-    /**
-     * Optimize error object to reduce size while keeping useful info
-     * @param {object|string} error - Error object or string
-     * @returns {object|string} Optimized error
-     */
-    optimizeError(error: object | string): object | string;
-    /**
-     * Filter metadata to keep only important fields in minimal mode
-     * @param {object} meta - Original metadata
-     * @returns {object} Filtered metadata
-     */
-    filterImportantMeta(meta: object): object;
-    /**
-     * Initialize file transport
-     */
-    initialize(): void;
-    /**
-     * Writes log entry to file
-     * @param {object} entry - Log entry object
-     */
-    write(entry: object): Promise<void>;
+    private filterEssentialMeta;
     /**
      * Write line to stream with timeout protection
-     * @param {string} line - Log line to write
-     * @returns {Promise<void>}
+     * @llm-rule WHEN: Writing to file stream safely
+     * @llm-rule AVOID: Blocking writes - uses timeout to prevent hanging
      */
-    writeToStream(line: string): Promise<void>;
+    private writeToStream;
     /**
      * Check if rotation is needed and perform it
+     * @llm-rule WHEN: Before each write to manage file size and date rotation
+     * @llm-rule AVOID: Manual rotation - automatic rotation prevents large files
      */
-    checkRotation(): Promise<void>;
+    private checkRotation;
     /**
      * Perform date-based rotation
+     * @llm-rule WHEN: Date changes - creates new file for new day
+     * @llm-rule AVOID: Manual date rotation - automatic daily rotation is better
      */
-    rotateDateBased(): Promise<void>;
+    private rotateDateBased;
     /**
      * Perform size-based rotation
+     * @llm-rule WHEN: File exceeds max size - prevents huge log files
+     * @llm-rule AVOID: Letting files grow infinitely - rotation maintains manageable sizes
      */
-    rotateSizeBased(): Promise<void>;
+    private rotateSizeBased;
     /**
      * Create write stream for current log file
+     * @llm-rule WHEN: Starting new file or after rotation
+     * @llm-rule AVOID: Creating multiple streams - one stream per file
      */
-    createStream(): void;
+    private createStream;
     /**
-     * Close the current stream
-     * @returns {Promise<void>}
+     * Close current stream safely
+     * @llm-rule WHEN: Rotation, shutdown, or error recovery
+     * @llm-rule AVOID: Abrupt stream closure - graceful close prevents data loss
      */
-    closeStream(): Promise<void>;
+    private closeStream;
     /**
      * Get current date string for file naming
-     * @returns {string} Date string in YYYY-MM-DD format
+     * @llm-rule WHEN: Creating date-based file names
+     * @llm-rule AVOID: Custom date formats - YYYY-MM-DD is standard and sortable
      */
-    getCurrentDate(): string;
+    private getCurrentDate;
     /**
-     * Get current log file path
-     * @returns {string} Full file path
+     * Get current log file path with date suffix
+     * @llm-rule WHEN: Determining where to write current logs
+     * @llm-rule AVOID: Hardcoded paths - use configurable directory and filename
      */
-    getCurrentFilepath(): string;
+    private getCurrentFilepath;
     /**
      * Ensure log directory exists
+     * @llm-rule WHEN: Transport initialization - creates directory if needed
+     * @llm-rule AVOID: Assuming directory exists - auto-creation prevents errors
      */
-    ensureDirectoryExists(): void;
+    private ensureDirectoryExists;
     /**
      * Setup automatic cleanup of old log files
+     * @llm-rule WHEN: Transport initialization - prevents disk space issues
+     * @llm-rule AVOID: Manual cleanup - automatic retention prevents disk overflow
      */
-    setupRetentionCleanup(): void;
-    cleanupInterval: any;
+    private setupRetentionCleanup;
     /**
      * Clean old log files based on retention policy
+     * @llm-rule WHEN: Daily cleanup or transport initialization
+     * @llm-rule AVOID: Keeping logs forever - retention policy prevents disk issues
      */
-    cleanOldLogs(): Promise<void>;
+    private cleanOldLogs;
     /**
-     * Check if this transport can handle the given log level
-     * @param {string} level - Log level to check
-     * @param {string} configLevel - Configured minimum level
-     * @returns {boolean} True if level should be logged
+     * Check if this transport should log the given level
+     * @llm-rule WHEN: Logger asks if transport handles this level
+     * @llm-rule AVOID: Complex level logic - simple comparison is sufficient
      */
     shouldLog(level: string, configLevel: string): boolean;
     /**
-     * Flush any pending logs
-     * @returns {Promise<void>}
+     * Flush pending logs to disk
+     * @llm-rule WHEN: App shutdown or ensuring logs are persisted
+     * @llm-rule AVOID: Frequent flushing - impacts performance
      */
     flush(): Promise<void>;
     /**
-     * Close the file transport
-     * @returns {Promise<void>}
+     * Close file transport and cleanup resources
+     * @llm-rule WHEN: App shutdown or logger cleanup
+     * @llm-rule AVOID: Abrupt shutdown - graceful close prevents data loss
      */
     close(): Promise<void>;
 }

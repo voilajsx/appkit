@@ -1,92 +1,166 @@
 /**
- * Authentication class with built-in JWT, password, and Fastify-native middleware
+ * Core authentication class with role-level-permission system
+ * @module @voilajsx/appkit/auth
+ * @file src/auth/authentication.ts
+ *
+ * @llm-rule WHEN: Building apps that need JWT operations, password hashing, and role-based middleware
+ * @llm-rule AVOID: Using directly - always get instance via authenticator.get()
+ * @llm-rule NOTE: Use requireRole() for hierarchy-based access, requirePermission() for action-specific access
+ * @llm-rule NOTE: Uses role.level format (user.basic, admin.tenant) with automatic inheritance
  */
-export class AuthenticationClass {
+import { type AuthConfig } from './defaults';
+export interface JwtPayload {
+    userId: string | number;
+    role: string;
+    level: string;
+    permissions?: string[];
+    [key: string]: any;
+    iat?: number;
+    exp?: number;
+    iss?: string;
+    aud?: string;
+}
+export interface FastifyRequest {
+    headers: {
+        [key: string]: string | string[] | undefined;
+    };
+    cookies?: {
+        [key: string]: string;
+    };
+    query?: {
+        [key: string]: any;
+    };
+    user?: JwtPayload;
+    token?: JwtPayload;
+}
+export interface FastifyReply {
+    code: (statusCode: number) => {
+        send: (data: any) => void;
+    };
+    send: (data: any) => void;
+}
+export interface FastifyError {
+    statusCode: number;
+    error: string;
+    message: string;
+}
+export interface ExpressRequest extends FastifyRequest {
+    [key: string]: any;
+}
+export interface ExpressResponse {
+    status: (code: number) => {
+        json: (data: any) => void;
+    };
+    json: (data: any) => void;
+}
+export interface MiddlewareOptions {
+    getToken?: (request: FastifyRequest) => string | null;
+}
+export type FastifyPreHandler = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+export type ExpressMiddleware = (req: ExpressRequest, res: ExpressResponse, next: () => void) => void;
+/**
+ * Authentication class with JWT, password, and role-level-permission system
+ */
+export declare class AuthenticationClass {
+    config: AuthConfig;
+    constructor(config: AuthConfig);
     /**
-     * Creates a new Authentication instance
-     * @param {object} [config={}] - Authentication configuration
+     * Creates and signs a JWT token with role-level-permission structure
+     * @llm-rule WHEN: Creating tokens for authenticated users with role-based access
+     * @llm-rule AVOID: Missing userId, role, or level in payload - token will be invalid
+     * @llm-rule AVOID: Using {userId, roles: ['admin']} format - use {userId, role: 'admin', level: 'tenant'}
+     * @llm-rule NOTE: permissions array is optional - defaults are used from role.level config
      */
-    constructor(config?: object);
-    config: any;
-    /**
-     * Creates and signs a JWT token
-     * @param {Object} payload - Data to encode in the token
-     * @param {string} [expiresIn] - Token expiration (uses config default if not provided)
-     * @returns {string} Signed JWT token
-     */
-    signToken(payload: any, expiresIn?: string): string;
+    signToken(payload: Omit<JwtPayload, 'iat' | 'exp' | 'iss' | 'aud'>, expiresIn?: string): string;
     /**
      * Verifies and decodes a JWT token
-     * @param {string} token - JWT token to verify
-     * @returns {Object} Decoded token payload
+     * @llm-rule WHEN: Validating incoming tokens from requests
+     * @llm-rule AVOID: Using jwt.verify directly - this handles errors and validates structure
      */
-    verifyToken(token: string): any;
+    verifyToken(token: string): JwtPayload;
     /**
      * Hashes a password using bcrypt
-     * @param {string} password - Plain text password to hash
-     * @param {number} [rounds] - Number of salt rounds (uses config default if not provided)
-     * @returns {Promise<string>} Hashed password
+     * @llm-rule WHEN: Storing user passwords - always hash before saving to database
+     * @llm-rule AVOID: Storing plain text passwords - major security vulnerability
+     * @llm-rule NOTE: Takes ~100ms with default 10 rounds - don't call in tight loops
      */
     hashPassword(password: string, rounds?: number): Promise<string>;
     /**
      * Compares a plain text password against a hashed password
-     * @param {string} password - Plain text password to verify
-     * @param {string} hash - Hashed password to compare against
-     * @returns {Promise<boolean>} True if password matches the hash
+     * @llm-rule WHEN: User login - verify input password against stored hash
+     * @llm-rule AVOID: Comparing hashed passwords directly - use this method for timing attack protection
      */
     comparePassword(password: string, hash: string): Promise<boolean>;
     /**
-     * Checks if user has a specific role (with inheritance)
-     * @param {string|string[]} userRoles - User's roles
-     * @param {string} requiredRole - Required role to check
-     * @returns {boolean} True if user has the role
+     * Checks if user has a specific role.level (with inheritance)
+     * @llm-rule WHEN: Checking if user meets minimum role requirement
+     * @llm-rule AVOID: Exact string matching - use this for hierarchy checking
+     * @llm-rule NOTE: Inheritance works upward - admin.org has admin.tenant access, not vice versa
+     * @llm-rule NOTE: admin.org automatically has admin.tenant access via inheritance
      */
-    hasRole(userRoles: string | string[], requiredRole: string): boolean;
+    hasRole(userRoleLevel: string, requiredRoleLevel: string): boolean;
+    /**
+     * Checks if user has a specific permission
+     * @llm-rule WHEN: Checking fine-grained permissions beyond role hierarchy
+     * @llm-rule AVOID: Manual permission array checking - this handles manage:scope fallbacks
+     * @llm-rule NOTE: manage:tenant permission automatically grants edit:tenant, view:tenant, etc.
+     */
+    can(user: JwtPayload, permission: string): boolean;
     /**
      * Creates Fastify-native authentication middleware for login-based routes
-     * @param {Object} [options] - Additional middleware options
-     * @param {Function} [options.getToken] - Custom token extraction function
-     * @returns {Function} Fastify preHandler function
+     * @llm-rule WHEN: Protecting routes that need authenticated users (Fastify framework)
+     * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
+     * @llm-rule AVOID: Using with Express - use requireLoginExpress() for Express apps
      */
-    requireLogin(options?: {
-        getToken?: Function;
-    }): Function;
+    requireLogin(options?: MiddlewareOptions): FastifyPreHandler;
     /**
      * Creates Fastify-native token validation middleware for API-to-API communication
-     * @param {Object} [options] - Additional middleware options
-     * @param {Function} [options.getToken] - Custom token extraction function
-     * @returns {Function} Fastify preHandler function
+     * @llm-rule WHEN: Protecting API endpoints for service-to-service calls (Fastify framework)
+     * @llm-rule AVOID: Using for user-facing routes - use requireLogin instead
+     * @llm-rule AVOID: Using with Express - use requireTokenExpress() for Express apps
      */
-    requireToken(options?: {
-        getToken?: Function;
-    }): Function;
+    requireToken(options?: MiddlewareOptions): FastifyPreHandler;
     /**
-     * Creates Fastify-native role-based authorization middleware
-     * @param {...string|string[]} roles - Required roles (can be multiple arguments or array)
-     * @returns {Function} Fastify preHandler function
+     * Creates Fastify-native role-level authorization middleware
+     * @llm-rule WHEN: Protecting routes that need minimum role.level access (Fastify framework)
+     * @llm-rule AVOID: Using with exact role matching - this uses inheritance hierarchy
+     * @llm-rule AVOID: Using with Express - use requireRoleExpress() for Express apps
+     * @llm-rule NOTE: Use this for hierarchy-based access (admin.org gets admin.tenant access)
      */
-    requireRole(...roles: (string | string[])[]): Function;
+    requireRole(requiredRoleLevel: string): FastifyPreHandler;
+    /**
+     * Creates Fastify-native permission-based authorization middleware
+     * @llm-rule WHEN: Protecting routes that need specific action:scope permissions (Fastify framework)
+     * @llm-rule AVOID: Using for simple role checks - use requireRole for hierarchy-based access
+     * @llm-rule AVOID: Using with Express - use requirePermissionExpress() for Express apps
+     * @llm-rule NOTE: Use this for action-specific access (edit:tenant, view:org, etc.)
+     */
+    requirePermission(requiredPermission: string): FastifyPreHandler;
     /**
      * Gets user from request object safely (works with both requireLogin and requireToken)
-     * @param {Object} request - Fastify request object
-     * @returns {Object|null} User object or null if not authenticated
+     * @llm-rule WHEN: Need to access user data from authenticated requests
+     * @llm-rule AVOID: Accessing req.user or req.token directly - WILL crash app when undefined
+     * @llm-rule NOTE: Always returns null safely - never throws undefined errors
      */
-    user(request: any): any | null;
+    user(request: FastifyRequest): JwtPayload | null;
     /**
      * Gets default token extraction function for Fastify
-     * @returns {Function} Token extraction function
      */
-    getDefaultTokenExtractor(): Function;
+    getDefaultTokenExtractor(): (request: FastifyRequest) => string | null;
     /**
      * Express adapter - converts Fastify middleware to work with Express
-     * @param {Function} fastifyMiddleware - Fastify preHandler function
-     * @returns {Function} Express middleware function
+     * @llm-rule WHEN: Using Express framework instead of Fastify
+     * @llm-rule AVOID: Using Fastify methods directly in Express - use *Express variants
      */
-    toExpress(fastifyMiddleware: Function): Function;
+    toExpress(fastifyMiddleware: FastifyPreHandler): ExpressMiddleware;
     /**
      * Express convenience methods (using the adapter)
+     * @llm-rule WHEN: Using Express framework - these handle Fastify-to-Express conversion automatically
+     * @llm-rule AVOID: Mixing Fastify and Express methods - stick to one framework's methods
+     * @llm-rule AVOID: Using requireLogin() with Express - use these Express variants instead
      */
-    requireLoginExpress(options?: {}): Function;
-    requireTokenExpress(options?: {}): Function;
-    requireRoleExpress(...roles: any[]): Function;
+    requireLoginExpress(options?: MiddlewareOptions): ExpressMiddleware;
+    requireTokenExpress(options?: MiddlewareOptions): ExpressMiddleware;
+    requireRoleExpress(requiredRoleLevel: string): ExpressMiddleware;
+    requirePermissionExpress(requiredPermission: string): ExpressMiddleware;
 }

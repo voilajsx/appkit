@@ -1,97 +1,105 @@
 /**
- * Console transport with scope-based minimal mode and inline formatting
+ * Console transport with smart formatting and minimal mode support
  * @module @voilajsx/appkit/logging
- * @file src/logging/transports/console.js
+ * @file src/logging/transports/console.ts
+ *
+ * @llm-rule WHEN: Need console output for development or production monitoring
+ * @llm-rule AVOID: Using console.log directly - this handles levels, colors, and formatting
+ * @llm-rule NOTE: Auto-detects production/development mode and adjusts formatting accordingly
  */
+import type { LogEntry, Transport } from '../logger';
+import type { LoggingConfig } from '../defaults';
 /**
- * Console transport class with built-in formatting and scope-aware minimal mode
+ * Console transport with automatic formatting and scope optimization
  */
-export class ConsoleTransport {
+export declare class ConsoleTransport implements Transport {
+    private colorize;
+    private timestamps;
+    private prettyPrint;
+    private minimal;
+    private minimalLevelValue;
     /**
-     * Creates a new Console transport
-     * @param {object} [config={}] - Console transport configuration
+     * Creates console transport with direct environment access (like auth pattern)
+     * @llm-rule WHEN: Logger initialization - gets config from environment defaults
+     * @llm-rule AVOID: Manual configuration - environment detection handles this
      */
-    constructor(config?: object);
-    config: any;
-    minimalLevelValue: number;
+    constructor(config: LoggingConfig);
     /**
-     * Get numeric value for log level
-     * @param {string} level - Log level
-     * @returns {number} Numeric level value
+     * Write log entry to console with smart formatting
+     * @llm-rule WHEN: Outputting logs to console for development or production
+     * @llm-rule AVOID: Calling directly - logger routes entries automatically
      */
-    getLevelValue(level: string): number;
+    write(entry: LogEntry): void;
     /**
      * Check if log should be shown in minimal mode
-     * @param {string} level - Log level
-     * @param {string} message - Log message
-     * @param {object} meta - Log metadata
-     * @returns {boolean} True if should be shown
+     * @llm-rule WHEN: Filtering logs for clean development console
+     * @llm-rule AVOID: Complex filtering logic - simple level + keyword detection
      */
-    shouldShowInMinimal(level: string, message: string, meta: object): boolean;
+    private shouldShowInMinimal;
     /**
-     * Check if message is considered important for minimal mode
-     * @param {string} message - Log message
-     * @param {object} meta - Log metadata
-     * @returns {boolean} True if important
+     * Check if message is important for minimal mode
+     * @llm-rule WHEN: Determining if info/debug messages should show in minimal mode
+     * @llm-rule AVOID: Adding too many keywords - keep minimal mode actually minimal
      */
-    isImportantMessage(message: string, meta: object): boolean;
+    private isImportantMessage;
     /**
-     * Writes log entry to console
-     * @param {object} entry - Log entry object
+     * Format for minimal mode - clean and simple
+     * @llm-rule WHEN: Development mode with minimal scope for clean console
+     * @llm-rule AVOID: Adding too much detail - defeats purpose of minimal mode
      */
-    write(entry: object): void;
+    private formatMinimal;
     /**
-     * Minimal format for clean development console
-     * @param {object} entry - Log entry
-     * @returns {string} Formatted entry
+     * Format for pretty development mode - full detail with structure
+     * @llm-rule WHEN: Development mode with full scope for debugging
+     * @llm-rule AVOID: In production - too verbose for production logs
      */
-    minimalFormat(entry: object): string;
+    private formatPretty;
     /**
-     * Standard format for production logs
-     * @param {object} entry - Log entry
-     * @returns {string} Formatted entry
+     * Format for standard/production mode - structured but compact
+     * @llm-rule WHEN: Production or when structured logs needed
+     * @llm-rule AVOID: For development debugging - pretty mode is better
      */
-    standardFormat(entry: object): string;
+    private formatStandard;
     /**
-     * Pretty format for development (full scope)
-     * @param {object} entry - Log entry
-     * @returns {string} Formatted entry
+     * Get level label with emoji for pretty output
+     * @llm-rule WHEN: Pretty or minimal formatting needs visual level indicators
+     * @llm-rule AVOID: In production structured logs - use level text instead
      */
-    prettyFormat(entry: object): string;
+    private getLevelLabel;
     /**
-     * Get level label with emoji for pretty printing
-     * @param {string} level - Log level
-     * @returns {string} Level label with emoji
+     * Apply ANSI color codes for terminal output
+     * @llm-rule WHEN: Development mode or when terminal supports colors
+     * @llm-rule AVOID: In CI/CD or when colors not supported
      */
-    getLevelLabel(level: string): string;
-    /**
-     * Apply ANSI color codes to output
-     * @param {string} output - Output string
-     * @param {string} level - Log level
-     * @returns {string} Colored output
-     */
-    applyColor(output: string, level: string): string;
+    private applyColor;
     /**
      * Output to appropriate console method based on level
-     * @param {string} output - Formatted output
-     * @param {string} level - Log level
+     * @llm-rule WHEN: Final console output step
+     * @llm-rule AVOID: Always using console.log - different levels use different methods
      */
-    outputToConsole(output: string, level: string): void;
+    private outputToConsole;
     /**
-     * Check if this transport can handle the given log level
-     * @param {string} level - Log level to check
-     * @param {string} configLevel - Configured minimum level
-     * @returns {boolean} True if level should be logged
+     * Get numeric value for log level comparison
+     * @llm-rule WHEN: Comparing log levels for filtering
+     * @llm-rule AVOID: String comparison - numeric is more reliable
+     */
+    private getLevelValue;
+    /**
+     * Check if this transport should log the given level
+     * @llm-rule WHEN: Logger asks if transport handles this level
+     * @llm-rule AVOID: Complex level logic - simple comparison is sufficient
      */
     shouldLog(level: string, configLevel: string): boolean;
     /**
-     * Close the transport (no-op for console)
-     * @returns {Promise<void>}
-     */
-    close(): Promise<void>;
-    /**
-     * Flush pending logs (no-op for console)
-     * @returns {Promise<void>}
+     * Flush pending logs (no-op for console - immediate output)
+     * @llm-rule WHEN: Logger cleanup or app shutdown
+     * @llm-rule AVOID: Expecting async behavior - console writes immediately
      */
     flush(): Promise<void>;
+    /**
+     * Close transport (no-op for console - no resources to cleanup)
+     * @llm-rule WHEN: Logger shutdown or transport cleanup
+     * @llm-rule AVOID: Expecting cleanup behavior - console has no resources
+     */
+    close(): Promise<void>;
 }

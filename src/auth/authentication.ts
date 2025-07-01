@@ -114,8 +114,7 @@ export class AuthenticationClass {
     try {
       return jwt.sign(payload, jwtSecret, {
         expiresIn: tokenExpiration,
-        algorithm: this.config.jwt.algorithm as jwt.Algorithm,
-      });
+      } as jwt.SignOptions);
     } catch (error) {
       throw new Error(`Failed to generate token: ${(error as Error).message}`);
     }

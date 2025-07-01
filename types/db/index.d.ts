@@ -1,85 +1,136 @@
 /**
- * Simplified Database API - org/tenant with auto app detection and vector support
- *
- * Environment Variables Required:
- * - DATABASE_URL: PostgreSQL connection string
- *
- * Environment Variables Optional:
- * - VOILA_DB_ORGS: Enable organization mode (true/false)
- * - VOILA_DB_TENANTS: Enable tenant mode (true/false)
- * - VOILA_DB_VECTORS: Enable vector operations (true/false)
- *
- * Usage Examples:
- * - const db = await database.get()
- * - const tenantDB = await database.tenant('team-1')
- * - const orgDB = await database.org('acme').get()
- * - const vectorDB = await database.vectors()
- *
+ * Ultra-simple database API with org/tenant support and smart connection management
  * @module @voilajsx/appkit/db
  * @file src/db/index.ts
+ *
+ * @llm-rule WHEN: ALWAYS add tenant_id text field to ALL tables (nullable for future compatibility)
+ * @llm-rule NOTE: tenant_id = null (single tenant) or "team-1" (multi-tenant)
+ * @llm-rule VARIABLE: const db = await database.get() - user's data (single or tenant-filtered)
+ * @llm-rule VARIABLE: const dbTenants = await database.getTenants() - all tenants (admin access)
+ * @llm-rule VARIABLE: const {orgName}Db = await database.org('{orgName}').get() - org-specific data
+ * @llm-rule VARIABLE: const {orgName}DbTenants = await database.org('{orgName}').getTenants() - all tenants in org
  */
-import { DatabaseClass } from './database';
-import { type DatabaseConfig } from './defaults';
+interface DatabaseClient {
+    _appKit?: boolean;
+    _orgId?: string;
+    _tenantId?: string;
+    _url?: string;
+    [key: string]: any;
+}
+interface PrismaClient extends DatabaseClient {
+    $queryRaw?: any;
+    $disconnect: () => Promise<void>;
+    $connect: () => Promise<void>;
+    $use?: (middleware: any) => void;
+}
+interface MongooseConnection extends DatabaseClient {
+    db: any;
+    close: () => Promise<void>;
+    model: (name: string, schema?: any, collection?: string) => any;
+    models: Record<string, any>;
+    on: (event: string, callback: (...args: any[]) => void) => void;
+}
+type DatabaseClientUnion = PrismaClient | MongooseConnection;
 /**
- * Organization Database - provides tenant and vector methods within organization
+ * Organization database builder
  */
 declare class OrgDatabase {
     private orgId;
-    private config;
-    constructor(orgId: string, config: DatabaseConfig);
+    constructor(orgId: string);
     /**
-     * Get tenant-specific database within organization
+     * Get organization database (tenant-filtered if tenant mode enabled)
      */
-    tenant(tenantId: string): Promise<any>;
+    get(req?: any): Promise<DatabaseClientUnion>;
     /**
-     * Get organization database (no tenant filtering)
+     * Get all tenants in organization (admin access)
      */
-    get(): Promise<any>;
-    /**
-     * Get vector operations for this organization
-     */
-    vectors(): Promise<any>;
-    private _getDatabase;
+    getTenants(req?: any): Promise<DatabaseClientUnion>;
 }
 /**
- * Main Database API - clean and minimal
+ * Main database API - ultra-simple like auth module
  */
 export declare const database: {
     /**
-     * Get database client (auto-detects current app from file path)
+     * Get database client - main function that handles all contexts
+     * @param {Object} [req] - Request object for context detection
+     * @returns {Promise<DatabaseClientUnion>} Database client
      */
-    get(): Promise<any>;
+    get(req?: any): Promise<DatabaseClientUnion>;
     /**
-     * Get organization database - enables tenant method
+     * Get all tenants data (admin access - no tenant filtering)
+     * @param {Object} [req] - Request object for org context
+     * @returns {Promise<DatabaseClientUnion>} Database client with no tenant filtering
+     */
+    getTenants(req?: any): Promise<DatabaseClientUnion>;
+    /**
+     * Get organization-specific database
+     * @param {string} orgId - Organization ID
+     * @returns {OrgDatabase} Organization database instance
      */
     org(orgId: string): OrgDatabase;
     /**
-     * Get tenant database directly (only when orgs disabled)
-     */
-    tenant(tenantId: string): Promise<any>;
-    /**
-     * Get vector operations (same database, vector tables)
-     */
-    vectors(): Promise<any>;
-    /**
-     * Health check for current app
+     * Health check for database connections
+     * @returns {Promise<Object>} Health status
      */
     health(): Promise<any>;
     /**
-     * List discovered apps
+     * List tenants in current context
+     * @param {Object} [req] - Request object for org context
+     * @returns {Promise<string[]>} Array of tenant IDs
      */
-    apps(): Promise<string[]>;
+    list(req?: any): Promise<string[]>;
     /**
-     * Configure database URL (convenience method)
+     * Check if tenant exists
+     * @param {string} tenantId - Tenant ID
+     * @param {Object} [req] - Request object for org context
+     * @returns {Promise<boolean>} Whether tenant exists
      */
-    configure(url: string): void;
-    _getDatabase(key: string, config: DatabaseConfig): DatabaseClass;
+    exists(tenantId: string, req?: any): Promise<boolean>;
     /**
-     * Clear all cached instances (for testing)
+     * Create tenant (registers tenant for future use)
+     * @param {string} tenantId - Tenant ID
+     * @param {Object} [req] - Request object for org context
+     * @returns {Promise<void>}
      */
-    _clearCache(): void;
+    create(tenantId: string, req?: any): Promise<void>;
+    /**
+     * Delete all tenant data (requires confirmation)
+     * @param {string} tenantId - Tenant ID
+     * @param {Object} options - Options object
+     * @param {boolean} options.confirm - Confirmation flag (required)
+     * @param {Object} [req] - Request object for org context
+     * @returns {Promise<void>}
+     */
+    delete(tenantId: string, options: any, req?: any): Promise<void>;
+    /**
+     * Disconnect all connections and cleanup
+     * @returns {Promise<void>}
+     */
+    disconnect(): Promise<void>;
+    /**
+     * Get distinct tenant IDs from database
+     * @private
+     */
+    _getDistinctTenantIds(client: any): Promise<string[]>;
+    /**
+     * Check if tenant has data
+     * @private
+     */
+    _tenantHasData(client: any, tenantId: string): Promise<boolean>;
+    /**
+     * Delete all tenant data
+     * @private
+     */
+    _deleteAllTenantData(client: any, tenantId: string): Promise<void>;
+    /**
+     * Clear tenant-specific cached connections
+     * @private
+     */
+    _clearTenantCache(tenantId: string): void;
+    /**
+     * Close database connection
+     * @private
+     */
+    _closeConnection(connection: any): Promise<void>;
 };
 export default database;
-export { DatabaseClass } from './database';
-export { getSmartDefaults, validateTenantId, validateOrgId, createDatabaseError } from './defaults';
-export { createMiddleware } from './middleware';

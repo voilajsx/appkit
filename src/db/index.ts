@@ -43,12 +43,12 @@ type DatabaseClientUnion = PrismaClient | MongooseConnection;
 
 interface DatabaseAdapter {
   createClient: (config: any) => Promise<DatabaseClientUnion>;
-  applyTenantMiddleware?: (client: DatabaseClientUnion, tenantId: string, options?: any) => Promise<DatabaseClientUnion>;
-  hasTenantRegistry?: (client: DatabaseClientUnion) => Promise<boolean>;
-  createTenantRegistryEntry?: (client: DatabaseClientUnion, tenantId: string) => Promise<void>;
-  deleteTenantRegistryEntry?: (client: DatabaseClientUnion, tenantId: string) => Promise<void>;
-  tenantExistsInRegistry?: (client: DatabaseClientUnion, tenantId: string) => Promise<boolean>;
-  getTenantsFromRegistry?: (client: DatabaseClientUnion) => Promise<string[]>;
+  applyTenantMiddleware?: (client: any, tenantId: string, options?: any) => Promise<any>;
+  hasTenantRegistry?: (client: any) => Promise<boolean>;
+  createTenantRegistryEntry?: (client: any, tenantId: string) => Promise<void>;
+  deleteTenantRegistryEntry?: (client: any, tenantId: string) => Promise<void>;
+  tenantExistsInRegistry?: (client: any, tenantId: string) => Promise<boolean>;
+  getTenantsFromRegistry?: (client: any) => Promise<string[]>;
   disconnect: () => Promise<void>;
 }
 
@@ -185,7 +185,7 @@ async function createClient(url: string, tenantId: string | null = null, orgId: 
     const adapter: DatabaseAdapter = adapterType === 'mongoose' ? new MongooseAdapter({ url }) : new PrismaAdapter({ url });
     
     // Create client
-    let client = await adapter.createClient({ url });
+    let client: any = await adapter.createClient({ url });
     
     // Apply tenant middleware if needed
     if (tenantId && adapter.applyTenantMiddleware) {
@@ -216,14 +216,14 @@ async function createClient(url: string, tenantId: string | null = null, orgId: 
 class OrgDatabase {
 
   private orgId: string;
-  constructor(orgId) {
+  constructor(orgId: string) {
     this.orgId = orgId;
   }
   
   /**
    * Get organization database (tenant-filtered if tenant mode enabled)
    */
-  async get(req = null) {
+  async get(req: any = null) {
     const tenantId = detectTenant(req);
     const url = getOrgUrl(this.orgId);
     
@@ -237,7 +237,7 @@ class OrgDatabase {
   /**
    * Get all tenants in organization (admin access)
    */
-  async getTenants(req = null) {
+  async getTenants(req: any = null) {
     const url = getOrgUrl(this.orgId);
     
     if (!url) {
@@ -267,7 +267,7 @@ export const database = {
     const tenantId = detectTenant(req);
     
     // Get appropriate URL
-    const url = getOrgUrl(orgId) || process.env.DATABASE_URL;
+    const url = getOrgUrl(orgId || undefined) || process.env.DATABASE_URL;
     
     if (!url) {
       throw new Error(
@@ -287,7 +287,7 @@ export const database = {
     setupEnvWatcher();
     
     const orgId = detectOrg(req);
-    const url = getOrgUrl(orgId) || process.env.DATABASE_URL;
+    const url = getOrgUrl(orgId || undefined) || process.env.DATABASE_URL;
     
     if (!url) {
       throw new Error(
@@ -304,7 +304,7 @@ export const database = {
    * @param {string} orgId - Organization ID
    * @returns {OrgDatabase} Organization database instance
    */
-  org(orgId) {
+  org(orgId: string) {
     if (!orgId || typeof orgId !== 'string') {
       throw new Error('Organization ID is required and must be a string');
     }
@@ -316,9 +316,9 @@ export const database = {
    * Health check for database connections
    * @returns {Promise<Object>} Health status
    */
-  async health() {
+  async health(): Promise<any> {
     try {
-      const db = await this.get();
+      const db: any = await this.get();
       
       // Simple connectivity test
       if (db.$queryRaw) {
@@ -334,7 +334,7 @@ export const database = {
         connections: connections.size,
         timestamp: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         healthy: false,
         error: error.message,
@@ -349,11 +349,11 @@ export const database = {
    * @param {Object} [req] - Request object for org context
    * @returns {Promise<string[]>} Array of tenant IDs
    */
-  async list(req = null) {
+  async list(req: any = null): Promise<string[]> {
     try {
       const db = await this.getTenants(req);
       return await this._getDistinctTenantIds(db);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to list tenants: ${error.message}`);
     }
   },
@@ -364,7 +364,7 @@ export const database = {
    * @param {Object} [req] - Request object for org context
    * @returns {Promise<boolean>} Whether tenant exists
    */
-  async exists(tenantId, req = null) {
+  async exists(tenantId: string, req: any = null): Promise<boolean> {
     if (!tenantId) return false;
     
     try {
@@ -381,7 +381,7 @@ export const database = {
    * @param {Object} [req] - Request object for org context
    * @returns {Promise<void>}
    */
-  async create(tenantId, req = null) {
+  async create(tenantId: string, req: any = null): Promise<void> {
     if (!tenantId || typeof tenantId !== 'string') {
       throw new Error('Tenant ID is required and must be a string');
     }
@@ -405,7 +405,7 @@ export const database = {
    * @param {Object} [req] - Request object for org context
    * @returns {Promise<void>}
    */
-  async delete(tenantId, options, req = null) {
+  async delete(tenantId: string, options: any, req: any = null): Promise<void> {
     if (!tenantId) {
       throw new Error('Tenant ID is required');
     }
@@ -427,12 +427,12 @@ export const database = {
    * Disconnect all connections and cleanup
    * @returns {Promise<void>}
    */
-  async disconnect() {
-    const disconnectPromises = [];
+  async disconnect(): Promise<void> {
+    const disconnectPromises: Promise<void>[] = [];
     
     for (const [key, connection] of connections) {
       disconnectPromises.push(
-        this._closeConnection(connection).catch((error) =>
+        this._closeConnection(connection).catch((error: any) =>
           console.warn(`Error disconnecting ${key}:`, error.message)
         )
       );
@@ -453,8 +453,8 @@ export const database = {
    * Get distinct tenant IDs from database
    * @private
    */
-  async _getDistinctTenantIds(client) {
-    const tenantIds = new Set();
+  async _getDistinctTenantIds(client: any): Promise<string[]> {
+    const tenantIds = new Set<string>();
     
     try {
       if (client.$queryRaw) {
@@ -475,7 +475,7 @@ export const database = {
               where: { tenant_id: { not: null } },
             });
             
-            records.forEach((record) => {
+            records.forEach((record: any) => {
               if (record.tenant_id) tenantIds.add(record.tenant_id);
             });
           } catch {
@@ -486,7 +486,7 @@ export const database = {
       }
       
       return Array.from(tenantIds).sort();
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to get tenant IDs: ${error.message}`);
     }
   },
@@ -495,7 +495,7 @@ export const database = {
    * Check if tenant has data
    * @private
    */
-  async _tenantHasData(client, tenantId) {
+  async _tenantHasData(client: any, tenantId: string): Promise<boolean> {
     try {
       if (client.$queryRaw) {
         // Prisma client
@@ -529,7 +529,7 @@ export const database = {
    * Delete all tenant data
    * @private
    */
-  async _deleteAllTenantData(client, tenantId) {
+  async _deleteAllTenantData(client: any, tenantId: string): Promise<void> {
     try {
       if (client.$transaction) {
         // Prisma client - use transaction for safety
@@ -541,7 +541,7 @@ export const database = {
             typeof client[key].deleteMany === 'function'
         );
         
-        const deleteOperations = [];
+        const deleteOperations: any[] = [];
         
         for (const modelName of models) {
           try {
@@ -559,7 +559,7 @@ export const database = {
           await client.$transaction(deleteOperations);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to delete tenant data: ${error.message}`);
     }
   },
@@ -568,8 +568,8 @@ export const database = {
    * Clear tenant-specific cached connections
    * @private
    */
-  _clearTenantCache(tenantId) {
-    const keysToDelete = [];
+  _clearTenantCache(tenantId: string): void {
+    const keysToDelete: string[] = [];
     
     for (const [key] of connections) {
       if (key.includes(`_${tenantId}_`)) {
@@ -590,7 +590,7 @@ export const database = {
    * Close database connection
    * @private
    */
-  async _closeConnection(connection) {
+  async _closeConnection(connection: any): Promise<void> {
     try {
       if (connection.$disconnect) {
         await connection.$disconnect();

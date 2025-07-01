@@ -17,15 +17,15 @@
  * @llm-rule NOTE: All tenant tables MUST have tenant_id text field (nullable)
  */
 
-export function validateTenantId(tenantId) {
+export function validateTenantId(tenantId: string): boolean {
   return typeof tenantId === 'string' && /^[a-zA-Z0-9_-]+$/.test(tenantId) && tenantId.length <= 63;
 }
 
-export function validateOrgId(orgId) {
+export function validateOrgId(orgId: string): boolean {
   return typeof orgId === 'string' && /^[a-zA-Z0-9_-]+$/.test(orgId) && orgId.length <= 63;
 }
 
-export function validateDatabaseUrl(url) {
+export function validateDatabaseUrl(url: string): boolean {
   if (!url || typeof url !== 'string') return false;
   if (!url.includes('://')) return false;
   if (url.includes('..') || url.includes('<') || url.includes('>')) return false;
@@ -51,11 +51,11 @@ class DatabaseError extends Error {
   }
 }
 
-export function createDatabaseError(message, statusCode = 500, details = null) {
+export function createDatabaseError(message: string, statusCode = 500, details: any = null): DatabaseError {
   return new DatabaseError(message, statusCode, details);
 }
 
-export function detectProvider(url) {
+export function detectProvider(url: string): string {
   if (!url) return 'unknown';
   if (url.includes('postgresql://') || url.includes('postgres://')) return 'postgresql';
   if (url.includes('mysql://')) return 'mysql';
@@ -64,26 +64,26 @@ export function detectProvider(url) {
   return 'unknown';
 }
 
-export function detectAdapter(url) {
+export function detectAdapter(url: string): string {
   const provider = detectProvider(url);
   if (provider === 'mongodb') return 'mongoose';
   return 'prisma';
 }
 
-export function sanitizeDatabaseName(name) {
+export function sanitizeDatabaseName(name: string): string {
   if (!name || typeof name !== 'string') {
     throw createDatabaseError('Database name must be a non-empty string', 400);
   }
   return name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
 }
 
-export function getOrgEnvironmentVars() {
-  const orgVars = {};
+export function getOrgEnvironmentVars(): Record<string, string> {
+  const orgVars: Record<string, string> = {};
   Object.keys(process.env).forEach(key => {
     if (key.startsWith('ORG_') && key !== 'ORG_') {
       const orgId = key.replace('ORG_', '').toLowerCase();
       const url = process.env[key];
-      if (validateDatabaseUrl(url)) {
+      if (url && validateDatabaseUrl(url)) {
         orgVars[orgId] = url;
       } else {
         console.warn(`Invalid database URL for organization '${orgId}': ${url}`);
@@ -94,9 +94,9 @@ export function getOrgEnvironmentVars() {
 }
 
 export function validateEnvironment() {
-  const errors = [];
-  const warnings = [];
-  const config = {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const config: any = {
     valid: true,
     errors,
     warnings,
@@ -161,22 +161,22 @@ export function getSmartDefaults() {
   const validation = validateEnvironment();
   if (isDevelopment && validation.warnings.length > 0) {
     console.warn('⚠️  [AppKit] Database configuration warnings:');
-    validation.warnings.forEach(w => console.warn(`   ${w}`));
+    validation.warnings.forEach((w: string) => console.warn(`   ${w}`));
   }
 
   if (!validation.valid) {
     throw createDatabaseError(
       `Database configuration errors:\n${validation.errors.join('\n')}`,
       500,
-      { validation }
+      { validation } as any
     );
   }
 
   return {
     database: {
-      url: process.env.DATABASE_URL,
-      provider: detectProvider(process.env.DATABASE_URL),
-      adapter: detectAdapter(process.env.DATABASE_URL),
+      url: process.env.DATABASE_URL || '',
+      provider: detectProvider(process.env.DATABASE_URL || ''),
+      adapter: detectAdapter(process.env.DATABASE_URL || ''),
     },
     tenant: {
       enabled: validation.hasTenants,
@@ -197,10 +197,10 @@ export function getSmartDefaults() {
   };
 }
 
-export async function validateSchema(client, requiredField = 'tenant_id') {
+export async function validateSchema(client: any, requiredField = 'tenant_id'): Promise<{ valid: boolean; warnings: string[] }> {
   if (process.env.NODE_ENV !== 'development') return { valid: true, warnings: [] };
 
-  const warnings = [];
+  const warnings: string[] = [];
   try {
     if (client.$queryRaw) {
       const models = Object.keys(client).filter(key =>
@@ -209,7 +209,7 @@ export async function validateSchema(client, requiredField = 'tenant_id') {
       for (const model of models) {
         try {
           await client[model].findFirst({ where: { [requiredField]: null }, take: 1 });
-        } catch (e) {
+        } catch (e: any) {
           if (e.message.includes(requiredField)) {
             warnings.push(`Prisma model '${model}' missing field '${requiredField}'`);
           }
@@ -225,12 +225,12 @@ export async function validateSchema(client, requiredField = 'tenant_id') {
       }
     }
     return { valid: warnings.length === 0, warnings };
-  } catch (error) {
+  } catch (error: any) {
     return { valid: false, warnings: [`Schema validation failed: ${error.message}`] };
   }
 }
 
-export function formatBytes(bytes) {
+export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -238,7 +238,7 @@ export function formatBytes(bytes) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
-export function maskUrl(url) {
+export function maskUrl(url: string): string {
   if (!url || typeof url !== 'string') return '[invalid-url]';
   try {
     return url.replace(/:\/\/[^@]*@/, '://***:***@');
@@ -253,7 +253,7 @@ export function getConfigSummary() {
     database: {
       provider: config.database.provider,
       adapter: config.database.adapter,
-      url: maskUrl(config.database.url),
+      url: maskUrl(config.database.url || ''),
     },
     tenant: {
       enabled: config.tenant.enabled,
@@ -273,9 +273,9 @@ export function getConfigSummary() {
   };
 }
 
-let cachedValidation = null;
+let cachedValidation: any = null;
 
-export function getCachedValidation() {
+export function getCachedValidation(): any {
   if (!cachedValidation) {
     cachedValidation = validateEnvironment();
   }

@@ -1,23 +1,65 @@
 /**
- * Clean, unified logging configuration with auto scope detection
+ * Smart defaults with direct environment access and auto transport detection
  * @module @voilajsx/appkit/logging
- * @file src/logging/defaults.js
+ * @file src/logging/defaults.ts
  *
- * Environment Variables Reference:
- * VOILA_LOGGING_SCOPE=auto|minimal|full     # auto (default), minimal, full
- * VOILA_LOGGING_CONSOLE=true|false          # true (default), false
- * VOILA_LOGGING_FILE=true|false             # true (default), false
- * VOILA_LOGGING_DATABASE=true|false         # false (default), true - EXPLICIT opt-in only
- * VOILA_LOGGING_HTTP_URL=https://...        # URL auto-enables HTTP transport
- * VOILA_LOGGING_WEBHOOK_URL=https://...     # URL auto-enables webhook transport
- *
- * Optional:
- * VOILA_LOGGING_LEVEL=debug|info|warn|error # Auto-detected by environment
- * VOILA_LOGGING_DIR=./logs                  # Log directory path
- * VOILA_SERVICE_NAME=my-service             # Service name in logs
+ * @llm-rule WHEN: App startup - need production-ready logging configuration
+ * @llm-rule AVOID: Calling multiple times - expensive environment parsing, cache results
+ * @llm-rule NOTE: Called once at startup, cached globally for performance like auth module
  */
+export interface LoggingConfig {
+    level: 'debug' | 'info' | 'warn' | 'error';
+    scope: 'minimal' | 'full';
+    minimal: boolean;
+    transports: {
+        console: boolean;
+        file: boolean;
+        database: boolean;
+        http: boolean;
+        webhook: boolean;
+    };
+    console: {
+        colorize: boolean;
+        timestamps: boolean;
+        prettyPrint: boolean;
+    };
+    file: {
+        dir: string;
+        filename: string;
+        maxSize: number;
+        retentionDays: number;
+    };
+    database: {
+        url: string | null;
+        table: string;
+        batchSize: number;
+    };
+    http: {
+        url: string | null;
+        batchSize: number;
+        timeout: number;
+    };
+    webhook: {
+        url: string | null;
+        level: 'debug' | 'info' | 'warn' | 'error';
+        rateLimit: number;
+    };
+    service: {
+        name: string;
+        version: string;
+        environment: string;
+    };
+}
 /**
- * Gets smart defaults using simplified VOILA_LOGGING_* environment variables
- * @returns {object} Configuration object with smart defaults and transport config
+ * Get smart defaults using direct VOILA_LOGGING_* environment access
+ * @llm-rule WHEN: App startup to get production-ready logging configuration
+ * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
+ * @llm-rule NOTE: Called once at startup, cached globally for performance
  */
-export function getSmartDefaults(): object;
+export declare function getSmartDefaults(): LoggingConfig;
+/**
+ * Validate environment variables (like auth module validation)
+ * @llm-rule WHEN: App startup to catch configuration errors early
+ * @llm-rule AVOID: Skipping validation - invalid config causes silent failures
+ */
+export declare function validateEnvironment(): void;

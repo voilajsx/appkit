@@ -90,7 +90,10 @@ export class ConfigClass {
   getMany<T extends Record<string, any>>(paths: { [K in keyof T]: string }): T {
     const result = {} as T;
     for (const [key, path] of Object.entries(paths)) {
-      result[key as keyof T] = this.get(path);
+      const value = this.get(path);
+      if (value !== undefined) {
+        result[key as keyof T] = value;
+      }
     }
     return result;
   }
