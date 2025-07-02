@@ -15,6 +15,8 @@ import { HttpTransport } from './transports/http';
 import { WebhookTransport } from './transports/webhook';
 import type { LoggingConfig } from './defaults';
 import type { LogMeta, Logger } from './index';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 const LOG_LEVELS = {
   error: 0,
@@ -209,7 +211,32 @@ export class LoggerClass implements Logger {
     
     console.log(`${colors.red}│${colors.reset}`);
 
-    // Show diagnostics
+    // ✅ ALWAYS show the actual error message first
+    console.log(`${colors.red}│${colors.reset} ${colors.red}❌ ERROR:${colors.reset} ${message}`);
+
+    // Show location/position if available
+    if (meta._location) {
+      console.log(`${colors.red}│${colors.reset} ${colors.cyan}📍 FROM:${colors.reset}  ${meta._location}`);
+    }
+
+    // Extract and show line/position for syntax errors
+    const lineMatch = message.match(/at line (\d+):(\d+)/i) || message.match(/line (\d+)/i);
+    if (lineMatch) {
+      console.log(`${colors.red}│${colors.reset} ${colors.cyan}📍 LINE:${colors.reset}  ${lineMatch[1]}${lineMatch[2] ? `:${lineMatch[2]}` : ''}`);
+    }
+
+    // Show code context for syntax errors if available
+    if (message.includes('Unexpected token') || message.includes('SyntaxError')) {
+      const tokenMatch = message.match(/'([^']+)'/);
+      if (tokenMatch) {
+        console.log(`${colors.red}│${colors.reset} ${colors.cyan}📍 NEAR:${colors.reset}  ...${tokenMatch[1]}...`);
+        console.log(`${colors.red}│${colors.reset}                    ${colors.red}^${colors.reset}`);
+      }
+    }
+
+    console.log(`${colors.red}│${colors.reset}`);
+
+    // Show smart diagnostics
     diagnostics.forEach(diagnostic => {
       const icon = diagnostic.type === 'error' ? '✗' : 
                    diagnostic.type === 'warning' ? '⚠' : 
@@ -234,39 +261,89 @@ export class LoggerClass implements Logger {
       });
     }
 
-    console.log(`${colors.red}╰─ FIX: ${colors.green}Resolve the issues above and restart${colors.reset}`);
+    // Enhanced fix message based on error type
+    const fixMessage = this.getFixMessage(errorType, message);
+    console.log(`${colors.red}╰─ FIX: ${colors.green}${fixMessage}${colors.reset}`);
     console.log();
   }
 
   private detectErrorType(message: string, meta: LogMeta): string {
-    // Check meta for explicit category
+    // Check meta for explicit category first
     if (meta.category) {
       return meta.category as string;
     }
 
-    // Auto-detect from message patterns
-    if (message.includes('Cannot find module') || message.includes('import')) {
-      return 'import';
+    // Handle only the MAJOR ones we have smart diagnostics for
+    
+    // Enhanced detection for import vs syntax errors
+    if (message.includes('Cannot find module')) {
+      return this.detectImportVsSyntax(message, meta);
     }
 
-    if (message.includes('EADDRINUSE') || message.includes('port') || message.includes('startup')) {
+    // Direct syntax error detection
+    if (message.includes('SyntaxError') || 
+        message.includes('Unexpected token') ||
+        message.includes('Unexpected end of input')) {
+      return 'syntax';
+    }
+
+    // Startup/infrastructure errors
+    if (message.includes('EADDRINUSE') || 
+        message.includes('CONTRACT') || 
+        message.includes('port') || 
+        message.includes('startup')) {
       return 'startup';
     }
 
-    if (message.includes('CONTRACT') || message.includes('contract')) {
-      return 'contract';
-    }
-
+    // Route registration errors
     if (message.includes('ROUTE') || message.includes('registration')) {
       return 'route';
     }
 
+    // For everything else - just show the raw error with general handling
     return 'general';
+  }
+
+  private detectImportVsSyntax(message: string, meta: LogMeta): string {
+    const modulePath = message.match(/Cannot find module '([^']+)'/)?.[1];
+    
+    if (modulePath && meta.feature) {
+      // Try to resolve the actual file path
+      const basePath = process.cwd();
+      const featurePath = join(basePath, 'src', 'features', meta.feature);
+      
+      // Build possible file paths
+      const possiblePaths = [
+        join(featurePath, modulePath + '.ts'),
+        join(featurePath, modulePath + '.js'),
+        join(featurePath, modulePath, 'index.ts'),
+        join(featurePath, modulePath, 'index.js'),
+        // Also try relative to the file that's importing
+        modulePath + '.ts',
+        modulePath + '.js'
+      ];
+      
+      // Check if any of these files exist
+      for (const filePath of possiblePaths) {
+        try {
+          if (existsSync(filePath)) {
+            // File exists but import failed - likely syntax error preventing import
+            return 'syntax';
+          }
+        } catch {
+          // Ignore file system errors, continue checking
+        }
+      }
+    }
+    
+    // File doesn't exist - true import error
+    return 'import';
   }
 
   private getErrorTitle(errorType: string): string {
     const titles: Record<string, string> = {
       import: 'IMPORT ERROR',
+      syntax: 'SYNTAX ERROR',
       startup: 'STARTUP ERROR',
       contract: 'CONTRACT ERROR',
       route: 'ROUTE ERROR',
@@ -280,118 +357,95 @@ export class LoggerClass implements Logger {
   private generateDiagnostics(message: string, meta: LogMeta, errorType: string): ErrorDiagnostic[] {
     const diagnostics: ErrorDiagnostic[] = [];
 
-    // Import error diagnostics
-    if (errorType === 'import') {
-      const missingModule = message.match(/Cannot find module '([^']+)'/)?.[1];
-      if (missingModule) {
-        diagnostics.push({
-          type: 'error',
-          message: `Missing import: ${missingModule}`,
-        });
+    // Only provide smart diagnostics for errors we understand well
+    switch (errorType) {
+      case 'syntax':
+        if (message.includes('Unexpected token')) {
+          const tokenMatch = message.match(/Unexpected token '([^']+)'/);
+          if (tokenMatch) {
+            diagnostics.push({
+              type: 'error',
+              message: `Unexpected token: ${tokenMatch[1]}`,
+            });
+          }
+        }
 
-        // Check for common typos
-        if (missingModule.includes('Service') && missingModule.endsWith('Servic')) {
+        if (message.includes('Unexpected end of input')) {
           diagnostics.push({
-            type: 'warning',
-            message: 'Looks like a typo: missing \'e\' at end?',
-            fix: `Try: ${missingModule}e`
+            type: 'error',
+            message: 'Missing closing bracket, brace, or parenthesis',
+            fix: 'Check for unclosed {}, [], or () brackets'
           });
         }
 
-        if (missingModule.includes('/services/')) {
+        // Line number extraction
+        const lineMatch = message.match(/line (\d+)/i);
+        if (lineMatch) {
           diagnostics.push({
             type: 'info',
-            message: 'Check service file exists and name matches'
+            message: `Error location: line ${lineMatch[1]}`
+          });
+        }
+        break;
+
+      case 'import':
+        const missingModule = message.match(/Cannot find module '([^']+)'/)?.[1];
+        if (missingModule) {
+          diagnostics.push({
+            type: 'error',
+            message: `Missing import: ${missingModule}`,
+          });
+
+          // Check for common typos
+          if (missingModule.includes('Service') && missingModule.endsWith('Servic')) {
+            diagnostics.push({
+              type: 'warning',
+              message: 'Looks like a typo: missing \'e\' at end?',
+              fix: `Try: ${missingModule}e`
+            });
+          }
+
+          if (missingModule.includes('/services/')) {
+            diagnostics.push({
+              type: 'info',
+              message: 'Check service file exists and name matches'
+            });
+          }
+        }
+        break;
+
+      case 'startup':
+        if (message.includes('EADDRINUSE')) {
+          diagnostics.push({
+            type: 'error',
+            message: 'Port already in use',
+            fix: 'Change PORT environment variable or stop conflicting process'
           });
         }
 
-        // Only suggest .js if file actually exists and project might need it
-if (!missingModule.endsWith('.js')) {
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Try to find the actual file
-    const basePath = missingModule.replace(/^.*\//, ''); // Get filename
-    const possiblePaths = [
-      missingModule + '.ts',
-      missingModule + '.js',
-      missingModule + '/index.ts',
-      missingModule + '/index.js'
-    ];
-    
-    const existingFile = possiblePaths.find(p => {
-      try {
-        return fs.existsSync(p);
-      } catch {
-        return false;
-      }
-    });
-    
-    if (existingFile && existingFile.endsWith('.ts')) {
-      diagnostics.push({
-        type: 'info',
-        message: 'File exists - try adding .js extension if using ES modules',
-        fix: `Try: ${missingModule}.js`
-      });
-    }
-  } catch {
-    // Fallback to general suggestion if file system check fails
-    diagnostics.push({
-      type: 'info',
-      message: 'Consider .js extension if using ES modules'
-    });
-  }
-}
-      }
-    }
+        if (message.includes('CONTRACT')) {
+          diagnostics.push({
+            type: 'error',
+            message: 'Contract validation failed',
+            fix: 'Run: npm run flux:check to see detailed contract issues'
+          });
+        }
+        break;
 
-    // Startup error diagnostics
-    if (errorType === 'startup') {
-      if (message.includes('EADDRINUSE')) {
-        diagnostics.push({
-          type: 'error',
-          message: 'Port already in use',
-          fix: 'Change PORT environment variable or stop conflicting process'
-        });
-      }
-    }
+      case 'route':
+        if (message.includes('export')) {
+          diagnostics.push({
+            type: 'error',
+            message: 'Route file must export a function as default',
+            fix: 'Add: export default router(...)'
+          });
+        }
+        break;
 
-    // Contract error diagnostics
-    if (errorType === 'contract') {
-      diagnostics.push({
-        type: 'error',
-        message: 'Contract validation failed',
-        fix: 'Run: npm run flux:check to see detailed contract issues'
-      });
-    }
-
-    // Route error diagnostics
-    if (errorType === 'route') {
-      if (message.includes('export')) {
-        diagnostics.push({
-          type: 'error',
-          message: 'Route file must export a function as default',
-          fix: 'Add: export default router(...)'
-        });
-      }
-
-      if (message.includes('registration')) {
-        diagnostics.push({
-          type: 'error',
-          message: 'Route registration failed',
-          fix: 'Check route syntax and router() usage'
-        });
-      }
-    }
-
-    // File system error diagnostics
-    if (message.includes('ENOENT') || message.includes('not found')) {
-      diagnostics.push({
-        type: 'error',
-        message: 'File or directory not found',
-        fix: 'Check file path exists and spelling is correct'
-      });
+      case 'general':
+        // For general errors, don't add diagnostics - just show the raw error
+        // This covers ReferenceError, TypeError, and all other JS errors
+        break;
     }
 
     return diagnostics;
@@ -402,17 +456,18 @@ if (!missingModule.endsWith('.js')) {
       import: [
         'Check import paths and file names',
         'Verify the file exists',
-        'Use .js extensions in TypeScript imports'
+        'Check for typos in import statements'
+      ],
+      syntax: [
+        'Check for missing brackets, braces, or parentheses',
+        'Verify all strings are properly closed',
+        'Look for missing commas or semicolons',
+        'Check function and object syntax'
       ],
       startup: [
         'Check environment variables',
         'Verify port is available',
-        'Review server configuration'
-      ],
-      contract: [
-        'Add missing contracts: createBackendContract().build()',
-        'Declare all routes and services',
-        'Run: npm run flux:check for details'
+        'Review contract validation errors'
       ],
       route: [
         'Check route file syntax',
@@ -420,13 +475,42 @@ if (!missingModule.endsWith('.js')) {
         'Verify router() usage'
       ],
       general: [
-        'Check the error details above',
-        'Review recent code changes',
-        'Consult documentation'
+        // For general errors, provide minimal generic solutions
+        'Review the error message above',
+        'Check recent code changes'
       ]
     };
 
     return solutionMap[errorType] || solutionMap.general;
+  }
+
+  private getFixMessage(errorType: string, message: string): string {
+    switch (errorType) {
+      case 'import':
+        return 'Check import paths and file names';
+      
+      case 'syntax':
+        const lineMatch = message.match(/line (\d+)/i);
+        return lineMatch ? `Check syntax around line ${lineMatch[1]}` : 'Fix syntax errors';
+      
+      case 'startup':
+        if (message.includes('CONTRACT')) {
+          return 'Fix contract validation errors';
+        }
+        if (message.includes('EADDRINUSE')) {
+          return 'Change port or stop conflicting process';
+        }
+        return 'Fix startup configuration';
+      
+      case 'route':
+        return 'Fix route export or registration';
+      
+      case 'general':
+        return 'Review the error message above';
+      
+      default:
+        return 'Resolve the issues above and restart';
+    }
   }
 
   // ============================================================================

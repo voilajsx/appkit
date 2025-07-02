@@ -72,9 +72,11 @@ export declare class LoggerClass implements Logger {
     private shouldShowVisual;
     private renderVisualError;
     private detectErrorType;
+    private detectImportVsSyntax;
     private getErrorTitle;
     private generateDiagnostics;
     private getSolutions;
+    private getFixMessage;
     private getCaller;
     private log;
     private writeToTransports;
