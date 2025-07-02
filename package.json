@@ -18,9 +18,9 @@
       "types": "./types/tenantdb/index.d.ts",
       "default": "./dist/tenantdb/index.js"
     },
-    "./db": {
-      "types": "./types/db/index.d.ts",
-      "default": "./dist/db/index.js"
+    "./database": {
+      "types": "./types/database/index.d.ts",
+      "default": "./dist/database/index.js"
     },
     "./prismadb": {
       "default": "./dist/prismadb/index.js"
