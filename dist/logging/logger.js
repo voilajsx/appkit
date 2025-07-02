@@ -161,13 +161,22 @@ export class LoggerClass {
             console.log(`${colors.red}│${colors.reset} File:    ${colors.yellow}${meta.file}${colors.reset}`);
         }
         console.log(`${colors.red}│${colors.reset}`);
-        // ✅ ALWAYS show the actual error message first
-        console.log(`${colors.red}│${colors.reset} ${colors.red}❌ ERROR:${colors.reset} ${message}`);
+        // ✅ Enhanced error message with wrapping
+        const errorPrefix = `${colors.red}❌ ERROR:${colors.reset}`;
+        const wrappedMessage = this.wrapErrorMessage(message, errorPrefix);
+        wrappedMessage.forEach((line, index) => {
+            if (index === 0) {
+                console.log(`${colors.red}│${colors.reset} ${line}`);
+            }
+            else {
+                console.log(`${colors.red}│${colors.reset}${line}`); // Continuation lines
+            }
+        });
         // Show location/position if available
         if (meta._location) {
             console.log(`${colors.red}│${colors.reset} ${colors.cyan}📍 FROM:${colors.reset}  ${meta._location}`);
         }
-        // Extract and show line/position for syntax errors
+        // Extract and show line/position for syntax errors with wrapping
         const lineMatch = message.match(/at line (\d+):(\d+)/i) || message.match(/line (\d+)/i);
         if (lineMatch) {
             console.log(`${colors.red}│${colors.reset} ${colors.cyan}📍 LINE:${colors.reset}  ${lineMatch[1]}${lineMatch[2] ? `:${lineMatch[2]}` : ''}`);
@@ -189,22 +198,146 @@ export class LoggerClass {
             const color = diagnostic.type === 'error' ? colors.red :
                 diagnostic.type === 'warning' ? colors.yellow :
                     diagnostic.type === 'success' ? colors.green : colors.cyan;
-            console.log(`${colors.red}│${colors.reset} ${color}${icon}${colors.reset} ${diagnostic.message}`);
+            // Wrap diagnostic messages too
+            const diagnosticPrefix = `${color}${icon}${colors.reset}`;
+            const wrappedDiagnostic = this.wrapErrorMessage(diagnostic.message, diagnosticPrefix);
+            wrappedDiagnostic.forEach((line, index) => {
+                if (index === 0) {
+                    console.log(`${colors.red}│${colors.reset} ${line}`);
+                }
+                else {
+                    console.log(`${colors.red}│${colors.reset}${line}`);
+                }
+            });
             if (diagnostic.fix) {
-                console.log(`${colors.red}│${colors.reset} ${colors.green}✓${colors.reset} ${diagnostic.fix}`);
+                const fixPrefix = `${colors.green}✓${colors.reset}`;
+                const wrappedFix = this.wrapErrorMessage(diagnostic.fix, fixPrefix);
+                wrappedFix.forEach((line, index) => {
+                    if (index === 0) {
+                        console.log(`${colors.red}│${colors.reset} ${line}`);
+                    }
+                    else {
+                        console.log(`${colors.red}│${colors.reset}${line}`);
+                    }
+                });
             }
         });
         const solutions = this.getSolutions(errorType, message);
         if (solutions.length > 0) {
             console.log(`${colors.red}│${colors.reset}`);
             solutions.forEach(solution => {
-                console.log(`${colors.red}│${colors.reset} ${colors.green}✓${colors.reset} ${solution}`);
+                const solutionPrefix = `${colors.green}✓${colors.reset}`;
+                const wrappedSolution = this.wrapErrorMessage(solution, solutionPrefix);
+                wrappedSolution.forEach((line, index) => {
+                    if (index === 0) {
+                        console.log(`${colors.red}│${colors.reset} ${line}`);
+                    }
+                    else {
+                        console.log(`${colors.red}│${colors.reset}${line}`);
+                    }
+                });
             });
         }
         // Enhanced fix message based on error type
         const fixMessage = this.getFixMessage(errorType, message);
         console.log(`${colors.red}╰─ FIX: ${colors.green}${fixMessage}${colors.reset}`);
         console.log();
+    }
+    /**
+     * Wrap long error messages with proper indentation and path handling
+     * @param message - The message to wrap
+     * @param prefix - The prefix (like "❌ ERROR:" or "✗") to account for in width
+     */
+    wrapErrorMessage(message, prefix = '') {
+        const maxWidth = 85; // Terminal width accounting for borders
+        const indent = '         '; // 9 spaces for continuation lines
+        const prefixLength = this.stripAnsiCodes(prefix).length; // Account for prefix in first line
+        const firstLineMaxWidth = maxWidth - prefixLength - 1; // -1 for space after prefix
+        const continuationMaxWidth = maxWidth - indent.length;
+        const lines = [];
+        let currentLine = '';
+        let isFirstLine = true;
+        // Handle very long paths/URLs by splitting them intelligently
+        const processedMessage = this.preprocessLongPaths(message);
+        const words = processedMessage.split(' ');
+        for (const word of words) {
+            const currentMaxWidth = isFirstLine ? firstLineMaxWidth : continuationMaxWidth;
+            const proposedLine = currentLine + (currentLine ? ' ' : '') + word;
+            if (proposedLine.length > currentMaxWidth) {
+                // Current line would be too long
+                if (currentLine) {
+                    // Save current line
+                    if (isFirstLine) {
+                        lines.push(`${prefix}${currentLine ? ' ' + currentLine : ''}`);
+                        isFirstLine = false;
+                    }
+                    else {
+                        lines.push(`${indent}${currentLine}`);
+                    }
+                    currentLine = word;
+                }
+                else {
+                    // Single word is too long, force it on its own line
+                    if (isFirstLine) {
+                        lines.push(`${prefix}${word ? ' ' + word : ''}`);
+                        isFirstLine = false;
+                    }
+                    else {
+                        lines.push(`${indent}${word}`);
+                    }
+                    currentLine = '';
+                }
+            }
+            else {
+                currentLine = proposedLine;
+            }
+        }
+        // Add remaining content
+        if (currentLine) {
+            if (isFirstLine) {
+                lines.push(`${prefix}${currentLine ? ' ' + currentLine : ''}`);
+            }
+            else {
+                lines.push(`${indent}${currentLine}`);
+            }
+        }
+        // Handle empty prefix case
+        if (lines.length === 0) {
+            lines.push(prefix);
+        }
+        return lines;
+    }
+    /**
+     * Preprocess message to handle very long paths and URLs intelligently
+     */
+    preprocessLongPaths(message) {
+        // Split very long file paths at natural breakpoints
+        return message.replace(/([\/\\][^\/\\:\s]{30,})/g, (match) => {
+            // Break long paths at directory separators
+            if (match.length > 60) {
+                const parts = match.split(/([\/\\])/);
+                let result = '';
+                let currentSegment = '';
+                for (const part of parts) {
+                    if ((currentSegment + part).length > 50 && currentSegment) {
+                        result += currentSegment + '\n' + part;
+                        currentSegment = '';
+                    }
+                    else {
+                        currentSegment += part;
+                    }
+                }
+                result += currentSegment;
+                return result;
+            }
+            return match;
+        });
+    }
+    /**
+     * Strip ANSI color codes to get actual text length
+     */
+    stripAnsiCodes(text) {
+        return text.replace(/\x1b\[[0-9;]*m/g, '');
     }
     detectErrorType(message, meta) {
         // Check meta for explicit category first
@@ -365,59 +498,164 @@ export class LoggerClass {
         }
         return diagnostics;
     }
-    getSolutions(errorType, message) {
-        const solutionMap = {
-            import: [
-                'Check import paths and file names',
-                'Verify the file exists',
-                'Check for typos in import statements'
-            ],
-            syntax: [
-                'Check for missing brackets, braces, or parentheses',
-                'Verify all strings are properly closed',
-                'Look for missing commas or semicolons',
-                'Check function and object syntax'
-            ],
-            startup: [
-                'Check environment variables',
-                'Verify port is available',
-                'Review contract validation errors'
-            ],
-            route: [
-                'Check route file syntax',
-                'Ensure proper export default',
-                'Verify router() usage'
-            ],
-            general: [
-                // For general errors, provide minimal generic solutions
-                'Review the error message above',
-                'Check recent code changes'
-            ]
-        };
-        return solutionMap[errorType] || solutionMap.general;
-    }
     getFixMessage(errorType, message) {
+        // Pattern-based error analysis - extract meaning from the error message itself
+        // 1. SYNTAX ERRORS - Parse what's actually expected/unexpected
+        const expectedMatch = message.match(/Expected "(.+?)" but found/i);
+        if (expectedMatch) {
+            return `Add missing "${expectedMatch[1]}"`;
+        }
+        const unexpectedTokenMatch = message.match(/Unexpected token "(.+?)"/i) || message.match(/Unexpected "(.+?)"/i);
+        if (unexpectedTokenMatch) {
+            return `Remove or fix unexpected "${unexpectedTokenMatch[1]}"`;
+        }
+        if (message.match(/Unexpected end of input/i)) {
+            return 'Add missing closing bracket, brace, or parenthesis';
+        }
+        // 2. IMPORT/MODULE ERRORS - Extract the actual module path
+        const moduleMatch = message.match(/Cannot find module ['"']([^'"]+)['"']/);
+        if (moduleMatch) {
+            const modulePath = moduleMatch[1];
+            const fileName = modulePath.split('/').pop() || modulePath;
+            return `Check if file "${fileName}" exists at path: ${modulePath}`;
+        }
+        // 3. REFERENCE ERRORS - Extract the undefined variable/function
+        const refErrorMatch = message.match(/(\w+) is not defined/);
+        if (refErrorMatch) {
+            return `Define variable or import "${refErrorMatch[1]}"`;
+        }
+        // 4. TYPE ERRORS - Extract specific type issues
+        const notFunctionMatch = message.match(/(\w+) is not a function/);
+        if (notFunctionMatch) {
+            return `Check that "${notFunctionMatch[1]}" is actually a function`;
+        }
+        const cannotReadMatch = message.match(/Cannot read propert(?:y|ies) ['"]?(\w+)['"]? of/);
+        if (cannotReadMatch) {
+            return `Check object exists before accessing property "${cannotReadMatch[1]}"`;
+        }
+        const cannotAccessMatch = message.match(/Cannot access ['"]?(\w+)['"]? before initialization/);
+        if (cannotAccessMatch) {
+            return `Move "${cannotAccessMatch[1]}" declaration before usage`;
+        }
+        // 5. NETWORK/CONNECTION ERRORS - Extract connection details
+        const econnrefusedMatch = message.match(/ECONNREFUSED.*?(\d+)/);
+        if (econnrefusedMatch) {
+            return `Connection refused on port ${econnrefusedMatch[1]} - check if service is running`;
+        }
+        if (message.match(/EADDRINUSE.*?(\d+)/)) {
+            const portMatch = message.match(/(\d+)/);
+            return portMatch ? `Port ${portMatch[1]} already in use - choose different port` : 'Port already in use';
+        }
+        // 6. FILE SYSTEM ERRORS - Extract file/directory info
+        const enoentMatch = message.match(/ENOENT.*?['"]([^'"]+)['"]/) || message.match(/no such file or directory.*?['"]([^'"]+)['"]/);
+        if (enoentMatch) {
+            return `File not found: ${enoentMatch[1]}`;
+        }
+        const eaccesMatch = message.match(/EACCES.*?['"]([^'"]+)['"]/) || message.match(/permission denied.*?['"]([^'"]+)['"]/);
+        if (eaccesMatch) {
+            return `Permission denied accessing: ${eaccesMatch[1]}`;
+        }
+        // 7. COMPILATION/TRANSFORM ERRORS - Extract compilation context
+        if (message.match(/Transform failed|compilation failed/i)) {
+            const lineMatch = message.match(/line (\d+)/i) || message.match(/:(\d+):/);
+            return lineMatch ? `Fix compilation error at line ${lineMatch[1]}` : 'Fix compilation/syntax errors';
+        }
+        // 8. PROMISE/ASYNC ERRORS
+        if (message.match(/UnhandledPromiseRejection/i)) {
+            return 'Add .catch() handler or try/catch block for async operation';
+        }
+        // 9. EXPORT/IMPORT ERRORS - Extract export context
+        if (message.match(/default.*?export/i) || message.match(/export.*?default/i)) {
+            return 'Fix export default statement syntax';
+        }
+        // 10. LINE-SPECIFIC ERRORS - Extract line numbers when available
+        const lineNumberMatch = message.match(/(?:line |:)(\d+)(?::(\d+))?/i);
+        if (lineNumberMatch) {
+            const line = lineNumberMatch[1];
+            const column = lineNumberMatch[2];
+            const location = column ? `line ${line}, column ${column}` : `line ${line}`;
+            if (message.match(/syntax|unexpected|expected/i)) {
+                return `Fix syntax error at ${location}`;
+            }
+            return `Check code at ${location}`;
+        }
+        // 11. GENERIC PATTERNS - Fallback pattern matching
+        if (message.match(/not found|missing/i)) {
+            return 'Check that required files/resources exist';
+        }
+        if (message.match(/timeout|timed out/i)) {
+            return 'Increase timeout or check network connectivity';
+        }
+        if (message.match(/invalid|malformed/i)) {
+            return 'Check data format and syntax';
+        }
+        if (message.match(/denied|forbidden/i)) {
+            return 'Check permissions and access rights';
+        }
+        // 12. FRAMEWORK-AGNOSTIC FALLBACKS by error type
         switch (errorType) {
             case 'import':
-                return 'Check import paths and file names';
+                return 'Verify import paths and file existence';
             case 'syntax':
-                const lineMatch = message.match(/line (\d+)/i);
-                return lineMatch ? `Check syntax around line ${lineMatch[1]}` : 'Fix syntax errors';
+                return 'Fix JavaScript/TypeScript syntax errors';
             case 'startup':
-                if (message.includes('CONTRACT')) {
-                    return 'Fix contract validation errors';
-                }
-                if (message.includes('EADDRINUSE')) {
-                    return 'Change port or stop conflicting process';
-                }
-                return 'Fix startup configuration';
+                return 'Fix configuration or dependency issues';
             case 'route':
-                return 'Fix route export or registration';
+                return 'Check export statements and file structure';
             case 'general':
-                return 'Review the error message above';
+                return 'Review error details above';
             default:
-                return 'Resolve the issues above and restart';
+                return 'Fix the error described above';
         }
+    }
+    /**
+     * Get contextual solutions based on error message patterns
+     */
+    getSolutions(errorType, message) {
+        const solutions = [];
+        // Extract solutions based on actual error content
+        if (message.match(/Expected "(.+?)" but found/)) {
+            solutions.push('Check for missing brackets, parentheses, or braces');
+            solutions.push('Verify function call syntax');
+        }
+        if (message.match(/Cannot find module/)) {
+            solutions.push('Check if file exists at the specified path');
+            solutions.push('Verify import path spelling');
+            solutions.push('Check file extensions (.js, .ts)');
+        }
+        if (message.match(/is not defined/)) {
+            solutions.push('Import the required module or variable');
+            solutions.push('Check variable name spelling');
+            solutions.push('Verify variable is declared before use');
+        }
+        if (message.match(/is not a function/)) {
+            solutions.push('Check that imported item is actually a function');
+            solutions.push('Verify function is exported correctly');
+        }
+        if (message.match(/EADDRINUSE/)) {
+            solutions.push('Change to a different port number');
+            solutions.push('Stop the process using this port');
+            solutions.push('Check for other running servers');
+        }
+        if (message.match(/line \d+/i)) {
+            const lineMatch = message.match(/line (\d+)/i);
+            if (lineMatch) {
+                solutions.push(`Check syntax around line ${lineMatch[1]}`);
+                solutions.push('Look for missing commas or semicolons');
+            }
+        }
+        // Add generic solutions if none were found
+        if (solutions.length === 0) {
+            const defaultSolutions = {
+                import: ['Verify file paths and existence', 'Check import syntax'],
+                syntax: ['Fix JavaScript/TypeScript syntax', 'Check for missing punctuation'],
+                startup: ['Review configuration files', 'Check dependencies'],
+                route: ['Verify export statements', 'Check file structure'],
+                general: ['Review error message details', 'Check recent code changes']
+            };
+            solutions.push(...(defaultSolutions[errorType] || defaultSolutions.general));
+        }
+        return solutions;
     }
     // ============================================================================
     // EXISTING HELPER METHODS

@@ -71,12 +71,29 @@ export declare class LoggerClass implements Logger {
     child(bindings: LogMeta): LoggerClass;
     private shouldShowVisual;
     private renderVisualError;
+    /**
+     * Wrap long error messages with proper indentation and path handling
+     * @param message - The message to wrap
+     * @param prefix - The prefix (like "❌ ERROR:" or "✗") to account for in width
+     */
+    private wrapErrorMessage;
+    /**
+     * Preprocess message to handle very long paths and URLs intelligently
+     */
+    private preprocessLongPaths;
+    /**
+     * Strip ANSI color codes to get actual text length
+     */
+    private stripAnsiCodes;
     private detectErrorType;
     private detectImportVsSyntax;
     private getErrorTitle;
     private generateDiagnostics;
-    private getSolutions;
     private getFixMessage;
+    /**
+     * Get contextual solutions based on error message patterns
+     */
+    private getSolutions;
     private getCaller;
     private log;
     private writeToTransports;
