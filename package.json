@@ -67,12 +67,18 @@
     },
     "./utils": {
       "types": "./types/utils/index.d.ts",
-      "default": "./dist/utils/index.js"
+      "default": "./src/utils/index.js"
     }
   },
   "files": [
     "types/",
     "dist/",
+    "src/**/*.js",
+    "src/**/*.ts",
+    "!src/**/*.md",
+    "!src/**/docs/**",
+    "!src/**/tests/**",
+    "!src/**/examples/**",
     "README.md",
     "LICENSE"
   ],
