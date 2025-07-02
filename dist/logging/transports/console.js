@@ -124,6 +124,10 @@ export class ConsoleTransport {
         // Errors and warnings get more detail
         if (level === 'error' || level === 'warn') {
             let formatted = `${this.getLevelLabel(level)} ${message}`;
+            // Show location if available in meta
+            if (entry._location) {
+                formatted += ` (${entry._location})`;
+            }
             if (component) {
                 formatted += ` [${component}]`;
             }
@@ -152,10 +156,15 @@ export class ConsoleTransport {
             formatted += `${timestamp} `;
         }
         formatted += `${this.getLevelLabel(level)} ${message}`;
-        // Add pretty-printed metadata if present
-        const metaKeys = Object.keys(meta);
+        // Show location in pretty format for errors
+        if (level === 'error' && entry._location) {
+            formatted += `\n  📍 ${entry._location}`;
+        }
+        // Add pretty-printed metadata if present (excluding _location)
+        const { _location, ...displayMeta } = meta;
+        const metaKeys = Object.keys(displayMeta);
         if (metaKeys.length > 0) {
-            formatted += '\n' + JSON.stringify(meta, null, 2);
+            formatted += '\n' + JSON.stringify(displayMeta, null, 2);
         }
         return formatted;
     }

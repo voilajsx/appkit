@@ -53,8 +53,10 @@ export declare class LoggerClass implements Logger {
      * Log error message
      * @llm-rule WHEN: Exceptions, failures, critical issues requiring attention
      * @llm-rule AVOID: Using for warnings - errors should indicate actual problems
+     * @llm-rule NOTE: Automatically includes file and line number where the error was logged
      */
     error(message: string, meta?: LogMeta): void;
+    private getCaller;
     /**
      * Log warning message
      * @llm-rule WHEN: Potential issues, deprecated usage, performance concerns
