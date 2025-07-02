@@ -683,6 +683,128 @@ describe('Database Service', () => {
 });
 ```
 
+## 🔤 Environment Variable Conventions
+
+### **CRITICAL: Underscore Convention**
+
+VoilaJSX AppKit uses a **strict underscore convention** to separate internal
+framework variables from your application configuration:
+
+| Pattern              | Purpose             | Example             | Parsed? |
+| -------------------- | ------------------- | ------------------- | ------- |
+| `SINGLE_UNDERSCORE`  | **AppKit Internal** | `VOILA_AUTH_SECRET` | ❌ No   |
+| `DOUBLE__UNDERSCORE` | **Your App Config** | `DATABASE__HOST`    | ✅ Yes  |
+
+### **Framework Variables (Single Underscore) - Internal Use**
+
+These are **AppKit internal variables** - they configure the framework itself
+and are **NOT parsed** into your config object:
+
+```bash
+# AppKit Authentication
+VOILA_AUTH_SECRET=your-jwt-secret-key
+
+# AppKit Database
+VOILA_DB_ORGS=true
+VOILA_DB_TENANTS=true
+
+# AppKit Logging
+VOILA_LOGGING_LEVEL=debug
+VOILA_LOGGING_CONSOLE=true
+
+# Flux Framework
+FLUX_CONTRACTS_ENABLED=true
+FLUX_DISCOVERY_PATH=src/features
+
+# Service Identification
+VOILA_SERVICE_NAME=my-app
+```
+
+### **Application Variables (Double Underscore) - Your Config**
+
+These are **your application configuration** - they get parsed into the config
+object with dot notation:
+
+```bash
+# Your application database config
+DATABASE__HOST=localhost                    → config.get('database.host')
+DATABASE__PORT=5432                        → config.get('database.port')
+DATABASE__CREDENTIALS__USER=admin          → config.get('database.credentials.user')
+DATABASE__CREDENTIALS__PASSWORD=secret     → config.get('database.credentials.password')
+
+# Your application features
+FEATURES__ANALYTICS__ENABLED=true          → config.get('features.analytics.enabled')
+FEATURES__BETA_UI__ENABLED=false          → config.get('features.beta_ui.enabled')
+
+# Your application API config
+API__BASE_URL=https://api.example.com      → config.get('api.base_url')
+API__TIMEOUT=30000                         → config.get('api.timeout')
+API__RATE_LIMIT=1000                       → config.get('api.rate_limit')
+```
+
+### **Why This Convention?**
+
+1. **Clear Separation** - Framework variables vs application variables
+2. **No Conflicts** - Your config never interferes with AppKit internals
+3. **Easy Parsing** - Only double underscore variables need complex parsing
+4. **Better Performance** - Fewer variables to process and validate
+5. **Future-Proof** - New AppKit features won't break your configuration
+
+### **Quick Reference**
+
+```typescript
+// ✅ Framework variables - access directly from AppKit modules
+import { authenticator } from '@voilajsx/appkit/auth'; // Uses VOILA_AUTH_SECRET internally
+
+// ✅ Your app config - access through config object
+import { configure } from '@voilajsx/appkit/config';
+const config = configure.get();
+const dbHost = config.get('database.host'); // From DATABASE__HOST
+```
+
+### **Common Mistakes to Avoid**
+
+```bash
+# ❌ DON'T use single underscore for your app config
+DATABASE_HOST=localhost                    # Won't be parsed!
+
+# ❌ DON'T use double underscore for framework config
+VOILA__AUTH__SECRET=secret                 # Will be parsed as user config!
+
+# ✅ DO use the correct convention
+VOILA_AUTH_SECRET=secret                   # Framework internal
+DATABASE__HOST=localhost                   # Your app config
+```
+
+## 🧠 Mental Model
+
+### **The UPPER_SNAKE\_\_CASE Convention**
+
+This is the core innovation for **your application configuration**. Double
+underscores (`__`) create nesting:
+
+```bash
+# Environment Variable → Config Path
+DATABASE__HOST=localhost                    → config.get('database.host')
+DATABASE__CONNECTION__POOL_SIZE=10         → config.get('database.connection.pool_size')
+STRIPE__API__KEYS__PUBLIC=pk_test_123      → config.get('stripe.api.keys.public')
+FEATURES__ANALYTICS__ENABLED=true          → config.get('features.analytics.enabled')
+```
+
+### **Framework vs Application Variables**
+
+```bash
+# 🔧 Framework Configuration (Single Underscore)
+VOILA_AUTH_SECRET=jwt-secret-key           # AppKit auth module
+VOILA_LOGGING_LEVEL=debug                 # AppKit logging module
+VOILA_DB_ORGS=true                        # AppKit database module
+
+# 🎯 Application Configuration (Double Underscore)
+DATABASE__HOST=localhost                   # Your database connection
+API__TIMEOUT=5000                         # Your API client settings
+FEATURES__BETA__ENABLED=true             # Your feature flags
+```
+
 ## 🤖 LLM Guidelines
 
 ### **Essential Patterns**

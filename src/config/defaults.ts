@@ -105,11 +105,75 @@ function validateEnvironment(): void {
 }
 
 /**
+ * Check if environment variable is a system variable that should be ignored
+ * @llm-rule WHEN: Filtering out system variables from validation
+ * @llm-rule AVOID: Validating system variables - they don't follow our conventions
+ * @llm-rule NOTE: VoilaJSX AppKit uses single underscore (VOILA_*) for internal variables
+ */
+function isSystemVariable(envKey: string): boolean {
+  const systemVarPrefixes = [
+    '__CF',        // macOS Core Foundation variables
+    '__VERCEL_',   // Vercel deployment variables
+    '__NEXT_',     // Next.js internal variables
+    '_',           // Shell variables starting with underscore
+    'npm_',        // npm variables
+    'TERM',        // Terminal variables
+    'SHELL',       // Shell variables
+    'PATH',        // System PATH
+    'HOME',        // User home directory
+    'USER',        // Current user
+    'PWD',         // Present working directory
+    'OLDPWD',      // Previous working directory
+    'SHLVL',       // Shell level
+    'PS1',         // Primary prompt string
+    'LANG',        // Language settings
+    'LC_',         // Locale settings
+    'XDG_',        // XDG Base Directory variables
+  ];
+
+  // VoilaJSX AppKit internal variables (single underscore) - not parsed as user config
+  const voilaInternalPrefixes = [
+    'VOILA_',      // All VoilaJSX AppKit internal configuration
+    'FLUX_',       // Flux Framework internal variables
+  ];
+
+  // Check system variable prefixes
+  if (systemVarPrefixes.some(prefix => envKey.startsWith(prefix))) {
+    return true;
+  }
+
+  // Check VoilaJSX internal variables (single underscore pattern)
+  if (voilaInternalPrefixes.some(prefix => envKey.startsWith(prefix))) {
+    return true;
+  }
+
+  // Check for common system variables
+  const systemVars = [
+    'TMPDIR', 'TMP', 'TEMP',
+    'EDITOR', 'VISUAL',
+    'PAGER', 'LESS',
+    'DISPLAY', 'XAUTHORITY',
+    'SSH_AUTH_SOCK', 'SSH_AGENT_PID',
+    'CONDA_DEFAULT_ENV', 'VIRTUAL_ENV',
+    'JAVA_HOME', 'ANDROID_HOME',
+    'DOCKER_HOST', 'KUBERNETES_SERVICE_HOST',
+    'CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'JENKINS_URL',
+  ];
+
+  return systemVars.includes(envKey);
+}
+
+/**
  * Validates environment variable format for common mistakes
  * @llm-rule WHEN: Processing custom environment variables for format validation
  * @llm-rule AVOID: Silent format errors - validates UPPER_SNAKE__CASE convention
  */
 function validateEnvVarFormat(envKey: string): boolean {
+  // Skip system variables - they don't follow our conventions
+  if (isSystemVariable(envKey)) {
+    return true;
+  }
+
   // Check for proper UPPER_SNAKE__CASE format
   if (envKey.includes('__')) {
     // Should be uppercase
@@ -145,6 +209,8 @@ function validateEnvVarFormat(envKey: string): boolean {
  * @llm-rule WHEN: App startup to get production-ready configuration from environment
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
+ * @llm-rule CONVENTION: Only processes variables with double underscores (__) for user config
+ * @llm-rule CONVENTION: Variables with single underscore (VOILA_*, FLUX_*) are AppKit internal
  */
 export function buildConfigFromEnv(): AppConfig {
   validateEnvironment();
@@ -158,8 +224,16 @@ export function buildConfigFromEnv(): AppConfig {
     },
   };
 
-  // Process all environment variables using the UPPER_SNAKE__CASE convention
+  // Process ONLY user configuration variables using UPPER_SNAKE__CASE convention
+  // IMPORTANT: Only variables with double underscores (__) are processed as user config
+  // Variables with single underscore (VOILA_*, FLUX_*) are internal AppKit variables
   for (const envKey in process.env) {
+    // Skip system variables and AppKit internal variables (single underscore)
+    if (isSystemVariable(envKey)) {
+      continue;
+    }
+    
+    // Only process variables with double underscores (__) for user configuration
     if (envKey.includes('__') && validateEnvVarFormat(envKey)) {
       const path = envKey.toLowerCase().split('__');
       const value = parseValue(process.env[envKey] || '');

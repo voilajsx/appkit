@@ -24,6 +24,8 @@ export interface AppConfig extends ConfigValue {
  * @llm-rule WHEN: App startup to get production-ready configuration from environment
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
+ * @llm-rule CONVENTION: Only processes variables with double underscores (__) for user config
+ * @llm-rule CONVENTION: Variables with single underscore (VOILA_*, FLUX_*) are AppKit internal
  */
 export declare function buildConfigFromEnv(): AppConfig;
 /**
