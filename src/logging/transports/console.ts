@@ -139,20 +139,28 @@ export class ConsoleTransport implements Transport {
    * @llm-rule AVOID: Adding too much detail - defeats purpose of minimal mode
    */
     private formatMinimal(entry: LogEntry): string {
-  const { level, message, component, error } = entry;
+  const { level, message, component, error, _location, timestamp } = entry;
+
+  // Clean timestamp - just time, no date or timezone
+  const cleanTime = new Date(timestamp).toLocaleTimeString('en-US', { 
+    hour12: false,
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit' 
+  });
 
   // Special handling for VoilaJSX startup messages
   if (message && (message.includes('✨') || message.includes('🚀') || message.includes('👋'))) {
-    return message;
+    return `${cleanTime} ${message}`;
   }
 
   // Errors and warnings get more detail
   if (level === 'error' || level === 'warn') {
-    let formatted = `${this.getLevelLabel(level)} ${message}`;
+    let formatted = `${cleanTime} ${this.getLevelLabel(level)} ${message}`;
     
-    // Show location if available in meta
-    if (entry._location) {
-      formatted += ` (${entry._location})`;
+    // Show location if available
+    if (_location) {
+      formatted += ` (${_location})`;
     }
     
     if (component) {
@@ -167,9 +175,16 @@ export class ConsoleTransport implements Transport {
     return formatted;
   }
 
-  // Other messages stay simple
-  let formatted = message;
-  if (component && !message.includes(component)) {
+  // For info/debug logs - clean format with time, location and component
+  let formatted = `${cleanTime} ${message}`;
+  
+  // Add location for debugging
+  if (_location) {
+    formatted += ` (${_location})`;
+  }
+  
+  // Add component tag for filtering
+  if (component) {
     formatted += ` [${component}]`;
   }
 
