@@ -1,6 +1,6 @@
 {
   "name": "@voilajsx/appkit",
-  "version": "1.0.8",
+  "version": "1.0.11",
   "description": "A minimal, framework-agnostic Node.js application toolkit",
   "main": "dist/index.js",
   "type": "module",
@@ -12,67 +12,31 @@
     },
     "./auth": {
       "types": "./types/auth/index.d.ts",
-      "default": "./dist/auth/index.js"
-    },
-    "./tenantdb": {
-      "types": "./types/tenantdb/index.d.ts",
-      "default": "./dist/tenantdb/index.js"
+      "default": "./src/auth/index.js"
     },
     "./database": {
       "types": "./types/database/index.d.ts",
-      "default": "./dist/database/index.js"
-    },
-    "./prismadb": {
-      "default": "./dist/prismadb/index.js"
-    },
-    "./cache": {
-      "types": "./types/cache/index.d.ts",
-      "default": "./dist/cache/index.js"
-    },
-    "./events": {
-      "types": "./types/events/index.d.ts",
-      "default": "./dist/events/index.js"
+      "default": "./src/database/index.js"
     },
     "./security": {
       "types": "./types/security/index.d.ts",
-      "default": "./dist/security/index.js"
+      "default": "./src/security/index.js"
     },
     "./error": {
       "types": "./types/error/index.d.ts",
-      "default": "./dist/error/index.js"
+      "default": "./src/error/index.js"
     },
     "./logging": {
       "types": "./types/logging/index.d.ts",
-      "default": "./dist/logging/index.js"
-    },
-    "./storage": {
-      "types": "./types/storage/index.d.ts",
-      "default": "./dist/storage/index.js"
-    },
-    "./email": {
-      "types": "./types/email/index.d.ts",
-      "default": "./dist/email/index.js"
-    },
-    "./queue": {
-      "types": "./types/queue/index.d.ts",
-      "default": "./dist/queue/index.js"
+      "default": "./src/logging/index.js"
     },
     "./config": {
       "types": "./types/config/index.d.ts",
-      "default": "./dist/config/index.js"
-    },
-    "./validation": {
-      "types": "./types/validation/index.d.ts",
-      "default": "./dist/validation/index.js"
-    },
-    "./utils": {
-      "types": "./types/utils/index.d.ts",
-      "default": "./src/utils/index.js"
+      "default": "./src/config/index.js"
     }
   },
   "files": [
     "types/",
-    "dist/",
     "src/**/*.js",
     "src/**/*.ts",
     "!src/**/*.md",
