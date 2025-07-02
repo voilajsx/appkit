@@ -136,9 +136,36 @@ export class LoggerClass implements Logger {
    * Log error message
    * @llm-rule WHEN: Exceptions, failures, critical issues requiring attention
    * @llm-rule AVOID: Using for warnings - errors should indicate actual problems
+   * @llm-rule NOTE: Automatically includes file and line number where the error was logged
    */
   error(message: string, meta: LogMeta = {}): void {
-    this.log('error', message, meta);
+    // Auto-add file/line info to existing meta
+    const enhancedMeta = {
+      ...meta,
+      _location: this.getCaller() // Add to meta, don't change structure
+    };
+    
+    this.log('error', message, enhancedMeta);
+  }
+  private getCaller(): string {
+    const stack = new Error().stack;
+    if (!stack) return 'unknown';
+
+    const lines = stack.split('\n');
+    const callerLine = lines[4] || ''; // Skip Error, getCaller, error, find actual caller
+    
+    // Extract file:line with full path
+    const match = callerLine.match(/\((.+):(\d+):(\d+)\)/) || 
+                  callerLine.match(/at\s+(.+):(\d+):(\d+)/);
+    
+    if (match) {
+      const [, filePath, lineNumber] = match;
+      // Clean up the path but keep it full
+      const cleanPath = filePath.replace(process.cwd() + '/', ''); // Remove only cwd prefix
+      return `${cleanPath}:${lineNumber}`;
+    }
+
+    return 'unknown';
   }
 
   /**

@@ -317,6 +317,7 @@ process.on('uncaughtException', (error) => {
     error: error.message,
     stack: error.stack,
     fatal: true,
+    // Automatically includes file and line number where error was logged
   });
 
   // Flush logs before exit

@@ -138,38 +138,43 @@ export class ConsoleTransport implements Transport {
    * @llm-rule WHEN: Development mode with minimal scope for clean console
    * @llm-rule AVOID: Adding too much detail - defeats purpose of minimal mode
    */
-  private formatMinimal(entry: LogEntry): string {
-    const { level, message, component, error } = entry;
+    private formatMinimal(entry: LogEntry): string {
+  const { level, message, component, error } = entry;
 
-    // Special handling for VoilaJSX startup messages
-    if (message && (message.includes('✨') || message.includes('🚀') || message.includes('👋'))) {
-      return message;
+  // Special handling for VoilaJSX startup messages
+  if (message && (message.includes('✨') || message.includes('🚀') || message.includes('👋'))) {
+    return message;
+  }
+
+  // Errors and warnings get more detail
+  if (level === 'error' || level === 'warn') {
+    let formatted = `${this.getLevelLabel(level)} ${message}`;
+    
+    // Show location if available in meta
+    if (entry._location) {
+      formatted += ` (${entry._location})`;
     }
-
-    // Errors and warnings get more detail
-    if (level === 'error' || level === 'warn') {
-      let formatted = `${this.getLevelLabel(level)} ${message}`;
-      
-      if (component) {
-        formatted += ` [${component}]`;
-      }
-
-      if (error) {
-        const errorMsg = typeof error === 'object' ? error.message || error : error;
-        formatted += `\n  ${errorMsg}`;
-      }
-
-      return formatted;
-    }
-
-    // Other messages stay simple
-    let formatted = message;
-    if (component && !message.includes(component)) {
+    
+    if (component) {
       formatted += ` [${component}]`;
+    }
+
+    if (error) {
+      const errorMsg = typeof error === 'object' ? error.message || error : error;
+      formatted += `\n  ${errorMsg}`;
     }
 
     return formatted;
   }
+
+  // Other messages stay simple
+  let formatted = message;
+  if (component && !message.includes(component)) {
+    formatted += ` [${component}]`;
+  }
+
+  return formatted;
+}
 
   /**
    * Format for pretty development mode - full detail with structure
@@ -177,23 +182,29 @@ export class ConsoleTransport implements Transport {
    * @llm-rule AVOID: In production - too verbose for production logs
    */
   private formatPretty(entry: LogEntry): string {
-    const { timestamp, level, message, ...meta } = entry;
-    let formatted = '';
+  const { timestamp, level, message, ...meta } = entry;
+  let formatted = '';
 
-    if (this.timestamps) {
-      formatted += `${timestamp} `;
-    }
-
-    formatted += `${this.getLevelLabel(level)} ${message}`;
-
-    // Add pretty-printed metadata if present
-    const metaKeys = Object.keys(meta);
-    if (metaKeys.length > 0) {
-      formatted += '\n' + JSON.stringify(meta, null, 2);
-    }
-
-    return formatted;
+  if (this.timestamps) {
+    formatted += `${timestamp} `;
   }
+
+  formatted += `${this.getLevelLabel(level)} ${message}`;
+
+  // Show location in pretty format for errors
+  if (level === 'error' && entry._location) {
+    formatted += `\n  📍 ${entry._location}`;
+  }
+
+  // Add pretty-printed metadata if present (excluding _location)
+  const { _location, ...displayMeta } = meta;
+  const metaKeys = Object.keys(displayMeta);
+  if (metaKeys.length > 0) {
+    formatted += '\n' + JSON.stringify(displayMeta, null, 2);
+  }
+
+  return formatted;
+}
 
   /**
    * Format for standard/production mode - structured but compact
