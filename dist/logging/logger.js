@@ -237,11 +237,42 @@ export class LoggerClass {
                         message: 'Check service file exists and name matches'
                     });
                 }
+                // Only suggest .js if file actually exists and project might need it
                 if (!missingModule.endsWith('.js')) {
-                    diagnostics.push({
-                        type: 'info',
-                        message: 'TypeScript imports should use .js extensions'
-                    });
+                    try {
+                        const fs = require('fs');
+                        const path = require('path');
+                        // Try to find the actual file
+                        const basePath = missingModule.replace(/^.*\//, ''); // Get filename
+                        const possiblePaths = [
+                            missingModule + '.ts',
+                            missingModule + '.js',
+                            missingModule + '/index.ts',
+                            missingModule + '/index.js'
+                        ];
+                        const existingFile = possiblePaths.find(p => {
+                            try {
+                                return fs.existsSync(p);
+                            }
+                            catch {
+                                return false;
+                            }
+                        });
+                        if (existingFile && existingFile.endsWith('.ts')) {
+                            diagnostics.push({
+                                type: 'info',
+                                message: 'File exists - try adding .js extension if using ES modules',
+                                fix: `Try: ${missingModule}.js`
+                            });
+                        }
+                    }
+                    catch {
+                        // Fallback to general suggestion if file system check fails
+                        diagnostics.push({
+                            type: 'info',
+                            message: 'Consider .js extension if using ES modules'
+                        });
+                    }
                 }
             }
         }
