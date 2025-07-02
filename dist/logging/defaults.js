@@ -6,12 +6,14 @@
  * @llm-rule WHEN: App startup - need production-ready logging configuration
  * @llm-rule AVOID: Calling multiple times - expensive environment parsing, cache results
  * @llm-rule NOTE: Called once at startup, cached globally for performance like auth module
+ * @llm-rule NOTE: Now includes visual error configuration for enhanced developer experience
  */
 /**
  * Get smart defaults using direct VOILA_LOGGING_* environment access
  * @llm-rule WHEN: App startup to get production-ready logging configuration
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
+ * @llm-rule NOTE: Now includes VOILA_VISUAL_ERRORS support for enhanced error display
  */
 export function getSmartDefaults() {
     // Direct environment access with smart defaults (like auth module)
@@ -132,6 +134,7 @@ function getEnabledTransports(isTest) {
  * Validate environment variables (like auth module validation)
  * @llm-rule WHEN: App startup to catch configuration errors early
  * @llm-rule AVOID: Skipping validation - invalid config causes silent failures
+ * @llm-rule NOTE: Now includes validation for VOILA_VISUAL_ERRORS
  */
 export function validateEnvironment() {
     // Validate log level
@@ -143,6 +146,11 @@ export function validateEnvironment() {
     const scope = process.env.VOILA_LOGGING_SCOPE;
     if (scope && !['minimal', 'full'].includes(scope.toLowerCase())) {
         throw new Error(`Invalid VOILA_LOGGING_SCOPE: "${scope}". Must be: minimal, full`);
+    }
+    // Validate visual errors setting
+    const visualErrors = process.env.VOILA_VISUAL_ERRORS;
+    if (visualErrors && !['true', 'false'].includes(visualErrors)) {
+        throw new Error(`Invalid VOILA_VISUAL_ERRORS: "${visualErrors}". Must be: true, false`);
     }
     // Validate URLs if provided
     const httpUrl = process.env.VOILA_LOGGING_HTTP_URL;

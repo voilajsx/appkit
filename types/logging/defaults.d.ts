@@ -6,6 +6,7 @@
  * @llm-rule WHEN: App startup - need production-ready logging configuration
  * @llm-rule AVOID: Calling multiple times - expensive environment parsing, cache results
  * @llm-rule NOTE: Called once at startup, cached globally for performance like auth module
+ * @llm-rule NOTE: Now includes visual error configuration for enhanced developer experience
  */
 export interface LoggingConfig {
     level: 'debug' | 'info' | 'warn' | 'error';
@@ -55,11 +56,13 @@ export interface LoggingConfig {
  * @llm-rule WHEN: App startup to get production-ready logging configuration
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
+ * @llm-rule NOTE: Now includes VOILA_VISUAL_ERRORS support for enhanced error display
  */
 export declare function getSmartDefaults(): LoggingConfig;
 /**
  * Validate environment variables (like auth module validation)
  * @llm-rule WHEN: App startup to catch configuration errors early
  * @llm-rule AVOID: Skipping validation - invalid config causes silent failures
+ * @llm-rule NOTE: Now includes validation for VOILA_VISUAL_ERRORS
  */
 export declare function validateEnvironment(): void;

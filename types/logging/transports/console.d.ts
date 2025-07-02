@@ -1,12 +1,12 @@
 /**
- * Console transport with smart formatting and minimal mode support
+ * Console transport with smart formatting, minimal mode support, and visual error enhancement
  * @module @voilajsx/appkit/logging
  * @file src/logging/transports/console.ts
  *
  * @llm-rule WHEN: Need console output for development or production monitoring
  * @llm-rule AVOID: Using console.log directly - this handles levels, colors, and formatting
  * @llm-rule NOTE: Auto-detects production/development mode and adjusts formatting accordingly
- * @llm-rule NOTE: Minimal mode shows all logs but hides verbose JSON metadata for clean console
+ * @llm-rule NOTE: Enhanced to work with visual error formatting from logger.error() method
  */
 import type { LogEntry, Transport } from '../logger';
 import type { LoggingConfig } from '../defaults';
@@ -28,9 +28,15 @@ export declare class ConsoleTransport implements Transport {
      * Write log entry to console with smart formatting
      * @llm-rule WHEN: Outputting logs to console for development or production
      * @llm-rule AVOID: Calling directly - logger routes entries automatically
-     * @llm-rule NOTE: Minimal mode shows all logs but with clean formatting (no JSON metadata)
+     * @llm-rule NOTE: Skips visual error entries since they're handled by logger.error() method directly
      */
     write(entry: LogEntry): void;
+    /**
+     * Check if entry should be skipped because it was already visually displayed
+     * @llm-rule WHEN: Enhanced error() method has already shown visual formatting
+     * @llm-rule AVOID: Double-displaying errors that have visual formatting
+     */
+    private shouldSkipVisualEntry;
     /**
      * Format for minimal mode - clean and simple, all logs visible
      * @llm-rule WHEN: Development mode with minimal scope for clean console

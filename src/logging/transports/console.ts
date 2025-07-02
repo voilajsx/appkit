@@ -1,12 +1,12 @@
 /**
- * Console transport with smart formatting and minimal mode support
+ * Console transport with smart formatting, minimal mode support, and visual error enhancement
  * @module @voilajsx/appkit/logging
  * @file src/logging/transports/console.ts
  * 
  * @llm-rule WHEN: Need console output for development or production monitoring
  * @llm-rule AVOID: Using console.log directly - this handles levels, colors, and formatting
  * @llm-rule NOTE: Auto-detects production/development mode and adjusts formatting accordingly
- * @llm-rule NOTE: Minimal mode shows all logs but hides verbose JSON metadata for clean console
+ * @llm-rule NOTE: Enhanced to work with visual error formatting from logger.error() method
  */
 
 import type { LogEntry, Transport } from '../logger';
@@ -38,10 +38,15 @@ export class ConsoleTransport implements Transport {
    * Write log entry to console with smart formatting
    * @llm-rule WHEN: Outputting logs to console for development or production
    * @llm-rule AVOID: Calling directly - logger routes entries automatically
-   * @llm-rule NOTE: Minimal mode shows all logs but with clean formatting (no JSON metadata)
+   * @llm-rule NOTE: Skips visual error entries since they're handled by logger.error() method directly
    */
   write(entry: LogEntry): void {
     try {
+      // Skip entries that have already been visually displayed by enhanced error() method
+      if (this.shouldSkipVisualEntry(entry)) {
+        return;
+      }
+
       // Format based on mode
       let output: string;
       if (this.minimal) {
@@ -66,6 +71,28 @@ export class ConsoleTransport implements Transport {
       // Never let logging break the application
       console.error('Console transport error:', (error as Error).message);
     }
+  }
+
+  /**
+   * Check if entry should be skipped because it was already visually displayed
+   * @llm-rule WHEN: Enhanced error() method has already shown visual formatting
+   * @llm-rule AVOID: Double-displaying errors that have visual formatting
+   */
+  private shouldSkipVisualEntry(entry: LogEntry): boolean {
+    // Skip error entries in development that have visual formatting metadata
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const hasVisualFormatting = entry.level === 'error' && 
+                               (entry.errorType === 'DISPLAY_ERROR' || 
+                                entry.category || 
+                                entry.feature);
+    
+    // In development, if the enhanced error() method showed visual formatting,
+    // we can skip the regular console output to avoid duplication
+    const shouldShowVisual = isDevelopment || 
+                             !this.minimal ||
+                             process.env.VOILA_VISUAL_ERRORS === 'true';
+    
+    return shouldShowVisual && hasVisualFormatting;
   }
 
   /**
@@ -148,8 +175,8 @@ export class ConsoleTransport implements Transport {
       formatted += `\n  📍 ${entry._location}`;
     }
 
-    // Add pretty-printed metadata if present (excluding _location)
-    const { _location, ...displayMeta } = meta;
+    // Add pretty-printed metadata if present (excluding internal fields)
+    const { _location, errorType, ...displayMeta } = meta;
     const metaKeys = Object.keys(displayMeta);
     if (metaKeys.length > 0) {
       formatted += '\n' + JSON.stringify(displayMeta, null, 2);
@@ -173,10 +200,11 @@ export class ConsoleTransport implements Transport {
 
     formatted += `[${level.toUpperCase()}] ${message}`;
 
-    // Add compact metadata if present
-    const metaKeys = Object.keys(meta);
+    // Add compact metadata if present (excluding internal fields)
+    const { _location, errorType, ...displayMeta } = meta;
+    const metaKeys = Object.keys(displayMeta);
     if (metaKeys.length > 0) {
-      formatted += ` ${JSON.stringify(meta)}`;
+      formatted += ` ${JSON.stringify(displayMeta)}`;
     }
 
     return formatted;

@@ -1,11 +1,11 @@
 /**
- * Core logger class with simplified transport management and built-in functionality
+ * Core logger class with visual error display and simplified transport management
  * @module @voilajsx/appkit/logging
  * @file src/logging/logger.ts
  * 
  * @llm-rule WHEN: Building logger instances - called via logger.get(), not directly
  * @llm-rule AVOID: Creating LoggerClass directly - always use logger.get() for proper setup
- * @llm-rule NOTE: Handles all transports automatically based on environment detection
+ * @llm-rule NOTE: Enhanced error() method provides automatic visual formatting for better DX
  */
 
 import { ConsoleTransport } from './transports/console';
@@ -37,8 +37,14 @@ export interface Transport {
   close?(): Promise<void>;
 }
 
+export interface ErrorDiagnostic {
+  type: 'warning' | 'error' | 'info' | 'success';
+  message: string;
+  fix?: string;
+}
+
 /**
- * Logger class with automatic transport management (like auth class pattern)
+ * Logger class with automatic transport management and enhanced error() method
  */
 export class LoggerClass implements Logger {
   private level: 'debug' | 'info' | 'warn' | 'error';
@@ -48,11 +54,6 @@ export class LoggerClass implements Logger {
   private transports = new Map<string, Transport>();
   private pendingWrites: Promise<any>[] = [];
 
-  /**
-   * Creates logger with simplified constructor (like auth module)
-   * @llm-rule WHEN: Called by logger.get() - environment config already parsed
-   * @llm-rule AVOID: Complex config objects - uses direct environment values
-   */
   constructor(config: LoggingConfig) {
     this.config = config;
     this.level = config.level;
@@ -63,24 +64,16 @@ export class LoggerClass implements Logger {
       environment: config.service.environment,
     };
 
-    // Initialize transports based on environment detection
     this.initializeTransports();
   }
 
-  /**
-   * Initialize enabled transports automatically
-   * @llm-rule WHEN: Logger startup - creates transports based on environment
-   * @llm-rule AVOID: Manual transport setup - environment detection handles this
-   */
   private initializeTransports(): void {
     const { transports } = this.config;
 
-    // Console transport (always first for fallback)
     if (transports.console) {
       this.transports.set('console', new ConsoleTransport(this.config));
     }
 
-    // File transport
     if (transports.file) {
       try {
         this.transports.set('file', new FileTransport(this.config));
@@ -89,7 +82,6 @@ export class LoggerClass implements Logger {
       }
     }
 
-    // Database transport (auto-enabled if DATABASE_URL exists)
     if (transports.database && this.config.database.url) {
       try {
         this.transports.set('database', new DatabaseTransport(this.config));
@@ -98,7 +90,6 @@ export class LoggerClass implements Logger {
       }
     }
 
-    // HTTP transport (auto-enabled if URL provided)
     if (transports.http && this.config.http.url) {
       try {
         this.transports.set('http', new HttpTransport(this.config));
@@ -107,7 +98,6 @@ export class LoggerClass implements Logger {
       }
     }
 
-    // Webhook transport (auto-enabled if URL provided)
     if (transports.webhook && this.config.webhook.url) {
       try {
         this.transports.set('webhook', new WebhookTransport(this.config));
@@ -116,7 +106,6 @@ export class LoggerClass implements Logger {
       }
     }
 
-    // Fallback to console if no transports initialized
     if (this.transports.size === 0) {
       console.warn('No transports initialized, falling back to console');
       this.transports.set('console', new ConsoleTransport(this.config));
@@ -133,39 +122,24 @@ export class LoggerClass implements Logger {
   }
 
   /**
-   * Log error message
+   * Enhanced error logging with automatic visual formatting
    * @llm-rule WHEN: Exceptions, failures, critical issues requiring attention
    * @llm-rule AVOID: Using for warnings - errors should indicate actual problems
-   * @llm-rule NOTE: Automatically includes file and line number where the error was logged
+   * @llm-rule NOTE: Automatically provides visual formatting in development with smart diagnostics
    */
   error(message: string, meta: LogMeta = {}): void {
-    // Auto-add file/line info to existing meta
     const enhancedMeta = {
       ...meta,
-      _location: this.getCaller() // Add to meta, don't change structure
+      _location: this.getCaller()
     };
-    
-    this.log('error', message, enhancedMeta);
-  }
-  private getCaller(): string {
-    const stack = new Error().stack;
-    if (!stack) return 'unknown';
 
-    const lines = stack.split('\n');
-    const callerLine = lines[4] || ''; // Skip Error, getCaller, error, find actual caller
-    
-    // Extract file:line with full path
-    const match = callerLine.match(/\((.+):(\d+):(\d+)\)/) || 
-                  callerLine.match(/at\s+(.+):(\d+):(\d+)/);
-    
-    if (match) {
-      const [, filePath, lineNumber] = match;
-      // Clean up the path but keep it full
-      const cleanPath = filePath.replace(process.cwd() + '/', ''); // Remove only cwd prefix
-      return `${cleanPath}:${lineNumber}`;
+    // Detect error type and provide visual formatting if appropriate
+    if (this.shouldShowVisual()) {
+      this.renderVisualError(message, enhancedMeta);
     }
 
-    return 'unknown';
+    // Always log structured data for production/debugging
+    this.log('error', message, enhancedMeta);
   }
 
   /**
@@ -187,7 +161,7 @@ export class LoggerClass implements Logger {
   }
 
   /**
-   * Create child logger with additional context (like auth pattern)
+   * Create child logger with additional context
    * @llm-rule WHEN: Adding component context or request-specific data
    * @llm-rule AVOID: Creating many child loggers - reuse component loggers
    */
@@ -197,18 +171,260 @@ export class LoggerClass implements Logger {
     return child;
   }
 
-  /**
-   * Core logging method with automatic transport routing
-   * @llm-rule WHEN: Called by info/error/warn/debug methods
-   * @llm-rule AVOID: Calling directly - use specific level methods instead
-   */
+  // ============================================================================
+  // VISUAL ERROR FORMATTING METHODS
+  // ============================================================================
+
+  private shouldShowVisual(): boolean {
+    // Show visual output in development or when explicitly enabled
+    return this.config.service.environment === 'development' || 
+           this.config.minimal === false ||
+           process.env.VOILA_VISUAL_ERRORS === 'true';
+  }
+
+  private renderVisualError(message: string, meta: LogMeta): void {
+    const errorType = this.detectErrorType(message, meta);
+    const title = this.getErrorTitle(errorType);
+    const diagnostics = this.generateDiagnostics(message, meta, errorType);
+
+    const colors = {
+      reset: '\x1b[0m',
+      red: '\x1b[31m',
+      green: '\x1b[32m',
+      yellow: '\x1b[33m',
+      cyan: '\x1b[36m',
+      gray: '\x1b[90m'
+    };
+
+    console.log();
+    console.log(`${colors.red}╭─ ${title}${colors.reset}`);
+    
+    if (meta.feature) {
+      console.log(`${colors.red}│${colors.reset} Feature: ${colors.cyan}${meta.feature}${colors.reset}`);
+    }
+    
+    if (meta.file) {
+      console.log(`${colors.red}│${colors.reset} File:    ${colors.yellow}${meta.file}${colors.reset}`);
+    }
+    
+    console.log(`${colors.red}│${colors.reset}`);
+
+    // Show diagnostics
+    diagnostics.forEach(diagnostic => {
+      const icon = diagnostic.type === 'error' ? '✗' : 
+                   diagnostic.type === 'warning' ? '⚠' : 
+                   diagnostic.type === 'success' ? '✓' : 'ℹ';
+      
+      const color = diagnostic.type === 'error' ? colors.red : 
+                    diagnostic.type === 'warning' ? colors.yellow : 
+                    diagnostic.type === 'success' ? colors.green : colors.cyan;
+
+      console.log(`${colors.red}│${colors.reset} ${color}${icon}${colors.reset} ${diagnostic.message}`);
+      
+      if (diagnostic.fix) {
+        console.log(`${colors.red}│${colors.reset} ${colors.green}✓${colors.reset} ${diagnostic.fix}`);
+      }
+    });
+
+    const solutions = this.getSolutions(errorType, message);
+    if (solutions.length > 0) {
+      console.log(`${colors.red}│${colors.reset}`);
+      solutions.forEach(solution => {
+        console.log(`${colors.red}│${colors.reset} ${colors.green}✓${colors.reset} ${solution}`);
+      });
+    }
+
+    console.log(`${colors.red}╰─ FIX: ${colors.green}Resolve the issues above and restart${colors.reset}`);
+    console.log();
+  }
+
+  private detectErrorType(message: string, meta: LogMeta): string {
+    // Check meta for explicit category
+    if (meta.category) {
+      return meta.category as string;
+    }
+
+    // Auto-detect from message patterns
+    if (message.includes('Cannot find module') || message.includes('import')) {
+      return 'import';
+    }
+
+    if (message.includes('EADDRINUSE') || message.includes('port') || message.includes('startup')) {
+      return 'startup';
+    }
+
+    if (message.includes('CONTRACT') || message.includes('contract')) {
+      return 'contract';
+    }
+
+    if (message.includes('ROUTE') || message.includes('registration')) {
+      return 'route';
+    }
+
+    return 'general';
+  }
+
+  private getErrorTitle(errorType: string): string {
+    const titles: Record<string, string> = {
+      import: 'IMPORT ERROR',
+      startup: 'STARTUP ERROR',
+      contract: 'CONTRACT ERROR',
+      route: 'ROUTE ERROR',
+      filesystem: 'FILE SYSTEM ERROR',
+      general: 'ERROR'
+    };
+
+    return titles[errorType] || 'ERROR';
+  }
+
+  private generateDiagnostics(message: string, meta: LogMeta, errorType: string): ErrorDiagnostic[] {
+    const diagnostics: ErrorDiagnostic[] = [];
+
+    // Import error diagnostics
+    if (errorType === 'import') {
+      const missingModule = message.match(/Cannot find module '([^']+)'/)?.[1];
+      if (missingModule) {
+        diagnostics.push({
+          type: 'error',
+          message: `Missing import: ${missingModule}`,
+        });
+
+        // Check for common typos
+        if (missingModule.includes('Service') && missingModule.endsWith('Servic')) {
+          diagnostics.push({
+            type: 'warning',
+            message: 'Looks like a typo: missing \'e\' at end?',
+            fix: `Try: ${missingModule}e`
+          });
+        }
+
+        if (missingModule.includes('/services/')) {
+          diagnostics.push({
+            type: 'info',
+            message: 'Check service file exists and name matches'
+          });
+        }
+
+        if (!missingModule.endsWith('.js')) {
+          diagnostics.push({
+            type: 'info',
+            message: 'TypeScript imports should use .js extensions'
+          });
+        }
+      }
+    }
+
+    // Startup error diagnostics
+    if (errorType === 'startup') {
+      if (message.includes('EADDRINUSE')) {
+        diagnostics.push({
+          type: 'error',
+          message: 'Port already in use',
+          fix: 'Change PORT environment variable or stop conflicting process'
+        });
+      }
+    }
+
+    // Contract error diagnostics
+    if (errorType === 'contract') {
+      diagnostics.push({
+        type: 'error',
+        message: 'Contract validation failed',
+        fix: 'Run: npm run flux:check to see detailed contract issues'
+      });
+    }
+
+    // Route error diagnostics
+    if (errorType === 'route') {
+      if (message.includes('export')) {
+        diagnostics.push({
+          type: 'error',
+          message: 'Route file must export a function as default',
+          fix: 'Add: export default router(...)'
+        });
+      }
+
+      if (message.includes('registration')) {
+        diagnostics.push({
+          type: 'error',
+          message: 'Route registration failed',
+          fix: 'Check route syntax and router() usage'
+        });
+      }
+    }
+
+    // File system error diagnostics
+    if (message.includes('ENOENT') || message.includes('not found')) {
+      diagnostics.push({
+        type: 'error',
+        message: 'File or directory not found',
+        fix: 'Check file path exists and spelling is correct'
+      });
+    }
+
+    return diagnostics;
+  }
+
+  private getSolutions(errorType: string, message: string): string[] {
+    const solutionMap: Record<string, string[]> = {
+      import: [
+        'Check import paths and file names',
+        'Verify the file exists',
+        'Use .js extensions in TypeScript imports'
+      ],
+      startup: [
+        'Check environment variables',
+        'Verify port is available',
+        'Review server configuration'
+      ],
+      contract: [
+        'Add missing contracts: createBackendContract().build()',
+        'Declare all routes and services',
+        'Run: npm run flux:check for details'
+      ],
+      route: [
+        'Check route file syntax',
+        'Ensure proper export default',
+        'Verify router() usage'
+      ],
+      general: [
+        'Check the error details above',
+        'Review recent code changes',
+        'Consult documentation'
+      ]
+    };
+
+    return solutionMap[errorType] || solutionMap.general;
+  }
+
+  // ============================================================================
+  // EXISTING HELPER METHODS
+  // ============================================================================
+
+  private getCaller(): string {
+    const stack = new Error().stack;
+    if (!stack) return 'unknown';
+
+    const lines = stack.split('\n');
+    const callerLine = lines[4] || '';
+    
+    const match = callerLine.match(/\((.+):(\d+):(\d+)\)/) || 
+                  callerLine.match(/at\s+(.+):(\d+):(\d+)/);
+    
+    if (match) {
+      const [, filePath, lineNumber] = match;
+      const cleanPath = filePath.replace(process.cwd() + '/', '');
+      return `${cleanPath}:${lineNumber}`;
+    }
+
+    return 'unknown';
+  }
+
   private log(level: 'debug' | 'info' | 'warn' | 'error', message: string, meta: LogMeta): void {
-    // Skip if level too low
     if (LOG_LEVELS[level] > this.levelValue) {
       return;
     }
 
-    // Create log entry
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -217,26 +433,18 @@ export class LoggerClass implements Logger {
       ...meta,
     };
 
-    // Send to all transports
     this.writeToTransports(entry);
   }
 
-  /**
-   * Write log entry to all active transports
-   * @llm-rule WHEN: Distributing log entries across console, file, database, etc
-   * @llm-rule AVOID: Manual transport selection - automatic routing is better
-   */
   private writeToTransports(entry: LogEntry): void {
     const writePromises: Promise<any>[] = [];
 
     for (const [name, transport] of this.transports) {
       try {
-        // Check transport-specific level filtering
         if (transport.shouldLog && !transport.shouldLog(entry.level, this.level)) {
           continue;
         }
 
-        // Write to transport (may be async)
         const result = transport.write(entry);
         if (result && typeof result.then === 'function') {
           writePromises.push(
@@ -250,17 +458,14 @@ export class LoggerClass implements Logger {
       }
     }
 
-    // Track promises for flushing
     this.pendingWrites = writePromises;
   }
 
-  /**
-   * Flush all pending logs across all transports
-   * @llm-rule WHEN: App shutdown, test cleanup, ensuring logs are written
-   * @llm-rule AVOID: Calling frequently - only needed for cleanup
-   */
+  // ============================================================================
+  // EXISTING METHODS (Unchanged)
+  // ============================================================================
+
   async flush(): Promise<void> {
-    // Wait for pending writes
     if (this.pendingWrites.length > 0) {
       try {
         await Promise.all(this.pendingWrites);
@@ -270,7 +475,6 @@ export class LoggerClass implements Logger {
       this.pendingWrites = [];
     }
 
-    // Flush all transports
     const flushPromises: Promise<any>[] = [];
     for (const [name, transport] of this.transports) {
       if (transport.flush) {
@@ -294,16 +498,9 @@ export class LoggerClass implements Logger {
     }
   }
 
-  /**
-   * Close all transports and cleanup resources
-   * @llm-rule WHEN: App shutdown, test cleanup, logger reset
-   * @llm-rule AVOID: Calling without flush() first - may lose pending logs
-   */
   async close(): Promise<void> {
-    // Flush first
     await this.flush();
 
-    // Close all transports
     const closePromises: Promise<any>[] = [];
     for (const [name, transport] of this.transports) {
       if (transport.close) {
@@ -326,61 +523,30 @@ export class LoggerClass implements Logger {
       await Promise.all(closePromises);
     }
 
-    // Clear transports
     this.transports.clear();
   }
 
-  /**
-   * Get list of active transport names
-   * @llm-rule WHEN: Debugging transport setup or checking configuration
-   * @llm-rule AVOID: Using for business logic - transport selection is automatic
-   */
   getActiveTransports(): string[] {
     return Array.from(this.transports.keys());
   }
 
-  /**
-   * Check if specific transport is active
-   * @llm-rule WHEN: Conditional logic based on transport availability
-   * @llm-rule AVOID: Complex transport detection - just log normally
-   */
   hasTransport(name: string): boolean {
     return this.transports.has(name);
   }
 
-  /**
-   * Set log level at runtime
-   * @llm-rule WHEN: Dynamic log level changes based on debug flags
-   * @llm-rule AVOID: Frequent level changes - set once at startup usually
-   */
   setLevel(level: 'debug' | 'info' | 'warn' | 'error'): void {
     this.level = level;
     this.levelValue = LOG_LEVELS[level];
   }
 
-  /**
-   * Get current log level
-   * @llm-rule WHEN: Checking current log level for conditional logging
-   * @llm-rule AVOID: Using for level filtering - logger handles this automatically
-   */
   getLevel(): string {
     return this.level;
   }
 
-  /**
-   * Check if specific level would be logged
-   * @llm-rule WHEN: Expensive log message computation - check before building
-   * @llm-rule AVOID: Regular usage - just call log methods, they filter automatically
-   */
   isLevelEnabled(level: 'debug' | 'info' | 'warn' | 'error'): boolean {
     return LOG_LEVELS[level] <= this.levelValue;
   }
 
-  /**
-   * Get configuration summary for debugging
-   * @llm-rule WHEN: Debugging logger setup or environment detection issues
-   * @llm-rule AVOID: Using for runtime decisions - config is set at startup
-   */
   getConfig() {
     return {
       level: this.level,

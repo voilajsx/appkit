@@ -1,12 +1,12 @@
 /**
- * Ultra-simple logging that just works with enterprise features
+ * Ultra-simple logging that just works with enterprise features and enhanced error display
  * @module @voilajsx/appkit/logging
  * @file src/logging/index.ts
  * 
  * @llm-rule WHEN: Need logging in any app - console, files, database, external services
  * @llm-rule AVOID: Using console.log directly - this provides structured logging with levels
  * @llm-rule NOTE: Uses logger.get() pattern like auth - get() → log.info() → done
- * @llm-rule NOTE: Auto-detects transports from environment - DATABASE_URL enables database logging
+ * @llm-rule NOTE: Enhanced error() method now provides automatic visual formatting in development
  */
 
 import { LoggerClass } from './logger';
@@ -22,7 +22,7 @@ export interface LogMeta {
 
 export interface Logger {
   info(message: string, meta?: LogMeta): void;
-  error(message: string, meta?: LogMeta): void;
+  error(message: string, meta?: LogMeta): void;  // Enhanced with automatic visual formatting
   warn(message: string, meta?: LogMeta): void;
   debug(message: string, meta?: LogMeta): void;
   child(bindings: LogMeta): Logger;
@@ -35,6 +35,7 @@ export interface Logger {
  * @llm-rule WHEN: Starting any logging operation - this is your main entry point
  * @llm-rule AVOID: Creating LoggerClass directly - always use this function
  * @llm-rule NOTE: Typical flow - get() → info/error/warn/debug() → automatic transport
+ * @llm-rule NOTE: error() method now automatically provides visual formatting when appropriate
  */
 function get(component?: string): Logger {
   // Lazy initialization - parse environment once (like auth)
@@ -120,6 +121,10 @@ export const logger = {
   hasTransport,
   getConfig,
 } as const;
+
+// Export types for consumers
+export type { LoggingConfig } from './defaults';
+export { LoggerClass } from './logger';
 
 // Default export
 export default logger;
