@@ -6,9 +6,10 @@
  * @llm-rule WHEN: Need console output for development or production monitoring
  * @llm-rule AVOID: Using console.log directly - this handles levels, colors, and formatting
  * @llm-rule NOTE: Auto-detects production/development mode and adjusts formatting accordingly
+ * @llm-rule NOTE: Minimal mode shows all logs but hides verbose JSON metadata for clean console
  */
 /**
- * Console transport with automatic formatting and scope optimization
+ * Console transport with automatic formatting and smart minimal mode
  */
 export class ConsoleTransport {
     /**
@@ -22,28 +23,27 @@ export class ConsoleTransport {
         this.timestamps = config.console.timestamps;
         this.prettyPrint = config.console.prettyPrint;
         this.minimal = config.minimal;
-        this.minimalLevelValue = this.getLevelValue('warn'); // Show warnings+ in minimal
     }
     /**
      * Write log entry to console with smart formatting
      * @llm-rule WHEN: Outputting logs to console for development or production
      * @llm-rule AVOID: Calling directly - logger routes entries automatically
+     * @llm-rule NOTE: Minimal mode shows all logs but with clean formatting (no JSON metadata)
      */
     write(entry) {
         try {
-            // Filter in minimal mode
-            if (this.minimal && !this.shouldShowInMinimal(entry)) {
-                return;
-            }
             // Format based on mode
             let output;
             if (this.minimal) {
+                // Minimal: clean format, no JSON metadata, all logs visible
                 output = this.formatMinimal(entry);
             }
             else if (this.prettyPrint) {
+                // Full scope with pretty JSON metadata for debugging
                 output = this.formatPretty(entry);
             }
             else {
+                // Standard format with compact JSON for production
                 output = this.formatStandard(entry);
             }
             // Apply colors if enabled
@@ -59,61 +59,10 @@ export class ConsoleTransport {
         }
     }
     /**
-     * Check if log should be shown in minimal mode
-     * @llm-rule WHEN: Filtering logs for clean development console
-     * @llm-rule AVOID: Complex filtering logic - simple level + keyword detection
-     */
-    shouldShowInMinimal(entry) {
-        const levelValue = this.getLevelValue(entry.level);
-        // Always show errors and warnings in minimal mode
-        if (levelValue <= this.minimalLevelValue) {
-            return true;
-        }
-        // Show important application events
-        if (this.isImportantMessage(entry.message, entry)) {
-            return true;
-        }
-        return false;
-    }
-    /**
-     * Check if message is important for minimal mode
-     * @llm-rule WHEN: Determining if info/debug messages should show in minimal mode
-     * @llm-rule AVOID: Adding too many keywords - keep minimal mode actually minimal
-     */
-    isImportantMessage(message, entry) {
-        const msg = (message || '').toLowerCase();
-        // Application lifecycle events
-        const lifecycleKeywords = [
-            'starting', 'started', 'ready', 'listening', 'shutdown', 'stopped',
-            'initializing', 'initialized', 'complete', 'connected', 'disconnected'
-        ];
-        // VoilaJSX specific startup messages
-        const voilaKeywords = [
-            '✨', '🚀', '👋', 'voilajs', 'server:', 'api routes:', 'apps directory:'
-        ];
-        // Critical events that should always show
-        const criticalKeywords = [
-            'failed', 'error', 'warning', 'authentication', 'security', 'database'
-        ];
-        // Check message content
-        const importantKeywords = [...lifecycleKeywords, ...voilaKeywords, ...criticalKeywords];
-        if (importantKeywords.some(keyword => msg.includes(keyword))) {
-            return true;
-        }
-        // Check component for important ones
-        const component = entry.component || '';
-        const importantComponents = [
-            'app-init', 'server-start', 'shutdown', 'auth', 'database', 'bootstrap'
-        ];
-        if (importantComponents.includes(component)) {
-            return true;
-        }
-        return false;
-    }
-    /**
-     * Format for minimal mode - clean and simple
+     * Format for minimal mode - clean and simple, all logs visible
      * @llm-rule WHEN: Development mode with minimal scope for clean console
-     * @llm-rule AVOID: Adding too much detail - defeats purpose of minimal mode
+     * @llm-rule AVOID: Adding JSON metadata - defeats purpose of minimal mode
+     * @llm-rule NOTE: Shows all logs but with clean formatting, no filtering
      */
     formatMinimal(entry) {
         const { level, message, component, error, _location, timestamp } = entry;
@@ -124,41 +73,42 @@ export class ConsoleTransport {
             minute: '2-digit',
             second: '2-digit'
         });
-        // Special handling for VoilaJSX startup messages
+        // Special handling for VoilaJSX startup messages (keep them prominent)
         if (message && (message.includes('✨') || message.includes('🚀') || message.includes('👋'))) {
             return `${cleanTime} ${message}`;
         }
-        // Errors and warnings get more detail
+        // Errors and warnings get enhanced formatting
         if (level === 'error' || level === 'warn') {
             let formatted = `${cleanTime} ${this.getLevelLabel(level)} ${message}`;
-            // Show location if available
+            // Show location for errors/warnings
             if (_location) {
                 formatted += ` (${_location})`;
             }
             if (component) {
                 formatted += ` [${component}]`;
             }
+            // Add error details if present
             if (error) {
                 const errorMsg = typeof error === 'object' ? error.message || error : error;
                 formatted += `\n  ${errorMsg}`;
             }
             return formatted;
         }
-        // For info/debug logs - clean format with time, location and component
+        // For info/debug logs - clean format with essential info
         let formatted = `${cleanTime} ${message}`;
-        // Add location for debugging
+        // Add location for debugging (shows exactly where log came from)
         if (_location) {
             formatted += ` (${_location})`;
         }
-        // Add component tag for filtering
+        // Add component tag for filtering/context
         if (component) {
             formatted += ` [${component}]`;
         }
         return formatted;
     }
     /**
-     * Format for pretty development mode - full detail with structure
-     * @llm-rule WHEN: Development mode with full scope for debugging
+     * Format for pretty development mode - full detail with JSON structure
+     * @llm-rule WHEN: Development mode with full scope for detailed debugging
      * @llm-rule AVOID: In production - too verbose for production logs
      */
     formatPretty(entry) {
@@ -182,7 +132,7 @@ export class ConsoleTransport {
     }
     /**
      * Format for standard/production mode - structured but compact
-     * @llm-rule WHEN: Production or when structured logs needed
+     * @llm-rule WHEN: Production or when structured logs needed for parsing
      * @llm-rule AVOID: For development debugging - pretty mode is better
      */
     formatStandard(entry) {
@@ -200,7 +150,7 @@ export class ConsoleTransport {
         return formatted;
     }
     /**
-     * Get level label with emoji for pretty output
+     * Get level label with emoji for visual identification
      * @llm-rule WHEN: Pretty or minimal formatting needs visual level indicators
      * @llm-rule AVOID: In production structured logs - use level text instead
      */

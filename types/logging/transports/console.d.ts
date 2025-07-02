@@ -6,18 +6,18 @@
  * @llm-rule WHEN: Need console output for development or production monitoring
  * @llm-rule AVOID: Using console.log directly - this handles levels, colors, and formatting
  * @llm-rule NOTE: Auto-detects production/development mode and adjusts formatting accordingly
+ * @llm-rule NOTE: Minimal mode shows all logs but hides verbose JSON metadata for clean console
  */
 import type { LogEntry, Transport } from '../logger';
 import type { LoggingConfig } from '../defaults';
 /**
- * Console transport with automatic formatting and scope optimization
+ * Console transport with automatic formatting and smart minimal mode
  */
 export declare class ConsoleTransport implements Transport {
     private colorize;
     private timestamps;
     private prettyPrint;
     private minimal;
-    private minimalLevelValue;
     /**
      * Creates console transport with direct environment access (like auth pattern)
      * @llm-rule WHEN: Logger initialization - gets config from environment defaults
@@ -28,40 +28,30 @@ export declare class ConsoleTransport implements Transport {
      * Write log entry to console with smart formatting
      * @llm-rule WHEN: Outputting logs to console for development or production
      * @llm-rule AVOID: Calling directly - logger routes entries automatically
+     * @llm-rule NOTE: Minimal mode shows all logs but with clean formatting (no JSON metadata)
      */
     write(entry: LogEntry): void;
     /**
-     * Check if log should be shown in minimal mode
-     * @llm-rule WHEN: Filtering logs for clean development console
-     * @llm-rule AVOID: Complex filtering logic - simple level + keyword detection
-     */
-    private shouldShowInMinimal;
-    /**
-     * Check if message is important for minimal mode
-     * @llm-rule WHEN: Determining if info/debug messages should show in minimal mode
-     * @llm-rule AVOID: Adding too many keywords - keep minimal mode actually minimal
-     */
-    private isImportantMessage;
-    /**
-     * Format for minimal mode - clean and simple
+     * Format for minimal mode - clean and simple, all logs visible
      * @llm-rule WHEN: Development mode with minimal scope for clean console
-     * @llm-rule AVOID: Adding too much detail - defeats purpose of minimal mode
+     * @llm-rule AVOID: Adding JSON metadata - defeats purpose of minimal mode
+     * @llm-rule NOTE: Shows all logs but with clean formatting, no filtering
      */
     private formatMinimal;
     /**
-     * Format for pretty development mode - full detail with structure
-     * @llm-rule WHEN: Development mode with full scope for debugging
+     * Format for pretty development mode - full detail with JSON structure
+     * @llm-rule WHEN: Development mode with full scope for detailed debugging
      * @llm-rule AVOID: In production - too verbose for production logs
      */
     private formatPretty;
     /**
      * Format for standard/production mode - structured but compact
-     * @llm-rule WHEN: Production or when structured logs needed
+     * @llm-rule WHEN: Production or when structured logs needed for parsing
      * @llm-rule AVOID: For development debugging - pretty mode is better
      */
     private formatStandard;
     /**
-     * Get level label with emoji for pretty output
+     * Get level label with emoji for visual identification
      * @llm-rule WHEN: Pretty or minimal formatting needs visual level indicators
      * @llm-rule AVOID: In production structured logs - use level text instead
      */
