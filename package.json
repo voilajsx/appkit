@@ -1,6 +1,6 @@
 {
   "name": "@voilajsx/appkit",
-  "version": "1.0.13",
+  "version": "1.0.15",
   "description": "A minimal, framework-agnostic Node.js application toolkit",
   "main": "dist/index.js",
   "type": "module",
@@ -34,12 +34,7 @@
 },
   "files": [
     "types/",
-    "src/**/*.js",
-    "src/**/*.ts",
-    "!src/**/*.md",
-    "!src/**/docs/**",
-    "!src/**/tests/**",
-    "!src/**/examples/**",
+    "dist/**/*.js",
     "README.md",
     "LICENSE"
   ],
