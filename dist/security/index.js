@@ -8,8 +8,8 @@
  * @llm-rule NOTE: Common pattern - security.get() → secure.forms() → secure.requests() → secure.input()
  * @llm-rule NOTE: Use middleware first: forms() for CSRF, requests() for rate limiting, then input() for sanitization
  */
-import { SecurityClass } from './security';
-import { getSmartDefaults } from './defaults';
+import { SecurityClass } from './security.js';
+import { getSmartDefaults } from './defaults.js';
 // Global security instance for performance
 let globalSecurity = null;
 /**
@@ -156,4 +156,5 @@ export const security = {
     validateRequired,
     getStatus,
 };
-export { SecurityClass } from './security';
+export { SecurityClass } from './security.js';
+//# sourceMappingURL=index.js.map

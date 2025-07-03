@@ -19,8 +19,8 @@
  * ❌ VOILA__AUTH__SECRET=secret         → Parsed as user config (wrong!)
  */
 
-import { ConfigClass } from './config';
-import { getSmartDefaults, type AppConfig, type ConfigValue } from './defaults';
+import { ConfigClass } from './config.js';
+import { getSmartDefaults, type AppConfig, type ConfigValue } from './defaults.js';
 
 // Global configuration instance for performance
 let globalConfig: ConfigClass | null = null;
@@ -182,5 +182,5 @@ export const configure = {
 } as const;
 
 // Re-export types for consumers
-export type { ConfigValue, AppConfig } from './defaults';
-export { ConfigClass } from './config';
+export type { ConfigValue, AppConfig } from './defaults.js';
+export { ConfigClass } from './config.js';

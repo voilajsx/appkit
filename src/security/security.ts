@@ -9,8 +9,8 @@
  */
 
 import crypto from 'crypto';
-import type { SecurityConfig, SecurityError } from './defaults';
-import { createSecurityError } from './defaults';
+import type { SecurityConfig, SecurityError } from './defaults.js';
+import { createSecurityError } from './defaults.js';
 
 // Extended crypto interfaces for GCM mode
 interface CipherGCM extends crypto.Cipheriv {

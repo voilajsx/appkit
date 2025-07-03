@@ -8,8 +8,8 @@
  * @llm-rule NOTE: Uses logger.get() pattern like auth - get() → log.info() → done
  * @llm-rule NOTE: Enhanced error() method now provides automatic visual formatting in development
  */
-import { LoggerClass } from './logger';
-import { getSmartDefaults } from './defaults';
+import { LoggerClass } from './logger.js';
+import { getSmartDefaults } from './defaults.js';
 // Global logger instances for performance (like auth module)
 let globalLogger = null;
 const namedLoggers = new Map();
@@ -95,6 +95,7 @@ export const logger = {
     hasTransport,
     getConfig,
 };
-export { LoggerClass } from './logger';
+export { LoggerClass } from './logger.js';
 // Default export
 export default logger;
+//# sourceMappingURL=index.js.map

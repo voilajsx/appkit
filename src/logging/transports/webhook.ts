@@ -10,8 +10,8 @@
 
 import https from 'https';
 import http from 'http';
-import type { LogEntry, Transport } from '../logger';
-import type { LoggingConfig } from '../defaults';
+import type { LogEntry, Transport } from '../logger.js';
+import type { LoggingConfig } from '../defaults.js';
 
 /**
  * Webhook transport for real-time alerts with automatic service detection

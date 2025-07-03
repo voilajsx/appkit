@@ -8,8 +8,8 @@
  * @llm-rule NOTE: Supports PostgreSQL, MySQL, SQLite with automatic batching and retry logic
  */
 
-import type { LogEntry, Transport } from '../logger';
-import type { LoggingConfig } from '../defaults';
+import type { LogEntry, Transport } from '../logger.js';
+import type { LoggingConfig } from '../defaults.js';
 
 /**
  * Database transport with automatic connection and table management

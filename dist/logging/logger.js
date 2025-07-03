@@ -7,11 +7,11 @@
  * @llm-rule AVOID: Creating LoggerClass directly - always use logger.get() for proper setup
  * @llm-rule NOTE: Enhanced error() method provides automatic visual formatting for better DX
  */
-import { ConsoleTransport } from './transports/console';
-import { FileTransport } from './transports/file';
-import { DatabaseTransport } from './transports/database';
-import { HttpTransport } from './transports/http';
-import { WebhookTransport } from './transports/webhook';
+import { ConsoleTransport } from './transports/console.js';
+import { FileTransport } from './transports/file.js';
+import { DatabaseTransport } from './transports/database.js';
+import { HttpTransport } from './transports/http.js';
+import { WebhookTransport } from './transports/webhook.js';
 import { existsSync } from 'fs';
 import { join } from 'path';
 const LOG_LEVELS = {
@@ -24,9 +24,13 @@ const LOG_LEVELS = {
  * Logger class with automatic transport management and enhanced error() method
  */
 export class LoggerClass {
+    level;
+    levelValue;
+    defaultMeta;
+    config;
+    transports = new Map();
+    pendingWrites = [];
     constructor(config) {
-        this.transports = new Map();
-        this.pendingWrites = [];
         this.config = config;
         this.level = config.level;
         this.levelValue = LOG_LEVELS[this.level];
@@ -796,3 +800,4 @@ export class LoggerClass {
         };
     }
 }
+//# sourceMappingURL=logger.js.map

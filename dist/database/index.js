@@ -157,6 +157,7 @@ async function createClient(url, tenantId = null, orgId = null) {
  * Organization database builder
  */
 class OrgDatabase {
+    orgId;
     constructor(orgId) {
         this.orgId = orgId;
     }
@@ -486,3 +487,4 @@ export const database = {
 };
 // Default export for convenience
 export default database;
+//# sourceMappingURL=index.js.map

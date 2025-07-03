@@ -9,8 +9,8 @@
  * @llm-rule NOTE: Enhanced error() method now provides automatic visual formatting in development
  */
 
-import { LoggerClass } from './logger';
-import { getSmartDefaults } from './defaults';
+import { LoggerClass } from './logger.js';
+import { getSmartDefaults } from './defaults.js';
 
 // Global logger instances for performance (like auth module)
 let globalLogger: LoggerClass | null = null;
@@ -123,8 +123,8 @@ export const logger = {
 } as const;
 
 // Export types for consumers
-export type { LoggingConfig } from './defaults';
-export { LoggerClass } from './logger';
+export type { LoggingConfig } from './defaults.js';
+export { LoggerClass } from './logger.js';
 
 // Default export
 export default logger;

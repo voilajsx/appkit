@@ -7,8 +7,8 @@
  * @llm-rule AVOID: Using directly - always get instance via error.get()
  * @llm-rule NOTE: Provides semantic error creation (badRequest, unauthorized) and Express middleware
  */
-import { ErrorClass } from './error';
-import { getSmartDefaults } from './defaults';
+import { ErrorClass } from './error.js';
+import { getSmartDefaults } from './defaults.js';
 // Global error instance for performance
 let globalError = null;
 /**
@@ -60,4 +60,5 @@ export const error = {
     isClientError: (err) => get().isClientError(err),
     isServerError: (err) => get().isServerError(err),
 };
-export { ErrorClass } from './error';
+export { ErrorClass } from './error.js';
+//# sourceMappingURL=index.js.map

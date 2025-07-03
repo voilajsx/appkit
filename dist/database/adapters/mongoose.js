@@ -14,6 +14,11 @@ import { createDatabaseError } from '../defaults.js';
  * Simplified Mongoose adapter with VoilaJSX app discovery
  */
 export class MongooseAdapter {
+    options;
+    connections;
+    discoveredApps;
+    isDevelopment;
+    mongoose;
     constructor(options = {}) {
         this.options = options;
         this.connections = new Map();
@@ -472,3 +477,4 @@ export class MongooseAdapter {
         }
     }
 }
+//# sourceMappingURL=mongoose.js.map

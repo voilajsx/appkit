@@ -156,3 +156,4 @@ export function createSecurityError(message, statusCode = 400, details = {}) {
     Object.assign(error, details);
     return error;
 }
+//# sourceMappingURL=defaults.js.map

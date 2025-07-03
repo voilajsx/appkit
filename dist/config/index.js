@@ -18,8 +18,8 @@
  * ❌ DATABASE_HOST=localhost            → NOT parsed (missing double underscore)
  * ❌ VOILA__AUTH__SECRET=secret         → Parsed as user config (wrong!)
  */
-import { ConfigClass } from './config';
-import { getSmartDefaults } from './defaults';
+import { ConfigClass } from './config.js';
+import { getSmartDefaults } from './defaults.js';
 // Global configuration instance for performance
 let globalConfig = null;
 /**
@@ -154,4 +154,5 @@ export const configure = {
     validateRequired,
     getModuleConfig,
 };
-export { ConfigClass } from './config';
+export { ConfigClass } from './config.js';
+//# sourceMappingURL=index.js.map

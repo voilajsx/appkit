@@ -8,13 +8,13 @@
  * @llm-rule NOTE: Enhanced error() method provides automatic visual formatting for better DX
  */
 
-import { ConsoleTransport } from './transports/console';
-import { FileTransport } from './transports/file';
-import { DatabaseTransport } from './transports/database';
-import { HttpTransport } from './transports/http';
-import { WebhookTransport } from './transports/webhook';
-import type { LoggingConfig } from './defaults';
-import type { LogMeta, Logger } from './index';
+import { ConsoleTransport } from './transports/console.js';
+import { FileTransport } from './transports/file.js';
+import { DatabaseTransport } from './transports/database.js';
+import { HttpTransport } from './transports/http.js';
+import { WebhookTransport } from './transports/webhook.js';
+import type { LoggingConfig } from './defaults.js';
+import type { LogMeta, Logger } from './index.js';
 import { existsSync } from 'fs';
 import { join } from 'path';
 

@@ -8,7 +8,7 @@
  * @llm-rule NOTE: Use requireRole() for hierarchy-based access, requirePermission() for action-specific access
  * @llm-rule NOTE: Uses role.level format (user.basic, admin.tenant) with automatic inheritance
  */
-import { type AuthConfig } from './defaults';
+import { type AuthConfig } from './defaults.js';
 export interface JwtPayload {
     userId: string | number;
     role: string;

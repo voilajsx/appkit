@@ -8,6 +8,7 @@
  * @llm-rule NOTE: Uses UPPER_SNAKE__CASE convention (DATABASE__HOST → config.get('database.host'))
  */
 export class ConfigClass {
+    _config;
     /**
      * Creates a new, immutable Config instance
      * @llm-rule WHEN: App startup - need to parse environment variables into structured config
@@ -103,3 +104,4 @@ export class ConfigClass {
         return path.split('.').join('__').toUpperCase();
     }
 }
+//# sourceMappingURL=config.js.map

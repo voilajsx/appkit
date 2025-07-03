@@ -11,6 +11,16 @@
  * Database transport with automatic connection and table management
  */
 export class DatabaseTransport {
+    url;
+    table;
+    batchSize;
+    minimal;
+    // Database state
+    client = null;
+    connected = false;
+    batch = [];
+    flushTimer = null;
+    dbType = 'postgres';
     /**
      * Creates database transport with direct environment access (like auth pattern)
      * @llm-rule WHEN: Logger initialization with DATABASE_URL environment variable
@@ -18,12 +28,6 @@ export class DatabaseTransport {
      * @llm-rule NOTE: Auto-detects database type from URL and creates appropriate connection
      */
     constructor(config) {
-        // Database state
-        this.client = null;
-        this.connected = false;
-        this.batch = [];
-        this.flushTimer = null;
-        this.dbType = 'postgres';
         // Direct access to config (like auth module pattern)
         this.url = config.database.url;
         this.table = config.database.table;
@@ -532,3 +536,4 @@ export class DatabaseTransport {
         this.client = null;
     }
 }
+//# sourceMappingURL=database.js.map

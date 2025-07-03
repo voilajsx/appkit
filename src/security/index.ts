@@ -9,8 +9,8 @@
  * @llm-rule NOTE: Use middleware first: forms() for CSRF, requests() for rate limiting, then input() for sanitization
  */
 
-import { SecurityClass } from './security';
-import { getSmartDefaults, type SecurityConfig } from './defaults';
+import { SecurityClass } from './security.js';
+import { getSmartDefaults, type SecurityConfig } from './defaults.js';
 
 // Global security instance for performance
 let globalSecurity: SecurityClass | null = null;
@@ -209,7 +209,7 @@ export type {
   EncryptionConfig,
   EnvironmentConfig,
   SecurityError,
-} from './defaults';
+} from './defaults.js';
 
 export type {
   ExpressRequest,
@@ -220,6 +220,6 @@ export type {
   RateLimitOptions,
   InputOptions,
   HTMLOptions,
-} from './security';
+} from './security.js';
 
-export { SecurityClass } from './security';
+export { SecurityClass } from './security.js';

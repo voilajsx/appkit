@@ -14,6 +14,10 @@ import { createDatabaseError } from '../defaults.js';
  * Simplified Prisma adapter with VoilaJSX app discovery
  */
 export class PrismaAdapter {
+    options;
+    clients;
+    discoveredApps;
+    isDevelopment;
     constructor(options = {}) {
         this.options = options;
         this.clients = new Map();
@@ -442,3 +446,4 @@ export class PrismaAdapter {
         }
     }
 }
+//# sourceMappingURL=prisma.js.map

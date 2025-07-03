@@ -322,3 +322,4 @@ function isValidTimespan(timespan) {
     return false;
 }
 export { DEFAULT_ROLE_HIERARCHY, DEFAULT_PERMISSIONS, CORE_ACTIONS, CORE_SCOPES, };
+//# sourceMappingURL=defaults.js.map

@@ -227,3 +227,4 @@ export function getSmartDefaults() {
     validateConfig(config);
     return config;
 }
+//# sourceMappingURL=defaults.js.map

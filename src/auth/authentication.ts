@@ -17,7 +17,7 @@ import {
   validateRoleLevel,
   validatePermission,
   type AuthConfig,
-} from './defaults';
+} from './defaults.js';
 
 export interface JwtPayload {
   userId: string | number;

@@ -35,6 +35,8 @@ export function validateDatabaseUrl(url) {
     ].some(protocol => url.startsWith(protocol));
 }
 class DatabaseError extends Error {
+    statusCode;
+    details; // or use a more specific type like `Record<string, any>`
     constructor(message, statusCode = 500, details = null) {
         super(message);
         this.name = 'DatabaseError';
@@ -266,3 +268,4 @@ export function getCachedValidation() {
 export function clearValidationCache() {
     cachedValidation = null;
 }
+//# sourceMappingURL=defaults.js.map

@@ -66,4 +66,4 @@ export declare const authenticator: {
 };
 export type { AuthConfig, RoleConfig, RoleHierarchy, PermissionDefaults, } from './defaults';
 export type { JwtPayload, FastifyRequest, FastifyReply, FastifyError, ExpressRequest, ExpressResponse, MiddlewareOptions, FastifyPreHandler, ExpressMiddleware, } from './authentication';
-export { AuthenticationClass } from './authentication';
+export { AuthenticationClass } from './authentication.js';

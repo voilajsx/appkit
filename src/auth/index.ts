@@ -10,8 +10,8 @@
  * @llm-rule NOTE: Safe user access - const user = auth.user(req); if (!user) return error;
  */
 
-import { AuthenticationClass } from './authentication';
-import { getSmartDefaults, type AuthConfig, type RoleHierarchy } from './defaults';
+import { AuthenticationClass } from './authentication.js';
+import { getSmartDefaults, type AuthConfig, type RoleHierarchy } from './defaults.js';
 
 // Global authentication instance for performance
 let globalAuthentication: AuthenticationClass | null = null;
@@ -109,7 +109,7 @@ export type {
   RoleConfig,
   RoleHierarchy,
   PermissionDefaults,
-} from './defaults';
+} from './defaults.js';
 
 export type {
   JwtPayload,
@@ -121,6 +121,6 @@ export type {
   MiddlewareOptions,
   FastifyPreHandler,
   ExpressMiddleware,
-} from './authentication';
+} from './authentication.js';
 
-export { AuthenticationClass } from './authentication';
+export { AuthenticationClass } from './authentication.js';

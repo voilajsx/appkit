@@ -13,16 +13,22 @@ import path from 'path';
  * File transport with built-in rotation, retention and scope optimization
  */
 export class FileTransport {
+    dir;
+    filename;
+    maxSize;
+    retentionDays;
+    minimal;
+    // File state
+    currentSize = 0;
+    currentDate;
+    stream = null;
+    cleanupInterval = null;
     /**
      * Creates file transport with direct environment access (like auth pattern)
      * @llm-rule WHEN: Logger initialization - gets config from environment defaults
      * @llm-rule AVOID: Manual file configuration - environment detection handles this
      */
     constructor(config) {
-        // File state
-        this.currentSize = 0;
-        this.stream = null;
-        this.cleanupInterval = null;
         // Direct access to config (like auth module pattern)
         this.dir = config.file.dir;
         this.filename = config.file.filename;
@@ -455,3 +461,4 @@ export class FileTransport {
         await this.closeStream();
     }
 }
+//# sourceMappingURL=file.js.map

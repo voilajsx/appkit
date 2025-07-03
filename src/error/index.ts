@@ -8,8 +8,8 @@
  * @llm-rule NOTE: Provides semantic error creation (badRequest, unauthorized) and Express middleware
  */
 
-import { ErrorClass } from './error';
-import { getSmartDefaults, type ErrorConfig } from './defaults';
+import { ErrorClass } from './error.js';
+import { getSmartDefaults, type ErrorConfig } from './defaults.js';
 
 export interface AppError extends Error {
   statusCode: number;
@@ -107,5 +107,5 @@ export const error = {
 } as const;
 
 // Re-export types for consumers
-export type { ErrorConfig } from './defaults';
-export { ErrorClass } from './error';
+export type { ErrorConfig } from './defaults.js';
+export { ErrorClass } from './error.js';

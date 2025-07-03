@@ -8,21 +8,15 @@
  * @llm-rule NOTE: Provides enterprise-grade security with CSRF tokens, rate limiting, XSS prevention, and AES-256-GCM encryption
  */
 import crypto from 'crypto';
-import { createSecurityError } from './defaults';
+import { createSecurityError } from './defaults.js';
 /**
  * Security class with enterprise-grade protection functionality
  */
 export class SecurityClass {
+    config;
+    requestStore;
+    cleanupInitialized;
     constructor(config) {
-        /**
-         * Gets unique identifier for the client
-         */
-        this.getClientKey = (req) => {
-            return req.ip ||
-                req.connection?.remoteAddress ||
-                (req.headers && req.headers['x-forwarded-for']?.split(',')[0]?.trim()) ||
-                'unknown';
-        };
         this.config = config;
         this.requestStore = new Map();
         this.cleanupInitialized = false;
@@ -384,6 +378,15 @@ export class SecurityClass {
         }
     }
     /**
+     * Gets unique identifier for the client
+     */
+    getClientKey = (req) => {
+        return req.ip ||
+            req.connection?.remoteAddress ||
+            (req.headers && req.headers['x-forwarded-for']?.split(',')[0]?.trim()) ||
+            'unknown';
+    };
+    /**
      * Initializes cleanup interval for memory management
      */
     initializeCleanup(windowMs) {
@@ -413,3 +416,4 @@ export class SecurityClass {
         }
     }
 }
+//# sourceMappingURL=security.js.map

@@ -13,6 +13,15 @@ import http from 'http';
  * Webhook transport for real-time alerts with automatic service detection
  */
 export class WebhookTransport {
+    url;
+    level;
+    rateLimit;
+    minimal;
+    // Webhook state
+    parsedUrl;
+    serviceType;
+    rateLimitQueue = [];
+    rateLimitWindow = 60000; // 1 minute
     /**
      * Creates webhook transport with direct environment access (like auth pattern)
      * @llm-rule WHEN: Logger initialization with VOILA_LOGGING_WEBHOOK_URL environment variable
@@ -20,8 +29,6 @@ export class WebhookTransport {
      * @llm-rule NOTE: Auto-detects Slack URLs and formats messages appropriately
      */
     constructor(config) {
-        this.rateLimitQueue = [];
-        this.rateLimitWindow = 60000; // 1 minute
         // Direct access to config (like auth module pattern)
         this.url = config.webhook.url;
         this.level = config.webhook.level;
@@ -475,3 +482,4 @@ export class WebhookTransport {
         return Promise.resolve();
     }
 }
+//# sourceMappingURL=webhook.js.map

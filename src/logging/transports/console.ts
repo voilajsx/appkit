@@ -9,8 +9,8 @@
  * @llm-rule NOTE: Enhanced to work with visual error formatting from logger.error() method
  */
 
-import type { LogEntry, Transport } from '../logger';
-import type { LoggingConfig } from '../defaults';
+import type { LogEntry, Transport } from '../logger.js';
+import type { LoggingConfig } from '../defaults.js';
 
 /**
  * Console transport with automatic formatting and smart minimal mode

@@ -13,6 +13,15 @@ import http from 'http';
  * HTTP transport with automatic service detection and format optimization
  */
 export class HttpTransport {
+    url;
+    batchSize;
+    timeout;
+    minimal;
+    // HTTP state
+    batch = [];
+    flushTimer = null;
+    parsedUrl;
+    serviceType;
     /**
      * Creates HTTP transport with direct environment access (like auth pattern)
      * @llm-rule WHEN: Logger initialization with VOILA_LOGGING_HTTP_URL environment variable
@@ -20,9 +29,6 @@ export class HttpTransport {
      * @llm-rule NOTE: Auto-detects service type from URL and formats payloads accordingly
      */
     constructor(config) {
-        // HTTP state
-        this.batch = [];
-        this.flushTimer = null;
         // Direct access to config (like auth module pattern)
         this.url = config.http.url;
         this.batchSize = config.http.batchSize;
@@ -392,3 +398,4 @@ export class HttpTransport {
         await this.flushBatch();
     }
 }
+//# sourceMappingURL=http.js.map

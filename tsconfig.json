@@ -1,17 +1,36 @@
 {
   "compilerOptions": {
-    "target": "es2021",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "declaration": true,
+    // Core compilation settings
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",           // ✅ Use NodeNext for modern Node.js
+    "moduleResolution": "NodeNext", // ✅ This forces .js extensions
+    
+    // Output settings
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    
+    // Module settings
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    
+    // Strict settings
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    
+    // Additional settings
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declarationDir": "./types"
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }

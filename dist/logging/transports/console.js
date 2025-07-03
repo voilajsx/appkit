@@ -12,6 +12,10 @@
  * Console transport with automatic formatting and smart minimal mode
  */
 export class ConsoleTransport {
+    colorize;
+    timestamps;
+    prettyPrint;
+    minimal;
     /**
      * Creates console transport with direct environment access (like auth pattern)
      * @llm-rule WHEN: Logger initialization - gets config from environment defaults
@@ -269,3 +273,4 @@ export class ConsoleTransport {
         return Promise.resolve();
     }
 }
+//# sourceMappingURL=console.js.map

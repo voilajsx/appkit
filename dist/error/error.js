@@ -11,6 +11,7 @@
  * Error class with semantic HTTP status codes and middleware functionality
  */
 export class ErrorClass {
+    config;
     constructor(config) {
         this.config = config;
     }
@@ -167,3 +168,4 @@ export class ErrorClass {
         return error;
     }
 }
+//# sourceMappingURL=error.js.map

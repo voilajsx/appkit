@@ -10,11 +10,12 @@
  */
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { validateRounds, validateRoleLevel, validatePermission, } from './defaults';
+import { validateRounds, validateRoleLevel, validatePermission, } from './defaults.js';
 /**
  * Authentication class with JWT, password, and role-level-permission system
  */
 export class AuthenticationClass {
+    config;
     constructor(config) {
         this.config = config;
     }
@@ -463,3 +464,4 @@ export class AuthenticationClass {
         return this.toExpress(this.requirePermission(requiredPermission));
     }
 }
+//# sourceMappingURL=authentication.js.map

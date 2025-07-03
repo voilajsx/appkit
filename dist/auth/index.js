@@ -9,8 +9,8 @@
  * @llm-rule NOTE: Common pattern - auth.requireLogin() → auth.requireRole() → handler
  * @llm-rule NOTE: Safe user access - const user = auth.user(req); if (!user) return error;
  */
-import { AuthenticationClass } from './authentication';
-import { getSmartDefaults } from './defaults';
+import { AuthenticationClass } from './authentication.js';
+import { getSmartDefaults } from './defaults.js';
 // Global authentication instance for performance
 let globalAuthentication = null;
 /**
@@ -90,4 +90,5 @@ export const authenticator = {
     isValidRole,
     getAllRoles,
 };
-export { AuthenticationClass } from './authentication';
+export { AuthenticationClass } from './authentication.js';
+//# sourceMappingURL=index.js.map

@@ -10,8 +10,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import type { LogEntry, Transport } from '../logger';
-import type { LoggingConfig } from '../defaults';
+import type { LogEntry, Transport } from '../logger.js';
+import type { LoggingConfig } from '../defaults.js';
 
 /**
  * File transport with built-in rotation, retention and scope optimization
