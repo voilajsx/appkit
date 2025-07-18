@@ -1,586 +1,851 @@
-# @voilajs/appkit - Queue Module 🔄
+# @voilajsx/appkit - Queue Module 🚀
 
-[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Flexible, efficient job queue system for Node.js with multiple backend
-> adapters
+> Ultra-simple job queuing that just works with automatic transport detection
 
-The Queue module of `@voilajs/appkit` provides a robust job queuing system with
-support for in-memory, Redis, and database backends. It offers a consistent
-interface for managing background tasks across different adapters, making it
-easy to scale your application as your needs grow.
+**One function** returns a queue with all methods. Zero configuration needed,
+production-ready by default, with built-in retry logic and distributed
+processing.
 
-## Module Overview
+## 🚀 Why Choose This?
 
-The Queue module provides everything you need for reliable background
-processing:
-
-| Feature               | What it does                       | Main functions                                       |
-| --------------------- | ---------------------------------- | ---------------------------------------------------- |
-| **Job Queuing**       | Stores jobs for later processing   | `addJob()`, `getJob()`, `removeJob()`                |
-| **Job Processing**    | Consumes and executes jobs         | `processJobs()`, `updateJob()`                       |
-| **Queue Monitoring**  | Tracks queue metrics               | `getQueueInfo()`, `clearQueue()`                     |
-| **Multiple Backends** | Supports different storage options | `initQueue()` with 'memory', 'redis', or 'database'  |
-| **Error Handling**    | Manages failed jobs and retries    | Automatic retry with configurable backoff strategies |
-| **Job Scheduling**    | Runs jobs at specific times        | Delayed jobs, recurring jobs (database adapter)      |
-
-## 🚀 Features
-
-- **🔌 Multiple Backends** - Choose between in-memory, Redis, or database
-  adapters
-- **🔄 Consistent API** - Use the same interface regardless of the backend
-- **⏱️ Job Scheduling** - Schedule jobs to run at specific times
-- **🔁 Automatic Retries** - Configure retry strategies for failed jobs
-- **⚡ Concurrency Control** - Limit the number of jobs processed simultaneously
-- **📊 Queue Monitoring** - Get detailed queue statistics and job information
-- **🏷️ Job Prioritization** - Process important jobs first
-- **🔍 Advanced Querying** - Search and filter jobs by status
+- **⚡ One Function** - Just `queuing.get()`, everything else is automatic
+- **🔄 Auto-Transport Detection** - Memory → Redis → Database based on
+  environment
+- **🔧 Zero Configuration** - Smart defaults for everything
+- **🔁 Built-in Retry Logic** - Exponential backoff with jitter
+- **📊 Production Monitoring** - Stats, health checks, job tracking
+- **🛡️ Graceful Shutdown** - Waits for jobs to complete
+- **🤖 AI-Ready** - Optimized for LLM code generation
 
 ## 📦 Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
-## 🏃‍♂️ Quick Start
+## 🏃‍♂️ Quick Start (30 seconds)
 
-```javascript
-import { initQueue, getQueue } from '@voilajs/appkit/queue';
+```bash
+# Optional: Set environment variables for production
+echo "REDIS_URL=redis://localhost:6379" > .env
+# OR
+echo "DATABASE_URL=postgres://user:pass@localhost/db" > .env
+```
 
-// Initialize with in-memory adapter (for development)
-await initQueue('memory');
+```typescript
+import { queuing } from '@voilajsx/appkit/queue';
 
-// Add a job to a queue
-const job = await getQueue().addJob('emails', {
+const queue = queuing.get();
+
+// Add jobs
+const jobId = await queue.add('email', {
   to: 'user@example.com',
   subject: 'Welcome!',
+  body: 'Thanks for signing up',
 });
 
-// Process jobs from the queue
-getQueue().processJobs('emails', async (job) => {
-  console.log(`Processing email to: ${job.data.to}`);
-  // Email sending logic here
-  return { success: true };
+// Process jobs
+queue.process('email', async (data) => {
+  console.log(`Sending email to ${data.to}`);
+  await sendEmail(data);
+  return { sent: true };
+});
+
+// Schedule delayed jobs
+await queue.schedule('reminder', { userId: 123 }, 24 * 60 * 60 * 1000); // 24 hours
+```
+
+**That's it!** No configuration, no setup, production-ready.
+
+## ✨ What You Get Instantly
+
+- **✅ Memory Queue** - Development (no dependencies)
+- **✅ Redis Queue** - Production distributed (auto-detected from `REDIS_URL`)
+- **✅ Database Queue** - Persistent storage (auto-detected from `DATABASE_URL`)
+- **✅ Automatic Retry** - 3 attempts with exponential backoff
+- **✅ Job Scheduling** - Delayed execution with persistence
+- **✅ Priority Queues** - High priority jobs processed first
+- **✅ Stats & Monitoring** - Real-time queue metrics
+- **✅ Graceful Shutdown** - Waits for active jobs
+
+## 🔄 Auto-Transport Detection
+
+The queue **automatically detects** what you need:
+
+| Environment Variable | Transport Used | What You Get              |
+| -------------------- | -------------- | ------------------------- |
+| _Nothing_            | Memory         | Development queuing       |
+| `REDIS_URL`          | Redis          | Distributed production    |
+| `DATABASE_URL`       | Database       | Persistent simple storage |
+
+**Set environment variables, get enterprise features. No code changes.**
+
+## 🏢 Production Ready
+
+```bash
+# Minimal setup for production
+REDIS_URL=redis://localhost:6379
+VOILA_QUEUE_CONCURRENCY=10
+VOILA_QUEUE_WORKER=true
+```
+
+```typescript
+// Same code, production features
+const queue = queuing.get();
+await queue.add('webhook', { url: 'https://api.example.com', data: payload });
+// → Redis distributed queue
+// → 10 concurrent workers
+// → Automatic retry with backoff
+// → Stats and monitoring
+```
+
+## 📋 Complete API (It's Tiny)
+
+### Core Methods
+
+```typescript
+import { queuing } from '@voilajsx/appkit/queue';
+
+const queue = queuing.get();
+
+// Job management
+await queue.add(jobType, data, options?);        // Add job
+await queue.schedule(jobType, data, delay);      // Schedule delayed job
+queue.process(jobType, handler);                 // Process jobs
+
+// Queue control
+await queue.pause(jobType?);                     // Pause processing
+await queue.resume(jobType?);                    // Resume processing
+
+// Monitoring
+await queue.getStats(jobType?);                  // Get statistics
+await queue.getJobs(status, jobType?);          // Get jobs by status
+await queue.retry(jobId);                        // Retry failed job
+await queue.remove(jobId);                       // Remove job
+await queue.clean(status, grace?);               // Clean old jobs
+```
+
+### Utility Methods
+
+```typescript
+queuing.getActiveTransport(); // See which transport is running
+queuing.hasTransport('redis'); // Check specific transport
+queuing.getConfig(); // Debug configuration
+queuing.getHealth(); // Health status
+queuing.clear(); // Clear all (testing)
+```
+
+## 🌍 Environment Variables
+
+### Basic Setup
+
+```bash
+# Transport selection (auto-detected)
+REDIS_URL=redis://localhost:6379              # Enables Redis transport
+DATABASE_URL=postgres://user:pass@host/db     # Enables Database transport
+
+# Worker configuration
+VOILA_QUEUE_WORKER=true                       # Enable job processing
+VOILA_QUEUE_CONCURRENCY=10                    # Jobs processed simultaneously
+```
+
+### Advanced Configuration
+
+```bash
+# Job retry settings
+VOILA_QUEUE_MAX_ATTEMPTS=5                    # Max retry attempts (default: 3)
+VOILA_QUEUE_RETRY_DELAY=10000                 # Base retry delay in ms (default: 5000)
+VOILA_QUEUE_RETRY_BACKOFF=exponential         # fixed|exponential (default: exponential)
+
+# Job cleanup
+VOILA_QUEUE_REMOVE_COMPLETE=100               # Keep last 100 completed jobs
+VOILA_QUEUE_REMOVE_FAILED=500                 # Keep last 500 failed jobs
+
+# Performance tuning
+VOILA_QUEUE_DEFAULT_PRIORITY=0                # Default job priority
+VOILA_QUEUE_SHUTDOWN_TIMEOUT=30000            # Graceful shutdown timeout
+```
+
+### Transport-Specific Settings
+
+```bash
+# Memory Transport (Development)
+VOILA_QUEUE_MEMORY_MAX_JOBS=1000              # Max jobs in memory
+VOILA_QUEUE_MEMORY_CLEANUP=30000              # Cleanup interval
+
+# Redis Transport (Production)
+VOILA_QUEUE_REDIS_PREFIX=myapp                # Redis key prefix
+VOILA_QUEUE_REDIS_RETRIES=3                   # Connection retries
+
+# Database Transport (Simple Persistent)
+VOILA_QUEUE_DB_TABLE=queue_jobs               # Table name
+VOILA_QUEUE_DB_POLL=5000                      # Polling interval
+VOILA_QUEUE_DB_BATCH=50                       # Batch size
+```
+
+## 💡 Real Examples
+
+### Express API with Background Jobs
+
+```typescript
+import express from 'express';
+import { queuing } from '@voilajsx/appkit/queue';
+
+const app = express();
+const queue = queuing.get();
+
+// Setup job processors
+queue.process('email', async (data) => {
+  await sendEmail(data.to, data.subject, data.body);
+  return { delivered: true };
+});
+
+queue.process('webhook', async (data) => {
+  const response = await fetch(data.url, {
+    method: 'POST',
+    body: JSON.stringify(data.payload),
+  });
+  return { status: response.status };
+});
+
+queue.process('image-resize', async (data) => {
+  const resized = await resizeImage(data.imageUrl, data.width, data.height);
+  return { resizedUrl: resized };
+});
+
+// API endpoints that queue jobs
+app.post('/register', async (req, res) => {
+  const { email, name } = req.body;
+
+  // Create user account
+  const user = await db.user.create({ data: { email, name } });
+
+  // Queue welcome email
+  await queue.add('email', {
+    to: email,
+    subject: 'Welcome to our platform!',
+    body: `Hi ${name}, welcome aboard!`,
+    template: 'welcome',
+  });
+
+  // Queue webhook notification
+  await queue.add('webhook', {
+    url: 'https://analytics.example.com/events',
+    payload: { event: 'user_registered', userId: user.id },
+  });
+
+  res.json({ success: true, userId: user.id });
+});
+
+app.post('/upload-avatar', async (req, res) => {
+  const { userId, imageUrl } = req.body;
+
+  // Queue image processing
+  const jobId = await queue.add(
+    'image-resize',
+    {
+      imageUrl,
+      userId,
+      width: 200,
+      height: 200,
+      format: 'webp',
+    },
+    {
+      priority: 5, // High priority
+    }
+  );
+
+  res.json({ success: true, jobId });
+});
+
+app.listen(3000, () => {
+  console.log('🚀 Server ready with background jobs');
 });
 ```
 
-## 📋 Examples
+### Fastify with Job Scheduling
 
-### Basic Job Processing
+```typescript
+import Fastify from 'fastify';
+import { queuing } from '@voilajsx/appkit/queue';
 
-```javascript
-// Process jobs with concurrency
-queue.processJobs(
-  'image-processing',
-  async (job) => {
-    console.log(`Processing image: ${job.data.filename}`);
-    // Image processing logic
-    return { processed: true };
-  },
-  {
-    concurrency: 3, // Process up to 3 jobs simultaneously
-  }
-);
+const fastify = Fastify();
+const queue = queuing.get();
 
-// Add a job with options
-await queue.addJob(
-  'image-processing',
-  {
-    filename: 'photo.jpg',
-    width: 800,
-    height: 600,
-  },
-  {
-    priority: 10, // Higher priority jobs run first
-    delay: 5000, // 5 second delay
-    maxAttempts: 3, // Retry up to 3 times on failure
-  }
-);
-```
+// Setup scheduled job processors
+queue.process('reminder', async (data) => {
+  const user = await db.user.findUnique({ where: { id: data.userId } });
 
-### Using Redis Adapter
-
-```javascript
-// Initialize with Redis adapter
-await initQueue('redis', {
-  redis: 'redis://localhost:6379',
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 1000 },
-  },
+  await sendEmail(user.email, 'Reminder', data.message);
+  return { reminded: true };
 });
 
-// Redis adapter specific features
-const queue = getQueue();
-
-// Pause/resume a queue
-await queue.pauseQueue('emails');
-await queue.resumeQueue('emails');
-
-// Clean up old jobs
-await queue.cleanUp('emails', 24 * 60 * 60 * 1000, 'completed');
-```
-
-### Using Database Adapter
-
-```javascript
-// Initialize with PostgreSQL adapter
-await initQueue('database', {
-  databaseType: 'postgres',
-  connectionString: 'postgresql://user:pass@localhost/db',
-  pollInterval: 1000,
+queue.process('subscription-renewal', async (data) => {
+  const subscription = await processRenewal(data.subscriptionId);
+  return { renewed: subscription.renewed };
 });
 
-// Database adapter specific features
-const queue = getQueue();
+// Schedule future jobs
+fastify.post('/schedule-reminder', async (request, reply) => {
+  const { userId, message, delayMinutes } = request.body;
 
-// Get metrics about processing
-const metrics = await queue.getProcessingMetrics('reports');
-console.log(`Average processing time: ${metrics.avgProcessingTime}ms`);
+  const delay = delayMinutes * 60 * 1000; // Convert to ms
 
-// Create a recurring job (runs daily at midnight)
-await queue.createRecurringJob(
-  'reports',
-  { type: 'daily-summary' },
-  { priority: 5 },
-  '0 0 * * *'
-);
-```
+  const jobId = await queue.schedule(
+    'reminder',
+    {
+      userId,
+      message,
+    },
+    delay
+  );
 
-## 📖 Core Functions
-
-### Queue Management
-
-| Function       | Description                             | Usage                                  |
-| -------------- | --------------------------------------- | -------------------------------------- |
-| `initQueue()`  | Initializes the queue adapter           | Setup at application startup           |
-| `getQueue()`   | Gets the current queue instance         | Accessing the queue throughout the app |
-| `closeQueue()` | Stops all queues and releases resources | Clean shutdown of the application      |
-
-```javascript
-// Initialize queue at startup
-await initQueue('redis', {
-  redis: process.env.REDIS_URL,
+  return { success: true, jobId, scheduledFor: new Date(Date.now() + delay) };
 });
 
-// Get queue instance in other parts of the app
-const queue = getQueue();
+// Recurring subscription processing
+fastify.post('/setup-subscription', async (request, reply) => {
+  const { userId, plan } = request.body;
 
-// Close queue on shutdown
+  const subscription = await db.subscription.create({
+    data: {
+      userId,
+      plan,
+      renewsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  // Schedule renewal in 30 days
+  await queue.schedule(
+    'subscription-renewal',
+    {
+      subscriptionId: subscription.id,
+    },
+    30 * 24 * 60 * 60 * 1000
+  );
+
+  return { success: true, subscription };
+});
+
+fastify.listen({ port: 3000 });
+```
+
+### Background Worker Process
+
+```typescript
+// worker.ts - Separate worker process
+import { queuing } from '@voilajsx/appkit/queue';
+
+const queue = queuing.get();
+
+// Heavy processing jobs
+queue.process('data-export', async (data) => {
+  const { userId, format } = data;
+
+  console.log(`Starting data export for user ${userId}`);
+
+  // Simulate heavy work
+  const userData = await fetchAllUserData(userId);
+  const exportFile = await generateExport(userData, format);
+  const downloadUrl = await uploadToS3(exportFile);
+
+  // Notify user
+  await queue.add('email', {
+    to: userData.email,
+    subject: 'Your data export is ready',
+    body: `Download your data: ${downloadUrl}`,
+  });
+
+  return { downloadUrl, size: exportFile.size };
+});
+
+queue.process('video-transcode', async (data) => {
+  const { videoId, quality } = data;
+
+  console.log(`Transcoding video ${videoId} to ${quality}`);
+
+  const video = await db.video.findUnique({ where: { id: videoId } });
+  const transcodedUrl = await transcodeVideo(video.url, quality);
+
+  await db.video.update({
+    where: { id: videoId },
+    data: { [`${quality}Url`]: transcodedUrl },
+  });
+
+  return { transcodedUrl, quality };
+});
+
+// Graceful shutdown handling
 process.on('SIGTERM', async () => {
-  await closeQueue();
+  console.log('Worker shutting down gracefully...');
+  await queue.close();
   process.exit(0);
 });
+
+console.log('🔧 Background worker started');
 ```
 
-### Job Operations
+### Job Monitoring Dashboard
 
-| Function        | Description                  | Usage                               |
-| --------------- | ---------------------------- | ----------------------------------- |
-| `addJob()`      | Adds a job to a queue        | Queuing tasks for later processing  |
-| `processJobs()` | Processes jobs from a queue  | Defining how jobs should be handled |
-| `getJob()`      | Gets a specific job by ID    | Checking job status and details     |
-| `updateJob()`   | Updates a job                | Modifying job data or status        |
-| `removeJob()`   | Removes a job from the queue | Deleting jobs manually              |
+```typescript
+import express from 'express';
+import { queuing } from '@voilajsx/appkit/queue';
 
-```javascript
-// Add a job
-const job = await queue.addJob('emails', {
-  to: 'user@example.com',
-  subject: 'Welcome!',
+const app = express();
+const queue = queuing.get();
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  const health = queuing.getHealth();
+  const stats = await queue.getStats();
+
+  res.json({
+    status: health.status,
+    transport: queuing.getActiveTransport(),
+    stats,
+    timestamp: new Date().toISOString(),
+  });
 });
 
-// Check job status later
-const jobInfo = await queue.getJob('emails', job.id);
-console.log(`Job status: ${jobInfo.status}`);
-```
+// Queue statistics
+app.get('/api/queue/stats', async (req, res) => {
+  const { jobType } = req.query;
+  const stats = await queue.getStats(jobType as string);
 
-### Queue Information
-
-| Function         | Description                   | Usage                                |
-| ---------------- | ----------------------------- | ------------------------------------ |
-| `getQueueInfo()` | Gets statistics about a queue | Monitoring queue health and activity |
-| `clearQueue()`   | Removes all jobs from a queue | Resetting a queue                    |
-
-```javascript
-// Get queue stats
-const stats = await queue.getQueueInfo('emails');
-console.log(`Pending jobs: ${stats.pending}`);
-console.log(`Failed jobs: ${stats.failed}`);
-
-// Clear a queue
-await queue.clearQueue('emails');
-```
-
-## 🔧 Configuration Options
-
-### Memory Adapter
-
-```javascript
-await initQueue('memory', {
-  // No specific configuration options
+  res.json(stats);
 });
-```
 
-### Redis Adapter
+// Get jobs by status
+app.get('/api/queue/jobs', async (req, res) => {
+  const { status, jobType, limit = 50 } = req.query;
 
-```javascript
-await initQueue('redis', {
-  // Redis connection
-  redis: 'redis://localhost:6379',
-  // or
-  redis: {
-    host: 'localhost',
-    port: 6379,
-    password: 'secret',
-    tls: true,
-  },
+  const jobs = await queue.getJobs(
+    status as any,
+    jobType as string,
+    parseInt(limit as string)
+  );
 
-  // Default job options
-  defaultJobOptions: {
-    priority: 0, // Default priority
-    attempts: 3, // Retry attempts
-    removeOnComplete: true, // Remove completed jobs
-    removeOnFail: false, // Keep failed jobs
-    backoff: {
-      // Retry strategy
-      type: 'exponential', // 'exponential', 'fixed', or 'linear'
-      delay: 1000, // Base delay in milliseconds
-    },
-  },
-
-  // Queue prefix (for namespacing)
-  prefix: 'myapp',
+  res.json(jobs);
 });
-```
 
-### Database Adapter
+// Retry failed job
+app.post('/api/queue/retry/:jobId', async (req, res) => {
+  const { jobId } = req.params;
 
-```javascript
-await initQueue('database', {
-  // Database type and connection
-  databaseType: 'postgres', // 'postgres' or 'mysql'
-  connectionString: 'postgresql://user:password@localhost/dbname',
-
-  // Connection pool settings
-  connectionPool: {
-    max: 10, // Maximum connections
-    idleTimeoutMillis: 30000,
-  },
-
-  // Queue options
-  tableName: 'job_queue', // Custom table name
-  pollInterval: 1000, // Polling interval in milliseconds
-  maxConcurrency: 10, // Maximum concurrent jobs
-});
-```
-
-## 💡 Common Use Cases
-
-### Background Processing
-
-Use the queue for time-consuming operations that shouldn't block the main
-thread:
-
-```javascript
-// API endpoint
-app.post('/api/users', async (req, res) => {
   try {
-    // Create user in database
-    const user = await db.createUser(req.body);
-
-    // Queue background tasks
-    await queue.addJob('emails', {
-      template: 'welcome',
-      to: user.email,
-      name: user.name,
-    });
-
-    await queue.addJob('onboarding', {
-      userId: user.id,
-      steps: ['profile', 'preferences', 'tutorial'],
-    });
-
-    res.status(201).json(user);
+    await queue.retry(jobId);
+    res.json({ success: true });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Process emails in the background
-queue.processJobs('emails', sendEmailProcessor, { concurrency: 5 });
-queue.processJobs('onboarding', onboardingProcessor, { concurrency: 2 });
-```
+// Remove job
+app.delete('/api/queue/jobs/:jobId', async (req, res) => {
+  const { jobId } = req.params;
 
-### Job Scheduling
-
-Schedule jobs to run at specific times:
-
-```javascript
-// Schedule a delayed reminder
-await queue.addJob(
-  'reminders',
-  {
-    userId: '123',
-    message: 'Complete your profile',
-  },
-  {
-    delay: 24 * 60 * 60 * 1000, // 24 hours
-  }
-);
-
-// Create a recurring report using the database adapter
-await queue.createRecurringJob(
-  'reports',
-  { type: 'weekly-summary' },
-  { priority: 10 },
-  '0 9 * * 1' // Every Monday at 9:00 AM
-);
-```
-
-### Error Handling and Retries
-
-Handle errors and implement retry strategies:
-
-```javascript
-// Define a processor with error handling
-queue.processJobs(
-  'payments',
-  async (job) => {
-    try {
-      // Payment processing logic
-      const result = await processPayment(job.data);
-      return result;
-    } catch (error) {
-      // Differentiate between retryable and non-retryable errors
-      if (error.code === 'NETWORK_ERROR') {
-        // Will be retried based on maxAttempts
-        throw error;
-      } else {
-        // Save error info but don't retry
-        await queue.updateJob('payments', job.id, {
-          status: 'failed',
-          error: error.message,
-          errorCode: error.code,
-        });
-        return { success: false, error: error.message };
-      }
-    }
-  },
-  {
-    concurrency: 3,
-  }
-);
-
-// Job with custom retry settings
-await queue.addJob(
-  'payments',
-  {
-    orderId: '12345',
-    amount: 99.99,
-  },
-  {
-    maxAttempts: 5,
-    backoff: {
-      type: 'exponential',
-      delay: 5000, // Start with 5 seconds
-      maxDelay: 60000, // Max 1 minute delay
-    },
-  }
-);
-```
-
-### Queue Monitoring and Management
-
-Create admin tools for monitoring and managing queues:
-
-```javascript
-// Get queue statistics
-app.get('/admin/queues/:name', async (req, res) => {
   try {
-    const stats = await queue.getQueueInfo(req.params.name);
-    res.json(stats);
+    await queue.remove(jobId);
+    res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(400).json({ error: error.message });
   }
 });
 
-// Retry failed jobs
-app.post('/admin/queues/:name/retry-failed', async (req, res) => {
+// Clean old jobs
+app.post('/api/queue/clean', async (req, res) => {
+  const { status, grace = 86400000 } = req.body; // Default 24 hours
+
   try {
-    const queueName = req.params.name;
-
-    // Get failed jobs (adapter-specific)
-    let failedJobs;
-    if (queue instanceof MemoryAdapter) {
-      failedJobs = await queue.getJobsByStatus(queueName, 'failed');
-    } else if (queue instanceof RedisAdapter) {
-      failedJobs = await queue.getFailedJobs(queueName);
-    } else if (queue instanceof DatabaseAdapter) {
-      failedJobs = await queue.getFailedJobs(queueName, 100);
-    }
-
-    // Retry each failed job
-    const results = await Promise.all(
-      failedJobs.map((job) => queue.retryJob(queueName, job.id))
-    );
-
-    res.json({
-      retried: results.filter(Boolean).length,
-      total: failedJobs.length,
-    });
+    await queue.clean(status, grace);
+    res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(400).json({ error: error.message });
   }
+});
+
+app.listen(4000, () => {
+  console.log('📊 Queue monitoring dashboard on port 4000');
 });
 ```
 
-## 🤖 Code Generation with LLMs
+### Advanced Job Options
 
-You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common queue scenarios using the `@voilajs/appkit/queue` module. We've
-created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/queue/docs/PROMPT_REFERENCE.md)
-document that's designed specifically for LLMs to understand the module's
-capabilities and generate high-quality queue code.
+```typescript
+import { queuing } from '@voilajsx/appkit/queue';
 
-### How to Use LLM Code Generation
+const queue = queuing.get();
 
-Simply copy one of the prompts below (which include a link to the
-PROMPT_REFERENCE.md) and share it with ChatGPT, Claude, or another capable LLM.
-The LLM will read the reference document and generate high-quality,
-production-ready code tailored to your specific requirements.
+// High priority job
+await queue.add(
+  'critical-alert',
+  {
+    message: 'System overload detected',
+    severity: 'critical',
+  },
+  {
+    priority: 10, // Higher number = higher priority
+    attempts: 5, // Custom retry attempts
+    backoff: 'exponential',
+  }
+);
 
-### Sample Prompts to Try
+// Low priority batch job
+await queue.add(
+  'analytics-batch',
+  {
+    date: '2024-01-15',
+    type: 'daily-report',
+  },
+  {
+    priority: -5, // Lower priority
+    attempts: 1, // Don't retry batch jobs
+    removeOnComplete: 10, // Keep only 10 completed
+    removeOnFail: 50, // Keep 50 failed for debugging
+  }
+);
 
-#### Basic Queue Setup
+// Job with custom retry strategy
+await queue.add(
+  'api-sync',
+  {
+    endpoint: 'https://api.partner.com/sync',
+    data: payload,
+  },
+  {
+    attempts: 3,
+    backoff: 'fixed', // Fixed delay between retries
+  }
+);
 
+// Scheduled job with priority
+const reminderDate = new Date('2024-12-25T09:00:00Z');
+const delay = reminderDate.getTime() - Date.now();
+
+await queue.schedule(
+  'holiday-reminder',
+  {
+    type: 'holiday',
+    message: 'Merry Christmas!',
+  },
+  delay
+);
 ```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/queue/docs/PROMPT_REFERENCE.md and then create a system for processing image uploads using @voilajs/appkit/queue with the following features:
-- In-memory queue for development
-- Job for image resizing
-- Job for optimizing images
-- Error handling with retries
-```
 
-#### Production Queue System
+## 🔧 Database Setup (for Database Transport)
 
-```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/queue/docs/PROMPT_REFERENCE.md and then implement a production-ready queue system using @voilajs/appkit/queue with Redis that includes:
-- Email sending queue
-- Notification queue
-- Recurring report generation
-- Queue monitoring endpoints
-- Graceful shutdown handling
-```
+If using the database transport, add this to your Prisma schema:
 
-#### Custom Backend Integration
+```prisma
+model QueueJob {
+  id          String    @id @default(cuid())
+  queue       String    // Job type
+  type        String    // Job type (compatibility)
+  payload     Json      // Job data
+  result      Json?     // Job result
+  error       Json?     // Error details
 
-```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/queue/docs/PROMPT_REFERENCE.md and then create code for integrating the @voilajs/appkit/queue module with PostgreSQL, including:
-- Database connection setup
-- Job processors for user onboarding tasks
-- Processing metrics collection
-- Job cleanup strategy
-- Recurring job for daily reports
-```
+  status      String    @default("pending") // pending, processing, completed, failed
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  priority    Int       @default(0)
 
-## 📋 Examples
+  runAt       DateTime  @default(now())
+  processedAt DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
 
-The module includes several examples to help you get started with common queue
-scenarios:
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-| Example                                                                                                                 | Description                      | Key Features                                          |
-| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------- |
-| [01-basic-usage.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/01-basic-usage.js)                   | Introduction to queue basics     | Job creation, processing, error handling              |
-| [02-advanced-job-options.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/02-advanced-job-options.js) | Advanced job configuration       | Priorities, delayed jobs, retry strategies            |
-| [03-redis-adapter.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/03-redis-adapter.js)               | Using Redis for production queue | Redis connection, progress tracking, queue operations |
-| [04-database-adapter.js](https://github.com/voilajs/appkit/blob/main/src/queue/examples/04-database-adapter.js)         | Database-backed persistent queue | PostgreSQL integration, metrics, recurring jobs       |
-
-## 🛡️ Security Best Practices
-
-1. **Environment Variables**: Store database and Redis connection strings in
-   environment variables, not in code
-2. **Authentication**: Use authentication for Redis and database connections
-3. **Validation**: Validate job data before processing to prevent injection
-   attacks
-4. **Secure Connections**: Use TLS for Redis connections in production
-5. **Access Control**: Implement authorization for administrative queue
-   management endpoints
-6. **Sanitization**: Avoid storing sensitive data (passwords, API keys) in job
-   data
-
-## 📊 Performance Considerations
-
-- **Choose the right adapter**: Use memory for development, Redis for
-  production, database for existing database infrastructure
-- **Concurrency tuning**: Adjust concurrency settings based on job resource
-  requirements
-- **Cleanup old jobs**: Implement job cleanup strategies to prevent
-  database/Redis growth
-- **Monitor queue health**: Track queue sizes and processing times to identify
-  bottlenecks
-- **Batch jobs**: Group small related tasks into batches for better efficiency
-
-## 🔍 Error Handling
-
-Always implement proper error handling in job processors:
-
-```javascript
-try {
-  // Queue initialization
-  await initQueue('redis', { redis: process.env.REDIS_URL });
-} catch (error) {
-  console.error('Failed to initialize queue:', error);
-  process.exit(1);
+  @@index([queue, status, priority, runAt])
+  @@index([status, runAt])
+  @@map("queue_jobs")
 }
+```
 
-// Error handling in job processors
-queue.processJobs('tasks', async (job) => {
-  try {
-    // Process job
-    const result = await processTask(job.data);
-    return result;
-  } catch (error) {
-    console.error(`Error processing job ${job.id}:`, error);
+Then run your migration:
 
-    // Decide whether to retry or fail permanently
-    if (job.attempts < job.maxAttempts && isRetryableError(error)) {
-      throw error; // Will be retried
-    } else {
-      // Record failure but don't retry
-      await recordFailedJob(job, error);
-      return { success: false, error: error.message };
-    }
-  }
+```bash
+npx prisma migrate dev --name add_queue_jobs
+```
+
+## 🧪 Testing
+
+```typescript
+import { queuing } from '@voilajsx/appkit/queue';
+
+describe('Queue Tests', () => {
+  afterEach(async () => {
+    // IMPORTANT: Clear queue state between tests
+    await queuing.clear();
+  });
+
+  test('should process jobs', async () => {
+    const queue = queuing.get();
+    const results: any[] = [];
+
+    // Setup processor
+    queue.process('test-job', async (data) => {
+      results.push(data);
+      return { processed: true };
+    });
+
+    // Add job
+    const jobId = await queue.add('test-job', { message: 'hello' });
+
+    // Wait for processing
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(results).toHaveLength(1);
+    expect(results[0].message).toBe('hello');
+  });
+
+  test('should retry failed jobs', async () => {
+    const queue = queuing.get();
+    let attempts = 0;
+
+    queue.process('failing-job', async (data) => {
+      attempts++;
+      if (attempts < 3) {
+        throw new Error('Simulated failure');
+      }
+      return { success: true };
+    });
+
+    await queue.add('failing-job', { test: true }, { attempts: 3 });
+
+    // Wait for retries
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    expect(attempts).toBe(3);
+  });
 });
 ```
 
-## 📚 Documentation Links
+## 🚀 Performance
 
-- 📘
-  [Developer REFERENCE](https://github.com/voilajs/appkit/blob/main/src/queue/docs/DEVELOPER_REFERENCE.md) -
-  Detailed implementation guide with examples
-- 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/queue/docs/API_REFERENCE.md) -
-  Complete API documentation
-- 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajs/appkit/blob/main/src/queue/docs/PROMPT_REFERENCE.md) -
-  Guide for AI/LLM code generation
+- **Memory Transport**: 10,000+ jobs/second
+- **Redis Transport**: 1,000+ jobs/second (network dependent)
+- **Database Transport**: 100+ jobs/second (database dependent)
+- **Startup Time**: < 100ms for any transport
+- **Memory Usage**: < 10MB baseline
 
-## 🤝 Contributing
+## 📈 Scaling
 
-We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
-for details.
+### Development → Production
+
+```typescript
+// Same code works everywhere
+const queue = queuing.get();
+await queue.add('process-payment', { orderId: 123, amount: 99.99 });
+
+// Development: Memory queue (no setup)
+// Production: Redis queue (distributed workers)
+```
+
+### Transport Comparison
+
+| Transport    | Best For             | Persistence | Distribution | Setup        |
+| ------------ | -------------------- | ----------- | ------------ | ------------ |
+| **Memory**   | Development, Testing | ❌          | ❌           | None         |
+| **Redis**    | Production, Scale    | ✅          | ✅           | Redis server |
+| **Database** | Simple Persistent    | ✅          | ⚠️           | Existing DB  |
+
+### Deployment Patterns
+
+```bash
+# Single server with database queue
+DATABASE_URL=postgres://...
+VOILA_QUEUE_WORKER=true
+
+# Distributed with Redis
+REDIS_URL=redis://...
+VOILA_QUEUE_WORKER=true
+VOILA_QUEUE_CONCURRENCY=20
+
+# Separate worker processes
+REDIS_URL=redis://...
+VOILA_QUEUE_WORKER=true    # Only in worker processes
+```
+
+## 🎯 When to Use What
+
+### Transport Selection
+
+- **Memory**: Development, testing, single-process apps
+- **Redis**: Production, multiple workers, high throughput
+- **Database**: Simple persistence, existing DB infrastructure
+
+### Job Types
+
+- **email**: User notifications, transactional emails
+- **webhook**: API integrations, third-party notifications
+- **image-resize**: Media processing, thumbnail generation
+- **data-export**: Large data processing, reports
+- **reminder**: Scheduled notifications, follow-ups
+- **cleanup**: Maintenance tasks, data archival
+
+## 🤖 LLM Guidelines
+
+### **Essential Patterns**
+
+```typescript
+// ✅ ALWAYS use these patterns
+import { queuing } from '@voilajsx/appkit/queue';
+const queue = queuing.get();
+
+// ✅ Add jobs with proper data
+await queue.add('email', {
+  to: 'user@example.com',
+  subject: 'Welcome',
+  body: 'Thanks for signing up',
+});
+
+// ✅ Process jobs with async handlers
+queue.process('email', async (data) => {
+  await sendEmail(data.to, data.subject, data.body);
+  return { sent: true };
+});
+
+// ✅ Handle job failures gracefully
+queue.process('risky-job', async (data) => {
+  try {
+    return await riskyOperation(data);
+  } catch (error) {
+    console.error('Job failed:', error);
+    throw error; // Let queue handle retry
+  }
+});
+
+// ✅ Use scheduling for delayed jobs
+await queue.schedule('reminder', data, 24 * 60 * 60 * 1000);
+```
+
+### **Anti-Patterns to Avoid**
+
+```typescript
+// ❌ DON'T call queuing.get() repeatedly
+const queue1 = queuing.get();
+const queue2 = queuing.get(); // Unnecessary - same instance
+
+// ❌ DON'T forget to handle job failures
+queue.process('job', async (data) => {
+  riskyOperation(data); // Missing await and error handling
+});
+
+// ❌ DON'T add large objects as job data
+await queue.add('job', {
+  hugeArray: new Array(1000000).fill(0), // Too large for serialization
+});
+
+// ❌ DON'T block in job handlers
+queue.process('job', async (data) => {
+  while (true) {
+    /* infinite loop */
+  } // Blocks worker
+});
+
+// ❌ DON'T forget cleanup in tests
+test('my test', () => {
+  // ... test code
+  // Missing: await queuing.clear();
+});
+```
+
+### **Common Patterns**
+
+```typescript
+// User registration flow
+await queue.add('email', {
+  to: user.email,
+  template: 'welcome',
+  data: { name: user.name },
+});
+
+// File processing
+await queue.add(
+  'image-resize',
+  {
+    imageUrl: upload.url,
+    userId: user.id,
+    sizes: [100, 200, 400],
+  },
+  { priority: 5 }
+);
+
+// Webhook notifications
+await queue.add('webhook', {
+  url: 'https://api.partner.com/notify',
+  payload: { event: 'order_created', orderId },
+});
+
+// Scheduled reminders
+const reminderDelay = 7 * 24 * 60 * 60 * 1000; // 7 days
+await queue.schedule(
+  'reminder',
+  {
+    userId,
+    type: 'trial_ending',
+    message: 'Your trial ends soon!',
+  },
+  reminderDelay
+);
+
+// Monitoring and stats
+const stats = await queue.getStats();
+const health = queuing.getHealth();
+const failedJobs = await queue.getJobs('failed');
+```
+
+## 🆚 Why Not Bull/Agenda?
+
+**Other libraries:**
+
+```javascript
+// Bull: Complex setup with multiple dependencies
+const Queue = require('bull');
+const emailQueue = new Queue('email processing', {
+  redis: { port: 6379, host: '127.0.0.1' },
+  defaultJobOptions: {
+    removeOnComplete: 10,
+    removeOnFail: 50,
+    delay: 5000,
+  },
+  settings: {
+    retryProcessDelay: 5000,
+  },
+});
+
+// Agenda: MongoDB dependency and complex scheduling
+const Agenda = require('agenda');
+const agenda = new Agenda({
+  db: { address: 'mongodb://127.0.0.1/agenda' },
+  processEvery: '20 seconds',
+  maxConcurrency: 20,
+});
+```
+
+**This library:**
+
+```typescript
+// 2 lines, production ready with 3 transports
+import { queuing } from '@voilajsx/appkit/queue';
+const queue = queuing.get();
+```
+
+**Same features, 90% less code, zero configuration.**
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajs)
+MIT © [VoilaJSX](https://github.com/voilajsx)
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  <strong>Built with ❤️ by the <a href="https://github.com/voilajsx">VoilaJSX Team</a></strong><br>
+  Because job queuing should be simple, not a PhD thesis.
 </p>

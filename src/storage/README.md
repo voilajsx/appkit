@@ -1,35 +1,24 @@
 # @voilajsx/appkit - Storage Module 📁
 
-[![npm version](https://img.shields.io/npm/v/@voilajsx.svg)](https://www.npmjs.com/package/@voilajsx)
+[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Simple, unified file storage for local filesystem and cloud providers
+> Ultra-simple file storage that just works with automatic Local/S3/R2 strategy
 
-The Storage module of `@voilajsx` provides a clean, minimalist API for file
-operations across different storage providers. Whether you're building a Tauri
-desktop app, web application, or Node.js backend, this module offers consistent
-file upload, get, and management with automatic optimizations.
+**One function** returns a storage system with automatic strategy detection.
+Zero configuration needed, production-ready cloud integration by default, with
+built-in CDN support and cost optimization.
 
-## Module Overview
+## 🚀 Why Choose This?
 
-The Storage module provides everything you need for modern file operations:
-
-| Feature                | What it does                        | Main functions                  |
-| ---------------------- | ----------------------------------- | ------------------------------- |
-| **File Operations**    | Upload, get, and delete files       | `upload()`, `get()`, `delete()` |
-| **Storage Management** | Check existence and list files      | `exists()`, `list()`            |
-| **URL Generation**     | Get file URLs for web serving       | `getUrl()`                      |
-| **Provider Support**   | Local filesystem and AWS S3 support | `LocalProvider`, `S3Provider`   |
-
-## 🚀 Features
-
-- **🔄 Unified API** - Same interface works with local files and cloud storage
-- **📦 Auto-optimization** - Automatically handles large files with multipart
-  uploads
-- **🎯 Framework Agnostic** - Works with Tauri, Electron, Express, and more
-- **⚡ Simple Setup** - Get started with just a few lines of code
-- **🛡️ Smart Defaults** - Sensible configurations that work out of the box
-- **📁 Auto-directories** - Creates directories automatically during uploads
+- **⚡ One Function** - Just `store.get()`, everything else is automatic
+- **☁️ Auto Strategy** - Cloud env vars → Distributed, No vars → Local
+- **🔧 Zero Configuration** - Smart defaults for everything
+- **💰 Cost Optimized** - R2 prioritized for zero egress fees
+- **🌍 CDN Ready** - Automatic CDN URL generation
+- **🔒 Security Built-in** - File type validation, size limits, signed URLs
+- **⚖️ Scales Perfectly** - Development → Production with no code changes
+- **🤖 AI-Ready** - Optimized for LLM code generation
 
 ## 📦 Installation
 
@@ -37,266 +26,878 @@ The Storage module provides everything you need for modern file operations:
 npm install @voilajsx/appkit
 ```
 
-## 🏃‍♂️ Quick Start
+## 🏃‍♂️ Quick Start (30 seconds)
 
-Import only the functions you need and start storing files immediately. The
-module automatically handles provider initialization and optimizes uploads based
-on file size.
+### Local Storage (Development)
 
-```javascript
-import { initStorage, getStorage } from '@voilajsx/appkit/storage';
+```typescript
+import { store } from '@voilajsx/appkit/storage';
 
-// Initialize local storage
-await initStorage('local', {
-  basePath: './uploads',
-  baseUrl: '/files',
-});
+const storage = store.get();
 
-const storage = getStorage();
+// Upload files
+await storage.put('avatars/user123.jpg', imageBuffer);
 
-// Upload a file
-const result = await storage.upload(fileBuffer, 'documents/report.pdf');
-console.log('File URL:', result.url);
+// Download files
+const imageData = await storage.get('avatars/user123.jpg');
 
-// Get a file
-const fileData = await storage.get('documents/report.pdf');
+// Get public URL
+const url = storage.url('avatars/user123.jpg');
+// → /uploads/avatars/user123.jpg
+
+// List files
+const files = await storage.list('avatars/');
 ```
 
-## 📖 Core Functions
+### Cloud Storage (Production)
+
+```bash
+# Cloudflare R2 (Recommended - Zero egress fees)
+CLOUDFLARE_R2_BUCKET=my-bucket
+CLOUDFLARE_ACCOUNT_ID=account123
+CLOUDFLARE_R2_ACCESS_KEY_ID=access_key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=secret_key
+
+# OR AWS S3 / S3-Compatible
+AWS_S3_BUCKET=my-bucket
+AWS_ACCESS_KEY_ID=access_key
+AWS_SECRET_ACCESS_KEY=secret_key
+```
+
+```typescript
+import { store } from '@voilajsx/appkit/storage';
+
+const storage = store.get();
+
+// Same code - now distributed across CDN!
+await storage.put('products/item123.jpg', imageBuffer);
+const url = storage.url('products/item123.jpg');
+// → https://cdn.example.com/products/item123.jpg
+```
+
+**That's it!** Files automatically sync across all your servers.
+
+## 🧠 Mental Model
+
+### **Strategy Auto-Detection**
+
+Environment variables determine storage backend:
+
+```bash
+# Development/Single Server
+# (no cloud env vars)
+→ Local Strategy: ./uploads/ directory
+
+# Production Cloud (Priority: R2 → S3 → Local)
+CLOUDFLARE_R2_BUCKET=bucket → R2 (zero egress fees)
+AWS_S3_BUCKET=bucket        → S3 (AWS/Wasabi/MinIO)
+# No cloud vars              → Local (with warning)
+```
+
+### **File Organization**
+
+```typescript
+// Organize files with folder structure
+await storage.put('users/123/avatar.jpg', imageBuffer);
+await storage.put('products/456/gallery/1.jpg', imageBuffer);
+await storage.put('documents/contracts/legal.pdf', pdfBuffer);
+
+// List by folder
+const userFiles = await storage.list('users/123/');
+const productGallery = await storage.list('products/456/gallery/');
+```
+
+## 📖 Complete API Reference
+
+### Core Function
+
+```typescript
+const storage = store.get(); // One function, everything you need
+```
 
 ### File Operations
 
-These utilities handle the fundamental file operations you need in any
-application. All operations are async and provide consistent error handling
-across different storage providers.
-
-| Function   | Purpose                                  | When to use                                        |
-| ---------- | ---------------------------------------- | -------------------------------------------------- |
-| `upload()` | Stores files with automatic optimization | File uploads, data persistence, media storage      |
-| `get()`    | Retrieves file content as Buffer         | File serving, data retrieval, backup operations    |
-| `delete()` | Removes files from storage               | Cleanup, user deletions, temporary file management |
-
-```javascript
-// Upload with automatic large file handling
-const result = await storage.upload(fileData, 'images/avatar.jpg', {
+```typescript
+// Upload files
+await storage.put(key, data, options?);
+await storage.put('file.jpg', buffer, {
   contentType: 'image/jpeg',
+  metadata: { userId: '123' },
+  cacheControl: 'public, max-age=31536000'
 });
 
-// Get file content
-const imageBuffer = await storage.get('images/avatar.jpg');
+// Download files
+const buffer = await storage.get('file.jpg');
 
-// Delete when no longer needed
-await storage.delete('temp/processed-data.json');
+// Delete files
+const success = await storage.delete('file.jpg');
+
+// Check existence
+const exists = await storage.exists('file.jpg');
+
+// Copy files
+await storage.copy('source.jpg', 'backup.jpg');
 ```
 
-### Storage Management
+### URL Generation
 
-Essential utilities for managing your file storage, checking file existence, and
-listing stored files. Perfect for building file browsers, backup systems, or
-content management features.
+```typescript
+// Public URLs
+const url = storage.url('file.jpg');
+// Local:  /uploads/file.jpg
+// S3:     https://bucket.s3.region.amazonaws.com/file.jpg
+// R2:     https://cdn.example.com/file.jpg
 
-| Function   | Purpose                        | When to use                                    |
-| ---------- | ------------------------------ | ---------------------------------------------- |
-| `exists()` | Checks if a file exists        | Validation, avoiding overwrites, file checking |
-| `list()`   | Gets array of file paths       | File browsers, backup lists, content discovery |
-| `getUrl()` | Generates accessible file URLs | Web serving, Get links, media display          |
-
-```javascript
-// Check if file exists before processing
-if (await storage.exists('config/settings.json')) {
-  const settings = await storage.get('config/settings.json');
-}
-
-// List all user files
-const userFiles = await storage.list('users/123/');
-console.log('User files:', userFiles); // ['users/123/profile.jpg', 'users/123/document.pdf']
-
-// Get URL for web serving
-const profileUrl = storage.getUrl('users/123/profile.jpg');
+// Signed URLs (temporary access)
+const signedUrl = await storage.signedUrl('private.pdf', 3600); // 1 hour
 ```
 
-## 🔧 Configuration Options
+### File Listing
 
-The examples above show basic usage, but you have full control over how storage
-providers work. Here are the customization options available:
+```typescript
+// List all files
+const allFiles = await storage.list();
 
-### Local Storage Options
+// List with prefix
+const images = await storage.list('images/');
 
-| Option     | Description                  | Default       | Example                  |
-| ---------- | ---------------------------- | ------------- | ------------------------ |
-| `basePath` | Directory for storing files  | `'./storage'` | `'./uploads'`, `'/data'` |
-| `baseUrl`  | URL prefix for serving files | `'/storage'`  | `'/files'`, `'/media'`   |
+// List with limit
+const recent = await storage.list('logs/', 10);
 
-```javascript
-await initStorage('local', {
-  basePath: './app-data/files',
-  baseUrl: '/api/files',
+// File metadata
+files.forEach((file) => {
+  console.log(`${file.key}: ${file.size} bytes, ${file.lastModified}`);
 });
 ```
 
-### S3 Storage Options
+### Helper Methods
 
-| Option        | Description                  | Default       | Example                            |
-| ------------- | ---------------------------- | ------------- | ---------------------------------- |
-| `bucket`      | S3 bucket name               | _Required_    | `'my-app-storage'`                 |
-| `region`      | AWS region                   | `'us-east-1'` | `'us-west-2'`, `'eu-west-1'`       |
-| `credentials` | AWS credentials object       | Auto-detect   | `{ accessKeyId, secretAccessKey }` |
-| `publicRead`  | Make files publicly readable | `false`       | `true`                             |
+```typescript
+// Quick upload with auto-naming
+const { key, url } = await store.upload(buffer, {
+  folder: 'uploads',
+  filename: 'document.pdf',
+  contentType: 'application/pdf',
+});
 
-```javascript
-await initStorage('s3', {
-  bucket: 'my-app-files',
-  region: 'us-west-2',
-  publicRead: true,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
+// Quick download with content type
+const { data, contentType } = await store.download('file.jpg');
+```
+
+### Utility Methods
+
+```typescript
+// Debug info
+store.getStrategy(); // 'local' | 's3' | 'r2'
+store.hasCloudStorage(); // true if S3/R2 configured
+store.isLocal(); // true if using local storage
+store.getConfig(); // Current configuration
+store.getStats(); // Usage statistics
+
+// Cleanup
+await storage.disconnect();
+await store.clear(); // For testing
+```
+
+## 🎯 Usage Examples
+
+### **Express File Upload API**
+
+```typescript
+import express from 'express';
+import multer from 'multer';
+import { store } from '@voilajsx/appkit/storage';
+
+const app = express();
+const storage = store.get();
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Single file upload
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const timestamp = Date.now();
+    const key = `uploads/${timestamp}-${req.file.originalname}`;
+
+    await storage.put(key, req.file.buffer, {
+      contentType: req.file.mimetype,
+      metadata: {
+        originalName: req.file.originalname,
+        uploadedBy: req.user?.id || 'anonymous',
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+
+    const url = storage.url(key);
+
+    res.json({
+      success: true,
+      file: {
+        key,
+        url,
+        size: req.file.size,
+        contentType: req.file.mimetype,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// File download
+app.get('/files/:key(*)', async (req, res) => {
+  try {
+    const key = req.params.key;
+
+    if (!(await storage.exists(key))) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const buffer = await storage.get(key);
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${key.split('/').pop()}"`
+    );
+
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generate signed download URL
+app.get('/files/:key(*)/signed', async (req, res) => {
+  try {
+    const key = req.params.key;
+    const expiresIn = parseInt(req.query.expires as string) || 3600; // 1 hour default
+
+    const signedUrl = await storage.signedUrl(key, expiresIn);
+
+    res.json({
+      url: signedUrl,
+      expiresIn,
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 ```
 
-## 💡 Common Use Cases
+### **Image Processing Pipeline**
 
-Here's where you can apply the storage module's functionality in your
-applications:
+```typescript
+import { store } from '@voilajsx/appkit/storage';
+import sharp from 'sharp';
 
-| Category               | Use Case               | Description                                   | Components Used                      |
-| ---------------------- | ---------------------- | --------------------------------------------- | ------------------------------------ |
-| **Tauri Desktop Apps** | User Data Storage      | Store app settings, user files, and cache     | `LocalProvider`, `upload()`, `get()` |
-|                        | Media Management       | Handle images, documents, and media files     | `upload()`, `list()`, `getUrl()`     |
-| **Web Applications**   | File Uploads           | Handle user file uploads with progress        | `upload()` with progress callback    |
-|                        | Content Delivery       | Serve static files and user-generated content | `getUrl()`, `get()`                  |
-| **API Backends**       | Document Storage       | Store and retrieve documents and attachments  | `upload()`, `get()`, `exists()`      |
-|                        | Backup Systems         | Automated file backup and restoration         | `list()`, `upload()`, `get()`        |
-| **Cloud Migration**    | Multi-provider Support | Switch between local and cloud storage        | Provider abstraction                 |
+const storage = store.get();
 
-## 🤖 Code Generation with LLMs
+export class ImageProcessor {
+  async processImage(originalKey: string) {
+    // Download original
+    const originalBuffer = await storage.get(originalKey);
 
-You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common storage scenarios using the `@voilajsx/appkit/storage` module. We've
-created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajsx/appkit/blob/main/src/storage/docs/PROMPT_REFERENCE.md)
-document that's designed specifically for LLMs to understand the module's
-capabilities and generate high-quality storage code.
+    // Create different sizes
+    const sizes = [
+      { name: 'thumb', width: 150, height: 150 },
+      { name: 'medium', width: 500, height: 500 },
+      { name: 'large', width: 1200, height: 1200 },
+    ];
 
-### How to Use LLM Code Generation
+    const results = [];
 
-Simply copy one of the prompts below and share it with ChatGPT, Claude, or
-another capable LLM. The LLM will read the reference document and generate
-clean, efficient storage code tailored to your specific requirements.
+    for (const size of sizes) {
+      // Process with Sharp
+      const processedBuffer = await sharp(originalBuffer)
+        .resize(size.width, size.height, {
+          fit: 'cover',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
 
-### Sample Prompts to Try
+      // Generate new key
+      const [name, ext] = originalKey.split('.');
+      const newKey = `${name}-${size.name}.${ext}`;
 
-#### Basic File Storage System
+      // Upload processed image
+      await storage.put(newKey, processedBuffer, {
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000', // 1 year cache
+      });
 
-```
-Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/storage/docs/PROMPT_REFERENCE.md and then create a file storage system for a Tauri app using @voilajsx/appkit/storage with the following features:
-- Local file storage for user documents
-- File upload with progress tracking
-- File browser functionality
-- Image thumbnail generation and storage
-```
+      results.push({
+        size: size.name,
+        key: newKey,
+        url: storage.url(newKey),
+        dimensions: `${size.width}x${size.height}`,
+      });
+    }
 
-#### Cloud Storage Migration
+    return results;
+  }
 
-```
-Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/storage/docs/PROMPT_REFERENCE.md and then implement a storage system using @voilajsx/appkit/storage that can:
-- Start with local storage for development
-- Migrate to S3 for production
-- Handle large file uploads with progress
-- Provide backup and restore functionality
-```
+  async cleanupProcessedImages(originalKey: string) {
+    const [name] = originalKey.split('.');
+    const files = await storage.list(name);
 
-#### Multi-tenant File Management
-
-```
-Please read the API reference at https://github.com/voilajsx/appkit/blob/main/src/storage/docs/PROMPT_REFERENCE.md and then create a multi-tenant file management system using @voilajsx/appkit/storage with:
-- Isolated storage per tenant
-- File sharing between users
-- Automatic file cleanup for expired content
-- Integration with authentication system
-```
-
-## 📋 Example Code
-
-For complete, working examples, check our examples folder:
-
-- [Basic Local Storage](https://github.com/voilajsx/appkit/blob/main/src/storage/examples/01-local-basic.js) -
-  Simple local file operations
-- [S3 Storage Setup](https://github.com/voilajsx/appkit/blob/main/src/storage/examples/02-s3-basic.js) -
-  AWS S3 configuration and usage
-- [File Manager](https://github.com/voilajsx/appkit/blob/main/src/storage/examples/03-file-manager.js) -
-  File organization and management operations
-- [Express Upload Server](https://github.com/voilajsx/appkit/blob/main/src/storage/examples/04-express-upload.js) -
-  Web server with file upload functionality
-
-## 🛡️ Security Best Practices
-
-Following these practices will help ensure your file storage system remains
-secure:
-
-1. **Path Validation**: Always validate file paths to prevent directory
-   traversal attacks
-2. **File Type Restrictions**: Implement file type validation before accepting
-   uploads
-3. **Size Limits**: Set appropriate file size limits to prevent abuse
-4. **Access Control**: Use proper authentication before allowing file operations
-5. **Secure URLs**: Use signed URLs for temporary access to sensitive files
-6. **Regular Cleanup**: Implement cleanup routines for temporary and unused
-   files
-
-## 📊 Performance Considerations
-
-- **Large Files**: Files over 100MB automatically use multipart uploads for
-  better reliability
-- **Progress Tracking**: Use progress callbacks for user feedback during long
-  uploads
-- **Batch Operations**: Consider batching multiple small file operations
-- **Caching**: Cache file existence checks when building file browsers
-
-## 🔍 Error Handling
-
-The module provides specific error messages that you should handle
-appropriately:
-
-```javascript
-try {
-  const file = await storage.get('missing-file.txt');
-} catch (error) {
-  if (error.message.includes('not found')) {
-    // Handle missing file
-    console.log('File does not exist');
-  } else {
-    // Handle other errors
-    console.error('Get failed:', error.message);
+    for (const file of files) {
+      if (
+        file.key.includes('-thumb.') ||
+        file.key.includes('-medium.') ||
+        file.key.includes('-large.')
+      ) {
+        await storage.delete(file.key);
+      }
+    }
   }
 }
 ```
 
-## 📚 Documentation Links
+### **Document Management System**
 
-- 📘
-  [Developer REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/storage/docs/DEVELOPER_REFERENCE.md) -
-  Detailed implementation guide with examples
-- 📗
-  [API Reference](https://github.com/voilajsx/appkit/blob/main/src/storage/docs/API_REFERENCE.md) -
-  Complete API documentation
-- 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajsx/appkit/blob/main/src/storage/docs/PROMPT_REFERENCE.md) -
-  Guide for AI/LLM code generation
+```typescript
+import { store } from '@voilajsx/appkit/storage';
 
-## 🤝 Contributing
+const storage = store.get();
 
-We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajsx/appkit/blob/main/CONTRIBUTING.md)
-for details.
+export class DocumentManager {
+  async uploadDocument(
+    file: Buffer,
+    metadata: {
+      userId: string;
+      category: string;
+      filename: string;
+      contentType: string;
+    }
+  ) {
+    const { userId, category, filename } = metadata;
+    const timestamp = Date.now();
+    const key = `documents/${userId}/${category}/${timestamp}-${filename}`;
+
+    await storage.put(key, file, {
+      contentType: metadata.contentType,
+      metadata: {
+        userId,
+        category,
+        originalName: filename,
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+
+    return {
+      documentId: key,
+      url: storage.url(key),
+      category,
+      uploadedAt: new Date(),
+    };
+  }
+
+  async getUserDocuments(userId: string, category?: string) {
+    const prefix = category
+      ? `documents/${userId}/${category}/`
+      : `documents/${userId}/`;
+
+    const files = await storage.list(prefix);
+
+    return files.map((file) => ({
+      documentId: file.key,
+      filename: file.key.split('/').pop(),
+      category: file.key.split('/')[2],
+      size: file.size,
+      lastModified: file.lastModified,
+      url: storage.url(file.key),
+    }));
+  }
+
+  async generateShareLink(documentId: string, expiresInHours: number = 24) {
+    const expiresIn = expiresInHours * 3600; // Convert to seconds
+    const signedUrl = await storage.signedUrl(documentId, expiresIn);
+
+    return {
+      url: signedUrl,
+      expiresAt: new Date(Date.now() + expiresIn * 1000),
+      expiresInHours,
+    };
+  }
+
+  async deleteDocument(documentId: string) {
+    return await storage.delete(documentId);
+  }
+}
+```
+
+### **Backup & Sync System**
+
+```typescript
+import { store } from '@voilajsx/appkit/storage';
+
+const storage = store.get();
+
+export class BackupManager {
+  async createBackup(sourcePrefix: string) {
+    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const backupPrefix = `backups/${timestamp}/`;
+
+    const sourceFiles = await storage.list(sourcePrefix);
+    const backupResults = [];
+
+    for (const file of sourceFiles) {
+      const relativePath = file.key.replace(sourcePrefix, '');
+      const backupKey = backupPrefix + relativePath;
+
+      try {
+        await storage.copy(file.key, backupKey);
+        backupResults.push({
+          original: file.key,
+          backup: backupKey,
+          status: 'success',
+        });
+      } catch (error) {
+        backupResults.push({
+          original: file.key,
+          backup: backupKey,
+          status: 'failed',
+          error: error.message,
+        });
+      }
+    }
+
+    return {
+      backupId: timestamp,
+      sourcePrefix,
+      backupPrefix,
+      totalFiles: sourceFiles.length,
+      successful: backupResults.filter((r) => r.status === 'success').length,
+      failed: backupResults.filter((r) => r.status === 'failed').length,
+      results: backupResults,
+    };
+  }
+
+  async restoreFromBackup(backupId: string, targetPrefix: string) {
+    const backupPrefix = `backups/${backupId}/`;
+    const backupFiles = await storage.list(backupPrefix);
+
+    for (const file of backupFiles) {
+      const relativePath = file.key.replace(backupPrefix, '');
+      const targetKey = targetPrefix + relativePath;
+
+      await storage.copy(file.key, targetKey);
+    }
+
+    return {
+      restored: backupFiles.length,
+      targetPrefix,
+    };
+  }
+
+  async cleanupOldBackups(retentionDays: number = 30) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    const backups = await storage.list('backups/');
+    const oldBackups = backups.filter((file) => file.lastModified < cutoffDate);
+
+    for (const backup of oldBackups) {
+      await storage.delete(backup.key);
+    }
+
+    return {
+      deleted: oldBackups.length,
+      retentionDays,
+    };
+  }
+}
+```
+
+## 🌍 Environment Variables
+
+### Strategy Selection (Auto-detected)
+
+```bash
+# Priority order: R2 → S3 → Local
+
+# Cloudflare R2 (Highest priority - zero egress fees)
+CLOUDFLARE_R2_BUCKET=my-bucket
+CLOUDFLARE_ACCOUNT_ID=account_id
+CLOUDFLARE_R2_ACCESS_KEY_ID=access_key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=secret_key
+CLOUDFLARE_R2_CDN_URL=https://cdn.example.com  # Optional CDN
+
+# AWS S3 / S3-Compatible (Second priority)
+AWS_S3_BUCKET=my-bucket
+AWS_ACCESS_KEY_ID=access_key
+AWS_SECRET_ACCESS_KEY=secret_key
+AWS_REGION=us-east-1                           # Default: us-east-1
+
+# S3-Compatible Services (Wasabi, MinIO, etc.)
+S3_ENDPOINT=https://s3.wasabisys.com           # Custom endpoint
+S3_FORCE_PATH_STYLE=true                       # For MinIO
+
+# Local Storage (Fallback - no cloud vars needed)
+VOILA_STORAGE_DIR=./uploads                    # Default: ./uploads
+VOILA_STORAGE_BASE_URL=/uploads                # Default: /uploads
+```
+
+### Security & Limits
+
+```bash
+# File validation
+VOILA_STORAGE_MAX_SIZE=52428800               # 50MB default
+VOILA_STORAGE_ALLOWED_TYPES=image/*,application/pdf,text/*
+
+# Signed URL expiration
+VOILA_STORAGE_SIGNED_EXPIRY=3600              # 1 hour default
+
+# CDN configuration
+VOILA_STORAGE_CDN_URL=https://cdn.example.com # For any strategy
+```
+
+### Provider-Specific Examples
+
+#### **Cloudflare R2**
+
+```bash
+# R2 with custom domain
+CLOUDFLARE_R2_BUCKET=my-assets
+CLOUDFLARE_ACCOUNT_ID=abc123
+CLOUDFLARE_R2_ACCESS_KEY_ID=access_key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=secret_key
+CLOUDFLARE_R2_CDN_URL=https://assets.myapp.com
+```
+
+#### **AWS S3**
+
+```bash
+# Standard AWS S3
+AWS_S3_BUCKET=my-app-assets
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=secret...
+AWS_REGION=us-west-2
+VOILA_STORAGE_CDN_URL=https://d123456.cloudfront.net
+```
+
+#### **Wasabi**
+
+```bash
+# Wasabi S3-compatible
+AWS_S3_BUCKET=my-wasabi-bucket
+AWS_ACCESS_KEY_ID=wasabi_key
+AWS_SECRET_ACCESS_KEY=wasabi_secret
+S3_ENDPOINT=https://s3.us-east-1.wasabisys.com
+AWS_REGION=us-east-1
+```
+
+#### **MinIO**
+
+```bash
+# Self-hosted MinIO
+AWS_S3_BUCKET=my-bucket
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=minioadmin
+S3_ENDPOINT=http://localhost:9000
+S3_FORCE_PATH_STYLE=true
+```
+
+#### **DigitalOcean Spaces**
+
+```bash
+# DigitalOcean Spaces
+AWS_S3_BUCKET=my-space
+AWS_ACCESS_KEY_ID=do_key
+AWS_SECRET_ACCESS_KEY=do_secret
+S3_ENDPOINT=https://nyc3.digitaloceanspaces.com
+AWS_REGION=us-east-1
+VOILA_STORAGE_CDN_URL=https://my-space.nyc3.cdn.digitaloceanspaces.com
+```
+
+## 🔄 Development vs Production
+
+### **Development Mode**
+
+```bash
+# No environment variables needed
+NODE_ENV=development
+```
+
+```typescript
+const storage = store.get();
+// Strategy: Local filesystem (./uploads/)
+// URLs: /uploads/file.jpg
+// Features: File type validation, size limits
+```
+
+### **Production Mode**
+
+```bash
+# Cloud storage required
+NODE_ENV=production
+CLOUDFLARE_R2_BUCKET=prod-assets
+# ... other cloud credentials
+```
+
+```typescript
+const storage = store.get();
+// Strategy: R2 or S3 (distributed)
+// URLs: https://cdn.example.com/file.jpg
+// Features: CDN delivery, signed URLs, zero egress (R2)
+```
+
+### **Scaling Pattern**
+
+```typescript
+// Week 1: Local development
+// No env vars needed - works immediately
+
+// Month 1: Add cloud storage
+// Set CLOUDFLARE_R2_BUCKET - zero code changes
+
+// Year 1: Add CDN
+// Set CLOUDFLARE_R2_CDN_URL - automatic CDN delivery
+```
+
+## 🧪 Testing
+
+### **Test Setup**
+
+```typescript
+import { store } from '@voilajsx/appkit/storage';
+
+describe('File Storage', () => {
+  afterEach(async () => {
+    // IMPORTANT: Clear storage state between tests
+    await store.clear();
+  });
+
+  test('should upload and download files', async () => {
+    const storage = store.get();
+
+    const testData = Buffer.from('Hello, World!');
+    await storage.put('test.txt', testData);
+
+    const downloaded = await storage.get('test.txt');
+    expect(downloaded.toString()).toBe('Hello, World!');
+  });
+
+  test('should generate public URLs', async () => {
+    const storage = store.get();
+
+    await storage.put('image.jpg', Buffer.from('fake image'));
+    const url = storage.url('image.jpg');
+
+    expect(url).toMatch(/image\.jpg$/);
+  });
+});
+```
+
+### **Mock Cloud Storage for Tests**
+
+```typescript
+// Force local strategy for testing
+describe('Storage with Local Strategy', () => {
+  beforeEach(() => {
+    store.reset({
+      strategy: 'local',
+      local: {
+        dir: './test-uploads',
+        baseUrl: '/test-uploads',
+        maxFileSize: 1048576, // 1MB for tests
+        allowedTypes: ['*'],
+        createDirs: true,
+      },
+    });
+  });
+
+  afterEach(async () => {
+    await store.clear();
+    // Clean up test directory
+    await fs.rm('./test-uploads', { recursive: true, force: true });
+  });
+});
+```
+
+## 🤖 LLM Guidelines
+
+### **Essential Patterns**
+
+```typescript
+// ✅ ALWAYS use these patterns
+import { store } from '@voilajsx/appkit/storage';
+const storage = store.get();
+
+// ✅ File operations
+await storage.put('folder/file.jpg', buffer);
+const data = await storage.get('folder/file.jpg');
+await storage.delete('folder/file.jpg');
+
+// ✅ URL generation
+const publicUrl = storage.url('file.jpg');
+const signedUrl = await storage.signedUrl('private.pdf', 3600);
+
+// ✅ File organization
+const files = await storage.list('images/');
+const exists = await storage.exists('document.pdf');
+
+// ✅ Helper methods for quick operations
+const { key, url } = await store.upload(buffer, {
+  folder: 'uploads',
+  filename: 'document.pdf',
+});
+```
+
+### **Anti-Patterns to Avoid**
+
+```typescript
+// ❌ DON'T create StorageClass directly
+import { StorageClass } from '@voilajsx/appkit/storage';
+const storage = new StorageClass(config); // Wrong!
+
+// ❌ DON'T forget to handle async operations
+storage.put('file.jpg', buffer); // Missing await!
+
+// ❌ DON'T use invalid keys
+await storage.put('/file.jpg', buffer); // Leading slash
+await storage.put('folder/../file.jpg', buffer); // Path traversal
+await storage.put('folder\\file.jpg', buffer); // Backslashes
+
+// ❌ DON'T ignore file size limits
+// Check file size before upload for large files
+
+// ❌ DON'T forget cleanup in tests
+test('my test', () => {
+  // ... test code
+  // Missing: await store.clear();
+});
+
+// ❌ DON'T hardcode storage strategy
+if (storage.getStrategy() === 'local') {
+} // Use storage methods instead
+```
+
+### **Common Patterns**
+
+```typescript
+// File upload with validation
+const maxSize = 10 * 1024 * 1024; // 10MB
+if (buffer.length > maxSize) {
+  throw new Error('File too large');
+}
+
+await storage.put(`uploads/${userId}/${filename}`, buffer, {
+  contentType: mimeType,
+  metadata: {
+    userId,
+    uploadedAt: new Date().toISOString(),
+  },
+});
+
+// Image processing workflow
+const originalKey = await storage.put('originals/image.jpg', buffer);
+const thumbnailBuffer = await processImage(buffer, { width: 150 });
+const thumbnailKey = await storage.put('thumbnails/image.jpg', thumbnailBuffer);
+
+// Document sharing
+const signedUrl = await storage.signedUrl('documents/secret.pdf', 3600);
+const shareLink = {
+  url: signedUrl,
+  expiresAt: new Date(Date.now() + 3600 * 1000),
+};
+
+// Batch operations
+const files = await storage.list('temp/');
+for (const file of files) {
+  if (file.lastModified < cutoffDate) {
+    await storage.delete(file.key);
+  }
+}
+```
+
+## 📈 Performance
+
+- **Local Strategy**: ~1ms per operation (filesystem I/O)
+- **S3 Strategy**: ~50-200ms per operation (network + AWS)
+- **R2 Strategy**: ~50-200ms per operation (network + Cloudflare)
+- **CDN URLs**: ~1ms generation (no network calls)
+- **Memory Usage**: <5MB baseline per strategy
+
+## 💰 Cost Comparison
+
+| Provider          | Storage    | Egress   | CDN        | Best For                    |
+| ----------------- | ---------- | -------- | ---------- | --------------------------- |
+| **Local**         | Free       | Free     | None       | Development, single server  |
+| **Cloudflare R2** | $0.015/GB  | **FREE** | Included   | High-bandwidth, global apps |
+| **AWS S3**        | $0.023/GB  | $0.09/GB | Extra cost | Enterprise, AWS ecosystem   |
+| **Wasabi**        | $0.0059/GB | FREE     | Extra cost | Archive, backup storage     |
+
+## 🔍 TypeScript Support
+
+Full TypeScript support with comprehensive interfaces:
+
+```typescript
+import type {
+  Storage,
+  StorageFile,
+  PutOptions,
+} from '@voilajsx/appkit/storage';
+
+// Strongly typed storage operations
+const storage: Storage = store.get();
+
+const files: StorageFile[] = await storage.list('images/');
+const options: PutOptions = {
+  contentType: 'image/jpeg',
+  metadata: { userId: '123' },
+};
+
+await storage.put('image.jpg', buffer, options);
+```
+
+## 🆚 Why Not AWS SDK/Google Cloud directly?
+
+**Other approaches:**
+
+```javascript
+// AWS SDK: Complex setup, provider-specific
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3({
+  accessKeyId: 'key',
+  secretAccessKey: 'secret',
+  region: 'us-east-1',
+});
+
+const params = {
+  Bucket: 'bucket',
+  Key: 'file.jpg',
+  Body: buffer,
+  ContentType: 'image/jpeg',
+};
+
+s3.upload(params, callback);
+```
+
+**This library:**
+
+```typescript
+// 2 lines, works with any provider
+import { store } from '@voilajsx/appkit/storage';
+await store.get().put('file.jpg', buffer);
+```
+
+**Same features, 90% less code, automatic provider detection.**
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajsx)
+MIT © [VoilaJSX](https://github.com/voilajsx)
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development.
+  <strong>Built with ❤️ by the <a href="https://github.com/voilajsx">VoilaJSX Team</a></strong><br>
+  Because file storage should be simple, not a vendor nightmare.
 </p>

@@ -118,6 +118,7 @@
     "dotenv": "^16.6.1",
     "express-session": "^1.18.1",
     "fastify": "^5.3.3",
+    "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0"
   },
