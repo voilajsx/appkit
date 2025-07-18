@@ -1,357 +1,497 @@
-# @voilajs/appkit - Email Module 📧
+# @voilajsx/appkit - Email Module 📧
 
-[![npm version](https://img.shields.io/npm/v/@voilajs/appkit.svg)](https://www.npmjs.com/package/@voilajs/appkit)
+[![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/github/workflow/status/voilajs/appkit/CI)](https://github.com/voilajs/appkit/actions)
 
-> Simple, unified, and powerful email sending capabilities for Node.js
-> applications
+> Ultra-simple email sending that just works - One function, automatic provider
+> detection, zero configuration
 
-The Email module of `@voilajs/appkit` provides a streamlined interface for
-sending emails through various providers including SMTP, SendGrid, AWS SES, and
-Mailgun, with additional testing providers like MailHog and Mailtrap for
-development environments. It includes a simple yet powerful template engine,
-attachment handling, and provider-specific options.
+**One function** returns an email object with automatic strategy selection. Zero
+configuration needed, production-ready sending by default, with built-in
+template system and development preview.
 
-## Module Overview
+## 🚀 Why Choose This?
 
-The Email module handles everything needed for sending various types of emails:
-
-| Feature              | What it does                                       | Main functions                      |
-| -------------------- | -------------------------------------------------- | ----------------------------------- |
-| **Email Sending**    | Send basic and HTML emails with attachments        | `sendEmail()`, `closeEmail()`       |
-| **Email Templates**  | Template rendering with variables and conditionals | `sendTemplatedEmail()`              |
-| **Provider Support** | Integration with major email service providers     | `initEmail()`, `getEmailProvider()` |
-
-## 🚀 Features
-
-- **🔌 Multiple Providers** - Support for SMTP, SendGrid, AWS SES, Mailgun, and
-  testing providers
-- **📝 Template Engine** - Simple built-in template engine with variables,
-  conditionals, and loops
-- **📎 Attachment Support** - Easy attachment handling for documents and files
-- **🧪 Testing Utilities** - Specialized testing providers (MailHog, Mailtrap)
-  for development
-- **🔄 Environment Switching** - Seamlessly switch between providers for
-  different environments
-- **🧩 Framework Agnostic** - Works with any Node.js framework or application
-- **⚡ Simple API** - Intuitive functions with sensible defaults
+- **⚡ One Function** - Just `emailing.get()`, everything else is automatic
+- **🎯 Auto-Strategy** - RESEND_API_KEY = Resend, SMTP_HOST = SMTP, default =
+  Console
+- **🔧 Zero Configuration** - Smart defaults for everything
+- **📄 Built-in Templates** - Welcome, reset password templates included
+- **🎨 Development Preview** - See emails in console with beautiful formatting
+- **🛡️ Production Ready** - Retry logic, error handling, graceful shutdown
+- **🤖 AI-Ready** - Optimized for LLM code generation
 
 ## 📦 Installation
 
 ```bash
-npm install @voilajs/appkit
+npm install @voilajsx/appkit
 ```
 
-## 🏃‍♂️ Quick Start
+## 🏃‍♂️ Quick Start (30 seconds)
 
-Import the functions you need and start sending emails with just a few lines of
-code:
+### 1. Basic Setup (Console Preview)
 
-```javascript
-import { initEmail, sendEmail } from '@voilajs/appkit/email';
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
 
-// Initialize provider
-await initEmail('smtp', {
-  host: 'smtp.example.com',
-  port: 587,
-  auth: {
-    user: 'username',
-    pass: 'password',
-  },
-  defaultFrom: 'sender@example.com',
+const email = emailing.get();
+
+// Send email (shows in console during development)
+await email.send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  text: 'Hello world!',
 });
 
-// Send an email
-await sendEmail(
-  'recipient@example.com',
-  'Hello World',
-  '<p>This is a test email</p>'
-);
+// Even simpler
+await emailing.sendText('user@example.com', 'Hi', 'Hello!');
 ```
 
-## 📖 Core Functions
+### 2. Production Setup (Resend)
 
-### Email Setup
+```bash
+# Just set API key - automatic Resend strategy
+export RESEND_API_KEY=re_your_api_key_here
+```
 
-These functions handle initializing and managing your email provider connection.
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
 
-| Function             | Purpose                            | When to use                                       |
-| -------------------- | ---------------------------------- | ------------------------------------------------- |
-| `initEmail()`        | Initializes an email provider      | At application startup or service initialization  |
-| `closeEmail()`       | Closes provider connections        | During application shutdown or provider switching |
-| `getEmailProvider()` | Gets the current provider instance | When you need access to the underlying provider   |
+// Same code, now sends real emails!
+await emailing.send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  html: '<h1>Hello!</h1><p>Welcome to our app!</p>',
+});
+```
 
-```javascript
-// Initialize provider based on environment
-if (process.env.NODE_ENV === 'production') {
-  await initEmail('ses', {
-    region: process.env.AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    },
-    defaultFrom: process.env.EMAIL_FROM,
+**That's it!** No configuration, no setup, just works everywhere.
+
+## 🧠 Mental Model
+
+### **Automatic Strategy Selection**
+
+The email module **automatically detects** what you need:
+
+| Environment Variable       | Strategy | Use Case                           |
+| -------------------------- | -------- | ---------------------------------- |
+| `RESEND_API_KEY=re_...`    | Resend   | Modern production (recommended)    |
+| `SMTP_HOST=smtp.gmail.com` | SMTP     | Universal (Gmail, Outlook, custom) |
+| _No email env vars_        | Console  | Development (shows in terminal)    |
+
+### **Development → Production**
+
+```typescript
+// Same code works everywhere
+await emailing.send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  text: 'Hello!',
+});
+
+// Development: Beautiful console preview
+// Production: Real email via Resend/SMTP
+```
+
+## 📖 Complete API
+
+### Core Function
+
+```typescript
+const email = emailing.get(); // One function, everything you need
+```
+
+### Email Operations
+
+```typescript
+// Full email
+await email.send({
+  to: 'user@example.com',
+  subject: 'Subject',
+  text: 'Plain text',
+  html: '<h1>HTML content</h1>',
+});
+
+// Simple text
+await email.sendText('user@example.com', 'Subject', 'Text');
+
+// HTML email
+await email.sendHtml('user@example.com', 'Subject', '<h1>HTML</h1>');
+
+// Template email
+await email.sendTemplate('welcome', {
+  to: 'user@example.com',
+  name: 'John',
+  appName: 'MyApp',
+});
+
+// Batch emails
+await email.sendBatch([email1, email2, email3]);
+```
+
+### Utility Methods
+
+```typescript
+// Debugging
+email.getStrategy(); // 'resend', 'smtp', or 'console'
+emailing.hasResend(); // true if RESEND_API_KEY set
+emailing.hasSmtp(); // true if SMTP_HOST set
+
+// Convenience
+await emailing.send(emailData); // Direct send without get()
+```
+
+## 💡 Simple Examples
+
+### **User Registration Email**
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+async function sendWelcomeEmail(user) {
+  await emailing.send({
+    to: user.email,
+    subject: `Welcome to ${process.env.APP_NAME}!`,
+    html: `
+      <h1>Welcome ${user.name}!</h1>
+      <p>Thanks for joining us. We're excited to have you!</p>
+      <a href="${process.env.APP_URL}/dashboard">Get Started</a>
+    `,
+    text: `Welcome ${user.name}! Thanks for joining us. Visit ${process.env.APP_URL}/dashboard to get started.`,
   });
+}
+```
+
+### **Password Reset**
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+async function sendPasswordReset(user, resetToken) {
+  const resetUrl = `${process.env.APP_URL}/reset?token=${resetToken}`;
+
+  await emailing.send({
+    to: user.email,
+    subject: 'Reset your password',
+    html: `
+      <h2>Reset your password</h2>
+      <p>Hi ${user.name},</p>
+      <p>Click the link below to reset your password:</p>
+      <a href="${resetUrl}">Reset Password</a>
+      <p>This link expires in 1 hour.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `,
+    text: `Reset your password: ${resetUrl} (expires in 1 hour)`,
+  });
+}
+```
+
+### **Order Confirmation**
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+async function sendOrderConfirmation(order) {
+  await emailing.send({
+    to: order.customerEmail,
+    subject: `Order Confirmation #${order.id}`,
+    html: `
+      <h1>Order Confirmed!</h1>
+      <p>Thanks for your order, ${order.customerName}!</p>
+      <h3>Order Details:</h3>
+      <ul>
+        ${order.items.map((item) => `<li>${item.name} x${item.quantity} - $${item.price}</li>`).join('')}
+      </ul>
+      <p><strong>Total: $${order.total}</strong></p>
+      <p>We'll send you tracking information when your order ships.</p>
+    `,
+  });
+}
+```
+
+### **Built-in Templates**
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+// Welcome template
+await emailing.get().sendTemplate('welcome', {
+  to: 'user@example.com',
+  name: 'John',
+  appName: 'MyApp',
+});
+
+// Password reset template
+await emailing.get().sendTemplate('reset', {
+  to: 'user@example.com',
+  name: 'John',
+  resetUrl: 'https://myapp.com/reset?token=abc123',
+  appName: 'MyApp',
+});
+```
+
+## 🌍 Environment Variables
+
+### **Resend (Recommended)**
+
+```bash
+# Modern email service with great deliverability
+RESEND_API_KEY=re_your_api_key_here
+
+# Optional: Custom FROM address
+VOILA_EMAIL_FROM_EMAIL=noreply@yourdomain.com
+VOILA_EMAIL_FROM_NAME="Your App Name"
+```
+
+### **SMTP (Universal)**
+
+```bash
+# Works with Gmail, Outlook, custom servers
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# Optional: Security settings
+SMTP_SECURE=false  # true for port 465, false for 587
+```
+
+### **Console (Development)**
+
+```bash
+# No configuration needed!
+# Automatically used when no email provider is set
+
+# Optional: Customize console output
+VOILA_EMAIL_CONSOLE_FORMAT=detailed  # or 'simple'
+VOILA_EMAIL_CONSOLE_PREVIEW=true     # Show email content
+```
+
+## 🔧 Platform Setup
+
+### **Local Development**
+
+```bash
+# No setup needed - beautiful console preview
+npm start
+```
+
+### **Resend (Recommended)**
+
+1. Sign up at [resend.com](https://resend.com)
+2. Get your API key
+3. Set `RESEND_API_KEY=re_your_key`
+4. Done! ✅
+
+### **Gmail SMTP**
+
+```bash
+# Enable 2FA and create App Password
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-16-char-app-password
+```
+
+### **Outlook/Hotmail SMTP**
+
+```bash
+SMTP_HOST=smtp-mail.outlook.com
+SMTP_PORT=587
+SMTP_USER=your-email@outlook.com
+SMTP_PASS=your-password
+```
+
+### **Custom SMTP Server**
+
+```bash
+SMTP_HOST=mail.yourdomain.com
+SMTP_PORT=587
+SMTP_USER=noreply@yourdomain.com
+SMTP_PASS=your-password
+SMTP_SECURE=false
+```
+
+## 🚀 Production Deployment
+
+### **Vercel**
+
+```bash
+# Add to Vercel environment variables
+RESEND_API_KEY=re_your_api_key
+VOILA_EMAIL_FROM_EMAIL=noreply@yourdomain.com
+```
+
+### **Railway/Heroku**
+
+```bash
+# Add to platform environment variables
+RESEND_API_KEY=re_your_api_key
+```
+
+### **Docker**
+
+```yaml
+# docker-compose.yml
+services:
+  app:
+    image: my-app
+    environment:
+      RESEND_API_KEY: re_your_api_key
+      VOILA_EMAIL_FROM_EMAIL: noreply@yourdomain.com
+```
+
+### **AWS/VPS**
+
+```bash
+# Add to your deployment script
+export RESEND_API_KEY=re_your_api_key
+export VOILA_EMAIL_FROM_EMAIL=noreply@yourdomain.com
+```
+
+## 🧪 Testing
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+describe('Email Tests', () => {
+  afterEach(async () => {
+    await emailing.clear(); // Clean up between tests
+  });
+
+  test('should send email', async () => {
+    // Force console strategy for tests
+    await emailing.reset({
+      strategy: 'console',
+      from: { name: 'Test App', email: 'test@example.com' },
+    });
+
+    const result = await emailing.send({
+      to: 'user@example.com',
+      subject: 'Test',
+      text: 'Test message',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.messageId).toBeDefined();
+  });
+});
+```
+
+## 🤖 LLM Guidelines
+
+### **Essential Patterns**
+
+```typescript
+// ✅ ALWAYS use these patterns
+import { emailing } from '@voilajsx/appkit/email';
+const email = emailing.get();
+
+// ✅ Basic email sending
+await email.send({
+  to: 'user@example.com',
+  subject: 'Subject',
+  text: 'Plain text content',
+});
+
+// ✅ HTML email with fallback
+await email.send({
+  to: 'user@example.com',
+  subject: 'Subject',
+  html: '<h1>HTML content</h1>',
+  text: 'Plain text fallback',
+});
+
+// ✅ Convenience methods
+await emailing.sendText('user@example.com', 'Subject', 'Message');
+
+// ✅ Template usage
+await email.sendTemplate('welcome', {
+  to: 'user@example.com',
+  name: 'John',
+  appName: 'MyApp',
+});
+```
+
+### **Anti-Patterns to Avoid**
+
+```typescript
+// ❌ DON'T create email strategies directly
+const resend = new ResendStrategy(); // Use emailing.get() instead
+
+// ❌ DON'T forget error handling
+await email.send(data); // Check result.success
+
+// ❌ DON'T send without subject
+await email.send({ to: 'user@example.com', text: 'Hi' }); // Missing subject
+
+// ❌ DON'T send without content
+await email.send({ to: 'user@example.com', subject: 'Hi' }); // Missing text/html
+
+// ❌ DON'T ignore email validation
+await email.send({ to: 'invalid-email', subject: 'Hi', text: 'Hello' });
+```
+
+### **Common Patterns**
+
+```typescript
+// Email with error handling
+const result = await emailing.send({
+  to: user.email,
+  subject: 'Welcome!',
+  text: 'Welcome to our app!',
+});
+
+if (!result.success) {
+  console.error('Email failed:', result.error);
+}
+
+// Conditional email sending
+if (emailing.hasProvider()) {
+  await emailing.send(emailData);
 } else {
-  await initEmail('mailhog', {
-    defaultFrom: 'dev@example.com',
-  });
+  console.log('No email provider configured');
 }
 
-// Clean up on shutdown
-process.on('SIGTERM', async () => {
-  await closeEmail();
-});
+// Batch email sending
+const emails = users.map((user) => ({
+  to: user.email,
+  subject: 'Newsletter',
+  html: newsletterHtml,
+}));
+
+await emailing.get().sendBatch(emails);
 ```
 
-### Email Sending
+## 📈 Performance
 
-These functions handle the actual sending of emails with various options.
+- **Resend Strategy**: ~100-500ms per email
+- **SMTP Strategy**: ~200-1000ms per email (depends on server)
+- **Console Strategy**: ~1-5ms (instant logging)
+- **Batch Sending**: Processes 10 emails concurrently by default
+- **Memory Usage**: <2MB baseline usage
 
-| Function               | Purpose                         | When to use                                      |
-| ---------------------- | ------------------------------- | ------------------------------------------------ |
-| `sendEmail()`          | Sends an email with options     | For any email sending (basic, HTML, attachments) |
-| `sendTemplatedEmail()` | Sends an email using a template | When using variable substitution in emails       |
+## 🔍 TypeScript Support
 
-```javascript
-// Send a basic email
-await sendEmail(
-  'user@example.com',
-  'Welcome to Our Service',
-  '<h1>Welcome!</h1><p>Thank you for signing up.</p>'
-);
+```typescript
+import type { EmailData, EmailResult } from '@voilajsx/appkit/email';
 
-// Send an email with template variables
-await sendTemplatedEmail(
-  'user@example.com',
-  'Order Confirmation',
-  '<h1>Order #{{orderId}}</h1><p>Thank you, {{name}}!</p>',
-  { orderId: '12345', name: 'John Doe' }
-);
+// Strongly typed email operations
+const emailData: EmailData = {
+  to: 'user@example.com',
+  subject: 'Hello',
+  text: 'Hello world!',
+};
+
+const result: EmailResult = await emailing.send(emailData);
 ```
-
-## 🔧 Configuration Options
-
-### Provider Initialization Options
-
-```javascript
-// SMTP Configuration
-await initEmail('smtp', {
-  host: 'smtp.example.com', // required
-  port: 587, // default: 587
-  secure: false, // use TLS, default: false (true for port 465)
-  auth: {
-    // required unless auth: false
-    user: 'username',
-    pass: 'password',
-  },
-  defaultFrom: 'sender@example.com',
-  pool: true, // use connection pool, default: false
-  maxConnections: 5, // default: 5
-  tls: {
-    // TLS options
-    rejectUnauthorized: true,
-  },
-});
-
-// SendGrid Configuration
-await initEmail('sendgrid', {
-  apiKey: 'your-sendgrid-api-key', // required
-  defaultFrom: 'sender@example.com', // recommended
-  timeout: 30000, // optional, in milliseconds
-});
-
-// AWS SES Configuration
-await initEmail('ses', {
-  region: 'us-east-1', // required
-  credentials: {
-    // optional if using AWS env variables
-    accessKeyId: 'your-access-key',
-    secretAccessKey: 'your-secret-key',
-  },
-  defaultFrom: 'sender@example.com', // recommended
-  configurationSet: 'your-config-set', // optional
-});
-```
-
-### Email Sending Options
-
-```javascript
-await sendEmail(
-  'recipient@example.com', // string or array of strings
-  'Email Subject',
-  '<p>HTML content</p>',
-  {
-    // All options are optional
-    from: 'custom@example.com', // override default sender
-    text: 'Plain text version', // alternative text version
-    cc: 'cc@example.com', // string or array of strings
-    bcc: 'bcc@example.com', // string or array of strings
-    replyTo: 'reply@example.com', // reply-to address
-    attachments: [
-      // email attachments
-      {
-        filename: 'report.pdf',
-        content: fs.readFileSync('./report.pdf'),
-      },
-    ],
-    headers: {
-      // custom email headers
-      'X-Custom-Header': 'value',
-    },
-  }
-);
-```
-
-## 💡 Common Use Cases
-
-Here's where you can apply the email module's functionality in your
-applications:
-
-| Category           | Use Case              | Description                                     | Components Used                |
-| ------------------ | --------------------- | ----------------------------------------------- | ------------------------------ |
-| **Authentication** | Password Reset        | Send password reset links to users              | `sendTemplatedEmail()`         |
-| **Authentication** | Email Verification    | Verify user email addresses                     | `sendTemplatedEmail()`         |
-| **E-commerce**     | Order Confirmation    | Send order confirmations with details           | `sendTemplatedEmail()`         |
-| **E-commerce**     | Shipping Notification | Notify customers of shipping status             | `sendTemplatedEmail()`         |
-| **Marketing**      | Welcome Emails        | Send welcome emails to new users                | `sendTemplatedEmail()`         |
-| **Marketing**      | Promotional Emails    | Send promotional emails with formatting         | `sendEmail()` with HTML        |
-| **Reporting**      | System Alerts         | Send system alerts to administrators            | `sendEmail()`                  |
-| **Reporting**      | Activity Reports      | Send periodic activity reports with attachments | `sendEmail()` with attachments |
-| **Development**    | Local Testing         | Test emails in development environment          | `initEmail('mailhog')`         |
-| **Development**    | Staging Environment   | Test emails in staging environment              | `initEmail('mailtrap')`        |
-| **Production**     | Transactional Emails  | Send transactional emails in production         | `initEmail('ses')` or others   |
-| **Production**     | Marketing Campaigns   | Send marketing campaign emails                  | `initEmail('sendgrid')`        |
-
-## 🤖 Code Generation with LLMs
-
-You can use large language models (LLMs) like ChatGPT or Claude to generate code
-for common email scenarios using the `@voilajs/appkit/email` module. We've
-created a specialized
-[PROMPT_REFERENCE.md](https://github.com/voilajs/appkit/blob/main/src/email/docs/PROMPT_REFERENCE.md)
-document designed specifically for LLMs to understand the module's capabilities
-and generate consistent, high-quality email code.
-
-### Sample Prompts to Try
-
-#### Basic Email Setup
-
-```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/email/docs/PROMPT_REFERENCE.md and then create a complete email setup using @voilajs/appkit/email for an Express application that switches between providers based on environment:
-- Use MailHog for development
-- Use Mailtrap for testing
-- Use SendGrid for staging
-- Use AWS SES for production
-```
-
-#### Email Service Implementation
-
-```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/email/docs/PROMPT_REFERENCE.md and then implement an EmailService class using @voilajs/appkit/email with the following template-based functions:
-- sendWelcomeEmail(user)
-- sendPasswordResetEmail(user, resetToken)
-- sendOrderConfirmation(order)
-Include proper template rendering and error handling
-```
-
-#### Email Testing Framework
-
-```
-Please read the API reference at https://github.com/voilajs/appkit/blob/main/src/email/docs/PROMPT_REFERENCE.md and then create a testing utility for capturing emails sent with @voilajs/appkit/email:
-- Function to set up email testing environment
-- Function to capture and verify email content
-- Function to clean up and close connections
-Include a complete example of how to use this in a Jest or Mocha test suite
-```
-
-## 📋 Example Code
-
-For complete, working examples, check our examples folder:
-
-- [Basic Email Sending](https://github.com/voilajs/appkit/blob/main/src/email/examples/01-basic-email.js) -
-  How to send simple emails
-- [HTML Emails with Templates](https://github.com/voilajs/appkit/blob/main/src/email/examples/02-template-email.js) -
-  Working with HTML emails and templates
-- [Email Attachments](https://github.com/voilajs/appkit/blob/main/src/email/examples/03-attachments.js) -
-  Sending emails with file attachments
-- [Provider Switching](https://github.com/voilajs/appkit/blob/main/src/email/examples/04-provider-switching.js) -
-  Switching between different email providers
-- [Email Service](https://github.com/voilajs/appkit/blob/main/src/email/examples/05-email-service.js) -
-  Complete email service implementation
-- [Express Integration](https://github.com/voilajs/appkit/blob/main/src/email/examples/email-demo-app) -
-  Complete Express.js email integration
-
-## 🛡️ Security Best Practices
-
-1. **Environment Variables**: Store all email provider credentials in
-   environment variables, never in code
-2. **TLS/SSL**: Always use secure connections (TLS/SSL) for email sending
-3. **Content Security**: Sanitize user-provided content before including it in
-   templates
-4. **Rate Limiting**: Implement rate limiting for password reset and
-   verification emails
-5. **Token Security**: Use signed tokens for verification links with appropriate
-   expiration
-6. **DKIM/SPF/DMARC**: Configure email authentication records for your sending
-   domains
-7. **Access Control**: Restrict access to email functionality in your
-   application
-
-## 📊 Performance Considerations
-
-- **Connection Pooling**: Use connection pooling for SMTP to improve performance
-  with high volume
-- **Template Caching**: Cache compiled templates to avoid repeated parsing
-- **Batch Sending**: Consider batching multiple emails when possible
-- **Asynchronous Processing**: Send emails asynchronously or via a queue system
-- **Provider Selection**: Choose appropriate providers based on volume
-  (SES/SendGrid for high volume)
-
-## 🔍 Error Handling
-
-The module provides specific error messages that you should handle
-appropriately:
-
-```javascript
-try {
-  await initEmail('smtp', config);
-  await sendEmail('recipient@example.com', 'Subject', 'Content');
-} catch (error) {
-  if (error.message.includes('authentication failed')) {
-    console.error('SMTP authentication error, check credentials');
-  } else if (error.message.includes('connection refused')) {
-    console.error('SMTP connection error, check host and port');
-  } else {
-    console.error('Email error:', error.message);
-  }
-}
-```
-
-## 📚 Documentation Links
-
-- 📘
-  [Developer REFERENCE](https://github.com/voilajs/appkit/blob/main/src/email/docs/DEVELOPER_REFERENCE.md) -
-  Detailed implementation guide with examples
-- 📗
-  [API Reference](https://github.com/voilajs/appkit/blob/main/src/email/docs/API_REFERENCE.md) -
-  Complete API documentation
-- 📙
-  [LLM Code Generation REFERENCE](https://github.com/voilajs/appkit/blob/main/src/email/docs/PROMPT_REFERENCE.md) -
-  Guide for AI/LLM code generation
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our
-[Contributing Guide](https://github.com/voilajs/appkit/blob/main/CONTRIBUTING.md)
-for details.
 
 ## 📄 License
 
-MIT © [VoilaJS](https://github.com/voilajs)
+MIT © [VoilaJSX](https://github.com/voilajsx)
 
 ---
 
 <p align="center">
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajs/people">VoilaJS Team</a> — powering modern web development.
+  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a>
 </p>
