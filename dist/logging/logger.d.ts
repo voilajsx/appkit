@@ -97,15 +97,55 @@ export declare class LoggerClass implements Logger {
     private getCaller;
     private log;
     private writeToTransports;
+    /**
+     * Flush pending logs to all transports
+     * @llm-rule WHEN: App shutdown or ensuring logs are persisted before critical operations
+     * @llm-rule AVOID: Frequent flushing during normal operations - impacts performance
+     */
     flush(): Promise<void>;
+    /**
+     * Close logger and cleanup all transports
+     * @llm-rule WHEN: App shutdown or logger cleanup - ensures graceful resource cleanup
+     * @llm-rule AVOID: Calling during normal operations - this permanently closes the logger
+     */
     close(): Promise<void>;
+    /**
+     * Get list of active transport names
+     * @llm-rule WHEN: Debugging logger setup or checking which transports are running
+     * @llm-rule AVOID: Using for business logic - this is for debugging and monitoring only
+     */
     getActiveTransports(): string[];
+    /**
+     * Check if specific transport is active
+     * @llm-rule WHEN: Conditionally logging based on transport availability
+     * @llm-rule AVOID: Complex transport detection - just log normally, transports auto-enable
+     */
     hasTransport(name: string): boolean;
+    /**
+     * Set minimum log level dynamically
+     * @llm-rule WHEN: Runtime log level changes, debugging, or feature flags
+     * @llm-rule AVOID: Frequent level changes - impacts performance
+     */
     setLevel(level: 'debug' | 'info' | 'warn' | 'error'): void;
+    /**
+     * Get current minimum log level
+     * @llm-rule WHEN: Debugging configuration or checking level settings
+     * @llm-rule AVOID: Using for filtering logic - logger handles level filtering automatically
+     */
     getLevel(): string;
+    /**
+     * Check if specific log level would be written
+     * @llm-rule WHEN: Expensive log message preparation - check before building complex meta
+     * @llm-rule AVOID: Normal logging - level filtering is automatic and fast
+     */
     isLevelEnabled(level: 'debug' | 'info' | 'warn' | 'error'): boolean;
+    /**
+     * Get current logger configuration for debugging
+     * @llm-rule WHEN: Debugging logger setup, checking environment detection, or monitoring
+     * @llm-rule AVOID: Using for runtime business logic - configuration is set at startup
+     */
     getConfig(): {
-        level: "error" | "warn" | "debug" | "info";
+        level: "info" | "error" | "warn" | "debug";
         scope: "minimal" | "full";
         minimal: boolean;
         transports: string[];

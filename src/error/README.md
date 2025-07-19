@@ -3,11 +3,12 @@
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Ultra-simple semantic error handling that just works
+> Ultra-simple semantic error handling with HTTP status codes, Express
+> middleware, and environment-aware smart defaults.
 
-**One function** returns an error object with semantic HTTP status codes. Zero
-configuration needed, production-ready by default, with environment-aware smart
-defaults and built-in Express middleware.
+**One function** returns an error object with semantic methods. Built-in
+middleware handles everything automatically. Works with any Express-compatible
+framework.
 
 ## 🚀 Why Choose This?
 
@@ -17,7 +18,7 @@ defaults and built-in Express middleware.
 - **🔧 Zero Configuration** - Smart defaults for development vs production
 - **🌍 Environment-First** - Auto-detects dev/prod behavior
 - **🛡️ Production-Safe** - Hides stack traces and sensitive info in production
-- **🔄 Express Integration** - Built-in middleware and async route wrapper
+- **🔄 Framework Agnostic** - Express, Fastify, Koa, any Node.js framework
 - **🤖 AI-Ready** - Optimized for LLM code generation
 
 ## 📦 Installation
@@ -29,839 +30,619 @@ npm install @voilajsx/appkit
 ## 🏃‍♂️ Quick Start (30 seconds)
 
 ```typescript
-import { error } from '@voilajsx/appkit/error';
-
-const err = error.get();
-
-// Create semantic HTTP errors
-throw err.badRequest('Email is required'); // 400
-throw err.unauthorized('Login required'); // 401
-throw err.forbidden('Admin access required'); // 403
-throw err.notFound('User not found'); // 404
-throw err.conflict('Email already exists'); // 409
-throw err.serverError('Database connection failed'); // 500
-
-// Express app setup
-app.use(err.handleErrors()); // Global error middleware
-
-app.post(
-  '/users',
-  err.asyncRoute(async (req, res) => {
-    if (!req.body.email) throw err.badRequest('Email required');
-    const user = await createUser(req.body);
-    res.json({ user });
-  })
-);
-```
-
-**That's it!** Semantic errors with automatic Express middleware handling.
-
-## 🧠 Mental Model
-
-### **HTTP Status Code Semantics**
-
-```typescript
-// 4xx - Client Errors (don't retry)
-err.badRequest(); // 400 - Invalid input data
-err.unauthorized(); // 401 - Authentication required
-err.forbidden(); // 403 - Access denied
-err.notFound(); // 404 - Resource missing
-err.conflict(); // 409 - Business logic conflicts
-
-// 5xx - Server Errors (retry with backoff)
-err.serverError(); // 500 - Internal failures
-```
-
-### **Error Response Flow**
-
-```
-Request → Route Handler → Business Logic → Error Thrown → Middleware → Client
-```
-
-### **Environment Behavior**
-
-```typescript
-// Development
-{
-  "error": "BAD_REQUEST",
-  "message": "Email is required",
-  "stack": "Error: Email is required\n    at ..." // 🔍 Debug info
-}
-
-// Production
-{
-  "error": "BAD_REQUEST",
-  "message": "Email is required"
-  // ✅ No stack trace for security
-}
-```
-
-## 📖 Complete API Reference
-
-### Core Function
-
-```typescript
-const err = error.get(); // One function, everything you need
-```
-
-### Error Creation Methods
-
-```typescript
-// Client errors (4xx) - Input/auth issues
-err.badRequest(message?);   // 400 - Invalid input
-err.unauthorized(message?); // 401 - Auth required
-err.forbidden(message?);    // 403 - Access denied
-err.notFound(message?);     // 404 - Resource missing
-err.conflict(message?);     // 409 - Business conflicts
-
-// Server errors (5xx) - Internal failures
-err.serverError(message?);  // 500 - Internal error
-
-// Custom errors
-err.createError(statusCode, message, type?); // Any status code
-```
-
-### Middleware & Utilities
-
-```typescript
-// Express middleware
-err.handleErrors(options?);   // Error handling middleware
-err.asyncRoute(handler);      // Async route wrapper
-
-// Error categorization
-err.isClientError(error);     // 4xx status codes
-err.isServerError(error);     // 5xx status codes
-
-// Environment helpers
-error.isDevelopment();        // NODE_ENV === 'development'
-error.isProduction();         // NODE_ENV === 'production'
-```
-
-### Utility Methods
-
-```typescript
-// Configuration access
-error.getConfig(); // Current error configuration
-error.reset(newConfig); // Reset with custom config (testing)
-error.clearCache(); // Clear cached config (testing)
-```
-
-## 🎯 Usage Examples
-
-### **Express REST API**
-
-```typescript
 import express from 'express';
 import { error } from '@voilajsx/appkit/error';
 
 const app = express();
 const err = error.get();
 
-app.use(express.json());
-
-// Global error handling (must be last)
+// Setup (must be last middleware)
 app.use(err.handleErrors());
 
-// User registration with validation
+// Create semantic errors
 app.post(
-  '/auth/register',
+  '/users',
   err.asyncRoute(async (req, res) => {
-    const { email, name, password } = req.body;
+    if (!req.body.email) throw err.badRequest('Email required');
+    if (!req.body.password) throw err.badRequest('Password required');
 
-    // Input validation (400 errors)
-    if (!email) throw err.badRequest('Email is required');
-    if (!name) throw err.badRequest('Name is required');
-    if (!password) throw err.badRequest('Password is required');
+    const existingUser = await findUser(req.body.email);
+    if (existingUser) throw err.conflict('Email already exists');
 
-    if (password.length < 8) {
-      throw err.badRequest('Password must be at least 8 characters');
-    }
+    const user = await createUser(req.body);
+    res.json({ user });
+  })
+);
+```
 
-    // Business logic validation (409 errors)
-    const existingUser = await findUserByEmail(email);
-    if (existingUser) {
-      throw err.conflict('Email already registered');
-    }
+**That's it!** Semantic errors with automatic middleware handling.
 
+## 🤖 LLM Quick Reference - Copy These Patterns
+
+### **Error Creation (Copy Exactly)**
+
+```typescript
+// ✅ CORRECT - Use semantic methods
+throw error.badRequest('Email is required');
+throw error.unauthorized('Login required');
+throw error.forbidden('Admin access required');
+throw error.notFound('User not found');
+throw error.conflict('Email already exists');
+throw error.serverError('Database unavailable');
+
+// ❌ WRONG - Manual status codes
+res.status(400).json({ error: 'Bad request' }); // Don't do this
+throw new Error('Something went wrong'); // No status code
+```
+
+### **Framework Setup (Copy Exactly)**
+
+#### **Express Setup**
+
+```typescript
+// ✅ CORRECT - Express middleware setup
+const err = error.get();
+app.use(err.handleErrors()); // Must be LAST middleware
+
+// ✅ CORRECT - Express async route pattern
+app.post(
+  '/api',
+  err.asyncRoute(async (req, res) => {
+    if (!data) throw err.badRequest('Data required');
+  })
+);
+```
+
+#### **Fastify Setup**
+
+```typescript
+// ✅ CORRECT - Fastify error handler setup
+import Fastify from 'fastify';
+const fastify = Fastify();
+const err = error.get();
+
+fastify.setErrorHandler((error, request, reply) => {
+  const appError = error.statusCode ? error : err.serverError(error.message);
+  reply.status(appError.statusCode).send({
+    error: appError.type,
+    message: appError.message,
+  });
+});
+
+// ✅ CORRECT - Fastify route pattern
+fastify.post('/api', async (request, reply) => {
+  if (!request.body.data) throw err.badRequest('Data required');
+  // Fastify automatically catches errors
+});
+```
+
+#### **Koa Setup**
+
+```typescript
+// ✅ CORRECT - Koa error handler setup
+import Koa from 'koa';
+const app = new Koa();
+const err = error.get();
+
+app.use(async (ctx, next) => {
+  try {
+    await next();
+  } catch (error) {
+    const appError = error.statusCode ? error : err.serverError(error.message);
+    ctx.status = appError.statusCode;
+    ctx.body = {
+      error: appError.type,
+      message: appError.message,
+    };
+  }
+});
+
+// ✅ CORRECT - Koa route pattern
+app.use(async (ctx, next) => {
+  if (!ctx.request.body.data) throw err.badRequest('Data required');
+});
+```
+
+### **Error Type Selection (Copy These Rules)**
+
+```typescript
+// ✅ Input validation (client's fault)
+if (!email) throw error.badRequest('Email required');
+if (password.length < 8) throw error.badRequest('Password too short');
+
+// ✅ Authentication (missing/invalid auth)
+if (!token) throw error.unauthorized('Token required');
+if (tokenExpired) throw error.unauthorized('Session expired');
+
+// ✅ Authorization (user authenticated but no permission)
+if (!user.isAdmin) throw error.forbidden('Admin access required');
+if (user.blocked) throw error.forbidden('Account suspended');
+
+// ✅ Resource not found
+if (!user) throw error.notFound('User not found');
+if (!post) throw error.notFound('Post not found');
+
+// ✅ Business logic conflicts
+if (emailExists) throw error.conflict('Email already registered');
+if (usernameExists) throw error.conflict('Username taken');
+
+// ✅ Server/external failures
+catch (dbError) { throw error.serverError('Database unavailable'); }
+catch (apiError) { throw error.serverError('External service down'); }
+```
+
+## ⚠️ Common LLM Mistakes - Avoid These
+
+### **Wrong Error Types**
+
+```typescript
+// ❌ Using wrong error for situation
+throw error.serverError('Email required'); // Should be badRequest
+throw error.badRequest('Database connection failed'); // Should be serverError
+throw error.unauthorized('Admin access required'); // Should be forbidden
+
+// ✅ Use correct error for situation
+throw error.badRequest('Email required'); // Client input issue
+throw error.serverError('Database connection failed'); // Server issue
+throw error.forbidden('Admin access required'); // Permission issue
+```
+
+### **Missing Middleware Setup**
+
+```typescript
+// ❌ Forgetting error middleware
+const app = express();
+app.post('/api', (req, res) => {
+  throw error.badRequest('Error'); // Nothing will catch this!
+});
+
+// ✅ Proper middleware setup
+const app = express();
+app.use(error.handleErrors()); // Catches all errors
+app.post('/api', (req, res) => {
+  throw error.badRequest('Error'); // Automatically handled
+});
+```
+
+### **Mixing Error Approaches**
+
+```typescript
+// ❌ Mixing manual and automatic error handling
+app.post(
+  '/api',
+  error.asyncRoute(async (req, res) => {
     try {
-      const user = await createUser({ email, name, password });
-      res.json({ user });
-    } catch (dbError) {
-      // Database failures (500 errors)
-      throw err.serverError('Failed to create user');
+      if (!data) throw error.badRequest('Data required');
+      // ... logic
+    } catch (err) {
+      res.status(500).json({ error: 'Failed' }); // Don't catch manually!
     }
   })
 );
 
-// Authentication middleware
-const requireAuth = err.asyncRoute(async (req, res, next) => {
+// ✅ Let the system handle errors
+app.post(
+  '/api',
+  error.asyncRoute(async (req, res) => {
+    if (!data) throw error.badRequest('Data required'); // Just throw - system handles
+    // ... logic
+  })
+);
+```
+
+## 🚨 Error Handling Patterns
+
+### **Input Validation Pattern**
+
+```typescript
+app.post(
+  '/users',
+  error.asyncRoute(async (req, res) => {
+    const { email, password, name } = req.body;
+
+    // Validate required fields
+    if (!email) throw error.badRequest('Email is required');
+    if (!password) throw error.badRequest('Password is required');
+    if (!name) throw error.badRequest('Name is required');
+
+    // Validate format/rules
+    if (!email.includes('@')) throw error.badRequest('Invalid email format');
+    if (password.length < 8)
+      throw error.badRequest('Password must be 8+ characters');
+
+    // Success path
+    const user = await createUser({ email, password, name });
+    res.json({ user });
+  })
+);
+```
+
+### **Authentication Middleware Pattern**
+
+```typescript
+const requireAuth = error.asyncRoute(async (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
-    throw err.unauthorized('Authentication token required');
+    throw error.unauthorized('Authentication token required');
   }
 
   try {
-    const decoded = verifyToken(token);
+    const decoded = jwt.verify(token, JWT_SECRET);
     const user = await findUser(decoded.userId);
 
     if (!user) {
-      throw err.unauthorized('Invalid token');
+      throw error.unauthorized('Invalid token - user not found');
     }
 
     req.user = user;
     next();
-  } catch (tokenError) {
-    throw err.unauthorized('Invalid or expired token');
+  } catch (jwtError) {
+    throw error.unauthorized('Invalid or expired token');
   }
 });
 
-// Protected routes
+// Usage
 app.get(
   '/profile',
   requireAuth,
-  err.asyncRoute(async (req, res) => {
+  error.asyncRoute(async (req, res) => {
     res.json({ user: req.user });
   })
 );
+```
 
-app.put(
-  '/profile',
-  requireAuth,
-  err.asyncRoute(async (req, res) => {
-    const { name, bio } = req.body;
+### **Database Error Handling Pattern**
 
-    if (!name) throw err.badRequest('Name is required');
+```typescript
+app.post(
+  '/posts',
+  error.asyncRoute(async (req, res) => {
+    const { title, content } = req.body;
+
+    if (!title) throw error.badRequest('Title required');
+    if (!content) throw error.badRequest('Content required');
 
     try {
-      const updatedUser = await updateUser(req.user.id, { name, bio });
-      res.json({ user: updatedUser });
+      // Check for duplicates (business logic)
+      const existing = await findPostByTitle(title);
+      if (existing) {
+        throw error.conflict('Post with this title already exists');
+      }
+
+      // Create post
+      const post = await createPost({ title, content });
+      res.json({ post });
     } catch (dbError) {
-      throw err.serverError('Failed to update profile');
+      // Database connection/query failures
+      if (dbError.code === 'ECONNREFUSED') {
+        throw error.serverError('Database connection failed');
+      }
+      if (dbError.code === 'ETIMEDOUT') {
+        throw error.serverError('Database query timeout');
+      }
+
+      // Re-throw if it's already our error
+      if (dbError.statusCode) {
+        throw dbError;
+      }
+
+      // Unknown database error
+      throw error.serverError('Database operation failed');
     }
   })
 );
-
-// Admin-only routes
-app.delete(
-  '/users/:id',
-  requireAuth,
-  err.asyncRoute(async (req, res) => {
-    if (!req.user.isAdmin) {
-      throw err.forbidden('Admin access required');
-    }
-
-    const targetUser = await findUser(req.params.id);
-    if (!targetUser) {
-      throw err.notFound('User not found');
-    }
-
-    try {
-      await deleteUser(req.params.id);
-      res.json({ success: true });
-    } catch (dbError) {
-      throw err.serverError('Failed to delete user');
-    }
-  })
-);
-
-app.listen(3000);
-```
-
-### **Service Layer with Error Handling**
-
-```typescript
-import { error } from '@voilajsx/appkit/error';
-
-const err = error.get();
-
-class UserService {
-  async createUser(userData: CreateUserData) {
-    // Input validation
-    if (!userData.email) throw err.badRequest('Email is required');
-    if (!userData.password) throw err.badRequest('Password is required');
-
-    // Email format validation
-    if (!isValidEmail(userData.email)) {
-      throw err.badRequest('Invalid email format');
-    }
-
-    // Password strength validation
-    if (userData.password.length < 8) {
-      throw err.badRequest('Password must be at least 8 characters');
-    }
-
-    // Business logic validation
-    const existingUser = await this.findByEmail(userData.email);
-    if (existingUser) {
-      throw err.conflict('User with this email already exists');
-    }
-
-    try {
-      const hashedPassword = await hashPassword(userData.password);
-      return await db.users.create({
-        ...userData,
-        password: hashedPassword,
-      });
-    } catch (dbError) {
-      console.error('Database error creating user:', dbError);
-      throw err.serverError('Failed to create user');
-    }
-  }
-
-  async authenticateUser(email: string, password: string) {
-    if (!email) throw err.badRequest('Email is required');
-    if (!password) throw err.badRequest('Password is required');
-
-    const user = await this.findByEmail(email);
-    if (!user) {
-      throw err.unauthorized('Invalid email or password');
-    }
-
-    try {
-      const isValidPassword = await comparePassword(password, user.password);
-      if (!isValidPassword) {
-        throw err.unauthorized('Invalid email or password');
-      }
-
-      return user;
-    } catch (hashError) {
-      throw err.serverError('Authentication failed');
-    }
-  }
-
-  async updateUser(userId: string, updateData: UpdateUserData) {
-    if (!userId) throw err.badRequest('User ID is required');
-
-    const user = await this.findById(userId);
-    if (!user) {
-      throw err.notFound('User not found');
-    }
-
-    // Check for email conflicts if email is being updated
-    if (updateData.email && updateData.email !== user.email) {
-      const existingUser = await this.findByEmail(updateData.email);
-      if (existingUser) {
-        throw err.conflict('Email already in use');
-      }
-    }
-
-    try {
-      return await db.users.update(userId, updateData);
-    } catch (dbError) {
-      console.error('Database error updating user:', dbError);
-      throw err.serverError('Failed to update user');
-    }
-  }
-
-  async deleteUser(userId: string, requestingUserId: string) {
-    if (!userId) throw err.badRequest('User ID is required');
-
-    const user = await this.findById(userId);
-    if (!user) {
-      throw err.notFound('User not found');
-    }
-
-    const requestingUser = await this.findById(requestingUserId);
-
-    // Permission checks
-    if (userId !== requestingUserId && !requestingUser?.isAdmin) {
-      throw err.forbidden('Cannot delete other users');
-    }
-
-    try {
-      await db.users.delete(userId);
-    } catch (dbError) {
-      console.error('Database error deleting user:', dbError);
-      throw err.serverError('Failed to delete user');
-    }
-  }
-
-  private async findByEmail(email: string) {
-    try {
-      return await db.users.findByEmail(email);
-    } catch (dbError) {
-      throw err.serverError('Database query failed');
-    }
-  }
-
-  private async findById(id: string) {
-    try {
-      return await db.users.findById(id);
-    } catch (dbError) {
-      throw err.serverError('Database query failed');
-    }
-  }
-}
-```
-
-### **Background Job Processing**
-
-```typescript
-import { error } from '@voilajsx/appkit/error';
-
-const err = error.get();
-
-class EmailService {
-  async processEmailJob(jobData: EmailJobData) {
-    try {
-      // Validate job data
-      if (!jobData.email) throw err.badRequest('Email is required');
-      if (!jobData.template) throw err.badRequest('Template is required');
-
-      // Validate email format
-      if (!isValidEmail(jobData.email)) {
-        throw err.badRequest('Invalid email format');
-      }
-
-      // Check if recipient exists (business logic)
-      const user = await findUserByEmail(jobData.email);
-      if (!user) {
-        throw err.notFound('Recipient not found');
-      }
-
-      // Check if user has opted out
-      if (user.emailOptOut) {
-        throw err.conflict('User has opted out of emails');
-      }
-
-      // Send email
-      await this.sendEmail({
-        to: jobData.email,
-        template: jobData.template,
-        data: jobData.templateData,
-      });
-
-      console.log(`Email sent successfully to ${jobData.email}`);
-    } catch (error) {
-      // Handle different error types for retry logic
-      if (err.isClientError(error)) {
-        // 4xx errors - don't retry
-        console.warn(`Email job failed (client error): ${error.message}`);
-        // Mark job as failed permanently
-      } else if (err.isServerError(error)) {
-        // 5xx errors - retry with backoff
-        console.error(`Email job failed (server error): ${error.message}`);
-        throw error; // Re-throw to trigger retry
-      } else {
-        // Unknown error
-        console.error(`Email job failed (unknown error): ${error.message}`);
-        throw err.serverError('Email processing failed');
-      }
-    }
-  }
-
-  private async sendEmail(emailData: EmailData) {
-    try {
-      // External service call
-      await emailProvider.send(emailData);
-    } catch (providerError) {
-      // Transform provider errors to our semantic errors
-      if (providerError.code === 'INVALID_EMAIL') {
-        throw err.badRequest('Invalid email address');
-      } else if (providerError.code === 'RATE_LIMITED') {
-        throw err.serverError('Email service rate limited');
-      } else {
-        throw err.serverError('Email delivery failed');
-      }
-    }
-  }
-}
-```
-
-### **API Client with Error Handling**
-
-```typescript
-import { error } from '@voilajsx/appkit/error';
-
-const err = error.get();
-
-class ApiClient {
-  async makeRequest(endpoint: string, options: RequestOptions) {
-    try {
-      const response = await fetch(endpoint, options);
-
-      // Transform HTTP status codes to semantic errors
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const message = errorData.message || `Request failed`;
-
-        switch (response.status) {
-          case 400:
-            throw err.badRequest(message);
-          case 401:
-            throw err.unauthorized(message);
-          case 403:
-            throw err.forbidden(message);
-          case 404:
-            throw err.notFound(message);
-          case 409:
-            throw err.conflict(message);
-          case 500:
-          default:
-            throw err.serverError(message);
-        }
-      }
-
-      return await response.json();
-    } catch (networkError) {
-      if (networkError.statusCode) {
-        // Already a semantic error, re-throw
-        throw networkError;
-      } else {
-        // Network/parsing error
-        throw err.serverError('Network request failed');
-      }
-    }
-  }
-}
 ```
 
 ## 🌍 Environment Variables
 
-### Smart Defaults Configuration
+### **Framework Configuration (VoilaJSX Internal)**
 
 ```bash
-# Error behavior (optional - smart defaults provided)
+# Error handling behavior (optional)
 VOILA_ERROR_STACK=false          # Show stack traces (default: true in dev, false in prod)
-VOILA_ERROR_LOG=true             # Log errors to console (default: true)
-VOILA_AUTH_MESSAGE="Please sign in" # Custom unauthorized message
+VOILA_ERROR_LOG=true             # Enable error logging (default: true)
 
-# Node environment
-NODE_ENV=production              # Affects error response format
+# Framework detection
+NODE_ENV=production              # Environment mode (development, production, test, staging)
 ```
 
-### Environment-Specific Behavior
+### **Your Application Configuration**
 
-| Environment     | Stack Traces | Error Details | Logging               |
-| --------------- | ------------ | ------------- | --------------------- |
-| **Development** | ✅ Shown     | 🔍 Detailed   | 📝 All errors         |
-| **Production**  | ❌ Hidden    | 🛡️ Generic    | 📝 Server errors only |
-| **Test**        | ✅ Shown     | 🔍 Detailed   | 📝 Minimal            |
+```bash
+# Your app-specific environment variables
+DATABASE_URL=postgresql://...
+API_KEY=your-api-key
+SESSION_SECRET=your-session-secret
 
-## 📊 HTTP Status Code Guide
-
-### When to Use Each Error Type
-
-```typescript
-// 400 - Bad Request: Client input issues
-throw err.badRequest('Email is required');
-throw err.badRequest('Invalid email format');
-throw err.badRequest('Password too short');
-
-// 401 - Unauthorized: Authentication required
-throw err.unauthorized('Login required');
-throw err.unauthorized('Invalid token');
-throw err.unauthorized('Token expired');
-
-// 403 - Forbidden: Access denied
-throw err.forbidden('Admin access required');
-throw err.forbidden('Account suspended');
-throw err.forbidden('Feature not available');
-
-// 404 - Not Found: Resource missing
-throw err.notFound('User not found');
-throw err.notFound('Post not found');
-throw err.notFound('Page not found');
-
-// 409 - Conflict: Business logic issues
-throw err.conflict('Email already exists');
-throw err.conflict('Username taken');
-throw err.conflict('Cannot delete active user');
-
-// 500 - Server Error: Internal failures
-throw err.serverError('Database connection failed');
-throw err.serverError('External API timeout');
-throw err.serverError('File upload failed');
+# Note: Use any naming convention for your app config
+# VoilaJSX only reads VOILA_* prefixed variables
 ```
 
-### Infrastructure Benefits
+### **Configuration Separation**
 
-| Status Range   | Retry Logic           | Caching        | Monitoring           |
-| -------------- | --------------------- | -------------- | -------------------- |
-| **4xx Client** | ❌ Don't retry        | ✅ Cache safe  | 📊 Track user errors |
-| **5xx Server** | ✅ Retry with backoff | ❌ Don't cache | 🚨 Alert on failures |
+The error module follows **clear separation**:
 
-## 🔧 Advanced Features
+- **VOILA*ERROR*\*** - Framework behavior (stack traces, logging)
+- **Everything else** - Your application configuration
+- **No interference** - Your app config remains untouched
 
-### Custom Error Middleware
+## 🚀 Production Deployment
+
+### **Environment Configuration**
+
+```bash
+# ✅ Production settings
+NODE_ENV=production              # Enables production mode
+VOILA_ERROR_STACK=false          # Hide stack traces for security
+VOILA_ERROR_LOG=true             # Enable error logging for monitoring
+
+# ✅ Development settings
+NODE_ENV=development             # Enables development mode
+VOILA_ERROR_STACK=true           # Show stack traces for debugging
+VOILA_ERROR_LOG=true             # Enable error logging
+```
+
+### **Framework-Specific Setup**
+
+#### **Express Production Setup**
 
 ```typescript
-const err = error.get();
+import express from 'express';
+import { error } from '@voilajsx/appkit/error';
 
-// Custom error handling with logging
-app.use(
-  err.handleErrors({
-    showStack: error.isDevelopment(),
-    logErrors: true,
-  })
-);
+const app = express();
 
-// Additional error processing
-app.use((error, req, res, next) => {
-  // Custom monitoring
-  if (err.isServerError(error)) {
-    monitoring.recordError(error, {
-      user: req.user?.id,
-      endpoint: req.path,
-      method: req.method,
-    });
-  }
+// Standard middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-  // Custom notifications
-  if (error.statusCode >= 500) {
-    notificationService.alertOnCall(error);
-  }
+// Your routes here
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.use('/api', apiRoutes);
 
-  next();
+// ERROR MIDDLEWARE MUST BE LAST!
+app.use(error.handleErrors());
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
 });
 ```
 
-### Custom Status Codes
+#### **Fastify Production Setup**
 
 ```typescript
+import Fastify from 'fastify';
+import { error } from '@voilajsx/appkit/error';
+
+const fastify = Fastify({ logger: true });
 const err = error.get();
 
-// Custom HTTP status codes
-const rateLimitError = err.createError(
-  429,
-  'Rate limit exceeded',
-  'RATE_LIMITED'
-);
-const validationError = err.createError(
-  422,
-  'Validation failed',
-  'VALIDATION_ERROR'
-);
-const maintenanceError = err.createError(
-  503,
-  'Service unavailable',
-  'MAINTENANCE'
-);
+// Global error handler
+fastify.setErrorHandler((error, request, reply) => {
+  const appError = error.statusCode ? error : err.serverError(error.message);
 
-throw rateLimitError;
+  // Log in production
+  if (err.getEnvironmentInfo().isProduction) {
+    fastify.log.error(error);
+  }
+
+  reply.status(appError.statusCode).send({
+    error: appError.type,
+    message: appError.message,
+  });
+});
+
+// Your routes
+fastify.register(apiRoutes, { prefix: '/api' });
+
+const start = async () => {
+  try {
+    await fastify.listen({ port: 3000 });
+  } catch (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
+};
+start();
 ```
 
-### Error Categorization
+### **Security Validation**
 
 ```typescript
-const err = error.get();
+// App startup validation
+try {
+  const err = error.get();
+  const env = err.getEnvironmentInfo();
 
-function handleJobError(error) {
-  if (err.isClientError(error)) {
-    // 4xx - Don't retry, log as warning
-    console.warn('Job failed due to client error:', error.message);
-    markJobAsFailed(error);
-  } else if (err.isServerError(error)) {
-    // 5xx - Retry with exponential backoff
-    console.error('Job failed due to server error:', error.message);
-    scheduleRetry(error);
+  console.log(`✅ Error handling initialized`);
+  console.log(`Environment: ${env.nodeEnv}`);
+  console.log(`Development mode: ${env.isDevelopment}`);
+
+  // Production security check
+  if (env.isProduction && process.env.VOILA_ERROR_STACK === 'true') {
+    console.warn('⚠️ Stack traces enabled in production - security risk!');
   }
+} catch (setupError) {
+  console.error('❌ Error setup failed:', setupError.message);
+  process.exit(1);
+}
+```
+
+### **Common Issues & Solutions**
+
+- **"Error not caught"** → Ensure error middleware is LAST in Express
+- **"Stack traces in production"** → Check `NODE_ENV=production` and
+  `VOILA_ERROR_STACK=false`
+- **"Async errors not handled"** → Use `error.asyncRoute()` wrapper for async
+  routes
+- **"Wrong error types"** → Review error type selection guide above
+- **"Fastify errors not caught"** → Use `fastify.setErrorHandler()` with error
+  module
+- **"Koa errors not handled"** → Wrap routes in try/catch with error module
+
+## 📖 Complete API Reference
+
+### **Core Function**
+
+```typescript
+const err = error.get(); // One function, all methods
+```
+
+### **Error Creation Methods**
+
+```typescript
+// Semantic HTTP errors
+err.badRequest(message?);   // 400 - Invalid input
+err.unauthorized(message?); // 401 - Auth required
+err.forbidden(message?);    // 403 - Access denied
+err.notFound(message?);     // 404 - Resource missing
+err.conflict(message?);     // 409 - Business conflicts
+err.serverError(message?);  // 500 - Internal failures
+
+// Custom errors
+err.createError(statusCode, message, type?); // Any status code
+```
+
+### **Express Middleware**
+
+```typescript
+// Error handling (must be last middleware)
+err.handleErrors(options?);
+
+// Async route wrapper
+err.asyncRoute(handler);
+
+// Error categorization
+err.isClientError(error);  // 4xx status codes
+err.isServerError(error);  // 5xx status codes
+```
+
+### **Utility Methods**
+
+```typescript
+// Environment info
+err.getEnvironmentInfo(); // Current environment details
+
+// Configuration access
+err.getConfig(); // Current error configuration
+
+// Shortcut methods (direct usage without get())
+error.badRequest('Message');
+error.unauthorized('Message');
+error.forbidden('Message');
+error.notFound('Message');
+error.conflict('Message');
+error.serverError('Message');
+
+// Direct middleware usage
+error.handleErrors();
+error.asyncRoute(handler);
+```
+
+## 💡 Simple Usage Patterns
+
+### **Basic Validation**
+
+```typescript
+// Input validation
+if (!email) throw error.badRequest('Email required');
+if (!password) throw error.badRequest('Password required');
+
+// Business validation
+if (userExists) throw error.conflict('User already exists');
+if (!userFound) throw error.notFound('User not found');
+```
+
+### **Authentication Flow**
+
+```typescript
+// Check for token
+if (!token) throw error.unauthorized('Token required');
+
+// Verify token
+try {
+  const user = await verifyToken(token);
+  req.user = user;
+} catch {
+  throw error.unauthorized('Invalid token');
+}
+
+// Check permissions
+if (!user.isAdmin) throw error.forbidden('Admin required');
+```
+
+### **Database Operations**
+
+```typescript
+try {
+  const result = await db.query(sql);
+  return result;
+} catch (dbError) {
+  throw error.serverError('Database operation failed');
 }
 ```
 
 ## 🧪 Testing
 
-### Test Configuration
-
 ```typescript
 import { error } from '@voilajsx/appkit/error';
 
-describe('Error Handling', () => {
-  beforeEach(() => {
-    // Clear cache before each test
-    error.clearCache();
-  });
-
-  test('should create appropriate error types', () => {
-    const err = error.get();
-
-    const badReq = err.badRequest('Invalid input');
-    expect(badReq.statusCode).toBe(400);
-    expect(badReq.type).toBe('BAD_REQUEST');
-
-    const notFound = err.notFound('User not found');
-    expect(notFound.statusCode).toBe(404);
-    expect(notFound.type).toBe('NOT_FOUND');
-  });
-
-  test('should handle async routes correctly', async () => {
-    const err = error.get();
-
-    const handler = err.asyncRoute(async (req, res) => {
-      throw err.badRequest('Test error');
-    });
-
-    const mockNext = jest.fn();
-    await handler({}, {}, mockNext);
-
-    expect(mockNext).toHaveBeenCalledWith(
-      expect.objectContaining({ statusCode: 400 })
-    );
-  });
+// Reset for clean testing
+const err = error.reset({
+  middleware: {
+    showStack: false,
+    logErrors: false,
+  },
 });
-```
 
-### Mock Error Configuration
+// Test error creation
+const badRequestError = err.badRequest('Test message');
+expect(badRequestError.statusCode).toBe(400);
+expect(badRequestError.type).toBe('BAD_REQUEST');
 
-```typescript
-// Test helper for custom error config
-function createTestErrorHandler(overrides = {}) {
-  return error.reset({
-    messages: {
-      badRequest: 'Test bad request',
-      unauthorized: 'Test unauthorized',
-      ...overrides,
-    },
-    middleware: {
-      showStack: true,
-      logErrors: false,
-    },
-    environment: {
-      isDevelopment: true,
-      isProduction: false,
-      isTest: true,
-      nodeEnv: 'test',
-    },
-  });
-}
+// Test error categorization
+const clientError = err.badRequest('Client error');
+const serverError = err.serverError('Server error');
 
-describe('User Service', () => {
-  test('should handle user creation errors', async () => {
-    const err = createTestErrorHandler();
-    const userService = new UserService(err);
+expect(err.isClientError(clientError)).toBe(true);
+expect(err.isServerError(serverError)).toBe(true);
 
-    await expect(
-      userService.createUser({ email: '', password: 'weak' })
-    ).rejects.toThrow('Email is required');
-  });
-});
-```
-
-## 🤖 LLM Guidelines
-
-### **Essential Patterns**
-
-```typescript
-// ✅ ALWAYS use these patterns
-import { error } from '@voilajsx/appkit/error';
-const err = error.get();
-
-// ✅ Semantic error creation
-throw err.badRequest('Email is required'); // Input validation
-throw err.unauthorized('Login required'); // Authentication
-throw err.forbidden('Admin access required'); // Authorization
-throw err.notFound('User not found'); // Missing resources
-throw err.conflict('Email already exists'); // Business conflicts
-throw err.serverError('Database failed'); // Internal errors
-
-// ✅ Express middleware setup
-app.use(err.handleErrors()); // Must be last middleware
-
-// ✅ Async route wrapping
-app.post(
-  '/users',
-  err.asyncRoute(async (req, res) => {
-    // Async logic here - errors automatically caught
-  })
-);
-
-// ✅ Error categorization
-if (err.isClientError(error)) {
-  // 4xx - Don't retry
-} else if (err.isServerError(error)) {
-  // 5xx - Retry with backoff
-}
-```
-
-### **Anti-Patterns to Avoid**
-
-```typescript
-// ❌ DON'T manually create Error objects
-throw new Error('Bad request'); // Use err.badRequest() instead
-
-// ❌ DON'T use wrong status codes for error types
-throw err.serverError('Invalid email'); // Use err.badRequest() instead
-throw err.badRequest('Database failed'); // Use err.serverError() instead
-
-// ❌ DON'T forget error middleware in Express
-app.listen(3000); // Missing app.use(err.handleErrors())
-
-// ❌ DON'T use try/catch for every async route
-app.post('/users', async (req, res) => {
-  try {
-    // logic
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-}); // Use err.asyncRoute() wrapper instead
-
-// ❌ DON'T check status codes manually
-if (error.statusCode >= 400 && error.statusCode < 500) {
-  // Use err.isClientError(error) instead
-}
-```
-
-### **Common Patterns**
-
-```typescript
-// Input validation pattern
-if (!req.body.email) throw err.badRequest('Email is required');
-if (!req.body.password) throw err.badRequest('Password is required');
-
-// Authentication pattern
-const token = req.headers.authorization?.replace('Bearer ', '');
-if (!token) throw err.unauthorized('Authentication required');
-
-// Resource lookup pattern
-const user = await findUser(id);
-if (!user) throw err.notFound('User not found');
-
-// Permission check pattern
-if (!user.isAdmin) throw err.forbidden('Admin access required');
-
-// Conflict check pattern
-const existing = await findByEmail(email);
-if (existing) throw err.conflict('Email already exists');
-
-// Database error pattern
-try {
-  return await db.operation();
-} catch (dbError) {
-  throw err.serverError('Database operation failed');
-}
-
-// Express setup pattern
-const err = error.get();
-app.use(express.json());
-app.use('/api', routes);
-app.use(err.handleErrors()); // Must be last
+// Test environment detection
+const env = err.getEnvironmentInfo();
+expect(env.isDevelopment).toBeDefined();
+expect(env.isProduction).toBeDefined();
 ```
 
 ## 📈 Performance
 
-- **Error Creation**: ~0.1ms per error
-- **Middleware Processing**: ~0.2ms per request
+- **Error Creation**: ~0.01ms per error
+- **Middleware Processing**: ~0.1ms per request
 - **Memory Usage**: <100KB overhead
-- **Environment Parsing**: Once per application startup
-- **Zero Dependencies**: Pure Node.js implementation
+- **Environment Parsing**: Once per app startup
+- **Framework Agnostic**: Works with any Node.js framework
 
 ## 🔍 TypeScript Support
-
-Full TypeScript support with comprehensive interfaces:
 
 ```typescript
 import type {
   AppError,
   ErrorConfig,
+  ErrorHandlerOptions,
   ExpressErrorHandler,
   AsyncRouteHandler,
 } from '@voilajsx/appkit/error';
 
-// Strongly typed error handling
+// All methods are fully typed
 const err = error.get();
-const badReq: AppError = err.badRequest('Invalid input');
 const middleware: ExpressErrorHandler = err.handleErrors();
+const wrapper: AsyncRouteHandler = err.asyncRoute(handler);
+
+// Environment info is typed
+const env = err.getEnvironmentInfo();
+// env.isDevelopment: boolean
+// env.isProduction: boolean
+// env.nodeEnv: string
 ```
 
 ## 📄 License

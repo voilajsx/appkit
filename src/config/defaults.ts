@@ -3,7 +3,7 @@
  * @module @voilajsx/appkit/config
  * @file src/config/defaults.ts
  * 
- * @llm-rule WHEN: App startup - need to parse UPPER_SNAKE__CASE environment variables
+ * @llm-rule WHEN: App startup - need to parse UPPER_SNAKE_CASE environment variables
  * @llm-rule AVOID: Calling multiple times - expensive parsing, use lazy loading in get()
  * @llm-rule NOTE: Called once at startup, cached globally for performance
  */
@@ -105,10 +105,26 @@ function validateEnvironment(): void {
 }
 
 /**
+ * Check if environment variable is a framework variable that should be ignored
+ * @llm-rule WHEN: Filtering out framework variables from app config parsing
+ * @llm-rule AVOID: Parsing framework variables as app config - they serve different purposes
+ * @llm-rule NOTE: VoilaJSX AppKit uses VOILA_* and FLUX_* for internal configuration
+ */
+function isFrameworkVariable(envKey: string): boolean {
+  const frameworkPrefixes = [
+    'VOILA_',      // VoilaJSX AppKit framework configuration
+    'FLUX_',       // Flux Framework internal variables
+    'NODE_',       // Node.js environment variables
+    'npm_',        // npm variables
+  ];
+
+  return frameworkPrefixes.some(prefix => envKey.startsWith(prefix));
+}
+
+/**
  * Check if environment variable is a system variable that should be ignored
- * @llm-rule WHEN: Filtering out system variables from validation
+ * @llm-rule WHEN: Filtering out system variables from app config validation
  * @llm-rule AVOID: Validating system variables - they don't follow our conventions
- * @llm-rule NOTE: VoilaJSX AppKit uses single underscore (VOILA_*) for internal variables
  */
 function isSystemVariable(envKey: string): boolean {
   const systemVarPrefixes = [
@@ -116,7 +132,6 @@ function isSystemVariable(envKey: string): boolean {
     '__VERCEL_',   // Vercel deployment variables
     '__NEXT_',     // Next.js internal variables
     '_',           // Shell variables starting with underscore
-    'npm_',        // npm variables
     'TERM',        // Terminal variables
     'SHELL',       // Shell variables
     'PATH',        // System PATH
@@ -131,19 +146,8 @@ function isSystemVariable(envKey: string): boolean {
     'XDG_',        // XDG Base Directory variables
   ];
 
-  // VoilaJSX AppKit internal variables (single underscore) - not parsed as user config
-  const voilaInternalPrefixes = [
-    'VOILA_',      // All VoilaJSX AppKit internal configuration
-    'FLUX_',       // Flux Framework internal variables
-  ];
-
   // Check system variable prefixes
   if (systemVarPrefixes.some(prefix => envKey.startsWith(prefix))) {
-    return true;
-  }
-
-  // Check VoilaJSX internal variables (single underscore pattern)
-  if (voilaInternalPrefixes.some(prefix => envKey.startsWith(prefix))) {
     return true;
   }
 
@@ -166,39 +170,19 @@ function isSystemVariable(envKey: string): boolean {
 /**
  * Validates environment variable format for common mistakes
  * @llm-rule WHEN: Processing custom environment variables for format validation
- * @llm-rule AVOID: Silent format errors - validates UPPER_SNAKE__CASE convention
+ * @llm-rule AVOID: Silent format errors - validates UPPER_SNAKE_CASE convention
  */
 function validateEnvVarFormat(envKey: string): boolean {
-  // Skip system variables - they don't follow our conventions
-  if (isSystemVariable(envKey)) {
+  // Skip framework and system variables - they don't follow our conventions
+  if (isFrameworkVariable(envKey) || isSystemVariable(envKey)) {
     return true;
   }
 
-  // Check for proper UPPER_SNAKE__CASE format
-  if (envKey.includes('__')) {
-    // Should be uppercase
-    if (envKey !== envKey.toUpperCase()) {
-      console.warn(
-        `[VoilaJSX AppKit] Environment variable "${envKey}" should be uppercase for consistency`
-      );
-    }
-    
-    // Check for triple underscores (common mistake)
-    if (envKey.includes('___')) {
-      console.warn(
-        `[VoilaJSX AppKit] Environment variable "${envKey}" has triple underscores - did you mean double (__)?`
-      );
-      return false;
-    }
-    
-    // Check for single underscore in the middle (might be a mistake)
-    const parts = envKey.split('__');
-    for (const part of parts) {
-      if (part.includes('_') && part.length > 1) {
-        // This is actually OK - single underscores within segments are allowed
-        continue;
-      }
-    }
+  // Check for proper UPPER_SNAKE_CASE format
+  if (envKey !== envKey.toUpperCase()) {
+    console.warn(
+      `[VoilaJSX AppKit] Environment variable "${envKey}" should be uppercase for consistency`
+    );
   }
   
   return true;
@@ -209,8 +193,8 @@ function validateEnvVarFormat(envKey: string): boolean {
  * @llm-rule WHEN: App startup to get production-ready configuration from environment
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
- * @llm-rule CONVENTION: Only processes variables with double underscores (__) for user config
- * @llm-rule CONVENTION: Variables with single underscore (VOILA_*, FLUX_*) are AppKit internal
+ * @llm-rule CONVENTION: Only processes non-framework variables for user config
+ * @llm-rule CONVENTION: Variables with VOILA_* and FLUX_* are AppKit internal
  */
 export function buildConfigFromEnv(): AppConfig {
   validateEnvironment();
@@ -224,18 +208,17 @@ export function buildConfigFromEnv(): AppConfig {
     },
   };
 
-  // Process ONLY user configuration variables using UPPER_SNAKE__CASE convention
-  // IMPORTANT: Only variables with double underscores (__) are processed as user config
-  // Variables with single underscore (VOILA_*, FLUX_*) are internal AppKit variables
+  // Process ONLY user configuration variables using UPPER_SNAKE_CASE convention
+  // IMPORTANT: Framework variables (VOILA_*, FLUX_*) are NOT processed as user config
   for (const envKey in process.env) {
-    // Skip system variables and AppKit internal variables (single underscore)
-    if (isSystemVariable(envKey)) {
+    // Skip framework variables and system variables
+    if (isFrameworkVariable(envKey) || isSystemVariable(envKey)) {
       continue;
     }
     
-    // Only process variables with double underscores (__) for user configuration
-    if (envKey.includes('__') && validateEnvVarFormat(envKey)) {
-      const path = envKey.toLowerCase().split('__');
+    // Process remaining variables as user configuration
+    if (validateEnvVarFormat(envKey)) {
+      const path = envKey.toLowerCase().split('_');
       const value = parseValue(process.env[envKey] || '');
       setNestedValue(config, path, value);
     }

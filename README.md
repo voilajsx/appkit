@@ -3,463 +3,577 @@
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A minimal, framework-agnostic Node.js application toolkit providing essential
-building blocks for modern applications.
+> **The minimal, LLM-ready application toolkit that just works**
 
-## Introduction
+Ultra-simple Node.js framework with 12 essential modules. Zero configuration
+needed, production-ready by default, with built-in enterprise features and
+revolutionary AI-friendly documentation.
 
-`@voilajsx/appkit` is a modular toolkit designed to simplify Node.js development
-with independent, reusable utilities for common application tasks. Each of the
-13 modules is standalone, allowing developers to use only what they need while
-maintaining a consistent, intuitive API. Whether you're building with Express,
-Fastify, Koa, or vanilla Node.js, `@voilajsx/appkit` integrates seamlessly.
+## 🚀 Why Choose VoilaJSX AppKit?
 
-### Key Principles
+- **⚡ One Function Per Module** - `utility.get()`, `authenticator.get()`,
+  `configure.get()` - everything follows the same pattern
+- **🔧 Zero Configuration** - Smart defaults with environment-driven scaling
+- **🏢 Enterprise Ready** - Multi-tenancy, security, observability built-in
+- **🤖 LLM-Optimized** - Revolutionary `@llm-rule` documentation system
+- **📈 Progressive Scaling** - Development → Production with no code changes
+- **🎯 90/10 Rule** - 90% of use cases with 10% of the complexity
 
-- **Minimal**: Lightweight, focused features without bloat.
-- **Framework-agnostic**: Compatible with any Node.js framework or environment.
-- **Modular**: Use individual modules independently.
-- **Type-safe**: TypeScript support for better developer experience (coming
-  soon).
-- **Well-tested**: Comprehensive test coverage for reliability.
-- **Production-ready**: Proven in real-world applications.
-
-## Installation
+## 📦 Installation
 
 ```bash
 npm install @voilajsx/appkit
 ```
 
-## Modules Overview
+## 🏃‍♂️ Quick Start (30 seconds)
 
-The table below summarizes the 13 independent modules, their purposes, and key
-methods. Click a module name to jump to its detailed explanation, including all
-methods and documentation links.
+```typescript
+import { utility, authenticator, configure, logger } from '@voilajsx/appkit';
 
-| Module                        | Description                                            | Key Methods                                                                  |
-| ----------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [**Auth**](#auth)             | Authentication and authorization utilities             | `generateToken`, `verifyToken`, `hashPassword`, `createAuthMiddleware`       |
-| [**TenantDB**](#tenantdb)     | Multi-tenant database management                       | `createDb`, `forTenant`, `createTenant`, `createMiddleware`                  |
-| [**Cache**](#cache)           | Caching with in-memory or Redis strategies             | `createCache`, `get`, `set`, `getOrSet`                                      |
-| [**Events**](#events)         | Pub/sub event bus for decoupled communication          | `subscribe`, `publish`, `unsubscribe`, `publishBatch`                        |
-| [**Security**](#security)     | CSRF protection, rate limiting, and sanitization       | `createCsrfMiddleware`, `createRateLimiter`, `sanitizeInput`, `sanitizeHtml` |
-| [**Error**](#error)           | Consistent error handling and formatting               | `createError`, `badRequestError`, `notFoundError`, `createErrorHandler`      |
-| [**Logging**](#logging)       | Structured logging with multiple transports            | `createLogger`, `info`, `error`, `debug`                                     |
-| [**Storage**](#storage)       | File storage abstraction for local and cloud providers | `initStorage`, `upload`, `download`, `generateSignedUrl`                     |
-| [**Email**](#email)           | Template-based email sending                           | `initEmail`, `sendEmail`, `sendTemplatedEmail`, `closeEmail`                 |
-| [**Queue**](#queue)           | Background job processing                              | `initQueue`, `addJob`, `processJob`, `closeQueue`                            |
-| [**Config**](#config)         | Environment-based configuration management             | `loadConfig`, `getConfig`, `setConfig`, `validateConfig`                     |
-| [**Validation**](#validation) | Schema-based data validation                           | `createValidator`, `validate`, `validateAsync`, `createValidationMiddleware` |
-| [**Utils**](#utils)           | Helper functions for data manipulation and async tasks | `pick`, `deepMerge`, `generateId`, `retry`                                   |
+// Get instances - one function each
+const utils = utility.get();
+const auth = authenticator.get();
+const config = configure.get();
+const log = logger.get();
 
-## Quick Start
-
-```javascript
-import { auth, tenantdb, cache, logging } from '@voilajsx/appkit';
-
-// Initialize logger
-const logger = logging.createLogger();
-
-// Generate a JWT token
-const token = auth.generateToken({ userId: '123' });
-
-// Initialize tenant database
-const db = tenantdb.createDb();
-const tenantDb = await db.forTenant('tenant1');
-
-// Initialize cache
-const cacheInstance = await cache.createCache();
-await cacheInstance.set('key', 'value');
-
-logger.info('Application initialized');
+// Use immediately - no configuration needed
+const userName = utils.get(user, 'profile.name', 'Guest');
+const token = auth.signToken({ userId: 123 });
+const dbHost = config.get('database.host', 'localhost');
+log.info('🚀 App started');
 ```
 
-## Getting Started
-
-1. Install the package: `npm install @voilajsx/appkit`
-2. Import the desired modules.
-3. Use the key methods as shown in the modules overview table.
-4. Refer to detailed explanations below for all methods and further
-   documentation.
+**That's it!** Everything works out of the box with smart defaults.
 
-## Module Details
+## 📋 The Essential 12 Modules
 
-### Auth
+| Module                    | Purpose                | Key Features                                     | Get Started            |
+| ------------------------- | ---------------------- | ------------------------------------------------ | ---------------------- |
+| [**Utils**](#utils)       | 12 daily utilities     | Safe access, slugify, chunk, debounce            | `utility.get()`        |
+| [**Auth**](#auth)         | Role-level permissions | JWT, roles, middleware                           | `authenticator.get()`  |
+| [**Config**](#config)     | Environment parsing    | `DATABASE__HOST` → `config.get('database.host')` | `configure.get()`      |
+| [**Logging**](#logging)   | Auto-transport logs    | Console, file, database, webhooks                | `logger.get()`         |
+| [**Storage**](#storage)   | Local/S3/R2 files      | Auto-strategy, CDN URLs                          | `store.get()`          |
+| [**Queue**](#queue)       | Background jobs        | Memory/Redis/Database transports                 | `queuing.get()`        |
+| [**Cache**](#cache)       | Auto Redis/Memory      | Namespace isolation                              | `caching.get('users')` |
+| [**Events**](#events)     | Pub/Sub messaging      | Distributed event bus                            | `eventing.get()`       |
+| [**Error**](#error)       | HTTP error handling    | Semantic status codes                            | `error.get()`          |
+| [**Email**](#email)       | Auto-provider emails   | Resend/SMTP/Console                              | `emailing.get()`       |
+| [**Database**](#database) | Multi-tenant DB        | Progressive org/tenant scaling                   | `database.get()`       |
+| [**Security**](#security) | Enterprise protection  | CSRF, rate limiting, encryption                  | `security.get()`       |
 
-**What It’s About**: The `auth` module provides tools for user authentication
-and authorization, including JWT token management, password hashing, and
-middleware for securing routes.
-
-**What You Can Do**: Generate and verify JWT tokens, hash and compare passwords,
-create middleware for token-based authentication or role-based authorization,
-and integrate with any Node.js framework.
-
-**Methods**:
-
-| Method                          | Description                                        |
-| ------------------------------- | -------------------------------------------------- |
-| `generateToken`                 | Creates a JWT token from a payload.                |
-| `verifyToken`                   | Verifies and decodes a JWT token.                  |
-| `hashPassword`                  | Hashes a password securely.                        |
-| `comparePassword`               | Compares a password with its hash.                 |
-| `createAuthMiddleware`          | Creates middleware for token-based authentication. |
-| `createAuthorizationMiddleware` | Creates middleware for role-based authorization.   |
-
-**Resources**:
+## 🎯 Core Philosophy
 
-- [Auth README](/src/auth/README.md)
-- [Developer Reference](/src/auth/docs/DEVELOPER_REFERENCE.md)
+### **Minimalism**
 
-### TenantDB
+Every module follows the same pattern:
 
-**What It’s About**: The `tenantdb` module enables multi-tenant database
-management, supporting row, schema, or database isolation strategies for
-tenant-specific data.
-
-**What You Can Do**: Initialize tenant databases, manage tenant-specific data,
-create tenant isolation middleware, and perform tenant lifecycle operations like
-creation or migration.
-
-**Methods**:
+```typescript
+const module = moduleExport.get(); // One function
+module.coreMethod(args); // Essential methods only
+```
 
-| Method                | Description                                       |
-| --------------------- | ------------------------------------------------- |
-| `createDb`            | Initializes a multi-tenant database instance.     |
-| `forTenant`           | Gets a database client for a specific tenant.     |
-| `createTenant`        | Creates a new tenant.                             |
-| `deleteTenant`        | Deletes a tenant.                                 |
-| `migrateTenant`       | Runs migrations for a tenant.                     |
-| `listTenants`         | Lists all tenants.                                |
-| `tenantExists`        | Checks if a tenant exists.                        |
-| `createMiddleware`    | Creates middleware for tenant isolation.          |
-| `createTenantContext` | Creates a context for tenant-specific operations. |
+### **LLM-Ready**
 
-**Resources**:
+Revolutionary documentation with AI guidance:
 
-- [TenantDB README](/src/tenantdb/README.md)
-- [Developer Reference](/src/tenantdb/docs/DEVELOPER_REFERENCE.md)
+```typescript
+/**
+ * @llm-rule WHEN: Building apps that need authentication with user roles
+ * @llm-rule AVOID: Simple apps with basic login - adds unnecessary complexity
+ * @llm-rule NOTE: Uses role.level hierarchy with automatic inheritance
+ */
+```
 
-### Cache
+### **Enterprise-Grade**
 
-**What It’s About**: The `cache` module provides caching utilities with support
-for in-memory, Redis, or Memcached strategies.
-
-**What You Can Do**: Store and retrieve data efficiently, manage cache
-expiration, implement cache-aside patterns, and namespace caches for isolation.
-
-**Methods**:
-
-| Method          | Description                                         |
-| --------------- | --------------------------------------------------- |
-| `createCache`   | Initializes a cache instance.                       |
-| `get`           | Retrieves a value by key.                           |
-| `set`           | Stores a value with a key.                          |
-| `has`           | Checks if a key exists.                             |
-| `delete`        | Deletes a key.                                      |
-| `clear`         | Clears the entire cache.                            |
-| `getMany`       | Retrieves multiple values by keys.                  |
-| `setMany`       | Stores multiple key-value pairs.                    |
-| `deleteMany`    | Deletes multiple keys.                              |
-| `deletePattern` | Deletes keys matching a pattern.                    |
-| `keys`          | Lists all keys.                                     |
-| `ttl`           | Gets the time-to-live for a key.                    |
-| `expire`        | Sets expiration for a key.                          |
-| `namespace`     | Creates a namespaced cache instance.                |
-| `getOrSet`      | Retrieves or sets a value using a factory function. |
+Production features as defaults:
 
-**Resources**:
+- Multi-tenancy built-in
+- Security by default
+- Auto-scaling transports
+- Observability included
 
-- [Cache README](/src/cache/README.md)
-- [Developer Reference](/src/cache/docs/DEVELOPER_REFERENCE.md)
-
-### Events
-
-**What It’s About**: The `events` module implements a pub/sub event bus for
-decoupled, event-driven communication.
-
-**What You Can Do**: Publish and subscribe to events, handle async event
-processing, manage event history, and integrate with custom event stores.
-
-**Methods**:
-
-| Method              | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| `subscribe`         | Subscribes to an event with a callback.        |
-| `subscribeAsync`    | Subscribes to an event with an async callback. |
-| `unsubscribe`       | Unsubscribes a callback from an event.         |
-| `unsubscribeAsync`  | Unsubscribes an async callback from an event.  |
-| `publish`           | Publishes an event with optional data.         |
-| `publishBatch`      | Publishes multiple events.                     |
-| `getEventHistory`   | Retrieves event history.                       |
-| `clearEventHistory` | Clears event history.                          |
-| `setEventStore`     | Sets a custom event store.                     |
-| `waitForEvent`      | Waits for an event to occur.                   |
+## 🔧 Environment-Driven Scaling
 
-**Resources**:
+**The magic**: Set environment variables, get enterprise features automatically.
 
-- [Events README](/src/events/README.md)
-- [Developer Reference](/src/events/docs/DEVELOPER_REFERENCE.md)
-
-### Security
-
-**What It’s About**: The `security` module offers utilities to protect
-applications from common vulnerabilities like CSRF, rate limiting, and XSS.
-
-**What You Can Do**: Secure API endpoints with middleware, sanitize user inputs,
-enforce rate limits, and ensure safe file handling.
-
-**Methods**:
-
-| Method                 | Description                             |
-| ---------------------- | --------------------------------------- |
-| `createCsrfMiddleware` | Creates middleware for CSRF protection. |
-| `createRateLimiter`    | Creates middleware for rate limiting.   |
-| `sanitizeInput`        | Sanitizes user input to prevent XSS.    |
-| `sanitizeHtml`         | Sanitizes HTML content.                 |
-| `escapeString`         | Escapes special characters in a string. |
-| `sanitizeFilename`     | Sanitizes filenames for safe storage.   |
+### Development (Zero Config)
 
-**Resources**:
+```bash
+# No environment variables needed
+npm start
+```
 
-- [Security README](/src/security/README.md)
-- [Developer Reference](/src/security/docs/DEVELOPER_REFERENCE.md)
+- Memory cache/queue/events
+- Local file storage
+- Console logging
+- File-based config
 
-### Error
+### Production (Auto-Detection)
 
-**What It’s About**: The `error` module standardizes error handling and
-formatting across applications.
-
-**What You Can Do**: Create typed errors, handle errors consistently in
-middleware, format API error responses, and validate requests.
+```bash
+# Add cloud services - everything scales automatically
+REDIS_URL=redis://...           # → Distributed cache/queue/events
+DATABASE_URL=postgres://...     # → Database logging/queue
+AWS_S3_BUCKET=bucket           # → Cloud storage
+RESEND_API_KEY=re_...          # → Email service
+```
 
-**Methods**:
+**Same code, enterprise features. Zero configuration changes.**
 
-| Method                    | Description                               |
-| ------------------------- | ----------------------------------------- |
-| `createError`             | Creates a custom error with a type.       |
-| `validationError`         | Creates an error for validation failures. |
-| `notFoundError`           | Creates an error for missing resources.   |
-| `authenticationError`     | Creates an authentication error.          |
-| `authorizationError`      | Creates an authorization error.           |
-| `conflictError`           | Creates a conflict error.                 |
-| `badRequestError`         | Creates a bad request error.              |
-| `rateLimitError`          | Creates a rate limit error.               |
-| `serviceUnavailableError` | Creates a service unavailable error.      |
-| `internalError`           | Creates an internal server error.         |
-| `formatErrorResponse`     | Formats an error for API responses.       |
-| `createErrorHandler`      | Creates middleware for error handling.    |
-| `asyncHandler`            | Wraps async routes for error handling.    |
-| `notFoundHandler`         | Creates middleware for 404 responses.     |
-| `validateRequest`         | Validates request data against a schema.  |
-
-**Resources**:
-
-- [Error README](/src/error/README.md)
-- [Developer Reference](/src/error/docs/DEVELOPER_REFERENCE.md)
-
-### Logging
-
-**What It’s About**: The `logging` module provides structured logging with
-support for multiple transports.
-
-**What You Can Do**: Log application events at different levels, create
-contextual loggers, and manage log lifecycle.
-
-**Methods**:
-
-| Method         | Description                                     |
-| -------------- | ----------------------------------------------- |
-| `createLogger` | Creates a logger instance.                      |
-| `info`         | Logs an info-level message.                     |
-| `error`        | Logs an error-level message.                    |
-| `warn`         | Logs a warning-level message.                   |
-| `debug`        | Logs a debug-level message.                     |
-| `child`        | Creates a child logger with additional context. |
-| `flush`        | Flushes buffered logs.                          |
-| `close`        | Closes the logger.                              |
-
-**Resources**:
-
-- [Logging README](/src/logging/README.md)
-- [Developer Reference](/src/logging/docs/DEVELOPER_REFERENCE.md)
-
-### Storage
-
-**What It’s About**: The `storage` module abstracts file storage for local and
-cloud providers like S3.
-
-**What You Can Do**: Upload, download, and manage files, generate signed URLs,
-and organize file storage with metadata and directories.
-
-**Methods**:
-
-| Method              | Description                                  |
-| ------------------- | -------------------------------------------- |
-| `initStorage`       | Initializes a storage provider.              |
-| `upload`            | Uploads a file to storage.                   |
-| `uploadLarge`       | Uploads a large file with progress tracking. |
-| `download`          | Downloads a file from storage.               |
-| `downloadStream`    | Streams a file from storage.                 |
-| `delete`            | Deletes a file from storage.                 |
-| `getMetadata`       | Retrieves file metadata.                     |
-| `createDirectory`   | Creates a directory.                         |
-| `listFiles`         | Lists files in a directory.                  |
-| `generateSignedUrl` | Generates a signed URL for file access.      |
-
-**Resources**:
-
-- [Storage README](/src/storage/README.md)
-- [Developer Reference](/src/storage/docs/DEVELOPER_REFERENCE.md)
-
-### Email
-
-**What It’s About**: The `email` module simplifies sending emails with template
-support.
-
-**What You Can Do**: Send plain or templated emails, manage email provider
-connections, and integrate with queue systems for async sending.
-
-**Methods**:
-
-| Method               | Description                           |
-| -------------------- | ------------------------------------- |
-| `initEmail`          | Initializes an email provider.        |
-| `closeEmail`         | Closes the email provider connection. |
-| `getEmailProvider`   | Retrieves the current email provider. |
-| `sendEmail`          | Sends an email.                       |
-| `sendTemplatedEmail` | Sends a templated email.              |
-
-**Resources**:
-
-- [Email README](/src/email/README.md)
-- [Developer Reference](/src/email/docs/DEVELOPER_REFERENCE.md)
-
-### Queue
-
-**What It’s About**: The `queue` module manages background job processing for
-tasks like data processing or notifications.
-
-**What You Can Do**: Add and process jobs, handle job events, and manage queue
-lifecycle for scalable task management.
-
-**Methods**:
-
-| Method       | Description                                         |
-| ------------ | --------------------------------------------------- |
-| `initQueue`  | Initializes a job queue.                            |
-| `addJob`     | Adds a job to the queue.                            |
-| `processJob` | Processes jobs of a specific type.                  |
-| `on`         | Listens for queue events (e.g., completed, failed). |
-| `getJob`     | Retrieves a job by ID.                              |
-| `removeJob`  | Removes a job from the queue.                       |
-| `clearQueue` | Clears a specific queue.                            |
-| `closeQueue` | Closes the queue connection.                        |
-
-**Resources**:
-
-- [Queue README](/src/queue/README.md)
-- [Developer Reference](/src/queue/docs/DEVELOPER_REFERENCE.md)
-
-### Config
-
-**What It’s About**: The `config` module handles environment-based configuration
-management.
-
-**What You Can Do**: Load and validate configurations, retrieve environment
-variables, and manage dynamic configuration updates.
-
-**Methods**:
-
-| Method            | Description                                |
-| ----------------- | ------------------------------------------ |
-| `loadConfig`      | Loads configuration from a file or object. |
-| `setConfig`       | Sets configuration programmatically.       |
-| `getConfig`       | Retrieves a configuration value.           |
-| `getEnv`          | Retrieves an environment variable.         |
-| `reloadConfig`    | Reloads configuration from a file.         |
-| `hasConfig`       | Checks if a configuration key exists.      |
-| `clearConfig`     | Clears all configuration data.             |
-| `validateConfig`  | Validates configuration against a schema.  |
-| `defineSchema`    | Defines a configuration schema.            |
-| `getConfigSchema` | Retrieves a configuration schema.          |
-
-**Resources**:
-
-- [Config README](/src/config/README.md)
-- [Developer Reference](/src/config/docs/DEVELOPER_REFERENCE.md)
-
-### Validation
-
-**What It’s About**: The `validation` module provides schema-based data
-validation and sanitization.
-
-**What You Can Do**: Validate user inputs, create validation middleware, and
-extend schemas for custom rules.
-
-**Methods**:
-
-| Method                       | Description                                |
-| ---------------------------- | ------------------------------------------ |
-| `createValidator`            | Creates a validator instance.              |
-| `validate`                   | Validates data synchronously.              |
-| `validateAsync`              | Validates data asynchronously.             |
-| `addRule`                    | Adds a custom validation rule.             |
-| `extendSchema`               | Extends a validation schema.               |
-| `createValidationMiddleware` | Creates middleware for request validation. |
-
-**Resources**:
-
-- [Validation README](/src/validation/README.md)
-- [Developer Reference](/src/validation/docs/DEVELOPER_REFERENCE.md)
+## 📖 Module Deep Dive
 
 ### Utils
 
-**What It’s About**: The `utils` module offers helper functions for data
-manipulation, string formatting, and async operations.
+> **The 12 utilities every JavaScript developer needs daily**
 
-**What You Can Do**: Manipulate objects, generate IDs, retry operations, format
-data, and manage async tasks.
+Essential functions that solve 95% of daily programming needs:
 
-**Methods**:
+```typescript
+import { utility } from '@voilajsx/appkit/utils';
+const utils = utility.get();
 
-| Method       | Description                                  |
-| ------------ | -------------------------------------------- |
-| `pick`       | Selects specific keys from an object.        |
-| `omit`       | Omits specific keys from an object.          |
-| `deepMerge`  | Merges objects deeply.                       |
-| `deepClone`  | Creates a deep copy of an object.            |
-| `get`        | Retrieves a nested object value.             |
-| `set`        | Sets a nested object value.                  |
-| `flatten`    | Flattens a nested object.                    |
-| `unflatten`  | Unflattens a flat object.                    |
-| `isEqual`    | Compares two values for equality.            |
-| `capitalize` | Capitalizes a string.                        |
-| `camelCase`  | Converts a string to camelCase.              |
-| `generateId` | Generates a random ID.                       |
-| `slugify`    | Creates a URL-friendly slug.                 |
-| `formatDate` | Formats a date.                              |
-| `addDays`    | Adds days to a date.                         |
-| `sleep`      | Pauses execution for a specified time.       |
-| `retry`      | Retries a function with exponential backoff. |
-| `timeout`    | Adds a timeout to a promise.                 |
-| `parallel`   | Runs tasks concurrently.                     |
+// Safe property access (never crashes)
+const name = utils.get(user, 'profile.name', 'Guest');
 
-**Resources**:
+// Universal empty check
+if (utils.isEmpty(value)) {
+  /* handle */
+}
 
-- [Utils README](/src/utils/README.md)
-- [Developer Reference](/src/utils/docs/DEVELOPER_REFERENCE.md)
+// Array operations
+const batches = utils.chunk(items, 10);
+const unique = utils.unique([1, 2, 2, 3]);
 
-## Contributing
+// String utilities
+const slug = utils.slugify('Hello World!'); // → 'hello-world'
+const preview = utils.truncate(text, { length: 100 });
 
-Contributions are welcome! See our [Contributing Guide](CONTRIBUTING.md) for
-details.
+// Performance helpers
+const debouncedFn = utils.debounce(searchAPI, 300);
+const volume = utils.clamp(userInput, 0, 1);
+```
 
-## License
+**[→ Full Utils Documentation](src/utils/README.md)**
+
+### Auth
+
+> **Enterprise role-level authentication with smart hierarchy**
+
+Progressive authentication from simple to enterprise:
+
+```typescript
+import { authenticator } from '@voilajsx/appkit/auth';
+const auth = authenticator.get();
+
+// JWT operations
+const token = auth.signToken({ userId: 123, role: 'admin', level: 'tenant' });
+const payload = auth.verifyToken(token);
+
+// Password security
+const hash = await auth.hashPassword('password123');
+const isValid = await auth.comparePassword('password123', hash);
+
+// Middleware (Express/Fastify)
+app.get('/admin', auth.requireRole('admin.tenant'), handler);
+app.post('/edit', auth.requirePermission('edit:tenant'), handler);
+```
+
+**[→ Full Auth Documentation](src/auth/README.md)**
+
+### Config
+
+> **Convention-driven configuration with zero setup**
+
+Smart environment variable parsing:
+
+```typescript
+import { configure } from '@voilajsx/appkit/config';
+const config = configure.get();
+
+// Environment: DATABASE__HOST=localhost
+const dbHost = config.get('database.host'); // → 'localhost'
+
+// Environment: API__TIMEOUT=30000
+const timeout = config.get('api.timeout'); // → 30000 (auto-typed!)
+
+// With defaults
+const retries = config.get('api.retries', 3); // → 3 if not set
+```
+
+**Convention**: `UPPER_SNAKE__CASE` → `config.get('lower.snake.case')`
+
+**[→ Full Config Documentation](src/config/README.md)**
+
+### Logging
+
+> **Production-ready logging with auto-transport detection**
+
+Enterprise logging that just works:
+
+```typescript
+import { logger } from '@voilajsx/appkit/logging';
+const log = logger.get();
+
+// Structured logging
+log.info('User login', { userId: 123, ip: req.ip });
+log.error('Database error', { error: err.message, query });
+
+// Component logging
+const dbLog = logger.get('database');
+dbLog.warn('Slow query', { duration: '2s', table: 'users' });
+```
+
+**Auto-transports**: Console + File (default) → +Database (`DATABASE_URL`) →
++Slack (`WEBHOOK_URL`)
+
+**[→ Full Logging Documentation](src/logging/README.md)**
+
+### Storage
+
+> **Local/S3/R2 file storage with automatic strategy selection**
+
+File storage that scales:
+
+```typescript
+import { store } from '@voilajsx/appkit/storage';
+const storage = store.get();
+
+// Works locally and in cloud
+await storage.put('avatars/user123.jpg', imageBuffer);
+const imageData = await storage.get('avatars/user123.jpg');
+const url = storage.url('avatars/user123.jpg');
+
+// List and organize
+const files = await storage.list('documents/');
+const signedUrl = await storage.signedUrl('private.pdf', 3600);
+```
+
+**Auto-strategy**: Local (dev) → S3/R2 (prod) based on environment variables.
+
+**[→ Full Storage Documentation](src/storage/README.md)**
+
+### Queue
+
+> **Background job processing with automatic transport detection**
+
+Job queues that scale from memory to Redis:
+
+```typescript
+import { queuing } from '@voilajsx/appkit/queue';
+const queue = queuing.get();
+
+// Add jobs
+await queue.add('email', { to: 'user@example.com', subject: 'Welcome!' });
+await queue.schedule('reminder', { userId: 123 }, 24 * 60 * 60 * 1000);
+
+// Process jobs
+queue.process('email', async (data) => {
+  await sendEmail(data);
+  return { sent: true };
+});
+```
+
+**Auto-transport**: Memory (dev) → Redis → Database based on environment.
+
+**[→ Full Queue Documentation](src/queue/README.md)**
+
+### Cache
+
+> **Redis/Memory caching with namespace isolation**
+
+Caching with automatic strategy:
+
+```typescript
+import { caching } from '@voilajsx/appkit/cache';
+const cache = caching.get('users');
+
+// Set with TTL
+await cache.set('user:123', userData, 3600);
+
+// Get or compute
+const user = await cache.getOrSet(
+  'user:456',
+  async () => {
+    return await db.getUser(456);
+  },
+  1800
+);
+```
+
+**Auto-strategy**: Memory (no Redis) → Redis (with `REDIS_URL`)
+
+**[→ Full Cache Documentation](src/cache/README.md)**
+
+### Events
+
+> **Distributed pub/sub events with Redis/Memory strategy**
+
+Event-driven architecture:
+
+```typescript
+import { eventing } from '@voilajsx/appkit/event';
+const events = eventing.get();
+
+// Subscribe to events
+events.on('user.signup', (data) => {
+  console.log('New user:', data.email);
+});
+
+// Emit events (distributed with Redis)
+await events.emit('order.completed', { orderId: 'order-123' });
+```
+
+**Auto-strategy**: Memory (single server) → Redis (distributed)
+
+**[→ Full Events Documentation](src/event/README.md)**
+
+### Error
+
+> **Semantic HTTP error handling with Express middleware**
+
+Clean error handling:
+
+```typescript
+import { error } from '@voilajsx/appkit/error';
+const err = error.get();
+
+// Semantic errors
+throw err.badRequest('Email is required');
+throw err.unauthorized('Login required');
+throw err.notFound('User not found');
+
+// Express integration
+app.use(err.handleErrors());
+app.post(
+  '/users',
+  err.asyncRoute(async (req, res) => {
+    // Automatic error handling
+  })
+);
+```
+
+**[→ Full Error Documentation](src/error/README.md)**
+
+### Email
+
+> **Auto-provider email sending with template support**
+
+Email that just works:
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+// Sends to console in dev, real emails in prod
+await emailing.send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  html: '<h1>Thanks for signing up!</h1>',
+});
+```
+
+**Auto-provider**: Console (dev) → Resend/SMTP (prod)
+
+**[→ Full Email Documentation](src/email/README.md)**
+
+### Database
+
+> **Progressive multi-tenancy with automatic adapter selection**
+
+Database that grows with you:
+
+```typescript
+import { database } from '@voilajsx/appkit/database';
+
+// Single tenant
+const db = await database.get();
+const users = await db.user.findMany();
+
+// Multi-tenant (same code!)
+const tenantDb = await database.get(); // Auto-filtered by tenant
+const orgDb = await database.org('salesforce').get();
+```
+
+**Auto-scaling**: Single → Tenant → Multi-org with zero code changes.
+
+**[→ Full Database Documentation](src/database/README.md)**
+
+### Security
+
+> **Enterprise security with CSRF, rate limiting, and encryption**
+
+Security by default:
+
+```typescript
+import { security } from '@voilajsx/appkit/security';
+const secure = security.get();
+
+// Middleware protection
+app.use(secure.forms()); // CSRF protection
+app.use('/api', secure.requests()); // Rate limiting
+
+// Input sanitization
+const safeName = secure.input(req.body.name);
+const encryptedSSN = secure.encrypt(sensitiveData);
+```
+
+**[→ Full Security Documentation](src/security/README.md)**
+
+## 🌍 Environment Variables
+
+### Framework Configuration (Single Underscore)
+
+```bash
+# AppKit internal variables
+VOILA_AUTH_SECRET=your-jwt-secret
+VOILA_LOGGING_LEVEL=debug
+VOILA_SERVICE_NAME=my-app
+```
+
+### Application Configuration (Double Underscore)
+
+```bash
+# Your app config (parsed automatically)
+DATABASE__HOST=localhost                → config.get('database.host')
+API__TIMEOUT=30000                      → config.get('api.timeout')
+FEATURES__ANALYTICS__ENABLED=true      → config.get('features.analytics.enabled')
+```
+
+### Cloud Service Auto-Detection
+
+```bash
+# Storage
+AWS_S3_BUCKET=bucket                    → S3 storage
+CLOUDFLARE_R2_BUCKET=bucket            → R2 storage (zero egress)
+
+# Cache/Queue/Events
+REDIS_URL=redis://localhost:6379       → Redis strategy
+
+# Database
+DATABASE_URL=postgres://...             → Database logging/queue
+
+# Email
+RESEND_API_KEY=re_...                   → Resend emails
+SMTP_HOST=smtp.gmail.com               → SMTP emails
+
+# Monitoring
+VOILA_LOGGING_WEBHOOK_URL=https://...   → Slack alerts
+```
+
+## 🧪 Testing
+
+Each module includes comprehensive testing utilities:
+
+```typescript
+import { utility, logger } from '@voilajsx/appkit';
+
+describe('App Tests', () => {
+  beforeEach(() => {
+    // Reset instances for clean tests
+    utility.clearCache();
+    logger.clear();
+  });
+
+  test('should process data safely', () => {
+    const utils = utility.get();
+    const result = utils.get({ user: { name: 'John' } }, 'user.name');
+    expect(result).toBe('John');
+  });
+});
+```
+
+## 🚀 Production Deployment
+
+### Docker
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY . .
+
+# Environment variables auto-configure everything
+ENV REDIS_URL=redis://redis:6379
+ENV DATABASE_URL=postgres://user:pass@db:5432/app
+ENV RESEND_API_KEY=re_your_key
+
+CMD ["npm", "start"]
+```
+
+### Vercel/Railway/Heroku
+
+```bash
+# Just set environment variables
+REDIS_URL=redis://...
+DATABASE_URL=postgres://...
+RESEND_API_KEY=re_...
+
+# Zero configuration needed!
+```
+
+## 🤖 AI-First Development
+
+Revolutionary `@llm-rule` system helps AI generate correct code:
+
+```typescript
+/**
+ * @llm-rule WHEN: Storing user passwords - always hash before database
+ * @llm-rule AVOID: Storing plain text passwords - major security vulnerability
+ */
+```
+
+**Benefits**:
+
+- AI generates secure code by default
+- Prevents common vulnerabilities
+- Follows framework best practices
+- Reduces debugging time
+
+## 📊 Framework Metrics
+
+- **Modules**: 12 essential modules
+- **Lines to start**: 2 lines per module
+- **Configuration**: 0 required, environment optional
+- **Dependencies**: Minimal, peer dependencies where possible
+- **Bundle size**: < 50KB per module
+- **TypeScript**: Full support with comprehensive types
+
+## 🏆 Why VoilaJSX AppKit?
+
+### **vs Express.js**
+
+- **AppKit**: Batteries included, zero config
+- **Express**: Minimal, requires middleware assembly
+
+### **vs NestJS**
+
+- **AppKit**: Simple functions, learn once
+- **NestJS**: Decorators, Angular-style complexity
+
+### **vs Next.js**
+
+- **AppKit**: Framework agnostic, backend focused
+- **Next.js**: React-specific, full-stack
+
+### **vs Serverless Framework**
+
+- **AppKit**: Environment adaptive, runs anywhere
+- **Serverless**: Cloud-specific, vendor lock-in
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md)
+for details.
+
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-<p >
-  Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJS Team</a> — powering modern web development.
+<p align="center">
+  <strong>Built with ❤️ in India by the <a href="https://github.com/orgs/voilajsx/people">VoilaJSX Team</a></strong><br>
+  Because frameworks should be simple, not PhD theses.
 </p>

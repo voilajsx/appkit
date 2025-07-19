@@ -70,6 +70,10 @@ export declare class AuthenticationClass {
      * @llm-rule AVOID: Missing userId, role, or level in payload - token will be invalid
      * @llm-rule AVOID: Using {userId, roles: ['admin']} format - use {userId, role: 'admin', level: 'tenant'}
      * @llm-rule NOTE: permissions array is optional - defaults are used from role.level config
+     * @llm-rule NOTE: CORRECT TOKEN STRUCTURE EXAMPLES:
+     * @llm-rule NOTE: Basic: {userId: 123, role: 'user', level: 'basic', permissions: ['manage:own']}
+     * @llm-rule NOTE: Admin: {userId: 456, role: 'admin', level: 'tenant', permissions: ['manage:tenant']}
+     * @llm-rule NOTE: WRONG: {userId: 123, roles: ['admin']} or {userId: 123, role: 'admin.tenant'}
      */
     signToken(payload: Omit<JwtPayload, 'iat' | 'exp' | 'iss' | 'aud'>, expiresIn?: string): string;
     /**
@@ -86,24 +90,42 @@ export declare class AuthenticationClass {
      */
     hashPassword(password: string, rounds?: number): Promise<string>;
     /**
-     * Compares a plain text password against a hashed password
-     * @llm-rule WHEN: User login - verify input password against stored hash
-     * @llm-rule AVOID: Comparing hashed passwords directly - use this method for timing attack protection
+     * Compares a password with its hash
+     * @llm-rule WHEN: Validating user login credentials
+     * @llm-rule AVOID: Manual string comparison - timing attacks possible
+     * @llm-rule NOTE: Always returns boolean, never throws on comparison failure
      */
     comparePassword(password: string, hash: string): Promise<boolean>;
     /**
-     * Checks if user has a specific role.level (with inheritance)
-     * @llm-rule WHEN: Checking if user meets minimum role requirement
-     * @llm-rule AVOID: Exact string matching - use this for hierarchy checking
-     * @llm-rule NOTE: Inheritance works upward - admin.org has admin.tenant access, not vice versa
-     * @llm-rule NOTE: admin.org automatically has admin.tenant access via inheritance
+     * Safely extracts user from request - never crashes
+     * @llm-rule WHEN: Need to access user data from authenticated requests
+     * @llm-rule AVOID: Accessing req.user directly - may be undefined and cause crashes
+     * @llm-rule NOTE: Always returns null for unauthenticated requests - safe to use
+     * @llm-rule NOTE: Works with both user authentication (req.user) and API tokens (req.token)
+     */
+    user(request: FastifyRequest | ExpressRequest): JwtPayload | null;
+    /**
+     * Checks if user has specified role with automatic inheritance
+     * @llm-rule WHEN: Checking if user can access role-protected resources
+     * @llm-rule AVOID: Manual role comparisons - this handles inheritance automatically
+     * @llm-rule NOTE: Higher levels inherit lower (admin.org has admin.tenant access)
+     * @llm-rule NOTE: INHERITANCE EXAMPLES:
+     * @llm-rule NOTE: auth.hasRole('admin.org', 'admin.tenant') → TRUE (org > tenant)
+     * @llm-rule NOTE: auth.hasRole('admin.system', 'user.basic') → TRUE (system > basic)
+     * @llm-rule NOTE: auth.hasRole('user.basic', 'admin.tenant') → FALSE (basic < tenant)
+     * @llm-rule NOTE: Role hierarchy: admin.system > admin.org > admin.tenant > user.max > user.pro > user.basic
      */
     hasRole(userRoleLevel: string, requiredRoleLevel: string): boolean;
     /**
-     * Checks if user has a specific permission
-     * @llm-rule WHEN: Checking fine-grained permissions beyond role hierarchy
-     * @llm-rule AVOID: Manual permission array checking - this handles manage:scope fallbacks
-     * @llm-rule NOTE: manage:tenant permission automatically grants edit:tenant, view:tenant, etc.
+     * Checks if user has specific permission with automatic action inheritance
+     * @llm-rule WHEN: Checking fine-grained permissions for specific actions
+     * @llm-rule AVOID: Hardcoding permission checks - this handles action inheritance
+     * @llm-rule NOTE: 'manage:scope' includes ALL other actions for that scope
+     * @llm-rule NOTE: PERMISSION INHERITANCE EXAMPLES:
+     * @llm-rule NOTE: If user has 'manage:tenant' → can('edit:tenant') returns TRUE
+     * @llm-rule NOTE: If user has 'manage:tenant' → can('view:tenant') returns TRUE
+     * @llm-rule NOTE: If user has 'edit:tenant' → can('manage:tenant') returns FALSE
+     * @llm-rule NOTE: Actions hierarchy: manage > delete > edit > create > view
      */
     can(user: JwtPayload, permission: string): boolean;
     /**
@@ -111,57 +133,59 @@ export declare class AuthenticationClass {
      * @llm-rule WHEN: Protecting routes that need authenticated users (Fastify framework)
      * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
      * @llm-rule AVOID: Using with Express - use requireLoginExpress() for Express apps
+     * @llm-rule NOTE: FASTIFY PATTERN: async (request, reply) => Promise<void>
+     * @llm-rule NOTE: Auto-detects from async handler signature and reply.code() method
      */
     requireLogin(options?: MiddlewareOptions): FastifyPreHandler;
     /**
-     * Creates Fastify-native token validation middleware for API-to-API communication
-     * @llm-rule WHEN: Protecting API endpoints for service-to-service calls (Fastify framework)
-     * @llm-rule AVOID: Using for user-facing routes - use requireLogin instead
-     * @llm-rule AVOID: Using with Express - use requireTokenExpress() for Express apps
+     * Creates Express-native authentication middleware for login-based routes
+     * @llm-rule WHEN: Protecting routes that need authenticated users (Express framework)
+     * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
+     * @llm-rule AVOID: Using with Fastify - use requireLogin() for Fastify apps
+     * @llm-rule NOTE: EXPRESS PATTERN: (req, res, next) => void
+     * @llm-rule NOTE: Auto-detects from callback signature and res.status() method
      */
-    requireToken(options?: MiddlewareOptions): FastifyPreHandler;
+    requireLoginExpress(options?: MiddlewareOptions): ExpressMiddleware;
     /**
-     * Creates Fastify-native role-level authorization middleware
-     * @llm-rule WHEN: Protecting routes that need minimum role.level access (Fastify framework)
-     * @llm-rule AVOID: Using with exact role matching - this uses inheritance hierarchy
-     * @llm-rule AVOID: Using with Express - use requireRoleExpress() for Express apps
-     * @llm-rule NOTE: Use this for hierarchy-based access (admin.org gets admin.tenant access)
+     * Creates Fastify role-based authorization middleware
+     * @llm-rule WHEN: Protecting routes that require specific role.level (Fastify)
+     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * @llm-rule NOTE: Role inheritance applies - admin.org can access admin.tenant routes
      */
     requireRole(requiredRoleLevel: string): FastifyPreHandler;
     /**
-     * Creates Fastify-native permission-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that need specific action:scope permissions (Fastify framework)
-     * @llm-rule AVOID: Using for simple role checks - use requireRole for hierarchy-based access
-     * @llm-rule AVOID: Using with Express - use requirePermissionExpress() for Express apps
-     * @llm-rule NOTE: Use this for action-specific access (edit:tenant, view:org, etc.)
+     * Creates Express role-based authorization middleware
+     * @llm-rule WHEN: Protecting routes that require specific role.level (Express)
+     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * @llm-rule NOTE: Role inheritance applies - admin.org can access admin.tenant routes
      */
-    requirePermission(requiredPermission: string): FastifyPreHandler;
-    /**
-     * Gets user from request object safely (works with both requireLogin and requireToken)
-     * @llm-rule WHEN: Need to access user data from authenticated requests
-     * @llm-rule AVOID: Accessing req.user or req.token directly - WILL crash app when undefined
-     * @llm-rule NOTE: Always returns null safely - never throws undefined errors
-     */
-    user(request: FastifyRequest): JwtPayload | null;
-    /**
-     * Gets default token extraction function for Fastify
-     */
-    getDefaultTokenExtractor(): (request: FastifyRequest) => string | null;
-    /**
-     * Express adapter - converts Fastify middleware to work with Express
-     * @llm-rule WHEN: Using Express framework instead of Fastify
-     * @llm-rule AVOID: Using Fastify methods directly in Express - use *Express variants
-     */
-    toExpress(fastifyMiddleware: FastifyPreHandler): ExpressMiddleware;
-    /**
-     * Express convenience methods (using the adapter)
-     * @llm-rule WHEN: Using Express framework - these handle Fastify-to-Express conversion automatically
-     * @llm-rule AVOID: Mixing Fastify and Express methods - stick to one framework's methods
-     * @llm-rule AVOID: Using requireLogin() with Express - use these Express variants instead
-     */
-    requireLoginExpress(options?: MiddlewareOptions): ExpressMiddleware;
-    requireTokenExpress(options?: MiddlewareOptions): ExpressMiddleware;
     requireRoleExpress(requiredRoleLevel: string): ExpressMiddleware;
-    requirePermissionExpress(requiredPermission: string): ExpressMiddleware;
+    /**
+     * Creates Fastify permission-based authorization middleware
+     * @llm-rule WHEN: Protecting routes that require specific permissions (Fastify)
+     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * @llm-rule NOTE: Permission inheritance applies - manage:tenant can access edit:tenant routes
+     */
+    requirePermission(permission: string): FastifyPreHandler;
+    /**
+     * Creates Express permission-based authorization middleware
+     * @llm-rule WHEN: Protecting routes that require specific permissions (Express)
+     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * @llm-rule NOTE: Permission inheritance applies - manage:tenant can access edit:tenant routes
+     */
+    requirePermissionExpress(permission: string): ExpressMiddleware;
+    /**
+     * Creates API token authentication middleware for service-to-service communication
+     * @llm-rule WHEN: Protecting API routes that need token-based authentication
+     * @llm-rule AVOID: Using for user-facing routes - use requireLogin instead
+     * @llm-rule NOTE: Sets req.token instead of req.user for API authentication
+     */
+    requireToken(options?: MiddlewareOptions): FastifyPreHandler;
+    /**
+     * Gets default token extractor that checks headers, cookies, and query params
+     * @llm-rule WHEN: Need custom token extraction logic
+     * @llm-rule AVOID: Modifying directly - pass custom getToken to middleware options
+     */
+    private getDefaultTokenExtractor;
 }
 //# sourceMappingURL=authentication.d.ts.map

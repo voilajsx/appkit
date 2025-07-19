@@ -3,12 +3,11 @@
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Ultra-simple role-level-permission authentication with enterprise-grade
-> security and smart hierarchy
+> Ultra-simple authentication with JWT, bcrypt, and role-based permissions. One
+> function call, zero configuration, production-ready security.
 
-**One function** returns an auth object with all methods. Zero configuration
-needed, production-ready security by default, with built-in role inheritance and
-permission system.
+**One function** returns an auth object with all methods. Built-in role
+hierarchy and permission inheritance. Works with any Node.js framework.
 
 ## 🚀 Why Choose This?
 
@@ -29,8 +28,11 @@ npm install @voilajsx/appkit
 
 ## 🏃‍♂️ Quick Start (30 seconds)
 
+**⚠️ AUTH_SECRET Required**: You must generate a secure secret for JWT tokens.
+No default is provided for security reasons.
+
 ```bash
-# Set your environment variable
+# Generate and set your JWT secret (required for startup)
 echo "VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-2024-minimum-32-chars" > .env
 ```
 
@@ -39,30 +41,22 @@ import { authenticator } from '@voilajsx/appkit/auth';
 
 const auth = authenticator.get();
 
-// JWT operations with role.level structure
-const token = auth.signToken({
-  userId: 123,
-  role: 'admin',
-  level: 'tenant',
-  permissions: ['edit:tenant'],
-});
-const payload = auth.verifyToken(token);
-
-// Password operations
-const hash = await auth.hashPassword('userPassword123');
-const isValid = await auth.comparePassword('userPassword123', hash);
-
-// Safe user access
-const user = auth.user(req); // Returns null if not authenticated
-
-// Role-level and permission-based routes
+// Basic usage patterns
+const token = auth.signToken({ userId: 123, role: 'admin', level: 'tenant' });
+const user = auth.user(req); // Safe - returns null if not authenticated
 app.get('/admin', auth.requireRole('admin.tenant'), handler);
-app.post('/edit', auth.requirePermission('edit:tenant'), handler);
 ```
 
 ## 🏗️ Role-Level-Permission Architecture
 
-### **Role Hierarchy** (Built-in)
+**What is role.level format?** A two-part system where `role.level` (like
+`admin.tenant`) provides automatic inheritance. Higher levels include all lower
+level permissions, eliminating complex permission management.
+
+**Why it matters:** `admin.org` automatically has `admin.tenant` access,
+`admin.tenant` has `user.basic` access. One check handles the entire hierarchy.
+
+### **Built-in Role Hierarchy**
 
 ```typescript
 user:      basic → pro → max
@@ -70,377 +64,217 @@ moderator: review → approve → manage
 admin:     tenant → org → system
 ```
 
-Higher levels automatically inherit all lower level permissions.
-
 ### **Permission System**
 
-**Format**: `action:scope`
+**Format**: `action:scope` - Clean, predictable permission structure.
 
-**Core Actions**: `view`, `create`, `edit`, `delete`, `manage`  
-**Core Scopes**: `own`, `tenant`, `org`, `system`
+**Examples**: `view:own`, `edit:tenant`, `manage:org`, `delete:system`
 
-**Examples**:
+## 🤖 LLM Quick Reference - Copy These Patterns
 
-- `view:own` - View own data
-- `edit:tenant` - Edit tenant data
-- `manage:org` - Full management of organization
-- `blog:publish:tenant` - Custom action (publish blog posts in tenant)
-
-## 🧠 Mental Model
-
-### **What We Provide**
-
-Think of this auth system as **layers of complexity** you can choose from:
-
-```
-🏢 Enterprise Level    → Full role.level + permissions (admin.tenant + edit:org)
-🏬 Business Level      → Role hierarchy only (user → moderator → admin)
-🏠 Simple Level        → Basic roles (user, admin)
-🚪 Minimal Level       → Just authentication (logged in/out)
-```
-
-### **When to Use What**
-
-| Project Type         | What to Use      | Example                                 |
-| -------------------- | ---------------- | --------------------------------------- |
-| **Blog/Portfolio**   | Minimal Level    | `auth.requireLogin()` only              |
-| **Small SaaS**       | Simple Level     | `user`, `admin` roles                   |
-| **Growing Startup**  | Business Level   | `user → manager → admin`                |
-| **Multi-tenant App** | Enterprise Level | `user.basic → admin.tenant → admin.org` |
-
-### **Decision Tree**
-
-```
-Do you need user authentication?
-├─ No  → Don't use this library
-└─ Yes → Do you need different user types?
-   ├─ No  → Use: auth.requireLogin() only
-   └─ Yes → Do you have 2-3 simple roles?
-      ├─ Yes → Use: VOILA_AUTH_ROLES=user:1,admin:2
-      └─ No  → Do you have multiple locations/tenants?
-         ├─ No  → Use: user:1,moderator:2,admin:3
-         └─ Yes → Use: Built-in hierarchy (user.basic → admin.system)
-```
-
-### **Start Simple, Scale Up**
+### **Token Structure (Copy Exactly)**
 
 ```typescript
-// 🚪 Week 1: Just authentication
-app.get('/profile', auth.requireLogin(), handler);
+// ✅ CORRECT - Always use this structure
+const token = auth.signToken({
+  userId: 123,
+  role: 'admin',        // Role name
+  level: 'tenant',      // Level within role
+  permissions: ['manage:tenant']  // Optional
+});
 
-// 🏠 Month 1: Add basic roles
-VOILA_AUTH_ROLES=user:1,admin:2
-app.get('/admin', auth.requireRole('admin'), handler);
-
-// 🏬 Month 6: Add hierarchy
-VOILA_AUTH_ROLES=user:1,moderator:2,admin:3
-app.get('/moderate', auth.requireRole('moderator'), handler);
-
-// 🏢 Year 1: Add full enterprise features
-// Use built-in role.level + permissions system
-app.get('/tenant-admin', auth.requirePermission('manage:tenant'), handler);
+// ❌ WRONG - Will break auth
+{ userId: 123, roles: ['admin'] }           // Missing role/level split
+{ userId: 123, role: 'admin.tenant' }      // Don't combine role.level
 ```
 
-### **Our Defaults Are For**
-
-- **Multi-tenant SaaS platforms**
-- **Enterprise applications**
-- **Apps with multiple locations/organizations**
-- **Complex permission requirements**
-
-### **Override Our Defaults If**
-
-- **Simple blog/portfolio** → Use minimal authentication only
-- **Basic admin panel** → Use 2-3 simple roles
-- **Industry-specific** → Use custom role names (patient/doctor,
-  student/teacher)
-- **Different hierarchy** → Define your own level structure
-
-**Remember:** You can always start simple and add complexity later. The system
-grows with your needs.
-
-## 📖 API Reference
-
-### Core Function
+### **Role Inheritance (Copy These Patterns)**
 
 ```typescript
-const auth = authenticator.get(); // One function, all methods
+// ✅ These return TRUE (higher includes lower)
+auth.hasRole('admin.org', 'admin.tenant'); // org > tenant
+auth.hasRole('admin.system', 'user.basic'); // system > basic
+auth.hasRole('user.pro', 'user.basic'); // pro > basic
+
+// ❌ These return FALSE (lower cannot access higher)
+auth.hasRole('user.basic', 'admin.tenant'); // basic < tenant
+auth.hasRole('admin.tenant', 'admin.org'); // tenant < org
 ```
 
-### Methods
+### **Framework Detection (Auto-Generated)**
 
 ```typescript
-// JWT with role.level structure
-auth.signToken({ userId, role, level, permissions });
-auth.verifyToken(token);
+// ✅ FASTIFY - Use these patterns
+app.get('/admin', { preHandler: auth.requireRole('admin.tenant') }, handler);
 
-// Passwords
-auth.hashPassword(password, rounds);
-auth.comparePassword(password, hash);
+// ✅ EXPRESS - Use these patterns
+app.get('/admin', auth.requireRoleExpress('admin.tenant'), handler);
+```
 
-// User access
-auth.user(req); // Safe user extraction (null if not authenticated)
+## ⚠️ Common LLM Mistakes - Avoid These
 
-// Role checking (with inheritance)
-auth.hasRole('admin.org', 'admin.tenant'); // true (org inherits tenant)
+### **Token Creation Errors**
 
-// Permission checking
+```typescript
+// ❌ Missing required fields
+auth.signToken({ userId: 123 }); // Missing role/level
+auth.signToken({ userId: 123, role: 'admin' }); // Missing level
+
+// ✅ Always include userId, role, level
+auth.signToken({ userId: 123, role: 'admin', level: 'tenant' });
+```
+
+### **Role Check Errors**
+
+```typescript
+// ❌ Wrong inheritance assumption
+if (user.role === 'admin') {
+} // Ignores levels
+auth.hasRole('admin.tenant', 'admin.org'); // Backwards check
+
+// ✅ Use proper hierarchy checks
+auth.hasRole(`${user.role}.${user.level}`, 'admin.tenant');
+```
+
+### **Permission Errors**
+
+```typescript
+// ❌ Wrong permission format
+auth.can(user, 'admin'); // Not action:scope format
+auth.can(user, 'edit_tenant'); // Use colon, not underscore
+
+// ✅ Use action:scope format
 auth.can(user, 'edit:tenant');
-
-// Middleware
-auth.requireLogin(options);
-auth.requireToken(options);
-auth.requireRole('admin.tenant');
-auth.requirePermission('edit:tenant');
+auth.can(user, 'manage:org');
 ```
 
-### Utility Methods
+## 🚨 Error Handling Patterns
+
+### **Token Operations**
 
 ```typescript
-// Inspect configuration
-authenticator.getRoles(); // Get role hierarchy
-authenticator.getPermissions(); // Get permission config
-authenticator.getAllRoles(); // Get all role.levels sorted
-authenticator.isValidRole('admin.tenant'); // Validate role.level
-authenticator.reset(newConfig); // Reset instance (testing)
-```
+try {
+  const token = auth.signToken({ userId, role, level });
+  return { token };
+} catch (error) {
+  // Invalid role.level, missing secret, etc.
+  return res.status(500).json({ error: 'Token creation failed' });
+}
 
-## 💡 Default Permissions
-
-### **User Levels** (Product Tiers)
-
-```typescript
-user.basic:  ['manage:own']     // Full control over own data
-user.pro:    ['manage:own']     // Feature limits handled at app level
-user.max:    ['manage:own']     // Feature limits handled at app level
-```
-
-### **Moderator Levels** (Content Control)
-
-```typescript
-moderator.review:   ['view:tenant']                           // View only
-moderator.approve:  ['view:tenant', 'create:tenant', 'edit:tenant']  // No delete
-moderator.manage:   ['view:tenant', 'create:tenant', 'edit:tenant']  // No delete
-```
-
-### **Admin Levels** (Full Management)
-
-```typescript
-admin.tenant:  ['manage:tenant']                              // Single location
-admin.org:     ['manage:tenant', 'manage:org']               // Multiple locations
-admin.system:  ['manage:tenant', 'manage:org', 'manage:system'] // Full platform
-```
-
-## 🎯 Usage Examples
-
-### **Basic Express App**
-
-```typescript
-import express from 'express';
-import { authenticator } from '@voilajsx/appkit/auth';
-
-const app = express();
-const auth = authenticator.get();
-
-// Registration
-app.post('/register', async (req, res) => {
-  const { email, password } = req.body;
-
-  const hashedPassword = await auth.hashPassword(password);
-  const user = await db.createUser({
-    email,
-    password: hashedPassword,
-    role: 'user',
-    level: 'basic',
-  });
-
-  const token = auth.signToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-    level: user.level,
-    permissions: ['manage:own'], // Optional: explicit permissions
-  });
-
-  res.json({ token });
-});
-
-// Login
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await db.findUserByEmail(email);
-  const isValid = await auth.comparePassword(password, user.password);
-
-  if (isValid) {
-    const token = auth.signToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      level: user.level,
-    });
-    res.json({ token });
-  } else {
-    res.status(401).json({ error: 'Invalid credentials' });
+try {
+  const payload = auth.verifyToken(token);
+  // Use payload...
+} catch (error) {
+  if (error.message === 'Token has expired') {
+    return res.status(401).json({ error: 'Session expired' });
   }
-});
-```
-
-### **Fastify Framework**
-
-```typescript
-import Fastify from 'fastify';
-import { authenticator } from '@voilajsx/appkit/auth';
-
-const fastify = Fastify();
-const auth = authenticator.get();
-
-// Public route
-fastify.get('/public', async (request, reply) => {
-  return { message: 'Everyone can see this' };
-});
-
-// Basic user access
-fastify.get(
-  '/dashboard',
-  { preHandler: auth.requireRole('user.basic') },
-  async (request, reply) => {
-    const user = auth.user(request);
-    return { message: `Welcome ${user.email}` };
-  }
-);
-
-// Admin tenant management
-fastify.get(
-  '/admin/tenant',
-  { preHandler: auth.requireRole('admin.tenant') },
-  async (request, reply) => {
-    return { message: 'Tenant admin panel' };
-  }
-);
-
-// Permission-based routes
-fastify.post(
-  '/content',
-  { preHandler: auth.requirePermission('create:tenant') },
-  async (request, reply) => {
-    return { message: 'Content created' };
-  }
-);
-```
-
-### **Express Framework**
-
-```typescript
-import express from 'express';
-import { authenticator } from '@voilajsx/appkit/auth';
-
-const app = express();
-const auth = authenticator.get();
-
-// Public route
-app.get('/public', (req, res) => {
-  res.json({ message: 'Everyone can see this' });
-});
-
-// Basic user access
-app.get('/dashboard', auth.requireRoleExpress('user.basic'), (req, res) => {
-  const user = auth.user(req);
-  res.json({ message: `Welcome ${user.email}` });
-});
-
-// Admin tenant management
-app.get(
-  '/admin/tenant',
-  auth.requireRoleExpress('admin.tenant'),
-  (req, res) => {
-    res.json({ message: 'Tenant admin panel' });
-  }
-);
-
-// Permission-based routes
-app.post(
-  '/content',
-  auth.requirePermissionExpress('create:tenant'),
-  (req, res) => {
-    res.json({ message: 'Content created' });
-  }
-);
-```
-
-### **Business Logic with Hierarchy**
-
-```typescript
-class PostService {
-  async deletePost(postId: string, req: any) {
-    const user = auth.user(req);
-
-    if (!user) {
-      throw new Error('Authentication required');
-    }
-
-    const post = await db.getPost(postId);
-
-    // Check permissions using hierarchy
-    const canDelete =
-      post.createdBy === user.userId || // Own post
-      auth.hasRole(`${user.role}.${user.level}`, 'moderator.manage') || // Moderator+
-      auth.can(user, 'delete:tenant'); // Explicit permission
-
-    if (!canDelete) {
-      throw new Error('Permission denied');
-    }
-
-    await db.deletePost(postId);
-    return { success: true };
-  }
-
-  async createPost(postData: any, req: any) {
-    const user = auth.user(req);
-
-    if (!user) {
-      throw new Error('Authentication required');
-    }
-
-    // Check if user can publish immediately
-    const canPublish =
-      auth.hasRole(`${user.role}.${user.level}`, 'moderator.approve') ||
-      auth.can(user, 'blog:publish:tenant');
-
-    const status = canPublish ? 'published' : 'draft';
-
-    const post = await db.createPost({
-      ...postData,
-      createdBy: user.userId,
-      status,
-    });
-
-    return post;
-  }
+  return res.status(401).json({ error: 'Invalid token' });
 }
 ```
 
-### **Optional Authentication**
+### **Middleware Error Handling**
 
 ```typescript
-app.get('/content', (req, res) => {
-  const user = auth.user(req); // Safe - returns null if not authenticated
-
-  if (!user) {
-    return res.json({ content: 'Public content only' });
-  }
-
-  // Check role.level hierarchy
-  if (auth.hasRole(`${user.role}.${user.level}`, 'admin.tenant')) {
-    return res.json({ content: 'Admin content' });
-  }
-
-  if (auth.hasRole(`${user.role}.${user.level}`, 'moderator.review')) {
-    return res.json({ content: 'Moderator content' });
-  }
-
-  res.json({ content: 'User content' });
+// Errors are handled automatically by middleware
+app.get('/admin', auth.requireRole('admin.tenant'), (req, res) => {
+  // This only runs if auth succeeds
+  // 401/403 errors sent automatically if auth fails
 });
+```
+
+## 🚀 Production Deployment Checklist
+
+### **Environment Setup**
+
+```bash
+# ✅ Required - Strong secret (32+ characters)
+VOILA_AUTH_SECRET=your-cryptographically-secure-secret-key-here
+
+# ✅ Recommended - Shorter expiry for security
+VOILA_AUTH_EXPIRES_IN=2h
+
+# ✅ Performance - Higher rounds for better security
+VOILA_AUTH_BCRYPT_ROUNDS=12
+```
+
+### **Security Validation**
+
+```typescript
+// App startup validation
+try {
+  const auth = authenticator.get();
+  console.log('✅ Auth initialized successfully');
+} catch (error) {
+  console.error('❌ Auth setup failed:', error.message);
+  process.exit(1);
+}
+```
+
+### **Common Issues**
+
+- **"JWT secret required"** → Set VOILA_AUTH_SECRET environment variable
+- **"Invalid role.level"** → Check role format: 'admin.tenant' not 'admin'
+- **"Token expired"** → Generate new token or increase expiry time
+
+## 📖 Essential Usage Patterns
+
+### **Authentication Flow**
+
+```typescript
+// Registration
+const hash = await auth.hashPassword(password);
+const token = auth.signToken({ userId, role: 'user', level: 'basic' });
+
+// Login
+const isValid = await auth.comparePassword(password, hash);
+if (isValid) token = auth.signToken({ userId, role, level });
+
+// Safe user access
+const user = auth.user(req);
+if (!user) return res.status(401).json({ error: 'Auth required' });
+```
+
+### **Route Protection**
+
+```typescript
+// Fastify
+app.get('/admin', { preHandler: auth.requireRole('admin.tenant') }, handler);
+app.post(
+  '/edit',
+  { preHandler: auth.requirePermission('edit:tenant') },
+  handler
+);
+
+// Express
+app.get('/admin', auth.requireRoleExpress('admin.tenant'), handler);
+app.post('/edit', auth.requirePermissionExpress('edit:tenant'), handler);
+```
+
+### **Permission Checking**
+
+```typescript
+// Role hierarchy check
+if (auth.hasRole(`${user.role}.${user.level}`, 'admin.tenant')) {
+  // User has admin.tenant or higher access
+}
+
+// Specific permission check
+if (auth.can(user, 'edit:tenant')) {
+  // User can edit tenant data
+}
+```
+
+### **Progressive Complexity**
+
+```typescript
+// Simple: Just authentication
+app.get('/profile', auth.requireLogin(), handler);
+
+// Medium: Role-based
+app.get('/admin', auth.requireRole('admin.tenant'), handler);
+
+// Advanced: Permission-based
+app.post('/publish', auth.requirePermission('blog:publish:tenant'), handler);
 ```
 
 ## 🌍 Environment Variables
@@ -462,142 +296,80 @@ VOILA_AUTH_ROLES=user.basic:1,user.pro:2,admin.system:9
 VOILA_AUTH_PERMISSIONS=user.basic:view:own,admin.tenant:manage:tenant
 ```
 
-## 🔧 Custom Role Hierarchies
+## 📖 API Reference
+
+### **Core Function**
+
+```typescript
+const auth = authenticator.get(); // One function, all methods
+```
+
+### **Authentication Methods**
+
+```typescript
+auth.signToken({ userId, role, level, permissions }); // Create JWT
+auth.verifyToken(token); // Verify JWT
+auth.hashPassword(password, rounds); // Hash password
+auth.comparePassword(password, hash); // Verify password
+auth.user(req); // Safe user access
+```
+
+### **Authorization Methods**
+
+```typescript
+auth.hasRole(userRole, requiredRole); // Check role hierarchy
+auth.can(user, permission); // Check permission
+auth.requireLogin(options); // Auth middleware
+auth.requireRole(roleLevel); // Role middleware
+auth.requirePermission(permission); // Permission middleware
+```
+
+### **Utility Methods**
+
+```typescript
+authenticator.getRoles(); // Get role hierarchy
+authenticator.getPermissions(); // Get permission config
+authenticator.getAllRoles(); // Get all roles sorted
+authenticator.isValidRole(roleLevel); // Validate role
+authenticator.reset(newConfig); // Reset instance (testing)
+```
+
+## 🔧 Custom Role Examples
 
 ### **E-commerce Platform**
 
 ```bash
-VOILA_AUTH_ROLES=customer.basic:1,vendor.starter:2,vendor.pro:3,staff.support:4,admin.store:5,admin.platform:6
+VOILA_AUTH_ROLES=customer.basic:1,vendor.starter:2,vendor.pro:3,staff.support:4,admin.store:5
 ```
 
 ### **Healthcare System**
 
 ```bash
-VOILA_AUTH_ROLES=patient.basic:1,nurse.junior:2,nurse.senior:3,doctor.resident:4,doctor.attending:5,admin.clinic:6,admin.hospital:7
+VOILA_AUTH_ROLES=patient.basic:1,nurse.junior:2,doctor.resident:3,admin.clinic:4
 ```
 
 ### **Educational Platform**
 
 ```bash
-VOILA_AUTH_ROLES=student.basic:1,teacher.junior:2,teacher.senior:3,principal.school:4,admin.district:5,admin.system:6
+VOILA_AUTH_ROLES=student.basic:1,teacher.junior:2,principal.school:3,admin.district:4
 ```
 
-## 🔄 Authentication Types
-
-### **User Authentication** (`requireLogin`)
-
-- For web applications and user interfaces
-- Sets `req.user` (accessible via `auth.user(req)`)
-
-### **API Authentication** (`requireToken`)
-
-- For service-to-service communication
-- Sets `req.token` (accessible via `auth.user(req)`)
-
-### **Role Authorization** (`requireRole`)
-
-- Checks role.level with inheritance
-- `admin.org` automatically has `admin.tenant` access
-
-### **Permission Authorization** (`requirePermission`)
-
-- Checks specific permissions
-- `manage:tenant` includes all other actions for tenant scope
-
-## 🤖 LLM Guidelines
-
-### **Essential Patterns**
+## 🧪 Testing
 
 ```typescript
-// ✅ ALWAYS use these patterns
-import { authenticator } from '@voilajsx/appkit/auth';
-const auth = authenticator.get();
-
-// ✅ Correct token structure
-const token = auth.signToken({
-  userId,
-  role: 'user',
-  level: 'basic',
-  permissions: ['manage:own'], // optional
+// Reset for clean testing
+const auth = authenticator.reset({
+  jwt: { secret: 'test-secret-32-characters-long-for-security' },
+  roles: {
+    'test.user': { level: 1, inherits: [] },
+    'test.admin': { level: 2, inherits: ['test.user'] },
+  },
 });
 
-// ✅ Safe user access
-const user = auth.user(req);
-if (!user) return res.status(401).json({ error: 'Auth required' });
-
-// ✅ Role.level format
-auth.requireRole('admin.tenant');
-auth.hasRole('admin.org', 'admin.tenant'); // inheritance check
-
-// ✅ Permission format
-auth.requirePermission('edit:tenant');
-auth.can(user, 'manage:org');
-
-// ✅ Framework-specific methods
-// Fastify
-app.get('/route', auth.requireRole('admin.tenant'), handler);
-
-// Express
-app.get('/route', auth.requireRoleExpress('admin.tenant'), handler);
-```
-
-### **Anti-Patterns to Avoid**
-
-```typescript
-// ❌ DON'T access req.user directly (can crash)
-const user = req.user; // Will crash when undefined
-
-// ❌ DON'T use old role format
-auth.requireRole('admin'); // Should be 'admin.tenant'
-
-// ❌ DON'T forget role and level in tokens
-auth.signToken({ userId }); // Missing role/level
-
-// ❌ DON'T hardcode permission checks
-if (user.permissions.includes('edit:tenant')) {
-} // Use auth.can() instead
-
-// ❌ DON'T mix framework methods
-// In Express app:
-auth.requireRole('admin.tenant'); // Should be requireRoleExpress()
-
-// ❌ DON'T store plain passwords
-await db.createUser({ password: plainPassword }); // Always hash first
-```
-
-### **Common Patterns**
-
-```typescript
-// Registration flow
-const hashedPassword = await auth.hashPassword(password);
-const token = auth.signToken({ userId, role: 'user', level: 'basic' });
-
-// Login flow
-const isValid = await auth.comparePassword(inputPassword, storedHash);
-if (isValid) {
-  const token = auth.signToken({ userId, role, level });
-}
-
-// Protected route flow
-app.get(
-  '/protected',
-  auth.requireLogin(), // Authenticate
-  auth.requireRole('admin.tenant'), // Authorize
-  (req, res) => {
-    const user = auth.user(req); // Safe access
-    // Handler logic
-  }
-);
-
-// Permission checking flow
-const user = auth.user(req);
-if (!user) return res.status(401).json({ error: 'Auth required' });
-
-if (auth.can(user, 'edit:tenant')) {
-  // User can edit
-} else {
-  return res.status(403).json({ error: 'Permission denied' });
-}
+// Test patterns
+const hasRole = auth.hasRole('test.admin', 'test.user'); // true
+const user = { role: 'test', level: 'admin', permissions: ['edit:own'] };
+const canEdit = auth.can(user, 'edit:own'); // true
 ```
 
 ## 📈 Performance
@@ -608,31 +380,7 @@ if (auth.can(user, 'edit:tenant')) {
 - **Memory Usage**: <1MB overhead
 - **Environment Parsing**: Once per app startup
 
-## 🧪 Testing
-
-```typescript
-import { authenticator } from '@voilajsx/appkit/auth';
-
-// Reset for clean testing
-const auth = authenticator.reset({
-  jwt: { secret: 'test-secret-32-characters-long-for-security' },
-  roles: {
-    'test.user': { level: 1, inherits: [] },
-    'test.admin': { level: 2, inherits: ['test.user'] },
-  },
-});
-
-// Test role hierarchy
-const hasRole = auth.hasRole('test.admin', 'test.user'); // true
-
-// Test permissions
-const user = { role: 'test', level: 'admin', permissions: ['edit:own'] };
-const canEdit = auth.can(user, 'edit:own'); // true
-```
-
 ## 🔍 TypeScript Support
-
-Full TypeScript support with comprehensive interfaces:
 
 ```typescript
 import type {
@@ -644,7 +392,6 @@ import type {
 } from '@voilajsx/appkit/auth';
 
 // All methods are fully typed
-const auth = authenticator.get();
 const user: JwtPayload | null = auth.user(req);
 const middleware: FastifyPreHandler = auth.requireRole('admin.tenant');
 ```

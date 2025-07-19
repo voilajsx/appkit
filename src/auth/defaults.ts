@@ -46,12 +46,8 @@ export interface AuthConfig {
       noToken: string;
       invalidToken: string;
       expiredToken: string;
-      noRole: string;
-      noPermissions: string;
       insufficientRole: string;
       insufficientPermissions: string;
-      invalidRole: string;
-      invalidPermission: string;
     };
   };
   environment: {
@@ -87,59 +83,29 @@ const DEFAULT_ROLE_HIERARCHY: RoleHierarchy = {
   },
   'moderator.manage': {
     level: 6,
-    inherits: [
-      'moderator.approve',
-      'moderator.review',
-      'user.max',
-      'user.pro',
-      'user.basic',
-    ],
+    inherits: ['moderator.approve', 'moderator.review', 'user.max', 'user.pro', 'user.basic'],
   },
   'admin.tenant': {
     level: 7,
-    inherits: [
-      'moderator.manage',
-      'moderator.approve',
-      'moderator.review',
-      'user.max',
-      'user.pro',
-      'user.basic',
-    ],
+    inherits: ['moderator.manage', 'moderator.approve', 'moderator.review', 'user.max', 'user.pro', 'user.basic'],
   },
   'admin.org': {
     level: 8,
-    inherits: [
-      'admin.tenant',
-      'moderator.manage',
-      'moderator.approve',
-      'moderator.review',
-      'user.max',
-      'user.pro',
-      'user.basic',
-    ],
+    inherits: ['admin.tenant', 'moderator.manage', 'moderator.approve', 'moderator.review', 'user.max', 'user.pro', 'user.basic'],
   },
   'admin.system': {
     level: 9,
-    inherits: [
-      'admin.org',
-      'admin.tenant',
-      'moderator.manage',
-      'moderator.approve',
-      'moderator.review',
-      'user.max',
-      'user.pro',
-      'user.basic',
-    ],
+    inherits: ['admin.org', 'admin.tenant', 'moderator.manage', 'moderator.approve', 'moderator.review', 'user.max', 'user.pro', 'user.basic'],
   },
 };
 
 /**
- * Core permission actions - fixed set for consistency
+ * Core permission actions
  */
 const CORE_ACTIONS = ['view', 'create', 'edit', 'delete', 'manage'];
 
 /**
- * Core permission scopes - fixed set for consistency
+ * Core permission scopes
  */
 const CORE_SCOPES = ['own', 'tenant', 'org', 'system'];
 
@@ -196,12 +162,8 @@ export function getSmartDefaults(): AuthConfig {
         noToken: 'Authentication required',
         invalidToken: 'Invalid authentication. Please sign in again.',
         expiredToken: 'Your session has expired. Please sign in again.',
-        noRole: 'No role found for user',
-        noPermissions: 'No permissions found for user',
-        insufficientRole: 'Insufficient role level',
-        insufficientPermissions: 'Insufficient permissions',
-        invalidRole: 'Invalid role specified',
-        invalidPermission: 'Invalid permission format',
+        insufficientRole: 'Access denied. Insufficient role level.',
+        insufficientPermissions: 'Access denied. Insufficient permissions.',
       },
     },
     environment: {
@@ -213,144 +175,138 @@ export function getSmartDefaults(): AuthConfig {
 }
 
 /**
- * Parses role hierarchy from environment or uses defaults
+ * Parses role hierarchy from environment variable or uses defaults
+ * @llm-rule WHEN: App startup to build role configuration from VOILA_AUTH_ROLES
+ * @llm-rule AVOID: Using invalid role.level format - must be role.level:number
+ * @llm-rule NOTE: Format: VOILA_AUTH_ROLES=user.basic:1,admin.tenant:5,admin.system:9
  */
 function parseRoleHierarchy(): RoleHierarchy {
-  const customRoles = process.env.VOILA_AUTH_ROLES;
-
-  if (!customRoles) {
+  const envRoles = process.env.VOILA_AUTH_ROLES;
+  
+  if (!envRoles) {
     return DEFAULT_ROLE_HIERARCHY;
   }
 
-  try {
-    const roles: RoleHierarchy = {};
-    const rolePairs = customRoles.split(',');
+  const parsedRoles: RoleHierarchy = {};
+  const rolePairs = envRoles.split(',');
 
-    rolePairs.forEach((pair) => {
-      const [roleLevel, levelNum] = pair.trim().split(':');
-      const levelNumber = parseInt(levelNum);
+  for (const rolePair of rolePairs) {
+    const [roleLevel, levelStr] = rolePair.trim().split(':');
+    
+    if (!roleLevel || !levelStr) {
+      throw new Error(
+        `Invalid VOILA_AUTH_ROLES format: "${rolePair}". Expected format: "role.level:number"`
+      );
+    }
 
-      if (!roleLevel || isNaN(levelNumber)) {
-        throw new Error(`Invalid role format: "${pair}"`);
-      }
+    if (!validateRoleLevelFormat(roleLevel)) {
+      throw new Error(
+        `Invalid role.level format: "${roleLevel}". Must be "role.level" (e.g., "admin.tenant")`
+      );
+    }
 
-      roles[roleLevel] = { level: levelNumber, inherits: [] };
-    });
+    const level = parseInt(levelStr);
+    if (isNaN(level) || level < 1) {
+      throw new Error(
+        `Invalid level number: "${levelStr}". Must be a positive integer`
+      );
+    }
 
-    // Calculate inheritance based on levels (all lower levels)
-    Object.keys(roles).forEach((roleLevel) => {
-      const currentLevel = roles[roleLevel].level;
-      roles[roleLevel].inherits = Object.keys(roles)
-        .filter((otherRole) => roles[otherRole].level < currentLevel)
-        .sort((a, b) => roles[b].level - roles[a].level);
-    });
+    parsedRoles[roleLevel] = {
+      level,
+      inherits: [], // Inheritance calculated based on levels
+    };
+  }
 
-    return roles;
-  } catch (error) {
-    console.warn(
-      `Invalid VOILA_AUTH_ROLES format: ${(error as Error).message}. Using defaults.`
+  // Calculate inheritance based on levels
+  const sortedRoles = Object.keys(parsedRoles).sort((a, b) => 
+    parsedRoles[a].level - parsedRoles[b].level
+  );
+
+  for (const roleLevel of sortedRoles) {
+    const currentLevel = parsedRoles[roleLevel].level;
+    parsedRoles[roleLevel].inherits = sortedRoles.filter(other => 
+      parsedRoles[other].level < currentLevel
     );
-    return DEFAULT_ROLE_HIERARCHY;
   }
+
+  return parsedRoles;
 }
 
 /**
- * Parses default permissions from environment or uses defaults
+ * Parses permission defaults from environment variable or uses defaults
+ * @llm-rule WHEN: App startup to build permission configuration from VOILA_AUTH_PERMISSIONS
+ * @llm-rule AVOID: Using invalid permission format - must be action:scope
+ * @llm-rule NOTE: Format: VOILA_AUTH_PERMISSIONS=user.basic:view:own,admin.tenant:manage:tenant
  */
 function parseDefaultPermissions(): PermissionDefaults {
-  const customPermissions = process.env.VOILA_AUTH_PERMISSIONS;
-
-  if (!customPermissions) {
+  const envPermissions = process.env.VOILA_AUTH_PERMISSIONS;
+  
+  if (!envPermissions) {
     return DEFAULT_PERMISSIONS;
   }
 
-  try {
-    const permissions: PermissionDefaults = {};
-    const permissionPairs = customPermissions.split(',');
+  const parsedPermissions: PermissionDefaults = {};
+  const permissionPairs = envPermissions.split(',');
 
-    permissionPairs.forEach((pair) => {
-      const [roleLevel, ...permissionParts] = pair.trim().split(':');
+  for (const permissionPair of permissionPairs) {
+    const parts = permissionPair.trim().split(':');
+    
+    if (parts.length !== 3) {
+      throw new Error(
+        `Invalid VOILA_AUTH_PERMISSIONS format: "${permissionPair}". Expected format: "role.level:action:scope"`
+      );
+    }
 
-      if (permissionParts.length < 2) {
-        throw new Error(
-          `Invalid permission format: "${pair}". Expected format: role.level:action:scope`
-        );
-      }
+    const [roleLevel, action, scope] = parts;
+    const permission = `${action}:${scope}`;
 
-      const action = permissionParts[0];
-      const scope = permissionParts[1];
-      const permission = `${action}:${scope}`;
+    if (!validateRoleLevelFormat(roleLevel)) {
+      throw new Error(
+        `Invalid role.level format: "${roleLevel}". Must be "role.level" (e.g., "admin.tenant")`
+      );
+    }
 
-      if (!permissions[roleLevel]) {
-        permissions[roleLevel] = [];
-      }
+    if (!validatePermissionFormat(permission)) {
+      throw new Error(
+        `Invalid permission format: "${permission}". Must be "action:scope" (e.g., "manage:tenant")`
+      );
+    }
 
-      permissions[roleLevel].push(permission);
-    });
+    if (!parsedPermissions[roleLevel]) {
+      parsedPermissions[roleLevel] = [];
+    }
 
-    return permissions;
-  } catch (error) {
-    console.warn(
-      `Invalid VOILA_AUTH_PERMISSIONS format: ${(error as Error).message}. Using defaults.`
-    );
-    return DEFAULT_PERMISSIONS;
+    if (!parsedPermissions[roleLevel].includes(permission)) {
+      parsedPermissions[roleLevel].push(permission);
+    }
   }
+
+  return parsedPermissions;
 }
 
 /**
- * Validates if a role.level combination exists in the hierarchy
- * @llm-rule WHEN: Before using role.level in authorization checks
- * @llm-rule AVOID: Skipping validation - invalid roles cause silent authorization failures
- */
-export function validateRoleLevel(roleLevel: string, roleHierarchy: RoleHierarchy): boolean {
-  return roleHierarchy && roleHierarchy[roleLevel] !== undefined;
-}
-
-/**
- * Validates if a permission has correct format
- * @llm-rule WHEN: Before using custom permissions in authorization
- * @llm-rule AVOID: Assuming all permission strings are valid - malformed permissions always fail
- */
-export function validatePermission(permission: string): boolean {
-  if (!permission || typeof permission !== 'string') {
-    return false;
-  }
-
-  const parts = permission.split(':');
-  if (parts.length < 2) {
-    return false;
-  }
-
-  const [action, scope] = parts;
-
-  // Check if it's a core permission or custom permission
-  if (CORE_ACTIONS.includes(action) && CORE_SCOPES.includes(scope)) {
-    return true;
-  }
-
-  // Custom permissions are valid if they follow action:scope format
-  return action.length > 0 && scope.length > 0;
-}
-
-/**
- * Validates JWT secret strength for production security
- * @llm-rule WHEN: App startup or when setting custom JWT secret
- * @llm-rule AVOID: Using secrets shorter than 32 chars - creates security vulnerability
+ * Validates JWT secret strength and format
+ * @llm-rule WHEN: Setting custom JWT secret for token security
+ * @llm-rule AVOID: Using weak secrets - minimum 32 characters required for security
  */
 export function validateSecret(secret: string): void {
   if (!secret || typeof secret !== 'string') {
-    throw new Error('JWT secret must be a non-empty string');
+    throw new Error(
+      'VOILA_AUTH_SECRET is required. Set environment variable: VOILA_AUTH_SECRET=your-jwt-secret-key'
+    );
   }
 
   if (secret.length < 32) {
     throw new Error(
-      'JWT secret must be at least 32 characters long for security'
+      `VOILA_AUTH_SECRET must be at least 32 characters for security. Current length: ${secret.length}`
     );
   }
 
-  const weakSecrets = ['secret', 'password', 'key', 'token', 'jwt'];
-  if (weakSecrets.includes(secret.toLowerCase())) {
-    throw new Error('JWT secret is too weak. Use a strong, random secret');
+  if (secret === 'your-jwt-secret-key' || secret === 'secret' || secret === 'supersecret') {
+    throw new Error(
+      'VOILA_AUTH_SECRET appears to be a default/example value. Use a strong, random secret'
+    );
   }
 }
 
@@ -370,13 +326,82 @@ export function validateRounds(rounds: number): void {
 }
 
 /**
- * Validates environment variables
+ * Validates role.level exists in hierarchy
+ * @llm-rule WHEN: Checking if a role.level is valid before using
+ * @llm-rule AVOID: Using with undefined roles - will return false
+ */
+export function validateRoleLevel(roleLevel: string, roles: RoleHierarchy): boolean {
+  if (!roleLevel || typeof roleLevel !== 'string') {
+    return false;
+  }
+
+  return roles[roleLevel] !== undefined;
+}
+
+/**
+ * Validates permission format (action:scope)
+ * @llm-rule WHEN: Checking if a permission string is properly formatted
+ * @llm-rule AVOID: Using with malformed permissions - will return false
+ */
+export function validatePermission(permission: string): boolean {
+  if (!permission || typeof permission !== 'string') {
+    return false;
+  }
+
+  return validatePermissionFormat(permission);
+}
+
+/**
+ * Validates role.level format
+ */
+function validateRoleLevelFormat(roleLevel: string): boolean {
+  if (!roleLevel || typeof roleLevel !== 'string') {
+    return false;
+  }
+
+  // Must be in format: role.level (e.g., "admin.tenant")
+  const parts = roleLevel.split('.');
+  return parts.length === 2 && parts[0].length > 0 && parts[1].length > 0;
+}
+
+/**
+ * Validates permission format
+ */
+function validatePermissionFormat(permission: string): boolean {
+  if (!permission || typeof permission !== 'string') {
+    return false;
+  }
+
+  // Must be in format: action:scope (e.g., "manage:tenant")
+  const parts = permission.split(':');
+  if (parts.length !== 2) {
+    return false;
+  }
+
+  const [action, scope] = parts;
+  return action.length > 0 && scope.length > 0;
+}
+
+/**
+ * Enhanced environment validation with better error messages
  */
 function validateEnvironment(): void {
   const secret = process.env.VOILA_AUTH_SECRET;
-  if (secret) {
-    validateSecret(secret);
+  
+  // Enhanced validation with better error messages
+  if (!secret) {
+    throw new Error(
+      'VOILA_AUTH_SECRET is required. Set environment variable: VOILA_AUTH_SECRET=your-jwt-secret-key'
+    );
   }
+  
+  if (secret.length < 32) {
+    throw new Error(
+      `VOILA_AUTH_SECRET must be at least 32 characters for security. Current length: ${secret.length}`
+    );
+  }
+  
+  validateSecret(secret);
 
   const rounds = process.env.VOILA_AUTH_BCRYPT_ROUNDS;
   if (rounds) {

@@ -13,7 +13,6 @@
  * @llm-rule WHEN: App startup to get production-ready logging configuration
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
- * @llm-rule NOTE: Now includes VOILA_VISUAL_ERRORS support for enhanced error display
  */
 export function getSmartDefaults() {
     // Direct environment access with smart defaults (like auth module)
@@ -134,7 +133,6 @@ function getEnabledTransports(isTest) {
  * Validate environment variables (like auth module validation)
  * @llm-rule WHEN: App startup to catch configuration errors early
  * @llm-rule AVOID: Skipping validation - invalid config causes silent failures
- * @llm-rule NOTE: Now includes validation for VOILA_VISUAL_ERRORS
  */
 export function validateEnvironment() {
     // Validate log level

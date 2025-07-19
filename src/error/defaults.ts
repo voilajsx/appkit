@@ -80,26 +80,26 @@ export function getSmartDefaults(): ErrorConfig {
  * Validates environment variables for error configuration
  * @llm-rule WHEN: App startup to ensure proper error environment configuration
  * @llm-rule AVOID: Skipping validation - improper config causes silent failures
- * @llm-rule NOTE: Validates boolean environment variables and NODE_ENV
+ * @llm-rule NOTE: Validates essential boolean environment variables and NODE_ENV only
  */
 function validateEnvironment(): void {
-  // Validate VOILA_ERROR_STACK
+  // Validate VOILA_ERROR_STACK (essential for security)
   const errorStack = process.env.VOILA_ERROR_STACK;
-  if (errorStack && !['true', 'false'].includes(errorStack)) {
+  if (errorStack && !['true', 'false'].includes(errorStack.toLowerCase())) {
     throw new Error(
       `Invalid VOILA_ERROR_STACK: "${errorStack}". Must be "true" or "false"`
     );
   }
 
-  // Validate VOILA_ERROR_LOG
+  // Validate VOILA_ERROR_LOG (essential for debugging)
   const errorLog = process.env.VOILA_ERROR_LOG;
-  if (errorLog && !['true', 'false'].includes(errorLog)) {
+  if (errorLog && !['true', 'false'].includes(errorLog.toLowerCase())) {
     throw new Error(
       `Invalid VOILA_ERROR_LOG: "${errorLog}". Must be "true" or "false"`
     );
   }
 
-  // Validate NODE_ENV
+  // Validate NODE_ENV (essential for environment detection)
   const nodeEnv = process.env.NODE_ENV;
   if (nodeEnv && !['development', 'production', 'test', 'staging'].includes(nodeEnv)) {
     console.warn(
@@ -108,13 +108,11 @@ function validateEnvironment(): void {
     );
   }
 
-  // Production-specific warnings
-  if (nodeEnv === 'production') {
-    if (process.env.VOILA_ERROR_STACK === 'true') {
-      console.warn(
-        `[VoilaJSX AppKit] VOILA_ERROR_STACK=true in production. ` +
-        `Consider setting to false for security`
-      );
-    }
+  // Essential production safety check
+  if (nodeEnv === 'production' && process.env.VOILA_ERROR_STACK === 'true') {
+    console.warn(
+      `[VoilaJSX AppKit] Security warning: VOILA_ERROR_STACK=true in production. ` +
+      `Stack traces may expose internal application structure. Consider setting to false.`
+    );
   }
 }

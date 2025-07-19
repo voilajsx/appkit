@@ -845,9 +845,14 @@ export class LoggerClass implements Logger {
   }
 
   // ============================================================================
-  // EXISTING METHODS (Unchanged)
+  // PUBLIC UTILITY METHODS
   // ============================================================================
 
+  /**
+   * Flush pending logs to all transports
+   * @llm-rule WHEN: App shutdown or ensuring logs are persisted before critical operations
+   * @llm-rule AVOID: Frequent flushing during normal operations - impacts performance
+   */
   async flush(): Promise<void> {
     if (this.pendingWrites.length > 0) {
       try {
@@ -881,6 +886,11 @@ export class LoggerClass implements Logger {
     }
   }
 
+  /**
+   * Close logger and cleanup all transports
+   * @llm-rule WHEN: App shutdown or logger cleanup - ensures graceful resource cleanup
+   * @llm-rule AVOID: Calling during normal operations - this permanently closes the logger
+   */
   async close(): Promise<void> {
     await this.flush();
 
@@ -909,27 +919,57 @@ export class LoggerClass implements Logger {
     this.transports.clear();
   }
 
+  /**
+   * Get list of active transport names
+   * @llm-rule WHEN: Debugging logger setup or checking which transports are running
+   * @llm-rule AVOID: Using for business logic - this is for debugging and monitoring only
+   */
   getActiveTransports(): string[] {
     return Array.from(this.transports.keys());
   }
 
+  /**
+   * Check if specific transport is active
+   * @llm-rule WHEN: Conditionally logging based on transport availability
+   * @llm-rule AVOID: Complex transport detection - just log normally, transports auto-enable
+   */
   hasTransport(name: string): boolean {
     return this.transports.has(name);
   }
 
+  /**
+   * Set minimum log level dynamically
+   * @llm-rule WHEN: Runtime log level changes, debugging, or feature flags
+   * @llm-rule AVOID: Frequent level changes - impacts performance
+   */
   setLevel(level: 'debug' | 'info' | 'warn' | 'error'): void {
     this.level = level;
     this.levelValue = LOG_LEVELS[level];
   }
 
+  /**
+   * Get current minimum log level
+   * @llm-rule WHEN: Debugging configuration or checking level settings
+   * @llm-rule AVOID: Using for filtering logic - logger handles level filtering automatically
+   */
   getLevel(): string {
     return this.level;
   }
 
+  /**
+   * Check if specific log level would be written
+   * @llm-rule WHEN: Expensive log message preparation - check before building complex meta
+   * @llm-rule AVOID: Normal logging - level filtering is automatic and fast
+   */
   isLevelEnabled(level: 'debug' | 'info' | 'warn' | 'error'): boolean {
     return LOG_LEVELS[level] <= this.levelValue;
   }
 
+  /**
+   * Get current logger configuration for debugging
+   * @llm-rule WHEN: Debugging logger setup, checking environment detection, or monitoring
+   * @llm-rule AVOID: Using for runtime business logic - configuration is set at startup
+   */
   getConfig() {
     return {
       level: this.level,

@@ -5,7 +5,7 @@
  * 
  * @llm-rule WHEN: Building apps that need configuration from environment variables
  * @llm-rule AVOID: Manual env parsing or complex config files - this handles it automatically
- * @llm-rule NOTE: Uses UPPER_SNAKE__CASE convention (DATABASE__HOST → config.get('database.host'))
+ * @llm-rule NOTE: Uses UPPER_SNAKE_CASE convention (DATABASE_HOST → config.get('database.host'))
  */
 
 export class ConfigClass {
@@ -114,6 +114,6 @@ export class ConfigClass {
    * Converts dot notation path to environment variable name
    */
   private pathToEnvVar(path: string): string {
-    return path.split('.').join('__').toUpperCase();
+    return path.split('.').join('_').toUpperCase();
   }
 }

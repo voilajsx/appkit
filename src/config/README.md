@@ -12,7 +12,7 @@ default, with built-in type conversion and smart defaults.
 ## 🚀 Why Choose This?
 
 - **⚡ One Function** - Just `configure.get()`, everything else is automatic
-- **🔩 UPPER_SNAKE\_\_CASE Convention** - `DATABASE__HOST` becomes
+- **🔩 UPPER_SNAKE_CASE Convention** - `DATABASE_HOST` becomes
   `config.get('database.host')`
 - **🔧 Zero Configuration** - No config files, no setup, just environment
   variables
@@ -34,19 +34,19 @@ npm install @voilajsx/appkit
 
 ```bash
 # Database settings
-DATABASE__HOST=localhost
-DATABASE__PORT=5432
-DATABASE__CREDENTIALS__USER=admin
-DATABASE__CREDENTIALS__PASSWORD=secret
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_CREDENTIALS_USER=admin
+DATABASE_CREDENTIALS_PASSWORD=secret
 
 # Feature flags
-FEATURES__ENABLE_BETA=true
-FEATURES__MAX_UPLOADS=100
+FEATURES_ENABLE_BETA=true
+FEATURES_MAX_UPLOADS=100
 
 # API settings
-API__BASE_URL=https://api.example.com
-API__TIMEOUT=30000
-API__RATE_LIMIT=1000
+API_BASE_URL=https://api.example.com
+API_TIMEOUT=30000
+API_RATE_LIMIT=1000
 ```
 
 ### 2. Use in Your Code
@@ -80,16 +80,30 @@ structured, and type-safe object.
 
 ## 🧠 Mental Model
 
-### **The UPPER_SNAKE\_\_CASE Convention**
+### **The UPPER_SNAKE_CASE Convention**
 
-This is the core innovation. Double underscores (`__`) create nesting:
+Single underscores create nesting:
 
 ```bash
 # Environment Variable → Config Path
-DATABASE__HOST=localhost                    → config.get('database.host')
-DATABASE__CONNECTION__POOL_SIZE=10         → config.get('database.connection.pool_size')
-STRIPE__API__KEYS__PUBLIC=pk_test_123      → config.get('stripe.api.keys.public')
-FEATURES__ANALYTICS__ENABLED=true          → config.get('features.analytics.enabled')
+DATABASE_HOST=localhost                     → config.get('database.host')
+DATABASE_CONNECTION_POOL_SIZE=10           → config.get('database.connection.pool_size')
+STRIPE_API_KEYS_PUBLIC=pk_test_123         → config.get('stripe.api.keys.public')
+FEATURES_ANALYTICS_ENABLED=true           → config.get('features.analytics.enabled')
+```
+
+### **Framework vs Application Variables**
+
+```bash
+# 🔧 Framework Configuration (VOILA_* prefix)
+VOILA_AUTH_SECRET=jwt-secret-key           # AppKit auth module
+VOILA_ERROR_STACK=false                    # AppKit error module
+VOILA_SERVICE_NAME=my-app                  # AppKit service identification
+
+# 🎯 Application Configuration (everything else)
+DATABASE_HOST=localhost                    # Your database connection
+API_TIMEOUT=5000                          # Your API client settings
+FEATURES_BETA_ENABLED=true               # Your feature flags
 ```
 
 ### **Automatic Type Conversion**
@@ -98,29 +112,212 @@ No manual parsing needed:
 
 ```bash
 # String values
-API__BASE_URL=https://api.com              → "https://api.com"
+API_BASE_URL=https://api.com              → "https://api.com"
 
 # Number values
-DATABASE__PORT=5432                        → 5432
-API__TIMEOUT=30000                         → 30000
+DATABASE_PORT=5432                        → 5432
+API_TIMEOUT=30000                         → 30000
 
 # Boolean values
-FEATURES__ENABLE_BETA=true                 → true
-DEBUG__VERBOSE=false                       → false
+FEATURES_ENABLE_BETA=true                 → true
+DEBUG_VERBOSE=false                       → false
 
 # Special handling
-USER__ID=0123456789                        → "0123456789" (keeps leading zero)
+USER_ID=0123456789                        → "0123456789" (keeps leading zero)
+```
+
+## 🤖 LLM Quick Reference - Copy These Patterns
+
+### **Environment Variable Setup (Copy Exactly)**
+
+```bash
+# ✅ CORRECT - Framework variables
+VOILA_AUTH_SECRET=your-secret-key
+VOILA_SERVICE_NAME=my-app
+NODE_ENV=production
+
+# ✅ CORRECT - Application variables
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+REDIS_URL=redis://localhost:6379
+FEATURES_ANALYTICS_ENABLED=true
+API_TIMEOUT=30000
+```
+
+### **Configuration Access (Copy These Patterns)**
+
+```typescript
+// ✅ CORRECT - Basic access with defaults
+const config = configure.get();
+const dbHost = config.get('database.host', 'localhost');
+const dbPort = config.get<number>('database.port', 5432);
+const isEnabled = config.get<boolean>('features.analytics.enabled', false);
+
+// ✅ CORRECT - Required configuration
+const apiKey = config.getRequired<string>('api.key');
+const dbUrl = config.getRequired<string>('database.url');
+
+// ✅ CORRECT - Environment checks
+if (configure.isProduction()) {
+  // Production-specific code
+}
+
+// ✅ CORRECT - Module configuration
+const dbConfig = configure.getModuleConfig('database', {
+  host: 'localhost',
+  port: 5432,
+});
+```
+
+### **Startup Validation (Copy This Pattern)**
+
+```typescript
+// ✅ CORRECT - App startup validation
+try {
+  const config = configure.get();
+
+  // Validate required configuration
+  configure.validateRequired(['database.url', 'api.key']);
+
+  console.log('✅ Configuration validation passed');
+} catch (error) {
+  console.error('❌ Configuration validation failed:', error.message);
+  process.exit(1);
+}
+```
+
+## ⚠️ Common LLM Mistakes - Avoid These
+
+### **Wrong Environment Variable Format**
+
+```bash
+# ❌ WRONG - Mixed conventions
+database-host=localhost                    # Use underscores, not dashes
+DATABASE__HOST=localhost                   # Don't use double underscores
+database_host=localhost                    # Must be uppercase
+
+# ✅ CORRECT - Use UPPER_SNAKE_CASE
+DATABASE_HOST=localhost
+```
+
+### **Wrong Configuration Access**
+
+```typescript
+// ❌ WRONG - Direct process.env access
+const dbHost = process.env.DATABASE_HOST;
+const port = parseInt(process.env.DATABASE_PORT || '5432');
+
+// ✅ CORRECT - Use config system
+const config = configure.get();
+const dbHost = config.get('database.host');
+const port = config.get<number>('database.port', 5432);
+```
+
+### **Wrong Required Configuration Handling**
+
+```typescript
+// ❌ WRONG - Manual fallbacks for critical config
+const apiKey = config.get('api.key') || 'fallback-key';
+const dbUrl = config.get('database.url') || 'postgres://localhost/db';
+
+// ✅ CORRECT - Use getRequired for critical config
+const apiKey = config.getRequired<string>('api.key');
+const dbUrl = config.getRequired<string>('database.url');
+```
+
+## 🚨 Error Handling Patterns
+
+### **Startup Validation**
+
+```typescript
+import { configure } from '@voilajsx/appkit/config';
+
+// App startup validation
+async function validateAppConfig() {
+  try {
+    const config = configure.get();
+
+    // Validate required configuration
+    configure.validateRequired(['database.url', 'redis.url', 'api.key']);
+
+    // Production-specific validation
+    if (configure.isProduction()) {
+      configure.validateRequired(['monitoring.sentry.dsn', 'email.smtp.host']);
+    }
+
+    console.log('✅ Configuration validation passed');
+  } catch (error) {
+    console.error('❌ Configuration validation failed:', error.message);
+    process.exit(1);
+  }
+}
+
+// Call at app startup
+validateAppConfig();
+```
+
+### **Runtime Configuration Access**
+
+```typescript
+// Safe configuration access with error handling
+function getDatabaseConfig() {
+  const config = configure.get();
+
+  try {
+    return {
+      host: config.getRequired<string>('database.host'),
+      port: config.get<number>('database.port', 5432),
+      ssl: config.get<boolean>('database.ssl.enabled', false),
+    };
+  } catch (error) {
+    throw new Error(`Database configuration error: ${error.message}`);
+  }
+}
+```
+
+## 🌍 Environment Variables
+
+```bash
+# Framework variables (handled by VoilaJSX internally)
+VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key
+VOILA_SERVICE_NAME=my-awesome-app
+VOILA_ERROR_STACK=false
+
+# Application variables (your configuration)
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=myapp
+DATABASE_CREDENTIALS_USER=admin
+DATABASE_CREDENTIALS_PASSWORD=secret
+DATABASE_POOL_MIN=2
+DATABASE_POOL_MAX=10
+DATABASE_SSL_ENABLED=true
+
+REDIS_URL=redis://localhost:6379
+REDIS_TTL=3600
+REDIS_MAX_RETRIES=3
+
+STRIPE_API_KEYS_SECRET=sk_live_...
+STRIPE_API_KEYS_PUBLIC=pk_live_...
+
+FEATURES_ANALYTICS_ENABLED=true
+FEATURES_BETA_UI_ENABLED=false
+FEATURES_AI_SEARCH_ENABLED=true
+
+API_BASE_URL=https://api.example.com
+API_TIMEOUT=30000
+API_RATE_LIMIT=1000
 ```
 
 ## 📖 Complete API Reference
 
-### Core Function
+### **Core Function**
 
 ```typescript
-const config = configure.get(); // One function, everything you need
+const config = configure.get(); // One function, all methods
 ```
 
-### Configuration Access Methods
+### **Configuration Access Methods**
 
 ```typescript
 // Get value with optional default
@@ -145,7 +342,7 @@ config.getMany({
 config.getAll(); // Complete config object
 ```
 
-### Environment Helper Methods
+### **Environment Helper Methods**
 
 ```typescript
 // Environment detection
@@ -164,11 +361,11 @@ configure.getModuleConfig('database', {
 configure.validateRequired(['database.url', 'api.key']); // Throws with helpful errors if missing
 ```
 
-### Utility Methods
+### **Utility Methods**
 
 ```typescript
-// Get all UPPER_SNAKE__CASE environment variables
-configure.getEnvVars(); // { DATABASE__HOST: 'localhost', ... }
+// Get all non-framework environment variables
+configure.getEnvVars(); // { DATABASE_HOST: 'localhost', ... }
 
 // Reset for testing
 configure.reset(customConfig); // Reset with custom config
@@ -212,14 +409,14 @@ app.listen(port, host);
 **Environment Variables:**
 
 ```bash
-SERVER__PORT=3000
-SERVER__HOST=0.0.0.0
-SERVER__CORS__ENABLED=true
-DATABASE__HOST=localhost
-DATABASE__PORT=5432
-DATABASE__NAME=myapp
-DATABASE__CREDENTIALS__USER=admin
-DATABASE__CREDENTIALS__PASSWORD=secret
+SERVER_PORT=3000
+SERVER_HOST=0.0.0.0
+SERVER_CORS_ENABLED=true
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=myapp
+DATABASE_CREDENTIALS_USER=admin
+DATABASE_CREDENTIALS_PASSWORD=secret
 ```
 
 ### **Module-Specific Configuration**
@@ -252,147 +449,42 @@ class DatabaseService {
     );
   }
 }
-
-// Redis module
-class CacheService {
-  constructor() {
-    const config = configure.get();
-
-    this.redis = {
-      url: config.getRequired('redis.url'),
-      ttl: config.get('redis.ttl', 3600),
-      maxRetries: config.get('redis.max_retries', 3),
-    };
-  }
-}
 ```
 
 **Environment Variables:**
 
 ```bash
-# Database
-DATABASE__HOST=db.example.com
-DATABASE__PORT=5432
-DATABASE__CREDENTIALS__USER=app_user
-DATABASE__CREDENTIALS__PASSWORD=secure_password
-DATABASE__POOL__MIN=2
-DATABASE__POOL__MAX=10
-DATABASE__SSL=true
-
-# Redis
-REDIS__URL=redis://localhost:6379
-REDIS__TTL=7200
-REDIS__MAX_RETRIES=5
+DATABASE_HOST=db.example.com
+DATABASE_PORT=5432
+DATABASE_CREDENTIALS_USER=app_user
+DATABASE_CREDENTIALS_PASSWORD=secure_password
+DATABASE_POOL_MIN=2
+DATABASE_POOL_MAX=10
+DATABASE_SSL=true
 ```
 
-### **Feature Flags & Environment-Specific Config**
+## 🚀 Production Deployment
 
-```typescript
-import { configure } from '@voilajsx/appkit/config';
-
-const config = configure.get();
-
-class FeatureService {
-  constructor() {
-    // Environment-based feature toggles
-    this.features = {
-      analytics: config.get('features.analytics.enabled', false),
-      betaUI: config.get('features.beta_ui.enabled', false),
-      aiSearch: config.get(
-        'features.ai_search.enabled',
-        configure.isProduction()
-      ),
-      debugMode: config.get(
-        'features.debug.enabled',
-        configure.isDevelopment()
-      ),
-    };
-
-    // Environment-specific API endpoints
-    this.endpoints = configure.isProduction()
-      ? {
-          api: config.getRequired('api.production.base_url'),
-          ws: config.getRequired('websocket.production.url'),
-        }
-      : {
-          api: config.get('api.development.base_url', 'http://localhost:8080'),
-          ws: config.get('websocket.development.url', 'ws://localhost:8080'),
-        };
-  }
-
-  isFeatureEnabled(feature: string): boolean {
-    return this.features[feature] || false;
-  }
-}
-```
-
-**Environment Variables:**
+### **Environment Configuration**
 
 ```bash
-# Development
-NODE_ENV=development
-FEATURES__ANALYTICS__ENABLED=false
-FEATURES__BETA_UI__ENABLED=true
-FEATURES__DEBUG__ENABLED=true
-API__DEVELOPMENT__BASE_URL=http://localhost:8080
-
-# Production
+# ✅ Framework variables
+VOILA_SERVICE_NAME=my-production-app
 NODE_ENV=production
-FEATURES__ANALYTICS__ENABLED=true
-FEATURES__AI_SEARCH__ENABLED=true
-API__PRODUCTION__BASE_URL=https://api.myapp.com
-WEBSOCKET__PRODUCTION__URL=wss://ws.myapp.com
+
+# ✅ Application variables
+DATABASE_HOST=prod-db.example.com
+DATABASE_PORT=5432
+DATABASE_CREDENTIALS_USER=prod_user
+DATABASE_CREDENTIALS_PASSWORD=secure_prod_password
+DATABASE_SSL_ENABLED=true
+
+REDIS_URL=redis://prod-redis.example.com:6379
+API_TIMEOUT=30000
+FEATURES_ANALYTICS_ENABLED=true
 ```
 
-### **Startup Validation & Health Checks**
-
-```typescript
-import { configure } from '@voilajsx/appkit/config';
-
-// Validate critical configuration at startup
-async function validateAppConfig() {
-  const config = configure.get();
-
-  try {
-    // Validate required configuration
-    configure.validateRequired(['database.url', 'redis.url', 'api.key']);
-
-    // Production-specific validation
-    if (configure.isProduction()) {
-      configure.validateRequired([
-        'monitoring.sentry.dsn',
-        'email.smtp.host',
-        'cdn.base_url',
-      ]);
-    }
-
-    console.log('✅ Configuration validation passed');
-
-    // Log configuration summary (without secrets)
-    const summary = {
-      environment: configure.getEnvironment(),
-      database: {
-        host: config.get('database.host'),
-        port: config.get('database.port'),
-      },
-      features: {
-        analytics: config.get('features.analytics.enabled'),
-        beta: config.get('features.beta_ui.enabled'),
-      },
-    };
-
-    console.log('📋 Configuration Summary:', summary);
-  } catch (error) {
-    console.error('❌ Configuration validation failed:', error.message);
-    process.exit(1);
-  }
-}
-
-// Call at app startup
-validateAppConfig();
-```
-
-### **Docker & Container Deployment**
+### **Docker Setup**
 
 ```dockerfile
 # Dockerfile
@@ -404,7 +496,6 @@ RUN npm ci --only=production
 
 COPY . .
 
-# Environment variables will be set by container orchestration
 CMD ["npm", "start"]
 ```
 
@@ -413,198 +504,16 @@ CMD ["npm", "start"]
 docker run -d \
   -e NODE_ENV=production \
   -e VOILA_SERVICE_NAME=my-app \
-  -e DATABASE__HOST=postgres.internal \
-  -e DATABASE__PORT=5432 \
-  -e DATABASE__CREDENTIALS__USER=app_user \
-  -e DATABASE__CREDENTIALS__PASSWORD=secure_pass \
-  -e REDIS__URL=redis://redis.internal:6379 \
-  -e FEATURES__ANALYTICS__ENABLED=true \
+  -e DATABASE_HOST=postgres.internal \
+  -e DATABASE_PORT=5432 \
+  -e DATABASE_CREDENTIALS_USER=app_user \
+  -e DATABASE_CREDENTIALS_PASSWORD=secure_pass \
+  -e REDIS_URL=redis://redis.internal:6379 \
+  -e FEATURES_ANALYTICS_ENABLED=true \
   my-app:latest
 ```
 
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  app:
-    image: my-app:latest
-    environment:
-      NODE_ENV: production
-      VOILA_SERVICE_NAME: my-app
-      DATABASE__HOST: postgres
-      DATABASE__PORT: 5432
-      DATABASE__CREDENTIALS__USER: app_user
-      DATABASE__CREDENTIALS__PASSWORD: secure_pass
-      REDIS__URL: redis://redis:6379
-      FEATURES__ANALYTICS__ENABLED: true
-```
-
-## 🌍 Environment Variable Patterns
-
-### **Common Patterns**
-
-```bash
-# Service identification
-VOILA_SERVICE_NAME=my-awesome-app
-NODE_ENV=production
-
-# Database configuration
-DATABASE__HOST=localhost
-DATABASE__PORT=5432
-DATABASE__NAME=myapp
-DATABASE__CREDENTIALS__USER=admin
-DATABASE__CREDENTIALS__PASSWORD=secret
-DATABASE__POOL__MIN=2
-DATABASE__POOL__MAX=10
-DATABASE__SSL__ENABLED=true
-
-# Cache configuration
-REDIS__URL=redis://localhost:6379
-REDIS__TTL=3600
-REDIS__MAX_RETRIES=3
-REDIS__KEY_PREFIX=myapp
-
-# External APIs
-STRIPE__API__KEYS__SECRET=sk_live_...
-STRIPE__API__KEYS__PUBLIC=pk_live_...
-SENDGRID__API_KEY=SG....
-SENTRY__DSN=https://...
-
-# Feature flags
-FEATURES__ANALYTICS__ENABLED=true
-FEATURES__BETA_UI__ENABLED=false
-FEATURES__AI_SEARCH__ENABLED=true
-FEATURES__DEBUG__VERBOSE=false
-
-# Application settings
-APP__CORS__ORIGINS=https://myapp.com,https://admin.myapp.com
-APP__RATE_LIMIT__REQUESTS_PER_MINUTE=1000
-APP__FILE_UPLOAD__MAX_SIZE=10485760
-APP__SESSION__TIMEOUT=3600
-```
-
-### **Platform-Specific Examples**
-
-#### **Vercel**
-
-```bash
-# vercel.json or .env.local
-NODE_ENV=production
-DATABASE__URL=postgresql://user:pass@host:5432/db
-REDIS__URL=redis://user:pass@host:6379
-```
-
-#### **Railway**
-
-```bash
-# Railway environment variables
-NODE_ENV=production
-DATABASE__URL=${DATABASE_URL}  # Railway provides this
-REDIS__URL=${REDIS_URL}        # Railway provides this
-```
-
-#### **AWS Lambda**
-
-```bash
-# Serverless environment
-NODE_ENV=production
-AWS__REGION=us-east-1
-DATABASE__HOST=${RDS_HOSTNAME}
-REDIS__CLUSTER__ENDPOINT=${ELASTICACHE_ENDPOINT}
-```
-
-#### **Kubernetes**
-
-```yaml
-# ConfigMap
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-data:
-  NODE_ENV: 'production'
-  DATABASE__HOST: 'postgres-service'
-  DATABASE__PORT: '5432'
-  REDIS__URL: 'redis://redis-service:6379'
-  FEATURES__ANALYTICS__ENABLED: 'true'
-```
-
-## 🔧 Advanced Features
-
-### **Custom Configuration Sources**
-
-```typescript
-import { configure } from '@voilajsx/appkit/config';
-
-// Override with custom config (useful for testing)
-const config = configure.get({
-  database: {
-    host: 'test-db',
-    port: 5433,
-  },
-  features: {
-    debug: { enabled: true },
-  },
-});
-
-// Reset with new configuration
-const testConfig = configure.reset({
-  app: { environment: 'test' },
-  database: { host: 'localhost' },
-});
-```
-
-### **Type-Safe Configuration Schemas**
-
-```typescript
-// Define your app's configuration interface
-interface MyAppConfig {
-  database: {
-    host: string;
-    port: number;
-    credentials: {
-      user: string;
-      password: string;
-    };
-  };
-  features: {
-    analytics: { enabled: boolean };
-    beta: { enabled: boolean };
-  };
-}
-
-// Use with type safety
-const config = configure.get();
-const dbHost = config.get<string>('database.host'); // Typed as string
-const dbPort = config.get<number>('database.port'); // Typed as number
-const analyticsEnabled = config.get<boolean>('features.analytics.enabled'); // Typed as boolean
-```
-
-### **Configuration Validation Schemas**
-
-```typescript
-// Startup validation with custom rules
-function validateDatabaseConfig() {
-  const config = configure.get();
-
-  const dbHost = config.getRequired<string>('database.host');
-  const dbPort = config.get<number>('database.port', 5432);
-
-  if (dbPort < 1 || dbPort > 65535) {
-    throw new Error(
-      `Invalid database port: ${dbPort}. Must be between 1 and 65535.`
-    );
-  }
-
-  if (configure.isProduction() && dbHost === 'localhost') {
-    throw new Error('Production database cannot use localhost');
-  }
-}
-```
-
 ## 🧪 Testing
-
-### **Test Configuration**
 
 ```typescript
 import { configure } from '@voilajsx/appkit/config';
@@ -617,14 +526,14 @@ describe('Configuration Tests', () => {
 
   afterEach(() => {
     // Clean up environment
-    delete process.env.TEST_CONFIG__VALUE;
+    delete process.env.TEST_CONFIG_VALUE;
   });
 
   test('should parse environment variables correctly', () => {
     // Set test environment variables
-    process.env.TEST_CONFIG__VALUE = 'test-value';
-    process.env.TEST_CONFIG__NUMBER = '123';
-    process.env.TEST_CONFIG__BOOLEAN = 'true';
+    process.env.TEST_CONFIG_VALUE = 'test-value';
+    process.env.TEST_CONFIG_NUMBER = '123';
+    process.env.TEST_CONFIG_BOOLEAN = 'true';
 
     const config = configure.get();
 
@@ -646,253 +555,6 @@ describe('Configuration Tests', () => {
     }).toThrow('Missing required configuration');
   });
 });
-```
-
-### **Mock Configuration for Tests**
-
-```typescript
-// Test helper for mocking configuration
-function createTestConfig(overrides = {}) {
-  return configure.reset({
-    app: {
-      name: 'test-app',
-      environment: 'test',
-    },
-    database: {
-      host: 'localhost',
-      port: 5432,
-      credentials: {
-        user: 'test_user',
-        password: 'test_pass',
-      },
-    },
-    ...overrides,
-  });
-}
-
-// Use in tests
-describe('Database Service', () => {
-  test('should connect with test configuration', () => {
-    const config = createTestConfig({
-      database: { host: 'test-db-host' },
-    });
-
-    const dbService = new DatabaseService();
-    expect(dbService.host).toBe('test-db-host');
-  });
-});
-```
-
-## 🔤 Environment Variable Conventions
-
-### **CRITICAL: Underscore Convention**
-
-VoilaJSX AppKit uses a **strict underscore convention** to separate internal
-framework variables from your application configuration:
-
-| Pattern              | Purpose             | Example             | Parsed? |
-| -------------------- | ------------------- | ------------------- | ------- |
-| `SINGLE_UNDERSCORE`  | **AppKit Internal** | `VOILA_AUTH_SECRET` | ❌ No   |
-| `DOUBLE__UNDERSCORE` | **Your App Config** | `DATABASE__HOST`    | ✅ Yes  |
-
-### **Framework Variables (Single Underscore) - Internal Use**
-
-These are **AppKit internal variables** - they configure the framework itself
-and are **NOT parsed** into your config object:
-
-```bash
-# AppKit Authentication
-VOILA_AUTH_SECRET=your-jwt-secret-key
-
-# AppKit Database
-VOILA_DB_ORGS=true
-VOILA_DB_TENANTS=true
-
-# AppKit Logging
-VOILA_LOGGING_LEVEL=debug
-VOILA_LOGGING_CONSOLE=true
-
-# Flux Framework
-FLUX_CONTRACTS_ENABLED=true
-FLUX_DISCOVERY_PATH=src/features
-
-# Service Identification
-VOILA_SERVICE_NAME=my-app
-```
-
-### **Application Variables (Double Underscore) - Your Config**
-
-These are **your application configuration** - they get parsed into the config
-object with dot notation:
-
-```bash
-# Your application database config
-DATABASE__HOST=localhost                    → config.get('database.host')
-DATABASE__PORT=5432                        → config.get('database.port')
-DATABASE__CREDENTIALS__USER=admin          → config.get('database.credentials.user')
-DATABASE__CREDENTIALS__PASSWORD=secret     → config.get('database.credentials.password')
-
-# Your application features
-FEATURES__ANALYTICS__ENABLED=true          → config.get('features.analytics.enabled')
-FEATURES__BETA_UI__ENABLED=false          → config.get('features.beta_ui.enabled')
-
-# Your application API config
-API__BASE_URL=https://api.example.com      → config.get('api.base_url')
-API__TIMEOUT=30000                         → config.get('api.timeout')
-API__RATE_LIMIT=1000                       → config.get('api.rate_limit')
-```
-
-### **Why This Convention?**
-
-1. **Clear Separation** - Framework variables vs application variables
-2. **No Conflicts** - Your config never interferes with AppKit internals
-3. **Easy Parsing** - Only double underscore variables need complex parsing
-4. **Better Performance** - Fewer variables to process and validate
-5. **Future-Proof** - New AppKit features won't break your configuration
-
-### **Quick Reference**
-
-```typescript
-// ✅ Framework variables - access directly from AppKit modules
-import { authenticator } from '@voilajsx/appkit/auth'; // Uses VOILA_AUTH_SECRET internally
-
-// ✅ Your app config - access through config object
-import { configure } from '@voilajsx/appkit/config';
-const config = configure.get();
-const dbHost = config.get('database.host'); // From DATABASE__HOST
-```
-
-### **Common Mistakes to Avoid**
-
-```bash
-# ❌ DON'T use single underscore for your app config
-DATABASE_HOST=localhost                    # Won't be parsed!
-
-# ❌ DON'T use double underscore for framework config
-VOILA__AUTH__SECRET=secret                 # Will be parsed as user config!
-
-# ✅ DO use the correct convention
-VOILA_AUTH_SECRET=secret                   # Framework internal
-DATABASE__HOST=localhost                   # Your app config
-```
-
-## 🧠 Mental Model
-
-### **The UPPER_SNAKE\_\_CASE Convention**
-
-This is the core innovation for **your application configuration**. Double
-underscores (`__`) create nesting:
-
-```bash
-# Environment Variable → Config Path
-DATABASE__HOST=localhost                    → config.get('database.host')
-DATABASE__CONNECTION__POOL_SIZE=10         → config.get('database.connection.pool_size')
-STRIPE__API__KEYS__PUBLIC=pk_test_123      → config.get('stripe.api.keys.public')
-FEATURES__ANALYTICS__ENABLED=true          → config.get('features.analytics.enabled')
-```
-
-### **Framework vs Application Variables**
-
-```bash
-# 🔧 Framework Configuration (Single Underscore)
-VOILA_AUTH_SECRET=jwt-secret-key           # AppKit auth module
-VOILA_LOGGING_LEVEL=debug                 # AppKit logging module
-VOILA_DB_ORGS=true                        # AppKit database module
-
-# 🎯 Application Configuration (Double Underscore)
-DATABASE__HOST=localhost                   # Your database connection
-API__TIMEOUT=5000                         # Your API client settings
-FEATURES__BETA__ENABLED=true             # Your feature flags
-```
-
-## 🤖 LLM Guidelines
-
-### **Essential Patterns**
-
-```typescript
-// ✅ ALWAYS use these patterns
-import { configure } from '@voilajsx/appkit/config';
-const config = configure.get();
-
-// ✅ Correct configuration access
-const dbHost = config.get('database.host', 'localhost');
-const dbPort = config.get<number>('database.port', 5432);
-const isEnabled = config.get<boolean>('features.beta.enabled', false);
-
-// ✅ Required configuration with helpful errors
-const apiKey = config.getRequired<string>('api.key');
-
-// ✅ Environment-specific logic
-if (configure.isProduction()) {
-  // Production-only code
-}
-
-// ✅ Startup validation
-configure.validateRequired(['database.url', 'api.key']);
-
-// ✅ Module configuration
-const dbConfig = configure.getModuleConfig('database', {
-  host: 'localhost',
-  port: 5432,
-});
-```
-
-### **Anti-Patterns to Avoid**
-
-```typescript
-// ❌ DON'T access process.env directly
-const dbHost = process.env.DATABASE__HOST; // Use config.get() instead
-
-// ❌ DON'T manually parse environment variables
-const port = parseInt(process.env.PORT || '3000'); // Automatic parsing provided
-
-// ❌ DON'T use unsafe type assertions
-const value = config.get('some.value') as string; // Use get<string>() instead
-
-// ❌ DON'T ignore missing required config
-const apiKey = config.get('api.key') || 'fallback'; // Use getRequired() instead
-
-// ❌ DON'T create multiple config instances
-const config1 = configure.get();
-const config2 = configure.get(); // Same instance, but inefficient
-
-// ❌ DON'T forget error handling for required config
-const dbUrl = config.getRequired('database.url'); // This can throw - handle it!
-```
-
-### **Common Patterns**
-
-```typescript
-// Configuration with defaults
-const serverConfig = {
-  port: config.get<number>('server.port', 3000),
-  host: config.get<string>('server.host', '0.0.0.0'),
-  cors: config.get<boolean>('server.cors.enabled', true),
-};
-
-// Environment-based configuration
-const apiEndpoint = configure.isProduction()
-  ? config.getRequired<string>('api.production.url')
-  : config.get<string>('api.development.url', 'http://localhost:8080');
-
-// Module initialization with validation
-class DatabaseService {
-  constructor() {
-    // Validate required config at startup
-    configure.validateRequired(['database.url']);
-
-    this.config = configure.getModuleConfig('database', {
-      pool: { min: 2, max: 10 },
-      ssl: configure.isProduction(),
-    });
-  }
-}
-
-// Feature flag checking
-function shouldEnableFeature(featureName: string): boolean {
-  const config = configure.get();
-  return config.get<boolean>(`features.${featureName}.enabled`, false);
-}
 ```
 
 ## 📈 Performance

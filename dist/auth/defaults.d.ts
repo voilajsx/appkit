@@ -42,12 +42,8 @@ export interface AuthConfig {
             noToken: string;
             invalidToken: string;
             expiredToken: string;
-            noRole: string;
-            noPermissions: string;
             insufficientRole: string;
             insufficientPermissions: string;
-            invalidRole: string;
-            invalidPermission: string;
         };
     };
     environment: {
@@ -61,11 +57,11 @@ export interface AuthConfig {
  */
 declare const DEFAULT_ROLE_HIERARCHY: RoleHierarchy;
 /**
- * Core permission actions - fixed set for consistency
+ * Core permission actions
  */
 declare const CORE_ACTIONS: string[];
 /**
- * Core permission scopes - fixed set for consistency
+ * Core permission scopes
  */
 declare const CORE_SCOPES: string[];
 /**
@@ -81,21 +77,9 @@ declare const DEFAULT_PERMISSIONS: PermissionDefaults;
  */
 export declare function getSmartDefaults(): AuthConfig;
 /**
- * Validates if a role.level combination exists in the hierarchy
- * @llm-rule WHEN: Before using role.level in authorization checks
- * @llm-rule AVOID: Skipping validation - invalid roles cause silent authorization failures
- */
-export declare function validateRoleLevel(roleLevel: string, roleHierarchy: RoleHierarchy): boolean;
-/**
- * Validates if a permission has correct format
- * @llm-rule WHEN: Before using custom permissions in authorization
- * @llm-rule AVOID: Assuming all permission strings are valid - malformed permissions always fail
- */
-export declare function validatePermission(permission: string): boolean;
-/**
- * Validates JWT secret strength for production security
- * @llm-rule WHEN: App startup or when setting custom JWT secret
- * @llm-rule AVOID: Using secrets shorter than 32 chars - creates security vulnerability
+ * Validates JWT secret strength and format
+ * @llm-rule WHEN: Setting custom JWT secret for token security
+ * @llm-rule AVOID: Using weak secrets - minimum 32 characters required for security
  */
 export declare function validateSecret(secret: string): void;
 /**
@@ -104,5 +88,17 @@ export declare function validateSecret(secret: string): void;
  * @llm-rule AVOID: Using rounds below 8 (insecure) or above 15 (too slow)
  */
 export declare function validateRounds(rounds: number): void;
+/**
+ * Validates role.level exists in hierarchy
+ * @llm-rule WHEN: Checking if a role.level is valid before using
+ * @llm-rule AVOID: Using with undefined roles - will return false
+ */
+export declare function validateRoleLevel(roleLevel: string, roles: RoleHierarchy): boolean;
+/**
+ * Validates permission format (action:scope)
+ * @llm-rule WHEN: Checking if a permission string is properly formatted
+ * @llm-rule AVOID: Using with malformed permissions - will return false
+ */
+export declare function validatePermission(permission: string): boolean;
 export { DEFAULT_ROLE_HIERARCHY, DEFAULT_PERMISSIONS, CORE_ACTIONS, CORE_SCOPES, };
 //# sourceMappingURL=defaults.d.ts.map
