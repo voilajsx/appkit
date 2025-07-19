@@ -110,11 +110,39 @@ declare function getStats(): {
     }>;
 };
 /**
- * Validate event configuration at startup
+ * Validate event configuration at startup with detailed feedback
  * @llm-rule WHEN: App startup to ensure events are properly configured
  * @llm-rule AVOID: Skipping validation - missing event config causes runtime issues
+ * @llm-rule NOTE: Returns validation results instead of throwing - allows graceful handling
  */
-declare function validateConfig(): void;
+declare function validateConfig(): {
+    valid: boolean;
+    strategy: string;
+    warnings: string[];
+    errors: string[];
+    ready: boolean;
+};
+/**
+ * Validate production requirements and throw if critical issues found
+ * @llm-rule WHEN: Production deployment validation - ensures events work in production
+ * @llm-rule AVOID: Skipping in production - event failures are often silent
+ * @llm-rule NOTE: Throws on critical issues, warns on non-critical ones
+ */
+declare function validateProduction(): void;
+/**
+ * Get comprehensive health check status for monitoring
+ * @llm-rule WHEN: Health check endpoints or monitoring systems
+ * @llm-rule AVOID: Using in critical application path - this is for monitoring only
+ * @llm-rule NOTE: Returns detailed status without exposing sensitive configuration
+ */
+declare function getHealthStatus(): {
+    status: 'healthy' | 'warning' | 'error';
+    strategy: string;
+    configured: boolean;
+    issues: string[];
+    ready: boolean;
+    timestamp: string;
+};
 /**
  * Graceful shutdown for all event instances
  * @llm-rule WHEN: App shutdown or process termination
@@ -135,6 +163,8 @@ export declare const eventing: {
     readonly getStats: typeof getStats;
     readonly broadcast: typeof broadcast;
     readonly validateConfig: typeof validateConfig;
+    readonly validateProduction: typeof validateProduction;
+    readonly getHealthStatus: typeof getHealthStatus;
     readonly shutdown: typeof shutdown;
 };
 export type { EventConfig } from './defaults.js';

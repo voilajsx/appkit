@@ -271,47 +271,6 @@ emailEvents.on('send.*', async (eventName, emailData) => {
 });
 ```
 
-### **Real-time Features**
-
-```typescript
-import { eventing } from '@voilajsx/appkit/event';
-
-const chatEvents = eventing.get('chat');
-const notificationEvents = eventing.get('notifications');
-
-// Chat message handling
-chatEvents.on('message.sent', async (message) => {
-  // Store message
-  await saveMessage(message);
-
-  // Notify all room participants
-  await notificationEvents.emit('room.activity', {
-    roomId: message.roomId,
-    type: 'new_message',
-    userId: message.userId,
-    preview: message.text.slice(0, 50),
-  });
-});
-
-// Real-time notifications
-notificationEvents.on('room.*', (eventName, data) => {
-  // Send to WebSocket clients
-  io.to(`room-${data.roomId}`).emit('notification', {
-    type: eventName,
-    data,
-  });
-});
-
-// Typing indicators
-chatEvents.on('user.typing', (data) => {
-  // Broadcast to room (excluding sender)
-  io.to(`room-${data.roomId}`).except(data.socketId).emit('typing', {
-    userId: data.userId,
-    isTyping: data.isTyping,
-  });
-});
-```
-
 ### **Background Jobs & Queues**
 
 ```typescript
@@ -322,14 +281,12 @@ const jobEvents = eventing.get('jobs');
 // Job processor
 class JobProcessor {
   constructor() {
-    // Listen to different job types
     jobEvents.on('job.email.*', this.processEmailJob.bind(this));
     jobEvents.on('job.image.*', this.processImageJob.bind(this));
-    jobEvents.on('job.report.*', this.processReportJob.bind(this));
   }
 
   async processEmailJob(eventName, jobData) {
-    const jobType = eventName.split('.')[2]; // 'welcome', 'reset', etc.
+    const jobType = eventName.split('.')[2];
 
     try {
       await this.sendEmail(jobType, jobData);
@@ -348,77 +305,155 @@ class JobProcessor {
   }
 }
 
-// Job scheduler
-export async function scheduleEmail(type, data) {
-  await jobEvents.emit(`job.email.${type}`, {
-    jobId: crypto.randomUUID(),
-    type,
-    data,
-    scheduledAt: new Date().toISOString(),
-  });
-}
-
 // Usage
-await scheduleEmail('welcome', {
+await jobEvents.emit('job.email.welcome', {
+  jobId: crypto.randomUUID(),
   email: 'user@example.com',
   name: 'John',
 });
 ```
 
-### **Event Debugging & Monitoring**
+## 🧪 Testing
 
 ```typescript
 import { eventing } from '@voilajsx/appkit/event';
 
-// Debug helper
-function setupEventDebugging() {
-  const events = eventing.get('debug');
+describe('Events', () => {
+  afterEach(() => eventing.clear()); // Essential cleanup
 
-  // Log all events in development
-  if (process.env.NODE_ENV === 'development') {
-    events.on('*', (eventName, data) => {
-      console.log(`🔍 [DEBUG] Event: ${eventName}`, {
-        data,
-        timestamp: new Date().toISOString(),
-        namespace: 'debug',
-      });
+  test('basic event flow', async () => {
+    const events = eventing.get('test');
+
+    const received = [];
+    events.on('user.created', (data) => received.push(data));
+
+    await events.emit('user.created', { userId: 123 });
+
+    expect(received[0].userId).toBe(123);
+  });
+});
+```
+
+## ⚠️ Common Mistakes
+
+### **1. Wrong Event Names**
+
+```typescript
+// ❌ Bad patterns
+events.on('userCreated', handler); // Use dots
+events.on('USER_CREATED', handler); // Use lowercase
+events.on('created', handler); // Too generic
+
+// ✅ Good patterns
+events.on('user.created', handler);
+events.on('order.payment.failed', handler);
+```
+
+### **2. Missing Cleanup**
+
+```typescript
+// ❌ Memory leaks in tests
+test('my test', () => {
+  const events = eventing.get('test');
+  // Missing: await eventing.clear();
+});
+
+// ✅ Always clean up
+afterEach(() => eventing.clear());
+```
+
+### **3. Memory Strategy in Production**
+
+```typescript
+// ❌ Single server only
+// Without REDIS_URL, events don't work across servers
+
+// ✅ Set Redis for distributed events
+REDIS_URL=redis://localhost:6379
+```
+
+### **4. Ignoring Emit Failures**
+
+```typescript
+// ❌ Silent failures
+await events.emit('user.created', data);
+
+// ✅ Check results
+const result = await events.emit('user.created', data);
+if (!result) console.error('Event failed');
+```
+
+## 🚨 Error Handling
+
+### **Basic Pattern**
+
+```typescript
+events.on('payment.process', async (payment) => {
+  try {
+    await processPayment(payment);
+    await events.emit('payment.completed', payment);
+  } catch (error) {
+    await events.emit('payment.failed', {
+      ...payment,
+      error: error.message,
     });
   }
+});
+```
 
-  // Monitor system events
-  events.on('system.*', (eventName, data) => {
-    console.log(`⚡ [SYSTEM] ${eventName}:`, data);
-  });
+### **Redis Connection Errors**
+
+```typescript
+async function emitSafely(event, data) {
+  const result = await events.emit(event, data);
+
+  if (!result) {
+    console.warn(`Event failed: ${event}`, data);
+    // Store for retry or use fallback
+    await storeFailedEvent(event, data);
+  }
+
+  return result;
 }
+```
 
-// Health check endpoint
+## 🔧 Startup Validation
+
+### **Basic Validation**
+
+```typescript
+import { eventing } from '@voilajsx/appkit/event';
+
+async function startApp() {
+  // Validate events at startup
+  eventing.validateConfig();
+
+  const strategy = eventing.getStrategy();
+  console.log(`🚀 Events: ${strategy} strategy`);
+
+  app.listen(3000);
+}
+```
+
+### **Production Checks**
+
+```typescript
+if (process.env.NODE_ENV === 'production' && !eventing.hasRedis()) {
+  throw new Error('Redis required in production for distributed events');
+}
+```
+
+### **Health Check**
+
+```typescript
 app.get('/health/events', (req, res) => {
   const stats = eventing.getStats();
-  const config = eventing.getConfig();
 
   res.json({
     status: 'healthy',
-    strategy: config.strategy,
-    activeNamespaces: config.activeNamespaces,
-    totalListeners: stats.totalListeners,
+    strategy: eventing.getStrategy(),
     connected: stats.connected,
     redis: eventing.hasRedis(),
-  });
-});
-
-// Event replay for debugging
-app.get('/admin/events/:namespace/history', async (req, res) => {
-  const { namespace } = req.params;
-  const { event, limit = 50 } = req.query;
-
-  const events = eventing.get(namespace);
-  const history = await events.history(event, parseInt(limit));
-
-  res.json({
-    namespace,
-    event: event || 'all',
-    count: history.length,
-    events: history,
   });
 });
 ```
@@ -517,26 +552,6 @@ await events.emit('user.created', {
   // Include timing
   createdAt: new Date().toISOString(),
 });
-
-// ✅ Good error event structure
-await events.emit('payment.failed', {
-  paymentId: 'pay_123',
-  userId: 456,
-  amount: 99.99,
-  currency: 'USD',
-
-  // Error details
-  error: {
-    code: 'CARD_DECLINED',
-    message: 'Insufficient funds',
-    provider: 'stripe',
-  },
-
-  // Context for retry logic
-  attempt: 1,
-  maxAttempts: 3,
-  nextRetry: new Date(Date.now() + 5000).toISOString(),
-});
 ```
 
 ## 🔄 Development vs Production
@@ -568,90 +583,6 @@ REDIS_URL=redis://production-redis:6379
 const events = eventing.get();
 await events.emit('test.event', { data: 'value' });
 // Events work across all server instances automatically
-```
-
-### **Scaling Pattern**
-
-```typescript
-// Week 1: Single server with memory events
-const events = eventing.get();
-
-// Month 1: Add Redis - zero code changes
-// Just set REDIS_URL environment variable
-// All events now distributed across servers
-
-// Year 1: Multiple services - same simple API
-const userEvents = eventing.get('users');
-const orderEvents = eventing.get('orders');
-// Each service can have isolated event channels
-```
-
-## 🧪 Testing
-
-### **Test Setup**
-
-```typescript
-import { eventing } from '@voilajsx/appkit/event';
-
-describe('User Events', () => {
-  afterEach(async () => {
-    // IMPORTANT: Clear event state between tests
-    await eventing.clear();
-  });
-
-  test('should emit user creation event', async () => {
-    const events = eventing.get('test');
-
-    // Setup listener
-    const received = [];
-    events.on('user.created', (data) => {
-      received.push(data);
-    });
-
-    // Emit event
-    await events.emit('user.created', { userId: 123 });
-
-    // Verify
-    expect(received).toHaveLength(1);
-    expect(received[0].userId).toBe(123);
-  });
-
-  test('should handle wildcard patterns', async () => {
-    const events = eventing.get('test');
-
-    const received = [];
-    events.on('user.*', (eventName, data) => {
-      received.push({ eventName, data });
-    });
-
-    await events.emit('user.created', { userId: 1 });
-    await events.emit('user.updated', { userId: 1 });
-
-    expect(received).toHaveLength(2);
-    expect(received[0].eventName).toBe('user.created');
-    expect(received[1].eventName).toBe('user.updated');
-  });
-});
-```
-
-### **Mock Redis for Testing**
-
-```typescript
-// Test with memory strategy even if Redis is configured
-describe('Events with Memory Strategy', () => {
-  beforeEach(async () => {
-    await eventing.reset({
-      strategy: 'memory',
-      namespace: 'test',
-    });
-  });
-
-  test('should work with memory strategy', async () => {
-    const events = eventing.get('test');
-    expect(events.getStrategy()).toBe('memory');
-    // ... test logic
-  });
-});
 ```
 
 ## 🤖 LLM Guidelines
@@ -710,10 +641,6 @@ test('my test', () => {
   // Missing: await eventing.clear();
 });
 
-// ❌ DON'T access strategy directly
-if (events.strategy === 'redis') {
-} // Use events.getStrategy()
-
 // ❌ DON'T emit events without data structure
 await events.emit('user.created', userId); // Should be object with userId property
 ```
@@ -749,10 +676,8 @@ const emailEvents = eventing.get('emails');
 
 // Batch operations for efficiency
 await events.emitBatch([
-  { event: 'user.batch.start', data: { batchId: 'batch-123' } },
   { event: 'user.created', data: { userId: 1 } },
   { event: 'user.created', data: { userId: 2 } },
-  { event: 'user.batch.complete', data: { batchId: 'batch-123', count: 2 } },
 ]);
 ```
 
@@ -791,35 +716,6 @@ const wildcardHandler: WildcardHandler = (eventName: string, data: any) => {
 events.on('user.created', handler);
 events.on('user.*', wildcardHandler);
 ```
-
-## 🆚 Why Not EventEmitter/Redis directly?
-
-**Other approaches:**
-
-```javascript
-// Node.js EventEmitter: Local only, no distribution
-const EventEmitter = require('events');
-const emitter = new EventEmitter();
-emitter.on('event', handler);
-emitter.emit('event', data);
-
-// Redis pub/sub: Manual setup, no wildcard support, no history
-const redis = require('redis');
-const pub = redis.createClient();
-const sub = redis.createClient();
-sub.subscribe('channel');
-pub.publish('channel', JSON.stringify(data));
-```
-
-**This library:**
-
-```typescript
-// 2 lines, production ready with Redis auto-detection and wildcards
-import { eventing } from '@voilajsx/appkit/event';
-const events = eventing.get();
-```
-
-**Same features, 90% less code, automatic scaling.**
 
 ## 📄 License
 

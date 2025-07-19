@@ -230,6 +230,297 @@ await emailing.get().sendTemplate('reset', {
 });
 ```
 
+## 🧪 Testing
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+describe('Email Tests', () => {
+  afterEach(async () => {
+    await emailing.clear(); // Clean up between tests
+  });
+
+  test('should send email', async () => {
+    // Force console strategy for tests
+    await emailing.reset({
+      strategy: 'console',
+      from: { name: 'Test App', email: 'test@example.com' },
+    });
+
+    const result = await emailing.send({
+      to: 'user@example.com',
+      subject: 'Test',
+      text: 'Test message',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.messageId).toBeDefined();
+  });
+});
+```
+
+## ⚠️ Common Mistakes
+
+### **1. Missing Required Fields**
+
+```typescript
+// ❌ DON'T forget subject or content
+await emailing.send({
+  to: 'user@example.com',
+  // Missing subject and content!
+});
+
+// ✅ DO include all required fields
+await emailing.send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  text: 'Welcome to our app!',
+});
+```
+
+### **2. Console Strategy in Production**
+
+```typescript
+// ❌ DON'T rely on console strategy in production
+// This only logs emails, doesn't send them!
+process.env.NODE_ENV = 'production';
+// No RESEND_API_KEY or SMTP_HOST set
+await emailing.send(emailData); // Only logs to console!
+
+// ✅ DO set up a real email provider
+process.env.RESEND_API_KEY = 're_your_api_key';
+await emailing.send(emailData); // Actually sends emails
+```
+
+### **3. Ignoring Send Results**
+
+```typescript
+// ❌ DON'T ignore send results
+await emailing.send(emailData); // What if it failed?
+
+// ✅ DO check for success/failure
+const result = await emailing.send(emailData);
+if (!result.success) {
+  console.error('Email failed:', result.error);
+  // Handle failure appropriately
+}
+```
+
+### **4. Invalid Email Addresses**
+
+```typescript
+// ❌ DON'T use invalid email formats
+await emailing.send({
+  to: 'not-an-email', // Invalid format
+  subject: 'Test',
+  text: 'Hello',
+});
+
+// ✅ DO validate email addresses
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+if (!isValidEmail(user.email)) {
+  throw new Error('Invalid email address');
+}
+```
+
+### **5. Unverified FROM Addresses**
+
+```typescript
+// ❌ DON'T use unverified FROM addresses with Resend
+await emailing.send({
+  from: 'random@example.com', // Unverified domain
+  to: 'user@example.com',
+  subject: 'Test',
+  text: 'Hello',
+});
+
+// ✅ DO configure verified FROM address
+process.env.VOILA_EMAIL_FROM_EMAIL = 'noreply@yourdomain.com'; // Verified
+// FROM automatically set from config
+```
+
+## 🚨 Error Handling
+
+### **Basic Error Handling**
+
+```typescript
+async function sendWelcomeEmail(user) {
+  const result = await emailing.send({
+    to: user.email,
+    subject: 'Welcome!',
+    text: 'Welcome to our app!',
+  });
+
+  if (!result.success) {
+    console.error('Email failed:', result.error);
+    // Don't throw - email failure shouldn't break user registration
+    return false;
+  }
+
+  console.log('Welcome email sent:', result.messageId);
+  return true;
+}
+```
+
+### **Production Error Handling with Retries**
+
+```typescript
+async function sendCriticalEmail(emailData, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const result = await emailing.send(emailData);
+
+    if (result.success) {
+      return result;
+    }
+
+    // If it's a client error (bad email, invalid data), don't retry
+    if (
+      result.error?.includes('Invalid email') ||
+      result.error?.includes('Bad Request')
+    ) {
+      throw new Error(`Email validation failed: ${result.error}`);
+    }
+
+    // Server errors - retry with exponential backoff
+    if (attempt < maxRetries) {
+      const delay = 1000 * Math.pow(2, attempt - 1);
+      console.warn(
+        `Email attempt ${attempt} failed, retrying in ${delay}ms:`,
+        result.error
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw new Error(`Email failed after ${maxRetries} attempts`);
+}
+```
+
+### **Strategy-Specific Error Handling**
+
+```typescript
+async function sendEmailWithContext(emailData) {
+  const strategy = emailing.getStrategy();
+  const result = await emailing.send(emailData);
+
+  if (!result.success) {
+    // Handle strategy-specific errors
+    switch (strategy) {
+      case 'resend':
+        if (result.error?.includes('API key')) {
+          throw new Error('Resend API key invalid - check RESEND_API_KEY');
+        }
+        if (result.error?.includes('domain')) {
+          throw new Error('Email domain not verified in Resend');
+        }
+        break;
+
+      case 'smtp':
+        if (result.error?.includes('authentication')) {
+          throw new Error(
+            'SMTP authentication failed - check SMTP_USER/SMTP_PASS'
+          );
+        }
+        if (result.error?.includes('connection')) {
+          throw new Error('SMTP connection failed - check SMTP_HOST/SMTP_PORT');
+        }
+        break;
+
+      case 'console':
+        if (process.env.NODE_ENV === 'production') {
+          console.warn(
+            'Using console strategy in production - emails not actually sent'
+          );
+        }
+        break;
+    }
+
+    throw new Error(`Email send failed: ${result.error}`);
+  }
+
+  return result;
+}
+```
+
+## 🔧 Startup Validation
+
+### **Basic App Startup Validation**
+
+```typescript
+import { emailing } from '@voilajsx/appkit/email';
+
+async function startApp() {
+  try {
+    // Validate email configuration at startup
+    emailing.validateConfig();
+
+    const strategy = emailing.getStrategy();
+    console.log(`📧 Email configured with ${strategy} strategy`);
+
+    // Start your app
+    app.listen(3000, () => {
+      console.log('🚀 Server started on port 3000');
+    });
+  } catch (error) {
+    console.error('❌ Startup validation failed:', error.message);
+    process.exit(1);
+  }
+}
+```
+
+### **Production Startup Validation**
+
+```typescript
+async function validateProductionSetup() {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  // Check if real email provider is configured
+  if (!emailing.hasProvider()) {
+    throw new Error(
+      'No email provider configured in production. ' +
+        'Set RESEND_API_KEY or SMTP_HOST environment variable.'
+    );
+  }
+
+  // Validate FROM address is set
+  if (!process.env.VOILA_EMAIL_FROM_EMAIL) {
+    console.warn(
+      '⚠️ No FROM email configured. Using default. ' +
+        'Set VOILA_EMAIL_FROM_EMAIL for professional emails.'
+    );
+  }
+
+  console.log('✅ Email system validated successfully');
+}
+```
+
+### **Health Check Endpoint**
+
+```typescript
+// Express middleware for email health check
+function emailHealthCheck(req, res) {
+  try {
+    const config = emailing.getConfig();
+    const hasProvider = emailing.hasProvider();
+
+    res.json({
+      status: 'ok',
+      strategy: config.strategy,
+      hasProvider,
+      fromEmail: config.fromEmail,
+      ready: hasProvider || process.env.NODE_ENV === 'development',
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+    });
+  }
+}
+
+app.get('/health/email', emailHealthCheck);
+```
+
 ## 🌍 Environment Variables
 
 ### **Resend (Recommended)**
@@ -347,35 +638,6 @@ services:
 # Add to your deployment script
 export RESEND_API_KEY=re_your_api_key
 export VOILA_EMAIL_FROM_EMAIL=noreply@yourdomain.com
-```
-
-## 🧪 Testing
-
-```typescript
-import { emailing } from '@voilajsx/appkit/email';
-
-describe('Email Tests', () => {
-  afterEach(async () => {
-    await emailing.clear(); // Clean up between tests
-  });
-
-  test('should send email', async () => {
-    // Force console strategy for tests
-    await emailing.reset({
-      strategy: 'console',
-      from: { name: 'Test App', email: 'test@example.com' },
-    });
-
-    const result = await emailing.send({
-      to: 'user@example.com',
-      subject: 'Test',
-      text: 'Test message',
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.messageId).toBeDefined();
-  });
-});
 ```
 
 ## 🤖 LLM Guidelines

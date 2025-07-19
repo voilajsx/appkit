@@ -9,7 +9,7 @@
  * @llm-rule NOTE: Common pattern - eventing.get(namespace) → event.on() → event.emit() → handled
  */
 import { EventClass } from './event.js';
-import { getSmartDefaults } from './defaults.js';
+import { getSmartDefaults, validateProductionRequirements, validateStartupConfiguration, performHealthCheck } from './defaults.js';
 // Global event instances for performance (like auth module)
 let globalConfig = null;
 const namedEvents = new Map();
@@ -161,26 +161,71 @@ function getStats() {
     };
 }
 /**
- * Validate event configuration at startup
+ * Validate event configuration at startup with detailed feedback
  * @llm-rule WHEN: App startup to ensure events are properly configured
  * @llm-rule AVOID: Skipping validation - missing event config causes runtime issues
+ * @llm-rule NOTE: Returns validation results instead of throwing - allows graceful handling
  */
 function validateConfig() {
     try {
-        const strategy = getStrategy();
-        if (strategy === 'memory' && process.env.NODE_ENV === 'production') {
-            console.warn('[VoilaJSX AppKit] Using memory event strategy in production. ' +
-                'Events will not work across multiple server instances. ' +
-                'Set REDIS_URL for distributed events.');
+        const validation = validateStartupConfiguration();
+        if (validation.errors.length > 0) {
+            console.error('[VoilaJSX AppKit] Event configuration errors:', validation.errors);
         }
-        if (process.env.NODE_ENV === 'production' && !hasRedis()) {
-            console.warn('[VoilaJSX AppKit] No Redis configured in production. ' +
-                'Set REDIS_URL for distributed events across multiple servers.');
+        if (validation.warnings.length > 0) {
+            console.warn('[VoilaJSX AppKit] Event configuration warnings:', validation.warnings);
         }
+        if (validation.ready) {
+            console.log(`✅ [VoilaJSX AppKit] Events configured with ${validation.strategy} strategy`);
+        }
+        return {
+            valid: validation.errors.length === 0,
+            strategy: validation.strategy,
+            warnings: validation.warnings,
+            errors: validation.errors,
+            ready: validation.ready,
+        };
     }
     catch (error) {
-        console.error('[VoilaJSX AppKit] Event configuration validation failed:', error.message);
+        const errorMessage = error.message;
+        console.error('[VoilaJSX AppKit] Event configuration validation failed:', errorMessage);
+        return {
+            valid: false,
+            strategy: 'unknown',
+            warnings: [],
+            errors: [errorMessage],
+            ready: false,
+        };
     }
+}
+/**
+ * Validate production requirements and throw if critical issues found
+ * @llm-rule WHEN: Production deployment validation - ensures events work in production
+ * @llm-rule AVOID: Skipping in production - event failures are often silent
+ * @llm-rule NOTE: Throws on critical issues, warns on non-critical ones
+ */
+function validateProduction() {
+    try {
+        validateProductionRequirements();
+        if (process.env.NODE_ENV === 'production' && !hasRedis()) {
+            console.warn('[VoilaJSX AppKit] No Redis configured in production. ' +
+                'Set REDIS_URL for distributed events across servers.');
+        }
+        console.log('✅ [VoilaJSX AppKit] Production event requirements validated');
+    }
+    catch (error) {
+        console.error('[VoilaJSX AppKit] Production event validation failed:', error.message);
+        throw error;
+    }
+}
+/**
+ * Get comprehensive health check status for monitoring
+ * @llm-rule WHEN: Health check endpoints or monitoring systems
+ * @llm-rule AVOID: Using in critical application path - this is for monitoring only
+ * @llm-rule NOTE: Returns detailed status without exposing sensitive configuration
+ */
+function getHealthStatus() {
+    return performHealthCheck();
 }
 /**
  * Graceful shutdown for all event instances
@@ -221,7 +266,10 @@ export const eventing = {
     getStats,
     // Advanced methods
     broadcast,
+    // Validation and lifecycle
     validateConfig,
+    validateProduction,
+    getHealthStatus,
     shutdown,
 };
 export { EventClass } from './event.js';

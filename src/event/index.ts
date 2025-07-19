@@ -10,7 +10,13 @@
  */
 
 import { EventClass } from './event.js';
-import { getSmartDefaults, type EventConfig } from './defaults.js';
+import { 
+  getSmartDefaults,
+  validateProductionRequirements,
+  validateStartupConfiguration,
+  performHealthCheck,
+  type EventConfig 
+} from './defaults.js';
 
 // Global event instances for performance (like auth module)
 let globalConfig: EventConfig | null = null;
@@ -241,31 +247,93 @@ function getStats(): {
 }
 
 /**
- * Validate event configuration at startup
+ * Validate event configuration at startup with detailed feedback
  * @llm-rule WHEN: App startup to ensure events are properly configured
  * @llm-rule AVOID: Skipping validation - missing event config causes runtime issues
+ * @llm-rule NOTE: Returns validation results instead of throwing - allows graceful handling
  */
-function validateConfig(): void {
+function validateConfig(): {
+  valid: boolean;
+  strategy: string;
+  warnings: string[];
+  errors: string[];
+  ready: boolean;
+} {
   try {
-    const strategy = getStrategy();
+    const validation = validateStartupConfiguration();
     
-    if (strategy === 'memory' && process.env.NODE_ENV === 'production') {
-      console.warn(
-        '[VoilaJSX AppKit] Using memory event strategy in production. ' +
-        'Events will not work across multiple server instances. ' +
-        'Set REDIS_URL for distributed events.'
-      );
+    if (validation.errors.length > 0) {
+      console.error('[VoilaJSX AppKit] Event configuration errors:', validation.errors);
     }
+    
+    if (validation.warnings.length > 0) {
+      console.warn('[VoilaJSX AppKit] Event configuration warnings:', validation.warnings);
+    }
+    
+    if (validation.ready) {
+      console.log(`✅ [VoilaJSX AppKit] Events configured with ${validation.strategy} strategy`);
+    }
+    
+    return {
+      valid: validation.errors.length === 0,
+      strategy: validation.strategy,
+      warnings: validation.warnings,
+      errors: validation.errors,
+      ready: validation.ready,
+    };
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+    console.error('[VoilaJSX AppKit] Event configuration validation failed:', errorMessage);
+    
+    return {
+      valid: false,
+      strategy: 'unknown',
+      warnings: [],
+      errors: [errorMessage],
+      ready: false,
+    };
+  }
+}
+
+/**
+ * Validate production requirements and throw if critical issues found
+ * @llm-rule WHEN: Production deployment validation - ensures events work in production
+ * @llm-rule AVOID: Skipping in production - event failures are often silent
+ * @llm-rule NOTE: Throws on critical issues, warns on non-critical ones
+ */
+function validateProduction(): void {
+  try {
+    validateProductionRequirements();
     
     if (process.env.NODE_ENV === 'production' && !hasRedis()) {
       console.warn(
         '[VoilaJSX AppKit] No Redis configured in production. ' +
-        'Set REDIS_URL for distributed events across multiple servers.'
+        'Set REDIS_URL for distributed events across servers.'
       );
     }
+    
+    console.log('✅ [VoilaJSX AppKit] Production event requirements validated');
   } catch (error) {
-    console.error('[VoilaJSX AppKit] Event configuration validation failed:', (error as Error).message);
+    console.error('[VoilaJSX AppKit] Production event validation failed:', (error as Error).message);
+    throw error;
   }
+}
+
+/**
+ * Get comprehensive health check status for monitoring
+ * @llm-rule WHEN: Health check endpoints or monitoring systems
+ * @llm-rule AVOID: Using in critical application path - this is for monitoring only
+ * @llm-rule NOTE: Returns detailed status without exposing sensitive configuration
+ */
+function getHealthStatus(): {
+  status: 'healthy' | 'warning' | 'error';
+  strategy: string;
+  configured: boolean;
+  issues: string[];
+  ready: boolean;
+  timestamp: string;
+} {
+  return performHealthCheck();
 }
 
 /**
@@ -312,7 +380,11 @@ export const eventing = {
   
   // Advanced methods
   broadcast,
+  
+  // Validation and lifecycle
   validateConfig,
+  validateProduction,
+  getHealthStatus,
   shutdown,
 } as const;
 

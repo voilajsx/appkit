@@ -10,7 +10,13 @@
  */
 
 import { EmailClass } from './email.js';
-import { getSmartDefaults, type EmailConfig } from './defaults.js';
+import { 
+  getSmartDefaults, 
+  validateProductionRequirements,
+  validateStartupConfiguration,
+  performHealthCheck,
+  type EmailConfig 
+} from './defaults.js';
 
 // Global email instance for performance (like auth module)
 let globalEmail: EmailClass | null = null;
@@ -176,22 +182,63 @@ async function sendText(to: string, subject: string, text: string): Promise<Emai
 }
 
 /**
- * Validate email configuration at startup
+ * Validate email configuration at startup with detailed feedback
  * @llm-rule WHEN: App startup to ensure email is properly configured
  * @llm-rule AVOID: Skipping validation - missing email config causes runtime issues
+ * @llm-rule NOTE: Returns validation results instead of throwing - allows graceful handling
  */
-function validateConfig(): void {
+function validateConfig(): {
+  valid: boolean;
+  strategy: string;
+  warnings: string[];
+  errors: string[];
+  ready: boolean;
+} {
   try {
-    const email = get();
-    const strategy = email.getStrategy();
+    const validation = validateStartupConfiguration();
     
-    if (strategy === 'console' && process.env.NODE_ENV === 'production') {
-      console.warn(
-        '[VoilaJSX AppKit] Using console email strategy in production. ' +
-        'Emails will only be logged, not sent. ' +
-        'Set RESEND_API_KEY or SMTP_HOST for production email sending.'
-      );
+    if (validation.errors.length > 0) {
+      console.error('[VoilaJSX AppKit] Email configuration errors:', validation.errors);
     }
+    
+    if (validation.warnings.length > 0) {
+      console.warn('[VoilaJSX AppKit] Email configuration warnings:', validation.warnings);
+    }
+    
+    if (validation.ready) {
+      console.log(`✅ [VoilaJSX AppKit] Email configured with ${validation.strategy} strategy`);
+    }
+    
+    return {
+      valid: validation.errors.length === 0,
+      strategy: validation.strategy,
+      warnings: validation.warnings,
+      errors: validation.errors,
+      ready: validation.ready,
+    };
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+    console.error('[VoilaJSX AppKit] Email configuration validation failed:', errorMessage);
+    
+    return {
+      valid: false,
+      strategy: 'unknown',
+      warnings: [],
+      errors: [errorMessage],
+      ready: false,
+    };
+  }
+}
+
+/**
+ * Validate production requirements and throw if critical issues found
+ * @llm-rule WHEN: Production deployment validation - ensures email works in production
+ * @llm-rule AVOID: Skipping in production - email failures are often silent
+ * @llm-rule NOTE: Throws on critical issues, warns on non-critical ones
+ */
+function validateProduction(): void {
+  try {
+    validateProductionRequirements();
     
     if (process.env.NODE_ENV === 'production' && !hasProvider()) {
       console.warn(
@@ -199,9 +246,29 @@ function validateConfig(): void {
         'Set RESEND_API_KEY or SMTP_HOST to send real emails.'
       );
     }
+    
+    console.log('✅ [VoilaJSX AppKit] Production email requirements validated');
   } catch (error) {
-    console.error('[VoilaJSX AppKit] Email configuration validation failed:', (error as Error).message);
+    console.error('[VoilaJSX AppKit] Production email validation failed:', (error as Error).message);
+    throw error;
   }
+}
+
+/**
+ * Get comprehensive health check status for monitoring
+ * @llm-rule WHEN: Health check endpoints or monitoring systems
+ * @llm-rule AVOID: Using in critical application path - this is for monitoring only
+ * @llm-rule NOTE: Returns detailed status without exposing sensitive configuration
+ */
+function getHealthStatus(): {
+  status: 'healthy' | 'warning' | 'error';
+  strategy: string;
+  configured: boolean;
+  issues: string[];
+  ready: boolean;
+  timestamp: string;
+} {
+  return performHealthCheck();
 }
 
 /**
@@ -242,6 +309,8 @@ export const emailing = {
   
   // Validation and lifecycle
   validateConfig,
+  validateProduction,
+  getHealthStatus,
   shutdown,
 } as const;
 

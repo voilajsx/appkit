@@ -1,2044 +1,2342 @@
-# VoilaJSX AppKit LLM Implementation Guide
+# VoilaJSX AppKit - Complete LLM Agent Guide 🤖
 
-> **Complete guide for AI/LLM systems to correctly implement VoilaJSX AppKit
-> modules**
+> **The definitive guide for AI agents to generate 100% accurate VoilaJSX AppKit
+> code**
 
-This guide provides clear decision trees, usage patterns, and implementation
-examples specifically designed for Large Language Models to generate correct,
-secure, and performant code using VoilaJSX AppKit.
+## CRITICAL: Read This First
 
-## 🎯 Core Implementation Principles
-
-### **Universal Pattern - ALWAYS Follow This**
-
-```typescript
-// 1. Import the module
-import { moduleExport } from '@voilajsx/appkit/module';
-
-// 2. Get instance (ONE function per module)
-const instance = moduleExport.get();
-
-// 3. Use methods directly
-instance.method(args);
-```
-
-### **Decision Framework for LLMs**
-
-```
-1. Identify user requirement
-2. Map to appropriate module(s)
-3. Check environment needs
-4. Implement with error handling
-5. Follow security best practices
-```
+This guide enables LLM agents to generate perfect VoilaJSX AppKit code. Every
+example is production-ready. Every pattern is tested. Every rule is absolute.
 
 ---
 
-## 📦 Module 1: Utils - The Foundation
+## PART 1: CORE PHILOSOPHY & UNIVERSAL PATTERNS
 
-### **When to Use Utils**
+### WHEN TO USE VoilaJSX AppKit
 
-```typescript
-// ✅ ALWAYS use for these scenarios:
-// - Accessing nested object properties
-// - Checking if values are empty
-// - Creating URL-friendly strings
-// - Processing arrays (chunking, deduplication)
-// - Debouncing function calls
-// - Extracting object properties
-// - Constraining numbers to ranges
-// - Formatting file sizes
-// - Text truncation with word preservation
-// - Async delays
-// - Generating unique IDs
+✅ **ALWAYS use AppKit when:**
 
-// ❌ DON'T use for:
-// - Complex data transformations (use dedicated libraries)
-// - Heavy computational tasks
-// - DOM manipulation
-// - File system operations
-```
+- Building Node.js backend applications
+- Need authentication with roles/permissions
+- Require file storage, caching, queuing, or email
+- Want environment-driven configuration
+- Building multi-tenant or multi-org applications
+- Need production-ready security features
+- Want zero-configuration startup
 
-### **LLM Decision Tree**
+❌ **NEVER use AppKit when:**
 
-```
-User needs data manipulation?
-├─ Nested object access? → utils.get()
-├─ Empty value check? → utils.isEmpty()
-├─ URL from text? → utils.slugify()
-├─ Split array? → utils.chunk()
-├─ Remove duplicates? → utils.unique()
-├─ Extract object fields? → utils.pick()
-├─ Debounce function? → utils.debounce()
-├─ Constrain number? → utils.clamp()
-├─ Format file size? → utils.formatBytes()
-├─ Truncate text? → utils.truncate()
-├─ Async delay? → utils.sleep()
-├─ Generate ID? → utils.uuid()
-└─ Complex transformation? → Use specialized library
-```
+- Building frontend React/Vue applications
+- Creating CLI tools or desktop applications
+- Need real-time WebSocket servers as primary feature
+- Building pure microservices with single responsibility
+- Working with non-Node.js environments
 
-### **Implementation Patterns**
+### THE ONE FUNCTION RULE
 
-#### **Safe Property Access (95% use case)**
+**EVERY module follows the same pattern:**
 
-```typescript
-import { utility } from '@voilajsx/appkit/utils';
+```javascript
+// ALWAYS use this pattern for EVERY module
+const module = moduleExport.get();
+
+// Examples - MEMORIZE these patterns
 const utils = utility.get();
-
-// ✅ ALWAYS use instead of direct access
-const userName = utils.get(user, 'profile.name', 'Guest');
-const avatar = utils.get(user, 'profile.avatar.url');
-const firstItem = utils.get(data, 'items[0].title', 'No items');
-
-// ❌ NEVER do direct access (crashes on undefined)
-// const userName = user.profile.name; // DANGEROUS
+const auth = authenticator.get();
+const config = configure.get();
+const log = logger.get();
+const storage = store.get();
+const queue = queuing.get();
+const cache = caching.get('namespace');
+const email = emailing.get();
+const err = error.get();
+const secure = security.get();
+const db = database.get();
 ```
 
-#### **Form Validation Pattern**
+**RULE: Never call constructors directly. Always use .get()**
 
-```typescript
-const validateForm = (data) => {
-  const errors = {};
+❌ **NEVER do this:**
 
-  // Use isEmpty for all validation checks
-  if (utils.isEmpty(utils.get(data, 'name'))) {
-    errors.name = 'Name is required';
-  }
-
-  if (utils.isEmpty(utils.get(data, 'email'))) {
-    errors.email = 'Email is required';
-  }
-
-  return {
-    isValid: utils.isEmpty(errors),
-    errors,
-  };
-};
+```javascript
+new AuthenticationClass();
+new StorageService();
+new ConfigManager();
 ```
 
-#### **API Response Processing**
+✅ **ALWAYS do this:**
 
-```typescript
-// Process API responses safely
-const processApiResponse = (response) => {
-  const items = utils.get(response, 'data.items', []);
-  const batches = utils.chunk(items, 50); // Pagination
-
-  return batches.map((batch) =>
-    batch.map((item) => utils.pick(item, ['id', 'title', 'status']))
-  );
-};
+```javascript
+const auth = authenticator.get();
+const storage = store.get();
+const config = configure.get();
 ```
 
-#### **Search with Debouncing**
+### MODULE CATEGORIES & DECISION TREE
 
-```typescript
-// Performance optimization for search
-const searchHandler = utils.debounce((query) => {
-  if (!utils.isEmpty(query)) {
-    performSearch(query);
-  }
-}, 300); // 300ms delay
+#### **Utilities (Use First)**
 
-// Usage in React/Vue components
-const handleSearchInput = (event) => {
-  searchHandler(event.target.value);
-};
+- **Utils**: Safe object access, array operations, string utilities, performance
+  helpers
+- **Config**: Environment variable parsing, application configuration
+- **Error**: HTTP error handling, status codes, middleware
+- **Logging**: Structured logging, multiple transports
+
+#### **Authentication & Security (Use Second)**
+
+- **Auth**: JWT tokens, role-based permissions, middleware
+- **Security**: CSRF protection, rate limiting, input sanitization, encryption
+
+#### **Data & Storage (Use Third)**
+
+- **Database**: Multi-tenant database operations, ORM integration
+- **Cache**: Redis/Memory caching with namespaces
+- **Storage**: File storage (local/S3/R2), CDN integration
+
+#### **Communication (Use Fourth)**
+
+- **Email**: Multi-provider email sending, templates
+- **Queue**: Background job processing, scheduled tasks
+
+### IMPORT PATTERNS
+
+**ALWAYS use direct module imports for best tree-shaking:**
+
+✅ **BEST (Perfect tree-shaking):**
+
+```javascript
+import { utility } from '@voilajsx/appkit/utils';
+import { authenticator } from '@voilajsx/appkit/auth';
+import { configure } from '@voilajsx/appkit/config';
 ```
 
-#### **Data Extraction for APIs**
+✅ **GOOD (Still tree-shakable):**
 
-```typescript
-// Extract safe user data for API responses
-const extractUserData = (user) => ({
-  id: utils.get(user, 'id'),
-  name: utils.get(user, 'profile.displayName', 'Anonymous'),
-  avatar: utils.get(user, 'profile.avatar.url'),
-  slug: utils.slugify(utils.get(user, 'profile.displayName', '')),
-  joinedAt: utils.get(user, 'metadata.createdAt'),
-});
+```javascript
+import { utility, authenticator, configure } from '@voilajsx/appkit';
 ```
 
-### **Environment Configuration**
+❌ **AVOID (Poor tree-shaking):**
+
+```javascript
+import * as appkit from '@voilajsx/appkit';
+```
+
+### ENVIRONMENT-DRIVEN SCALING
+
+**AppKit automatically scales based on environment variables:**
+
+#### **Development (Zero Config)**
 
 ```bash
-# Optional performance tuning
-VOILA_UTILS_CACHE=true                 # Enable caching (default: true)
-VOILA_UTILS_PERFORMANCE=true           # Enable optimizations (default: true)
-VOILA_UTILS_DEBUG=false                # Debug logging (default: false in production)
+# No environment variables needed
+npm start
 ```
 
----
+- Memory cache/queue
+- Local file storage
+- Console logging
+- Single database
 
-## 🔐 Module 2: Auth - Security Foundation
+#### **Production (Auto-Detection)**
 
-### **When to Use Auth**
-
-```typescript
-// ✅ ALWAYS use for:
-// - User registration and login
-// - JWT token management
-// - Password hashing and verification
-// - Route protection with roles
-// - Permission-based access control
-// - Multi-level authorization (user.basic → admin.system)
-
-// ❌ DON'T use for:
-// - Simple applications with no user accounts
-// - Static websites
-// - Public APIs with no authentication
-// - Third-party OAuth integration (use passport.js)
+```bash
+# Set these - everything scales automatically
+REDIS_URL=redis://...           # → Distributed cache/queue
+DATABASE_URL=postgres://...     # → Database logging/queue
+AWS_S3_BUCKET=bucket           # → Cloud storage
+RESEND_API_KEY=re_...          # → Email service
 ```
 
-### **LLM Decision Tree**
+### UNIVERSAL ERROR HANDLING PATTERNS
 
-```
-User needs authentication?
-├─ User registration? → auth.hashPassword() + signToken()
-├─ User login? → auth.comparePassword() + signToken()
-├─ Verify token? → auth.verifyToken()
-├─ Extract user from request? → auth.user(req)
-├─ Protect route by role? → auth.requireRole()
-├─ Protect by permission? → auth.requirePermission()
-├─ Simple role hierarchy? → Use custom roles
-├─ Enterprise hierarchy? → Use built-in role.level
-└─ OAuth integration? → Use passport.js + AppKit
+#### **Pattern 1: Safe Access with Defaults**
+
+```javascript
+// ALWAYS use utils.get() for safe property access
+const utils = utility.get();
+
+❌ const name = user.profile.name;                    // Can crash
+✅ const name = utils.get(user, 'profile.name', 'Guest'); // Never crashes
 ```
 
-### **Implementation Patterns**
+#### **Pattern 2: Try-Catch with Specific Errors**
 
-#### **User Registration (Complete Flow)**
+```javascript
+const err = error.get();
 
-```typescript
-import { authenticator } from '@voilajsx/appkit/auth';
-const auth = authenticator.get();
-
-app.post('/register', async (req, res) => {
-  const { email, password, name } = req.body;
-
-  try {
-    // Hash password securely
-    const hashedPassword = await auth.hashPassword(password);
-
-    // Create user in database
-    const user = await db.createUser({
-      email,
-      name,
-      password: hashedPassword,
-      role: 'user', // Start with basic role
-      level: 'basic', // Start with basic level
-    });
-
-    // Generate JWT token with role.level structure
-    const token = auth.signToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      level: user.level,
-      permissions: ['manage:own'], // Basic permissions
-    });
-
-    res.json({
-      token,
-      user: { id: user.id, email: user.email, name: user.name },
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Registration failed' });
+try {
+  await someOperation();
+} catch (error) {
+  if (error.message.includes('validation')) {
+    throw err.badRequest('Invalid input data');
   }
-});
+  if (error.message.includes('permission')) {
+    throw err.forbidden('Access denied');
+  }
+  if (error.message.includes('not found')) {
+    throw err.notFound('Resource not found');
+  }
+  // Default to server error
+  throw err.serverError('Operation failed');
+}
 ```
 
-#### **User Login (Complete Flow)**
+#### **Pattern 3: Startup Validation**
 
-```typescript
+```javascript
+// ALWAYS validate configuration at app startup
+try {
+  const auth = authenticator.get();
+  const config = configure.get();
+
+  // Validate required config
+  config.getRequired('database.url');
+
+  console.log('✅ App validation passed');
+} catch (error) {
+  console.error('❌ App validation failed:', error.message);
+  process.exit(1);
+}
+```
+
+### CROSS-MODULE INTEGRATION PATTERNS
+
+#### **Pattern 1: Authentication + Database + Logging**
+
+```javascript
+const auth = authenticator.get();
+const db = database.get();
+const log = logger.get('auth');
+
 app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    // Find user by email
-    const user = await db.findUserByEmail(email);
+    // Get user from database
+    const user = await db.user.findUnique({
+      where: { email: req.body.email },
+    });
+
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      log.warn('Login attempt - user not found', { email: req.body.email });
+      throw error.unauthorized('Invalid credentials');
     }
 
     // Verify password
-    const isValid = await auth.comparePassword(password, user.password);
+    const isValid = await auth.comparePassword(
+      req.body.password,
+      user.password
+    );
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      log.warn('Login attempt - invalid password', { userId: user.id });
+      throw error.unauthorized('Invalid credentials');
     }
 
-    // Generate new token
+    // Create token
     const token = auth.signToken({
       userId: user.id,
-      email: user.email,
       role: user.role,
       level: user.level,
-      permissions: user.permissions || [],
     });
 
-    res.json({ token });
-  } catch (error) {
-    res.status(500).json({ error: 'Login failed' });
+    log.info('User login successful', { userId: user.id });
+    res.json({ token, user: { id: user.id, email: user.email } });
+  } catch (err) {
+    log.error('Login failed', { error: err.message });
+    throw err;
   }
 });
 ```
 
-#### **Route Protection Patterns**
+#### **Pattern 2: File Upload + Storage + Queue + Email**
 
-```typescript
-// Basic user access (any authenticated user)
-app.get('/dashboard', auth.requireRole('user.basic'), (req, res) => {
-  const user = auth.user(req); // Safe user extraction
-  res.json({ message: `Welcome ${user.email}` });
-});
+```javascript
+const storage = store.get();
+const queue = queuing.get();
+const email = emailing.get();
+const log = logger.get('upload');
 
-// Moderator access (inherits from user)
-app.get('/moderate', auth.requireRole('moderator.review'), (req, res) => {
-  res.json({ message: 'Moderator panel' });
-});
+app.post('/upload', async (req, res) => {
+  try {
+    const file = req.file;
+    const key = `uploads/${Date.now()}-${file.originalname}`;
 
-// Admin tenant access
-app.get('/admin/tenant', auth.requireRole('admin.tenant'), (req, res) => {
-  res.json({ message: 'Tenant admin panel' });
-});
+    // Store file
+    await storage.put(key, file.buffer, {
+      contentType: file.mimetype,
+    });
 
-// Permission-based access
-app.post('/content', auth.requirePermission('create:tenant'), (req, res) => {
-  res.json({ message: 'Content created' });
-});
+    const url = storage.url(key);
+    log.info('File uploaded', { key, size: file.size });
 
-// System-level access (highest privilege)
-app.get('/admin/system', auth.requireRole('admin.system'), (req, res) => {
-  res.json({ message: 'System administration' });
-});
-```
+    // Queue background processing
+    await queue.add('process-file', {
+      key,
+      userId: req.user.id,
+      originalName: file.originalname,
+    });
 
-#### **Express vs Fastify Integration**
+    // Queue notification email
+    await queue.add('email', {
+      to: req.user.email,
+      subject: 'File uploaded successfully',
+      text: `Your file ${file.originalname} was uploaded successfully.`,
+    });
 
-```typescript
-// Express (use Express variants)
-app.get('/profile', auth.requireLoginExpress(), (req, res) => {
-  const user = auth.user(req);
-  res.json({ user });
-});
-
-// Fastify (use regular methods)
-fastify.get(
-  '/profile',
-  { preHandler: auth.requireLogin() },
-  async (request, reply) => {
-    const user = auth.user(request);
-    return { user };
+    res.json({ success: true, url, key });
+  } catch (err) {
+    log.error('Upload failed', { error: err.message });
+    throw err;
   }
-);
+});
 ```
 
-#### **Role Hierarchy Examples**
+#### **Pattern 3: Cache + Database + Config**
 
-```typescript
-// Built-in hierarchy (recommended for enterprise)
-const roles = {
-  'user.basic': 1, // Basic user access
-  'user.pro': 2, // Pro user features
-  'user.max': 3, // Maximum user features
-  'moderator.review': 4, // Content review
-  'moderator.approve': 5, // Content approval
-  'moderator.manage': 6, // User management
-  'admin.tenant': 7, // Tenant administration
-  'admin.org': 8, // Organization administration
-  'admin.system': 9, // System administration
-};
-
-// Custom hierarchy (for specific domains)
-const customRoles = {
-  patient: 1,
-  nurse: 2,
-  doctor: 3,
-  admin: 4,
-};
-```
-
-### **Environment Configuration**
-
-```bash
-# Required
-VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-2024-minimum-32-chars
-
-# Optional
-VOILA_AUTH_EXPIRES_IN=7d               # Token expiration (default: 7d)
-VOILA_AUTH_ALGORITHM=HS256             # JWT algorithm (default: HS256)
-VOILA_AUTH_ISSUER=your-app-name        # Token issuer (default: appkit)
-
-# Custom roles (optional - overrides built-in hierarchy)
-VOILA_AUTH_ROLES=user:1,moderator:2,admin:3
-```
-
-### **Security Best Practices for LLMs**
-
-```typescript
-// ✅ ALWAYS hash passwords before storing
-const hashedPassword = await auth.hashPassword(password);
-
-// ✅ ALWAYS use auth.user() for safe user extraction
-const user = auth.user(req); // Returns null if not authenticated
-
-// ✅ ALWAYS validate token before processing
-try {
-  const payload = auth.verifyToken(token);
-} catch (error) {
-  // Handle invalid/expired token
-}
-
-// ❌ NEVER store plain text passwords
-// await db.createUser({ password }); // DANGEROUS
-
-// ❌ NEVER access req.user directly
-// const user = req.user; // Can crash when undefined
-
-// ❌ NEVER skip token validation
-// const payload = jwt.decode(token); // DANGEROUS - no verification
-```
-
----
-
-## ⚙️ Module 3: Config - Environment Management
-
-### **When to Use Config**
-
-```typescript
-// ✅ ALWAYS use for:
-// - Environment variable parsing
-// - Application configuration management
-// - Feature flag implementation
-// - Database connection settings
-// - API configuration
-// - Service credentials (non-secret)
-
-// ❌ DON'T use for:
-// - Secret management (use dedicated secret stores)
-// - Runtime configuration changes
-// - User preferences storage
-// - Session data
-```
-
-### **LLM Decision Tree**
-
-```
-User needs configuration?
-├─ Environment variables? → configure.get() → config.get('path')
-├─ Database settings? → config.get('database.*')
-├─ API configuration? → config.get('api.*')
-├─ Feature flags? → config.get('features.*')
-├─ Required config validation? → configure.validateRequired()
-├─ Module-specific config? → configure.getModuleConfig()
-├─ Environment detection? → configure.isDevelopment/isProduction()
-└─ Runtime config changes? → Use database/cache instead
-```
-
-### **Implementation Patterns**
-
-#### **Environment Variable Convention**
-
-```bash
-# ✅ Framework variables (single underscore) - NOT parsed
-VOILA_AUTH_SECRET=jwt-secret           # AppKit internal
-VOILA_LOGGING_LEVEL=debug             # AppKit internal
-
-# ✅ Application variables (double underscore) - PARSED into config
-DATABASE__HOST=localhost               # → config.get('database.host')
-DATABASE__PORT=5432                   # → config.get('database.port')
-DATABASE__CREDENTIALS__USER=admin     # → config.get('database.credentials.user')
-
-API__BASE_URL=https://api.example.com  # → config.get('api.base_url')
-API__TIMEOUT=30000                    # → config.get('api.timeout')
-
-FEATURES__ANALYTICS__ENABLED=true     # → config.get('features.analytics.enabled')
-```
-
-#### **Database Configuration Pattern**
-
-```typescript
-import { configure } from '@voilajsx/appkit/config';
+```javascript
+const cache = caching.get('users');
+const db = database.get();
 const config = configure.get();
 
-// Database connection setup
-const dbConfig = {
-  host: config.get('database.host', 'localhost'),
-  port: config.get('database.port', 5432),
-  database: config.get('database.name', 'myapp'),
-  username: config.get('database.credentials.user', 'postgres'),
-  password: config.get('database.credentials.password'),
+async function getUser(userId) {
+  const cacheKey = `user:${userId}`;
+  const ttl = config.get('cache.user.ttl', 3600);
 
-  // Connection pool settings
-  pool: {
-    min: config.get('database.pool.min', 2),
-    max: config.get('database.pool.max', 10),
-  },
+  // Try cache first
+  let user = await cache.get(cacheKey);
 
-  // SSL configuration
-  ssl: config.get('database.ssl.enabled', false),
-};
+  if (!user) {
+    // Get from database
+    user = await db.user.findUnique({ where: { id: userId } });
 
-// Validate required configuration
-if (configure.isProduction()) {
-  configure.validateRequired([
-    'database.host',
-    'database.credentials.password',
-  ]);
-}
-```
-
-#### **API Client Configuration**
-
-```typescript
-// External API configuration
-const apiConfig = {
-  baseURL: config.get('api.base_url', 'https://api.example.com'),
-  timeout: config.get('api.timeout', 30000),
-  retries: config.get('api.retries', 3),
-  rateLimit: config.get('api.rate_limit', 1000),
-
-  // Authentication
-  apiKey: config.get('api.credentials.key'),
-
-  // Headers
-  headers: {
-    'User-Agent': config.get('api.user_agent', 'MyApp/1.0'),
-    Accept: 'application/json',
-  },
-};
-
-// Create HTTP client with configuration
-const httpClient = axios.create(apiConfig);
-```
-
-#### **Feature Flags Implementation**
-
-```typescript
-// Feature flag management
-class FeatureFlags {
-  static isEnabled(feature: string): boolean {
-    return config.get(`features.${feature}.enabled`, false);
+    if (user) {
+      // Cache for future requests
+      await cache.set(cacheKey, user, ttl);
+    }
   }
 
-  static getConfig(feature: string, defaultValue: any = null) {
-    return config.get(`features.${feature}`, defaultValue);
+  return user;
+}
+```
+
+### TESTING PATTERNS
+
+#### **Pattern 1: Module Reset Between Tests**
+
+```javascript
+import { utility, logger, caching } from '@voilajsx/appkit';
+
+describe('App Tests', () => {
+  afterEach(async () => {
+    // ALWAYS reset module state between tests
+    utility.clearCache();
+    await logger.clear();
+    await caching.clear();
+  });
+
+  test('should process data safely', () => {
+    const utils = utility.get();
+    const result = utils.get({ user: { name: 'John' } }, 'user.name');
+    expect(result).toBe('John');
+  });
+});
+```
+
+#### **Pattern 2: Test-Specific Configuration**
+
+```javascript
+describe('Config Tests', () => {
+  beforeEach(() => {
+    // Force test configuration
+    configure.reset({
+      database: { host: 'test-db', port: 5432 },
+      cache: { strategy: 'memory' },
+      logging: { level: 'silent' },
+    });
+  });
+
+  afterEach(() => {
+    configure.clearCache();
+  });
+});
+```
+
+### VARIABLE NAMING CONVENTIONS
+
+**ALWAYS use these exact variable names for consistency:**
+
+#### **Single Instances**
+
+```javascript
+const utils = utility.get(); // ALWAYS 'utils'
+const auth = authenticator.get(); // ALWAYS 'auth'
+const config = configure.get(); // ALWAYS 'config'
+const log = logger.get(); // ALWAYS 'log'
+const storage = store.get(); // ALWAYS 'storage'
+const queue = queuing.get(); // ALWAYS 'queue'
+const email = emailing.get(); // ALWAYS 'email'
+const err = error.get(); // ALWAYS 'err'
+const secure = security.get(); // ALWAYS 'secure'
+const db = database.get(); // ALWAYS 'db'
+```
+
+#### **Namespaced/Specialized Instances**
+
+```javascript
+const userCache = caching.get('users'); // namespace + 'Cache'
+const sessionCache = caching.get('sessions'); // namespace + 'Cache'
+const apiLog = logger.get('api'); // component + 'Log'
+const dbLog = logger.get('database'); // component + 'Log'
+const dbTenants = database.getTenants(); // 'db' + purpose
+const acmeDb = database.org('acme').get(); // orgName + 'Db'
+```
+
+### FRAMEWORK INTEGRATION PATTERNS
+
+#### **Express Pattern**
+
+```javascript
+import express from 'express';
+import { authenticator, error, logger } from '@voilajsx/appkit';
+
+const app = express();
+const auth = authenticator.get();
+const err = error.get();
+const log = logger.get('app');
+
+// ALWAYS use this middleware order
+app.use(express.json());
+app.use(auth.requireLogin()); // Auth first
+app.use('/api', routes); // Routes second
+app.use(err.handleErrors()); // Error handling LAST
+
+// ALWAYS use asyncRoute wrapper
+app.post(
+  '/users',
+  err.asyncRoute(async (req, res) => {
+    // Errors automatically handled
+  })
+);
+```
+
+#### **Fastify Pattern**
+
+```javascript
+import Fastify from 'fastify';
+import { authenticator, error, logger } from '@voilajsx/appkit';
+
+const fastify = Fastify();
+const auth = authenticator.get();
+const err = error.get();
+
+// ALWAYS set error handler
+fastify.setErrorHandler((error, request, reply) => {
+  const appError = error.statusCode ? error : err.serverError(error.message);
+  reply.status(appError.statusCode).send({
+    error: appError.type,
+    message: appError.message,
+  });
+});
+
+// ALWAYS use preHandler for auth
+fastify.get(
+  '/protected',
+  {
+    preHandler: auth.requireRole('admin.tenant'),
+  },
+  async (request, reply) => {
+    // Route handler
+  }
+);
+```
+
+### PRODUCTION DEPLOYMENT PATTERNS
+
+#### **Environment Validation**
+
+```javascript
+// ALWAYS validate environment at startup
+function validateProductionEnv() {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const required = ['VOILA_AUTH_SECRET', 'DATABASE_URL', 'REDIS_URL'];
+
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:', missing);
+    process.exit(1);
+  }
+
+  console.log('✅ Production environment validated');
+}
+```
+
+#### **Graceful Shutdown**
+
+```javascript
+// ALWAYS implement graceful shutdown
+async function gracefulShutdown() {
+  console.log('🔄 Shutting down gracefully...');
+
+  try {
+    await database.disconnect();
+    await queue.close();
+    await logger.flush();
+
+    console.log('✅ Shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Shutdown error:', error);
+    process.exit(1);
   }
 }
 
-// Usage in application
-if (FeatureFlags.isEnabled('analytics')) {
-  // Initialize analytics
-  const analyticsConfig = FeatureFlags.getConfig('analytics');
-  initAnalytics(analyticsConfig);
-}
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+```
 
-if (FeatureFlags.isEnabled('beta_ui')) {
-  // Show beta UI features
-  showBetaFeatures();
+### MODULE INTERACTION RULES
+
+#### **Dependency Order (ALWAYS follow this order):**
+
+1. **Utils** - No dependencies, use first
+2. **Config** - No dependencies, use for configuration
+3. **Logging** - Depends on Config
+4. **Error** - Depends on Config and Logging
+5. **Auth** - Depends on Config and Error
+6. **Security** - Depends on Config and Error
+7. **Database** - Depends on Config, Logging, and Error
+8. **Cache** - Depends on Config and Logging
+9. **Storage** - Depends on Config, Logging, and Error
+10. **Email** - Depends on Config, Logging, and Error
+11. **Queue** - Depends on Config, Logging, and Error
+
+#### **Safe Initialization Pattern**
+
+```javascript
+// ALWAYS initialize in this order
+async function initializeApp() {
+  try {
+    // 1. Core utilities first
+    const config = configure.get();
+    const log = logger.get('init');
+
+    // 2. Validate configuration
+    config.getRequired('database.url');
+
+    // 3. Initialize database
+    const db = database.get();
+
+    // 4. Initialize other services
+    const cache = caching.get('app');
+    const queue = queuing.get();
+
+    log.info('✅ App initialized successfully');
+  } catch (error) {
+    console.error('❌ App initialization failed:', error.message);
+    process.exit(1);
+  }
 }
 ```
 
-#### **Environment-Specific Logic**
+---
 
-```typescript
-// Environment-based configuration
-if (configure.isDevelopment()) {
-  // Development-specific settings
-  app.use(cors({ origin: '*' }));
-  app.use(morgan('dev'));
+# PART 2: ESSENTIAL MODULES - VERIFIED ACCURATE FOR LLMs
 
-  // Enable debug features
-  const debugPort = config.get('debug.port', 9229);
-  enableDebugger(debugPort);
-}
+## 🚀 LLM Quick Reference - Copy These Exact Patterns
 
-if (configure.isProduction()) {
-  // Production optimizations
-  app.use(compression());
-  app.use(helmet());
+```javascript
+// Essential imports - ALWAYS use direct module imports for best tree-shaking
+import { utility } from '@voilajsx/appkit/utils';
+import { authenticator } from '@voilajsx/appkit/auth';
+import { configure } from '@voilajsx/appkit/config';
+import { logger } from '@voilajsx/appkit/logging';
 
-  // Validate critical configuration
-  configure.validateRequired([
-    'database.url',
-    'redis.url',
-    'api.credentials.key',
-  ]);
-}
-
-if (configure.isTest()) {
-  // Test-specific settings
-  const testDb = config.get('test.database.url', 'sqlite::memory:');
-  setupTestDatabase(testDb);
-}
+// Core pattern - MEMORIZE this exact syntax
+const utils = utility.get();
+const auth = authenticator.get();
+const config = configure.get();
+const log = logger.get();
 ```
 
-#### **Module Configuration Pattern**
+---
 
-```typescript
-// Get configuration for specific modules
-const emailConfig = configure.getModuleConfig('email', {
-  provider: 'console',
-  from: 'noreply@example.com',
+## UTILS MODULE - ALL 12 METHODS
+
+### When to Use
+
+✅ **Safe property access, array operations, string utilities, performance
+helpers**  
+❌ **Complex data transformations, DOM manipulation, heavy math**
+
+### Core Pattern
+
+```javascript
+import { utility } from '@voilajsx/appkit/utils';
+const utils = utility.get();
+```
+
+### Complete API (All 12 Methods)
+
+```javascript
+// 1. get() - Safe property access (NEVER crashes)
+const name = utils.get(user, 'profile.name', 'Guest');
+const items = utils.get(response, 'data.items', []);
+
+// 2. isEmpty() - Universal empty check
+if (utils.isEmpty(req.body.email)) throw err.badRequest('Email required');
+
+// 3. slugify() - URL-safe strings
+const slug = utils.slugify('Product Name!'); // → 'product-name'
+
+// 4. chunk() - Split arrays into batches
+const batches = utils.chunk(largeArray, 100);
+
+// 5. debounce() - Prevent excessive function calls
+const debouncedFn = utils.debounce(expensiveFunction, 1000);
+
+// 6. pick() - Extract specific object properties
+const publicUser = utils.pick(user, ['id', 'name', 'email']);
+
+// 7. unique() - Remove duplicates (note: 'unique', not 'uniq')
+const uniqueIds = utils.unique(duplicatedArray);
+
+// 8. clamp() - Constrain numbers to range
+const volume = utils.clamp(userInput, 0, 1);
+
+// 9. formatBytes() - Human-readable file sizes
+const size = utils.formatBytes(1048576); // → '1 MB'
+
+// 10. truncate() - Smart text cutting
+const preview = utils.truncate(longText, { length: 100, preserveWords: true });
+
+// 11. sleep() - Promise-based delays
+await utils.sleep(1000); // Wait 1 second
+
+// 12. uuid() - Generate unique identifiers
+const id = utils.uuid(); // → 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+```
+
+---
+
+## AUTH MODULE
+
+### When to Use
+
+✅ **JWT tokens, role-based access, API security, password hashing**  
+❌ **Frontend authentication, OAuth providers, session storage**
+
+### Core Pattern
+
+```javascript
+import { authenticator } from '@voilajsx/appkit/auth';
+const auth = authenticator.get();
+```
+
+### Token Structure (CRITICAL - EXACT FORMAT)
+
+```javascript
+// ✅ CORRECT - Always use this EXACT structure (3 required fields)
+const token = auth.signToken({
+  userId: 123, // REQUIRED - unique user identifier
+  role: 'admin', // REQUIRED - role name (admin, user, moderator)
+  level: 'tenant', // REQUIRED - level within role (basic, tenant, org, system)
 });
 
-const storageConfig = configure.getModuleConfig('storage', {
-  provider: 'local',
-  directory: './uploads',
-});
-
-const cacheConfig = configure.getModuleConfig('cache', {
-  provider: 'memory',
-  ttl: 3600,
+// Optional permissions can be added
+const tokenWithPerms = auth.signToken({
+  userId: 123,
+  role: 'admin',
+  level: 'tenant',
+  permissions: ['manage:tenant', 'view:org'], // Optional
 });
 ```
 
-### **Environment Configuration Examples**
+### Role Hierarchy (Built-in Inheritance)
+
+```
+admin.system > admin.org > admin.tenant > moderator.manage > moderator.approve >
+moderator.review > user.max > user.pro > user.basic
+```
+
+### Essential Auth Patterns
+
+```javascript
+// 1. Route protection middleware
+app.get('/admin', auth.requireRole('admin.tenant'), handler);
+app.post('/api/*', auth.requireLogin(), handler);
+
+// 2. Safe user extraction (returns null if not authenticated)
+const user = auth.user(req);
+if (!user) throw err.unauthorized('Login required');
+
+// 3. Role hierarchy checking
+const userRoleLevel = `${user.role}.${user.level}`;
+if (!auth.hasRole(userRoleLevel, 'admin.tenant')) {
+  throw err.forbidden('Admin access required');
+}
+
+// 4. Password handling
+const hashedPassword = await auth.hashPassword(plainPassword);
+const isValid = await auth.comparePassword(plainPassword, hashedPassword);
+```
+
+---
+
+## CONFIG MODULE
+
+### When to Use
+
+✅ **Environment variables, application settings, startup validation**  
+❌ **Runtime configuration changes, user preferences**
+
+### Core Pattern
+
+```javascript
+import { configure } from '@voilajsx/appkit/config';
+const config = configure.get();
+```
+
+### Essential Patterns
+
+```javascript
+// 1. Required values (throws if missing)
+const dbUrl = config.getRequired('database.url');
+const authSecret = config.getRequired('auth.secret');
+
+// 2. Optional with defaults
+const port = config.get('port', 3000);
+const env = config.get('node.env', 'development');
+
+// 3. Nested configuration
+const dbConfig = config.get('database', {
+  host: 'localhost',
+  port: 5432,
+  ssl: false,
+});
+
+// 4. Environment detection
+const isDev = config.isDevelopment();
+const isProd = config.isProduction();
+```
+
+---
+
+## LOGGER MODULE
+
+### When to Use
+
+✅ **Structured logging, error tracking, performance monitoring**  
+❌ **Simple console.log, debugging only**
+
+### Core Pattern
+
+```javascript
+import { logger } from '@voilajsx/appkit/logging';
+const log = logger.get();
+```
+
+### Essential Patterns
+
+```javascript
+// 1. Component-specific loggers
+const apiLog = logger.get('api');
+const dbLog = logger.get('database');
+
+// 2. Structured logging with context
+log.info('User created', {
+  userId: user.id,
+  email: user.email,
+  timestamp: Date.now(),
+});
+
+// 3. Error logging
+try {
+  await riskyOperation();
+} catch (error) {
+  log.error('Operation failed', {
+    error: error.message,
+    stack: error.stack,
+    userId: req.user?.id,
+  });
+  throw err.serverError('Operation failed');
+}
+
+// 4. Performance tracking
+const timer = log.timer('expensive-operation');
+await expensiveOperation();
+timer.end(); // Automatically logs duration
+```
+
+### Auto-Transport Selection
 
 ```bash
-# Development
-NODE_ENV=development
-DATABASE__HOST=localhost
-DATABASE__PORT=5432
-FEATURES__DEBUG__ENABLED=true
-
-# Staging
-NODE_ENV=staging
-DATABASE__HOST=staging-db.example.com
-DATABASE__PORT=5432
-FEATURES__ANALYTICS__ENABLED=true
-FEATURES__DEBUG__ENABLED=false
-
-# Production
-NODE_ENV=production
-DATABASE__HOST=prod-db.example.com
-DATABASE__PORT=5432
-DATABASE__SSL__ENABLED=true
-FEATURES__ANALYTICS__ENABLED=true
-FEATURES__DEBUG__ENABLED=false
-API__RATE_LIMIT=10000
+# Development → Console
+# Production with DATABASE_URL → Database
+# Production with REDIS_URL → Redis
 ```
 
-### **Configuration Validation Patterns**
+---
 
-```typescript
-// Startup configuration validation
-try {
-  configure.validateRequired(['database.host', 'api.credentials.key']);
+## ⚠️ COMMON LLM MISTAKES
 
-  console.log('✅ Configuration validation passed');
-} catch (error) {
-  console.error('❌ Configuration validation failed:', error.message);
-  process.exit(1);
-}
+```javascript
+// ❌ WRONG - Don't use common import for production
+import { utility, authenticator } from '@voilajsx/appkit';
 
-// Runtime configuration access with validation
-function getConfigValue<T>(
-  path: string,
-  validator?: (value: any) => boolean
-): T {
-  const value = config.get<T>(path);
+// ✅ CORRECT - Always use direct module imports for best tree-shaking
+import { utility } from '@voilajsx/appkit/utils';
+import { authenticator } from '@voilajsx/appkit/auth';
 
-  if (validator && !validator(value)) {
-    throw new Error(`Invalid configuration value for ${path}: ${value}`);
-  }
+// ❌ WRONG - Don't use constructors
+new AuthenticationClass();
+new ConfigManager();
 
-  return value;
-}
+// ✅ CORRECT - Always use .get()
+const auth = authenticator.get();
+const config = configure.get();
 
-// Usage
-const maxRetries = getConfigValue<number>(
-  'api.retries',
-  (val) => val > 0 && val <= 10
+// ❌ WRONG - Unsafe property access
+const name = user.profile.name; // Can crash
+
+// ✅ CORRECT - Safe access with default
+const name = utils.get(user, 'profile.name', 'Guest');
+
+// ❌ WRONG - Wrong method name
+const uniqueIds = utils.uniq(array); // Method is 'unique'
+
+// ✅ CORRECT - Correct method name
+const uniqueIds = utils.unique(array);
+
+// ❌ WRONG - Missing required token fields
+auth.signToken({ userId: 123 }); // Missing role/level
+
+// ✅ CORRECT - All required fields
+auth.signToken({ userId: 123, role: 'admin', level: 'tenant' });
+
+// ❌ WRONG - Wrong error types
+throw err.serverError('Email required'); // Should be badRequest
+
+// ✅ CORRECT - Semantic error types
+throw err.badRequest('Email required');
+throw err.unauthorized('Login required');
+throw err.forbidden('Admin access required');
+```
+
+---
+
+## 🔄 INTEGRATION PATTERN
+
+```javascript
+// Essential modules working together
+import { utility } from '@voilajsx/appkit/utils';
+import { authenticator } from '@voilajsx/appkit/auth';
+import { configure } from '@voilajsx/appkit/config';
+import { logger } from '@voilajsx/appkit/logging';
+import { error } from '@voilajsx/appkit/error';
+
+const utils = utility.get();
+const auth = authenticator.get();
+const config = configure.get();
+const log = logger.get('app');
+const err = error.get();
+
+// Typical API endpoint pattern
+app.post(
+  '/api/users',
+  auth.requireRole('admin.tenant'),
+  err.asyncRoute(async (req, res) => {
+    const user = auth.user(req);
+    const email = utils.get(req.body, 'email');
+
+    if (utils.isEmpty(email)) {
+      throw err.badRequest('Email is required');
+    }
+
+    log.info('Creating user', { email, adminId: user.userId });
+
+    // Business logic here
+    res.json({ success: true });
+  })
 );
 ```
 
 ---
 
-## 📝 Module 4: Logging - Observability Foundation
+## 📋 QUICK CHECKLIST FOR LLMs
 
-### **When to Use Logging**
+- [ ] Always use direct module imports (`@voilajsx/appkit/utils`)
+- [ ] Always use `module.get()` pattern
+- [ ] Use `utils.get()` for safe property access
+- [ ] Include `userId`, `role`, `level` in JWT tokens
+- [ ] Use correct method names (`utils.unique()` not `utils.uniq()`)
+- [ ] Use semantic error types (`badRequest`, `unauthorized`, etc.)
+- [ ] Add structured logging with context
+- [ ] Validate required config at startup
+- [ ] Use `auth.user(req)` for safe user extraction
+- [ ] Wrap async routes with `err.asyncRoute()`
 
-```typescript
-// ✅ ALWAYS use for:
-// - Application events and state changes
-// - Error tracking and debugging
-// - Performance monitoring
-// - User action auditing
-// - System health monitoring
-// - Request/response logging
-// - Security event tracking
+# PART 3: INFRASTRUCTURE MODULES - VERIFIED ACCURATE FOR LLMs
 
-// ❌ DON'T use for:
-// - Sensitive data logging (passwords, API keys, PII)
-// - High-frequency events that flood logs
-// - Temporary debugging (use console.log temporarily)
-// - Binary data logging
+## 🚀 LLM Quick Reference - Copy These Exact Patterns
+
+```javascript
+// Essential infrastructure imports - ALWAYS use direct module imports
+import { store } from '@voilajsx/appkit/storage';
+import { caching } from '@voilajsx/appkit/cache';
+import { database } from '@voilajsx/appkit/database';
+import { queuing } from '@voilajsx/appkit/queue';
+import { emailing } from '@voilajsx/appkit/email';
+
+// Core pattern - MEMORIZE this exact syntax
+const storage = store.get();
+const cache = caching.get('namespace');
+const db = database.get();
+const queue = queuing.get();
+const email = emailing.get();
 ```
 
-### **LLM Decision Tree**
+---
 
+## STORAGE MODULE
+
+### When to Use
+
+✅ **File uploads, documents, images, videos, CDN integration**  
+❌ **Configuration data, temporary data, session storage**
+
+### Core Pattern
+
+```javascript
+import { store } from '@voilajsx/appkit/storage';
+const storage = store.get();
 ```
-User needs logging?
-├─ Application startup/shutdown? → log.info()
-├─ User actions (login, signup)? → log.info() with metadata
-├─ System errors? → log.error() with error details
-├─ Performance issues? → log.warn() with metrics
-├─ Security events? → log.warn() or log.error()
-├─ Development debugging? → log.debug()
-├─ Different app components? → logger.get('component')
-├─ Request context? → log.child({ requestId })
-├─ External service logs? → Use HTTP transport
-├─ Team notifications? → Use webhook transport
-└─ Sensitive data? → DON'T log, use audit trail instead
+
+### Auto-Strategy Detection
+
+```bash
+# Development → Local files in ./uploads/
+# Production → R2 (if CLOUDFLARE_R2_BUCKET) → S3 (if AWS_S3_BUCKET) → Local
 ```
 
-### **Implementation Patterns**
+### Essential API (4 Core Methods)
 
-#### **Basic Application Logging**
+```javascript
+// 1. put() - Upload files
+await storage.put('avatars/user123.jpg', imageBuffer);
+await storage.put('docs/contract.pdf', pdfBuffer, {
+  contentType: 'application/pdf',
+  cacheControl: 'public, max-age=3600',
+});
 
-```typescript
+// 2. get() - Download files
+const buffer = await storage.get('avatars/user123.jpg');
+if (!buffer) throw err.notFound('File not found');
+
+// 3. delete() - Remove files
+await storage.delete('temp/old-file.jpg');
+
+// 4. getSignedUrl() - Temporary access URLs
+const signedUrl = await storage.signedUrl('private.pdf', 3600); // 1 hour
+```
+
+---
+
+## CACHE MODULE
+
+### When to Use
+
+✅ **Speed up database queries, session data, API responses, computed
+results**  
+❌ **Permanent data, files, transactions, sensitive data without encryption**
+
+### Core Pattern
+
+```javascript
+import { caching } from '@voilajsx/appkit/cache';
+const cache = caching.get('namespace');
+```
+
+### Auto-Strategy Detection
+
+```bash
+# Development → Memory cache with LRU
+# Production → Redis (if REDIS_URL) → Memory
+```
+
+### Essential API (5 Core Methods)
+
+```javascript
+// 1. set() - Store with TTL
+await cache.set('user:123', userData, 3600); // 1 hour TTL
+
+// 2. get() - Retrieve (null if not found/expired)
+const user = await cache.get('user:123');
+
+// 3. getOrSet() - Get or compute and cache
+const weather = await cache.getOrSet(
+  `weather:${city}`,
+  async () => {
+    return await fetchWeatherAPI(city); // Only runs on cache miss
+  },
+  1800 // 30 minutes
+);
+
+// 4. delete() - Remove specific key
+await cache.delete('user:123');
+
+// 5. clear() - Clear entire namespace
+await cache.clear();
+```
+
+### Namespace Isolation
+
+```javascript
+// ALWAYS use specific namespaces - completely isolated
+const userCache = caching.get('users');
+const sessionCache = caching.get('sessions');
+const apiCache = caching.get('external-api');
+
+await userCache.set('123', userData);
+await sessionCache.set('123', sessionData); // Different from user:123
+```
+
+---
+
+## DATABASE MODULE
+
+### When to Use
+
+✅ **Persistent data, user data, content, multi-tenant apps, cross-cloud
+orgs**  
+❌ **Temporary data, files, caching, session storage**
+
+### Core Pattern
+
+```javascript
+import { database } from '@voilajsx/appkit/database';
+const db = database.get();
+```
+
+### Progressive Scaling (CRITICAL)
+
+```javascript
+// Day 1: Single database
+const db = await database.get();
+const users = await db.user.findMany();
+
+// Month 6: Multi-tenant (zero code changes!)
+// Just add: VOILA_DB_TENANT=auto
+const db = await database.get(); // Now auto-filtered by tenant
+
+// Year 1: Multi-org (still zero code changes!)
+// Add: ORG_ACME=postgresql://acme.aws.com/db
+const acmeDb = await database.org('acme').get();
+```
+
+### Essential API (3 Core Patterns)
+
+```javascript
+// 1. Normal user access (single or tenant-filtered)
+const db = await database.get();
+const users = await db.user.findMany(); // Auto-filtered if tenant mode
+
+// 2. Admin access (all tenants)
+const dbTenants = await database.getTenants();
+const allUsers = await dbTenants.user.findMany(); // Cross-tenant
+
+// 3. Organization-specific access
+const acmeDb = await database.org('acme').get();
+const acmeUsers = await acmeDb.user.findMany();
+```
+
+### MANDATORY Schema Requirements
+
+```sql
+-- ✅ EVERY table MUST include tenant_id from Day 1 (nullable for future)
+CREATE TABLE users (
+  id uuid PRIMARY KEY,
+  email text UNIQUE,
+  name text,
+  tenant_id text,                    -- MANDATORY: nullable for future
+  created_at timestamp DEFAULT now(),
+
+  INDEX idx_users_tenant (tenant_id) -- MANDATORY: performance index
+);
+```
+
+---
+
+## QUEUE MODULE
+
+### When to Use
+
+✅ **Background jobs, emails, file processing, webhooks, scheduled tasks**  
+❌ **Real-time operations, simple sync operations, immediate responses**
+
+### Core Pattern
+
+```javascript
+import { queuing } from '@voilajsx/appkit/queue';
+const queue = queuing.get();
+```
+
+### Auto-Transport Detection
+
+```bash
+# Development → Memory queue
+# Production → Redis (if REDIS_URL) → Database (if DATABASE_URL) → Memory
+```
+
+### Essential API (3 Core Methods)
+
+```javascript
+// 1. add() - Add jobs to queue
+await queue.add('email', {
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  body: 'Thanks for signing up',
+});
+
+await queue.add(
+  'image-resize',
+  {
+    input: 'uploads/large.jpg',
+    output: 'thumbnails/thumb.jpg',
+    width: 200,
+  },
+  {
+    delay: 5000, // Start in 5 seconds
+    attempts: 3, // Retry 3 times
+  }
+);
+
+// 2. process() - Handle jobs
+queue.process('email', async (data) => {
+  await sendEmail(data.to, data.subject, data.body);
+  return { sent: true };
+});
+
+queue.process('image-resize', async (data) => {
+  await resizeImage(data.input, data.output, data.width);
+  return { resized: true };
+});
+
+// 3. Event handling
+queue.on('completed', (job, result) => {
+  log.info('Job completed', { job: job.name, result });
+});
+
+queue.on('failed', (job, error) => {
+  log.error('Job failed', { job: job.name, error: error.message });
+});
+```
+
+---
+
+## EMAIL MODULE
+
+### When to Use
+
+✅ **Transactional emails, notifications, templates, multi-provider support**  
+❌ **Marketing emails, bulk campaigns, newsletter management**
+
+### Core Pattern
+
+```javascript
+import { emailing } from '@voilajsx/appkit/email';
+const email = emailing.get();
+```
+
+### Auto-Provider Detection
+
+```bash
+# Production → Resend (if RESEND_API_KEY) → SMTP (if SMTP_HOST) → Console
+```
+
+### Essential API (3 Core Methods)
+
+```javascript
+// 1. send() - Basic email sending
+await email.send({
+  to: 'user@example.com',
+  subject: 'Welcome to our app!',
+  text: 'Thanks for signing up.',
+  html: '<h1>Thanks for signing up!</h1>',
+});
+
+// 2. sendTemplate() - Template-based emails
+await email.sendTemplate('welcome', {
+  to: user.email,
+  name: user.name,
+  activationLink: `https://app.com/activate/${user.token}`,
+});
+
+// 3. Queue integration (recommended for production)
+await queue.add('email', {
+  template: 'password-reset',
+  to: user.email,
+  resetLink: resetUrl,
+});
+
+queue.process('email', async (data) => {
+  if (data.template) {
+    return await email.sendTemplate(data.template, data);
+  } else {
+    return await email.send(data);
+  }
+});
+```
+
+---
+
+## ⚠️ COMMON LLM MISTAKES
+
+```javascript
+// ❌ WRONG - Using constructors directly
+new StorageService();
+new DatabaseClient();
+
+// ✅ CORRECT - Always use .get() pattern
+const storage = store.get();
+const db = database.get();
+
+// ❌ WRONG - Missing namespace for cache
+const cache = caching.get(); // No namespace
+
+// ✅ CORRECT - Always specify namespace
+const userCache = caching.get('users');
+
+// ❌ WRONG - Missing tenant_id in schema
+CREATE TABLE users (id, email, name); // Will break multi-tenancy
+
+// ✅ CORRECT - Future-proof schema
+CREATE TABLE users (
+  id uuid PRIMARY KEY,
+  email text,
+  name text,
+  tenant_id text,                    -- MANDATORY
+  INDEX idx_users_tenant (tenant_id) -- MANDATORY
+);
+
+// ❌ WRONG - Manual tenant filtering
+const users = await db.user.findMany({
+  where: { tenant_id: getTenantId(req) }
+});
+
+// ✅ CORRECT - Automatic tenant filtering
+const db = await database.get();
+const users = await db.user.findMany(); // Auto-filtered
+
+// ❌ WRONG - Synchronous heavy operations
+await resizeImage(largeFile); // Blocks request
+
+// ✅ CORRECT - Queue heavy operations
+await queue.add('image-resize', { file: largeFile });
+```
+
+---
+
+## 🔄 INTEGRATION PATTERN
+
+```javascript
+// Infrastructure modules working together
+import { store } from '@voilajsx/appkit/storage';
+import { caching } from '@voilajsx/appkit/cache';
+import { database } from '@voilajsx/appkit/database';
+import { queuing } from '@voilajsx/appkit/queue';
+import { emailing } from '@voilajsx/appkit/email';
 import { logger } from '@voilajsx/appkit/logging';
+
+const storage = store.get();
+const userCache = caching.get('users');
+const db = database.get();
+const queue = queuing.get();
+const email = emailing.get();
+const log = logger.get('api');
+
+// File upload with caching and processing
+app.post('/api/upload', async (req, res) => {
+  try {
+    // 1. Store file
+    const fileKey = `uploads/${req.user.id}/${Date.now()}-${req.file.originalname}`;
+    await storage.put(fileKey, req.file.buffer, {
+      contentType: req.file.mimetype,
+    });
+
+    // 2. Save to database
+    const file = await db.file.create({
+      data: {
+        key: fileKey,
+        name: req.file.originalname,
+        size: req.file.size,
+        userId: req.user.id,
+      },
+    });
+
+    // 3. Queue processing
+    await queue.add('process-upload', {
+      fileId: file.id,
+      fileKey: fileKey,
+      userId: req.user.id,
+    });
+
+    // 4. Clear user cache
+    await userCache.delete(`files:${req.user.id}`);
+
+    // 5. Log activity
+    log.info('File uploaded', {
+      fileId: file.id,
+      userId: req.user.id,
+      size: req.file.size,
+    });
+
+    res.json({ success: true, fileId: file.id });
+  } catch (error) {
+    log.error('Upload failed', { error: error.message });
+    throw error;
+  }
+});
+
+// Background processing
+queue.process('process-upload', async (data) => {
+  const { fileId, fileKey, userId } = data;
+
+  try {
+    // Process file (resize, convert, etc.)
+    const buffer = await storage.get(fileKey);
+    const processedBuffer = await processFile(buffer);
+
+    // Store processed version
+    const processedKey = fileKey.replace('uploads/', 'processed/');
+    await storage.put(processedKey, processedBuffer);
+
+    // Update database
+    await db.file.update({
+      where: { id: fileId },
+      data: { processed: true, processedKey },
+    });
+
+    // Send notification
+    await queue.add('email', {
+      template: 'file-processed',
+      to: data.userEmail,
+      fileName: data.fileName,
+    });
+
+    log.info('File processed', { fileId, userId });
+  } catch (error) {
+    log.error('Processing failed', { fileId, error: error.message });
+    throw error;
+  }
+});
+```
+
+---
+
+## 📋 QUICK CHECKLIST FOR LLMs
+
+- [ ] Always use direct module imports (`@voilajsx/appkit/storage`)
+- [ ] Always use `module.get()` pattern for all infrastructure modules
+- [ ] Use namespaces for cache (`caching.get('users')`)
+- [ ] Include `tenant_id` field in ALL database tables with index
+- [ ] Use auto-strategy detection (environment variables only)
+- [ ] Queue heavy operations instead of blocking requests
+- [ ] Cache frequently accessed data with appropriate TTL
+- [ ] Use storage for files, cache for temporary data, database for persistent
+      data
+- [ ] Implement proper error handling with fallbacks
+- [ ] Log important operations with structured data
+
+# PART 4: SYSTEM MODULES - VERIFIED ACCURATE FOR LLMs
+
+## 🚀 LLM Quick Reference - Copy These Exact Patterns
+
+```javascript
+// Essential system imports - ALWAYS use direct module imports
+import { error } from '@voilajsx/appkit/error';
+import { security } from '@voilajsx/appkit/security';
+
+// Core pattern - MEMORIZE this exact syntax
+const err = error.get();
+const secure = security.get();
+```
+
+---
+
+## ERROR MODULE
+
+### When to Use
+
+✅ **HTTP APIs, status codes, middleware integration, client responses**  
+❌ **CLI applications, non-HTTP servers, simple utilities**
+
+### Core Pattern
+
+```javascript
+import { error } from '@voilajsx/appkit/error';
+const err = error.get();
+```
+
+### HTTP Status Code Mapping (CRITICAL)
+
+```javascript
+// ✅ CORRECT - Use these exact error types for specific situations
+err.badRequest('message'); // 400 - Client input errors
+err.unauthorized('message'); // 401 - Authentication required
+err.forbidden('message'); // 403 - Access denied (user authenticated, no permission)
+err.notFound('message'); // 404 - Resource doesn't exist
+err.conflict('message'); // 409 - Business logic conflicts (duplicate email)
+err.serverError('message'); // 500 - Internal server errors
+
+// ❌ WRONG - Don't use wrong error types
+throw err.serverError('Email required'); // Should be badRequest
+throw err.badRequest('Database failed'); // Should be serverError
+throw err.unauthorized('Admin required'); // Should be forbidden
+```
+
+### Essential API (4 Core Patterns)
+
+```javascript
+// 1. Input validation (400 errors)
+if (!req.body.email) {
+  throw err.badRequest('Email is required');
+}
+if (!email.includes('@')) {
+  throw err.badRequest('Invalid email format');
+}
+
+// 2. Authentication checks (401 errors)
+if (!token) {
+  throw err.unauthorized('Authentication token required');
+}
+if (tokenExpired) {
+  throw err.unauthorized('Session expired. Please login again.');
+}
+
+// 3. Permission checks (403 errors)
+if (!user.isAdmin) {
+  throw err.forbidden('Admin access required');
+}
+if (user.status === 'suspended') {
+  throw err.forbidden('Account suspended');
+}
+
+// 4. Resource checks (404 errors)
+const user = await db.user.findUnique({ where: { id } });
+if (!user) {
+  throw err.notFound('User not found');
+}
+```
+
+### Framework Integration
+
+```javascript
+// Express - Error handling middleware (MUST be last)
+app.use(err.handleErrors());
+
+// Express - Async route wrapper
+app.post(
+  '/users',
+  err.asyncRoute(async (req, res) => {
+    // Errors automatically handled
+    if (!req.body.email) throw err.badRequest('Email required');
+    res.json({ success: true });
+  })
+);
+
+// Fastify - Error handler setup
+fastify.setErrorHandler((error, request, reply) => {
+  const appError = error.statusCode ? error : err.serverError(error.message);
+  reply.status(appError.statusCode).send({
+    error: appError.type,
+    message: appError.message,
+  });
+});
+```
+
+---
+
+## SECURITY MODULE
+
+### When to Use
+
+✅ **Web forms, CSRF protection, rate limiting, input sanitization,
+encryption**  
+❌ **CLI applications, API-only services, read-only applications**
+
+### Core Pattern
+
+```javascript
+import { security } from '@voilajsx/appkit/security';
+const secure = security.get();
+```
+
+### Required Environment Variables
+
+```bash
+# CRITICAL - Required for startup
+VOILA_SECURITY_CSRF_SECRET=your-csrf-secret-key-2024-minimum-32-chars
+VOILA_SECURITY_ENCRYPTION_KEY=64-char-hex-key-for-aes256-encryption
+```
+
+### Essential API (4 Core Methods)
+
+```javascript
+// 1. CSRF Protection (CRITICAL: Session middleware MUST come first)
+app.use(session({ secret: process.env.SESSION_SECRET }));
+app.use(secure.forms()); // CSRF protection for all routes
+
+// Generate CSRF token for forms
+app.get('/form', (req, res) => {
+  const csrfToken = req.csrfToken();
+  res.render('form', { csrfToken });
+});
+
+// 2. Rate Limiting
+app.use('/api', secure.requests()); // Default: 100 requests per 15 minutes
+app.use('/auth', secure.requests(5, 3600000)); // 5 requests per hour
+
+// 3. Input Sanitization
+const safeName = secure.input(req.body.name, { maxLength: 50 });
+const safeEmail = secure.input(req.body.email?.toLowerCase());
+const safeHtml = secure.html(req.body.content, {
+  allowedTags: ['p', 'b', 'i', 'a'],
+});
+
+// 4. Data Encryption (AES-256-GCM)
+const encryptedSSN = secure.encrypt(user.ssn);
+const encryptedPhone = secure.encrypt(user.phone);
+
+// Decrypt for authorized access
+const originalSSN = secure.decrypt(encryptedSSN);
+const originalPhone = secure.decrypt(encryptedPhone);
+```
+
+---
+
+## ⚠️ COMMON LLM MISTAKES
+
+```javascript
+// ❌ WRONG - Using wrong error types
+throw err.serverError('Email required'); // Should be badRequest
+throw err.badRequest('Database connection failed'); // Should be serverError
+throw err.unauthorized('Admin access required'); // Should be forbidden
+
+// ✅ CORRECT - Semantic error types
+throw err.badRequest('Email required'); // Client input issue
+throw err.serverError('Database connection failed'); // Server issue
+throw err.forbidden('Admin access required'); // Permission issue
+
+// ❌ WRONG - Missing error middleware
+app.post('/api', (req, res) => {
+  throw err.badRequest('Error'); // Nothing will catch this!
+});
+
+// ✅ CORRECT - Proper middleware setup
+app.use(err.handleErrors()); // MUST be last middleware
+app.post(
+  '/api',
+  err.asyncRoute(async (req, res) => {
+    throw err.badRequest('Error'); // Automatically handled
+  })
+);
+
+// ❌ WRONG - CSRF without sessions
+app.use(secure.forms());
+app.use(session(config)); // Too late!
+
+// ✅ CORRECT - Sessions first, then CSRF
+app.use(session(config));
+app.use(secure.forms());
+
+// ❌ WRONG - Missing input sanitization
+const name = req.body.name; // Raw input - dangerous!
+
+// ✅ CORRECT - Always sanitize input
+const safeName = secure.input(req.body.name);
+
+// ❌ WRONG - Manual error catching with asyncRoute
+app.post(
+  '/api',
+  err.asyncRoute(async (req, res) => {
+    try {
+      throw err.badRequest('Error');
+    } catch (error) {
+      res.status(500).json({ error: 'Failed' }); // Don't catch manually!
+    }
+  })
+);
+
+// ✅ CORRECT - Let the system handle errors
+app.post(
+  '/api',
+  err.asyncRoute(async (req, res) => {
+    throw err.badRequest('Error'); // Just throw - system handles
+  })
+);
+```
+
+---
+
+## 🔄 INTEGRATION PATTERN
+
+```javascript
+// System modules working together
+import { error } from '@voilajsx/appkit/error';
+import { security } from '@voilajsx/appkit/security';
+import { authenticator } from '@voilajsx/appkit/auth';
+import { database } from '@voilajsx/appkit/database';
+import { logger } from '@voilajsx/appkit/logging';
+
+const err = error.get();
+const secure = security.get();
+const auth = authenticator.get();
+const db = database.get();
+const log = logger.get('api');
+
+// Complete secure API endpoint
+app.use(session({ secret: process.env.SESSION_SECRET }));
+app.use(secure.forms()); // CSRF protection
+app.use('/api', secure.requests(100, 900000)); // Rate limiting
+app.use(err.handleErrors()); // Error handling (LAST)
+
+// Secure user registration endpoint
+app.post(
+  '/api/register',
+  err.asyncRoute(async (req, res) => {
+    // 1. Input validation
+    const email = secure.input(req.body.email?.toLowerCase());
+    const name = secure.input(req.body.name, { maxLength: 50 });
+    const password = req.body.password;
+
+    if (!email) throw err.badRequest('Email is required');
+    if (!email.includes('@')) throw err.badRequest('Invalid email format');
+    if (!name) throw err.badRequest('Name is required');
+    if (!password || password.length < 8) {
+      throw err.badRequest('Password must be at least 8 characters');
+    }
+
+    // 2. Business logic validation
+    const existingUser = await db.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw err.conflict('Email already registered');
+    }
+
+    // 3. Secure data processing
+    const hashedPassword = await auth.hashPassword(password);
+    const encryptedPhone = req.body.phone
+      ? secure.encrypt(req.body.phone)
+      : null;
+
+    // 4. Database operation with error handling
+    try {
+      const user = await db.user.create({
+        data: {
+          email,
+          name,
+          password: hashedPassword,
+          encryptedPhone,
+        },
+      });
+
+      // 5. Generate auth token
+      const token = auth.signToken({
+        userId: user.id,
+        role: 'user',
+        level: 'basic',
+      });
+
+      // 6. Log successful registration
+      log.info('User registered', {
+        userId: user.id,
+        email: user.email,
+      });
+
+      res.json({
+        success: true,
+        token,
+        user: { id: user.id, name: user.name, email: user.email },
+      });
+    } catch (dbError) {
+      log.error('Registration failed', {
+        error: dbError.message,
+        email,
+      });
+      throw err.serverError('Registration failed');
+    }
+  })
+);
+
+// Secure user profile update endpoint
+app.put(
+  '/api/profile',
+  auth.requireLogin(),
+  err.asyncRoute(async (req, res) => {
+    const user = auth.user(req);
+
+    // Input sanitization
+    const name = secure.input(req.body.name, { maxLength: 50 });
+    const bio = secure.html(req.body.bio, {
+      allowedTags: ['p', 'b', 'i', 'em', 'strong'],
+    });
+
+    if (!name) throw err.badRequest('Name is required');
+
+    // Update with encrypted sensitive data
+    const updateData = { name, bio };
+    if (req.body.phone) {
+      updateData.encryptedPhone = secure.encrypt(req.body.phone);
+    }
+
+    const updatedUser = await db.user.update({
+      where: { id: user.userId },
+      data: updateData,
+    });
+
+    log.info('Profile updated', { userId: user.userId });
+
+    res.json({
+      success: true,
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        bio: updatedUser.bio,
+      },
+    });
+  })
+);
+```
+
+---
+
+## 📋 QUICK CHECKLIST FOR LLMs
+
+- [ ] Always use direct module imports (`@voilajsx/appkit/error`)
+- [ ] Always use `module.get()` pattern for system modules
+- [ ] Use semantic error types (`badRequest`, `unauthorized`, `forbidden`,
+      `notFound`, `serverError`)
+- [ ] Put session middleware BEFORE CSRF protection
+- [ ] Put error handling middleware LAST in Express
+- [ ] Wrap async routes with `err.asyncRoute()`
+- [ ] Always sanitize user input with `secure.input()` and `secure.html()`
+- [ ] Set required security environment variables
+- [ ] Use rate limiting on public endpoints
+- [ ] Encrypt sensitive data before storing in database
+- [ ] Log security events and errors with structured data
+
+# PART 5: PRODUCTION & TESTING - VERIFIED ACCURATE FOR LLMs
+
+## 🚀 LLM Quick Reference - Copy These Exact Patterns
+
+```javascript
+// Production deployment essentials - ALWAYS use these patterns
+import { configure } from '@voilajsx/appkit/config';
+import { logger } from '@voilajsx/appkit/logging';
+
+// Core pattern for production apps
+const config = configure.get();
+const log = logger.get('app');
+```
+
+---
+
+## ENVIRONMENT VALIDATION
+
+### When to Use
+
+✅ **All production applications, startup configuration, deployment scripts**  
+❌ **Runtime configuration changes, user preferences**
+
+### Core Pattern
+
+```javascript
+// ALWAYS validate environment at startup
+function validateProductionEnv() {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const required = ['VOILA_AUTH_SECRET', 'DATABASE_URL', 'REDIS_URL'];
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error('❌ Missing required environment variables:', missing);
+    process.exit(1);
+  }
+
+  console.log('✅ Production environment validated');
+}
+```
+
+### Essential Validation Patterns
+
+```javascript
+// 1. Startup validation (CRITICAL)
+function validateConfig() {
+  try {
+    const config = configure.get();
+
+    // Required for all environments
+    config.getRequired('database.url');
+    config.getRequired('auth.secret');
+
+    // Production-specific validation
+    if (configure.isProduction()) {
+      config.getRequired('redis.url');
+      config.getRequired('email.api.key');
+      config.getRequired('security.csrf.secret');
+    }
+
+    console.log('✅ Configuration validation passed');
+  } catch (error) {
+    console.error('❌ Configuration validation failed:', error.message);
+    process.exit(1);
+  }
+}
+
+// 2. Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    // Test critical services
+    const dbHealth = await database.health();
+    const cacheHealth = caching.hasRedis() ? await caching.ping() : true;
+
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: dbHealth.healthy,
+        cache: cacheHealth,
+        environment: configure.getEnvironment(),
+      },
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      error: error.message,
+    });
+  }
+});
+```
+
+---
+
+## GRACEFUL SHUTDOWN
+
+### When to Use
+
+✅ **All production applications, containerized deployments, process
+managers**  
+❌ **Development scripts, one-time utilities**
+
+### Core Pattern
+
+```javascript
+// ALWAYS implement graceful shutdown
+async function gracefulShutdown() {
+  console.log('🔄 Shutting down gracefully...');
+
+  try {
+    await database.disconnect();
+    await queue.close();
+    await logger.flush();
+
+    console.log('✅ Shutdown complete');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Shutdown error:', error);
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+```
+
+### Advanced Shutdown Pattern
+
+```javascript
+// Production-ready shutdown with timeout
+let shutdownInProgress = false;
+
+async function gracefulShutdown(signal) {
+  if (shutdownInProgress) return;
+  shutdownInProgress = true;
+
+  console.log(`🔄 Received ${signal}, shutting down gracefully...`);
+
+  const shutdown = async () => {
+    try {
+      // Close server first (stop accepting new connections)
+      if (server) {
+        await new Promise((resolve) => server.close(resolve));
+      }
+
+      // Close services in reverse dependency order
+      await queue.close(); // Stop processing jobs
+      await database.disconnect(); // Close DB connections
+      await logger.flush(); // Write remaining logs
+
+      console.log('✅ Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Shutdown error:', error);
+      process.exit(1);
+    }
+  };
+
+  // Force shutdown after timeout
+  const forceShutdown = setTimeout(() => {
+    console.error('⚠️ Force shutdown after timeout');
+    process.exit(1);
+  }, 10000); // 10 seconds
+
+  await shutdown();
+  clearTimeout(forceShutdown);
+}
+
+['SIGTERM', 'SIGINT', 'SIGUSR2'].forEach((signal) => {
+  process.on(signal, () => gracefulShutdown(signal));
+});
+```
+
+---
+
+## MODULE INITIALIZATION ORDER
+
+### Dependency Order (CRITICAL)
+
+```javascript
+// ALWAYS follow this exact order:
+// 1. Utils (no dependencies)
+// 2. Config (no dependencies)
+// 3. Logging (depends on Config)
+// 4. Error (depends on Config + Logging)
+// 5. Auth (depends on Config + Error)
+// 6. Security (depends on Config + Error)
+// 7. Database (depends on Config + Logging + Error)
+// 8. Cache (depends on Config + Logging)
+// 9. Storage (depends on Config + Logging + Error)
+// 10. Email (depends on Config + Logging + Error)
+// 11. Queue (depends on Config + Logging + Error)
+```
+
+### Safe Initialization Pattern
+
+```javascript
+async function initializeApp() {
+  try {
+    // 1. Core utilities first
+    const config = configure.get();
+    const log = logger.get('init');
+
+    // 2. Validate configuration
+    validateConfig();
+
+    // 3. Initialize database
+    const db = database.get();
+    const dbHealth = await db.$queryRaw`SELECT 1`;
+    log.info('Database connected');
+
+    // 4. Initialize other services
+    const cache = caching.get('app');
+    const queue = queuing.get();
+
+    log.info('✅ App initialized successfully');
+    return { config, log, db, cache, queue };
+  } catch (error) {
+    console.error('❌ App initialization failed:', error.message);
+    process.exit(1);
+  }
+}
+```
+
+---
+
+## TESTING PATTERNS
+
+### When to Use
+
+✅ **Unit tests, integration tests, CI/CD pipelines**  
+❌ **Production environments, manual testing only**
+
+### Module Reset Pattern
+
+```javascript
+import { utility, logger, caching, configure } from '@voilajsx/appkit';
+
+describe('App Tests', () => {
+  beforeEach(() => {
+    // Force test configuration
+    configure.reset({
+      database: { url: 'memory://test' },
+      cache: { strategy: 'memory' },
+      logging: { level: 'silent' },
+    });
+  });
+
+  afterEach(async () => {
+    // ALWAYS reset module state between tests
+    utility.clearCache();
+    await logger.clear();
+    await caching.clear();
+    configure.clearCache();
+  });
+
+  test('should process data safely', () => {
+    const utils = utility.get();
+    const result = utils.get({ user: { name: 'John' } }, 'user.name');
+    expect(result).toBe('John');
+  });
+});
+```
+
+### Database Testing Pattern
+
+```javascript
+describe('Database Tests', () => {
+  let db;
+
+  beforeAll(async () => {
+    // Set test database
+    configure.reset({
+      database: { url: 'memory://test' },
+    });
+    db = database.get();
+  });
+
+  beforeEach(async () => {
+    // Clean database before each test
+    await db.$executeRaw`TRUNCATE TABLE users, posts CASCADE`;
+  });
+
+  afterAll(async () => {
+    await database.disconnect();
+    configure.clearCache();
+  });
+
+  test('should create user', async () => {
+    const user = await db.user.create({
+      data: { email: 'test@example.com', name: 'Test' },
+    });
+    expect(user.email).toBe('test@example.com');
+  });
+});
+```
+
+---
+
+## PRODUCTION DEPLOYMENT
+
+### Environment Variables Checklist
+
+```bash
+# ✅ Framework (Required in production)
+NODE_ENV=production
+VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-minimum-32-chars
+VOILA_SECURITY_CSRF_SECRET=your-csrf-secret-key-minimum-32-chars
+VOILA_SECURITY_ENCRYPTION_KEY=64-char-hex-encryption-key-for-aes256
+
+# ✅ Services (Required)
+DATABASE_URL=postgresql://user:password@host:5432/database
+REDIS_URL=redis://user:password@host:6379
+
+# ✅ Email (Choose one)
+RESEND_API_KEY=re_your_api_key
+# OR SMTP_HOST=smtp.gmail.com
+
+# ✅ Storage (Choose one)
+CLOUDFLARE_R2_BUCKET=your-bucket
+# OR AWS_S3_BUCKET=your-bucket
+
+# ✅ Application
+APP_NAME=Your Production App
+APP_URL=https://yourapp.com
+```
+
+### Docker Deployment Pattern
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  app:
+    build: .
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/app
+      - REDIS_URL=redis://redis:6379
+      - VOILA_AUTH_SECRET=${VOILA_AUTH_SECRET}
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: app
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+---
+
+## ⚠️ COMMON LLM MISTAKES
+
+```javascript
+// ❌ WRONG - Missing startup validation
+app.listen(3000, () => {
+  console.log('Server started'); // No validation!
+});
+
+// ✅ CORRECT - Validate before starting
+validateConfig();
+initializeApp().then(() => {
+  app.listen(3000, () => {
+    console.log('✅ Server ready');
+  });
+});
+
+// ❌ WRONG - No graceful shutdown
+process.exit(0); // Abrupt shutdown
+
+// ✅ CORRECT - Graceful shutdown
+process.on('SIGTERM', gracefulShutdown);
+
+// ❌ WRONG - Wrong module initialization order
+const db = database.get();
+const config = configure.get(); // Should be first!
+
+// ✅ CORRECT - Proper order
+const config = configure.get();
 const log = logger.get();
+const db = database.get();
 
-// Application lifecycle
-app.listen(port, () => {
-  log.info('🚀 Application started', {
-    port,
-    environment: process.env.NODE_ENV,
-    version: process.env.npm_package_version,
-  });
+// ❌ WRONG - No test cleanup
+test('should work', () => {
+  // No cleanup between tests!
 });
 
-process.on('SIGTERM', () => {
-  log.info('📴 Application shutting down', { signal: 'SIGTERM' });
-  process.exit(0);
+// ✅ CORRECT - Proper test cleanup
+afterEach(async () => {
+  await logger.clear();
+  configure.clearCache();
 });
 
-// Error handling
-process.on('uncaughtException', (error) => {
-  log.error('💥 Uncaught exception', {
-    error: error.message,
-    stack: error.stack,
-  });
-  process.exit(1);
-});
+// ❌ WRONG - Missing required environment variables
+const dbUrl = process.env.DATABASE_URL; // Might be undefined
+
+// ✅ CORRECT - Validate required config
+const config = configure.get();
+const dbUrl = config.getRequired('database.url'); // Throws if missing
 ```
 
-#### **Component-Based Logging**
+---
 
-```typescript
-// Create component-specific loggers
-const authLog = logger.get('auth');
-const dbLog = logger.get('database');
-const apiLog = logger.get('api');
+## 🔄 COMPLETE PRODUCTION SETUP
 
-// Database operations
-dbLog.info('📊 Database connected', {
-  host: dbConfig.host,
-  database: dbConfig.database,
-});
+```javascript
+// Complete production application setup
+import express from 'express';
+import session from 'express-session';
+import { utility } from '@voilajsx/appkit/utils';
+import { configure } from '@voilajsx/appkit/config';
+import { logger } from '@voilajsx/appkit/logging';
+import { error } from '@voilajsx/appkit/error';
+import { authenticator } from '@voilajsx/appkit/auth';
+import { security } from '@voilajsx/appkit/security';
+import { database } from '@voilajsx/appkit/database';
 
-dbLog.warn('⚠️ Slow query detected', {
-  query: 'SELECT * FROM users',
-  duration: '2.3s',
-  table: 'users',
-});
+const app = express();
 
-// Authentication events
-authLog.info('✅ User login successful', {
-  userId: user.id,
-  email: user.email,
-  role: user.role,
-  ip: req.ip,
-  userAgent: req.headers['user-agent'],
-});
+// 1. Initialize core modules
+const utils = utility.get();
+const config = configure.get();
+const log = logger.get('app');
+const err = error.get();
+const auth = authenticator.get();
+const secure = security.get();
 
-authLog.warn('⚠️ Failed login attempt', {
-  email: attemptedEmail,
-  ip: req.ip,
-  reason: 'invalid_password',
-});
-```
+// 2. Startup validation
+function validateEnvironment() {
+  try {
+    config.getRequired('database.url');
+    config.getRequired('auth.secret');
 
-#### **Request Logging Middleware**
+    if (configure.isProduction()) {
+      config.getRequired('redis.url');
+      config.getRequired('security.csrf.secret');
+    }
 
-```typescript
-// Express middleware for request logging
+    log.info('✅ Environment validation passed');
+  } catch (error) {
+    log.error('❌ Environment validation failed', { error: error.message });
+    process.exit(1);
+  }
+}
+
+// 3. Application initialization
+async function initializeApp() {
+  validateEnvironment();
+
+  try {
+    const db = database.get();
+
+    // Test database connection
+    await db.$queryRaw`SELECT 1`;
+    log.info('Database connected successfully');
+
+    log.info('🚀 Application initialized', {
+      environment: configure.getEnvironment(),
+      port: config.get('server.port', 3000),
+    });
+  } catch (error) {
+    log.error('💥 Application initialization failed', { error: error.message });
+    process.exit(1);
+  }
+}
+
+// 4. Middleware setup (ORDER CRITICAL)
+app.use(express.json({ limit: '10mb' }));
+app.use(
+  session({
+    secret: config.getRequired('session.secret'),
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: configure.isProduction(),
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
+
+app.use(secure.forms()); // CSRF protection
+app.use('/api', secure.requests(100, 900000)); // Rate limiting
+
+// 5. Request logging
 app.use((req, res, next) => {
-  const requestId = req.headers['x-request-id'] || crypto.randomUUID();
-
-  // Create request-scoped logger
-  req.log = logger.get('api').child({
-    requestId,
+  req.requestId = utils.uuid();
+  req.log = log.child({
+    requestId: req.requestId,
     method: req.method,
     url: req.url,
-    userAgent: req.headers['user-agent'],
-    ip: req.ip,
   });
 
   const startTime = Date.now();
-
-  req.log.info('📨 Request started');
-
-  // Log response
   res.on('finish', () => {
-    const duration = Date.now() - startTime;
-
-    req.log.info('📤 Request completed', {
+    req.log.info('Request completed', {
       statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      contentLength: res.get('content-length'),
+      duration: Date.now() - startTime,
     });
   });
 
   next();
 });
 
-// Usage in routes
-app.get('/users/:id', async (req, res) => {
-  const { id } = req.params;
-
+// 6. Health check
+app.get('/health', async (req, res) => {
   try {
-    req.log.debug('Fetching user', { userId: id });
+    const db = database.get();
+    await db.$queryRaw`SELECT 1`;
 
-    const user = await db.getUser(id);
-    if (!user) {
-      req.log.warn('User not found', { userId: id });
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    req.log.info('User fetched successfully', {
-      userId: id,
-      userRole: user.role,
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: configure.getEnvironment(),
     });
-
-    res.json({ user });
   } catch (error) {
-    req.log.error('Failed to fetch user', {
-      userId: id,
+    res.status(503).json({
+      status: 'error',
       error: error.message,
-      stack: error.stack,
     });
-
-    res.status(500).json({ error: 'Internal server error' });
   }
 });
-```
 
-#### **Error Logging with Context**
+// 7. Application routes
+app.use('/api', routes);
 
-```typescript
-// Enhanced error logging
-class ErrorLogger {
-  static logError(error: Error, context: any = {}) {
-    const log = logger.get('error');
+// 8. Error handling (MUST BE LAST)
+app.use(err.handleErrors());
 
-    log.error('💥 Application error', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack,
-      ...context,
-    });
-  }
+// 9. Graceful shutdown
+async function gracefulShutdown(signal) {
+  log.info(`🔄 Received ${signal}, shutting down gracefully`);
 
-  static logApiError(error: Error, req: any) {
-    this.logError(error, {
-      method: req.method,
-      url: req.url,
-      userId: req.user?.id,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-    });
-  }
+  try {
+    await database.disconnect();
+    await logger.flush();
 
-  static logDatabaseError(error: Error, query: string) {
-    this.logError(error, {
-      type: 'database_error',
-      query: query.substring(0, 200), // Truncate long queries
-      database: process.env.DATABASE_NAME,
-    });
+    log.info('✅ Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    log.error('❌ Shutdown error', { error: error.message });
+    process.exit(1);
   }
 }
 
-// Usage
-try {
-  await db.updateUser(userId, userData);
-} catch (error) {
-  ErrorLogger.logDatabaseError(error, 'UPDATE users SET ...');
-  throw error;
-}
-```
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
-#### **Performance Monitoring**
+// 10. Start server
+const port = config.get('server.port', 3000);
+const host = config.get('server.host', '0.0.0.0');
 
-```typescript
-// Performance logging helper
-class PerformanceLogger {
-  private static timers = new Map();
-
-  static startTimer(operation: string, context: any = {}) {
-    const timerId = `${operation}_${Date.now()}_${Math.random()}`;
-    this.timers.set(timerId, {
-      operation,
-      context,
-      startTime: Date.now(),
+initializeApp()
+  .then(() => {
+    app.listen(port, host, () => {
+      log.info('🌟 Server ready', { port, host });
     });
-    return timerId;
-  }
-
-  static endTimer(timerId: string) {
-    const timer = this.timers.get(timerId);
-    if (!timer) return;
-
-    const duration = Date.now() - timer.startTime;
-    const log = logger.get('performance');
-
-    log.info('⏱️ Operation completed', {
-      operation: timer.operation,
-      duration: `${duration}ms`,
-      ...timer.context,
-    });
-
-    // Warn on slow operations
-    if (duration > 1000) {
-      log.warn('🐌 Slow operation detected', {
-        operation: timer.operation,
-        duration: `${duration}ms`,
-        ...timer.context,
-      });
-    }
-
-    this.timers.delete(timerId);
-  }
-}
-
-// Usage
-const timerId = PerformanceLogger.startTimer('database_query', {
-  table: 'users',
-  operation: 'SELECT',
-});
-
-const users = await db.getUsers();
-PerformanceLogger.endTimer(timerId);
-```
-
-### **Security Logging Patterns**
-
-```typescript
-// Security event logging
-const securityLog = logger.get('security');
-
-// ✅ SAFE: Log security events without sensitive data
-securityLog.warn('🔓 Authentication failed', {
-  ip: req.ip,
-  userAgent: req.headers['user-agent'],
-  attemptedEmail: email, // OK to log email
-  reason: 'invalid_password',
-  timestamp: new Date().toISOString(),
-});
-
-// ✅ SAFE: Log access patterns
-securityLog.info('🔑 Admin access granted', {
-  userId: user.id,
-  role: user.role,
-  action: 'user_management',
-  ip: req.ip,
-});
-
-// ❌ NEVER log sensitive data
-securityLog.error('Login attempt', {
-  password: plainTextPassword, // DANGEROUS
-  apiKey: req.headers.authorization, // DANGEROUS
-  creditCard: userData.payment.card, // DANGEROUS
-});
-
-// ✅ SAFE: Log payment events without sensitive data
-securityLog.info('💳 Payment processed', {
-  userId: user.id,
-  amount: payment.amount,
-  currency: payment.currency,
-  cardLast4: payment.card.last4, // Only last 4 digits
-  transactionId: payment.id,
-});
-```
-
-### **Environment Configuration**
-
-```bash
-# Basic logging
-VOILA_LOGGING_LEVEL=info               # debug, info, warn, error
-VOILA_LOGGING_CONSOLE=true             # Console output (default: true)
-
-# File logging
-VOILA_LOGGING_FILE=true                # File output (default: true)
-VOILA_LOGGING_DIR=./logs               # Log directory
-VOILA_LOGGING_FILE_SIZE=50000000       # 50MB rotation
-VOILA_LOGGING_FILE_RETENTION=30        # 30 days retention
-
-# Database logging (auto-enabled if DATABASE_URL exists)
-DATABASE_URL=postgres://user:pass@host/db
-
-# External service logging
-VOILA_LOGGING_HTTP_URL=https://logs.datadog.com/api/v1/logs
-
-# Slack notifications (errors only by default)
-VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/xxx
-VOILA_LOGGING_WEBHOOK_LEVEL=error
-
-# Service identification
-VOILA_SERVICE_NAME=my-app
-VOILA_SERVICE_VERSION=1.0.0
+  })
+  .catch((error) => {
+    log.error('💥 Server startup failed', { error: error.message });
+    process.exit(1);
+  });
 ```
 
 ---
 
-## 📁 Module 5: Storage - File Management
-
-### **When to Use Storage**
-
-```typescript
-// ✅ ALWAYS use for:
-// - User file uploads (avatars, documents)
-// - Static asset management
-// - Backup and archive storage
-// - Generated content (reports, exports)
-// - Media files (images, videos)
-// - Document management systems
-
-// ❌ DON'T use for:
-// - Database data storage
-// - Session storage
-// - Cache storage
-// - Configuration files
-// - Temporary processing files (use /tmp)
-```
-
-### **LLM Decision Tree**
-
-```
-User needs file storage?
-├─ File upload? → storage.put()
-├─ File download? → storage.get()
-├─ File deletion? → storage.delete()
-├─ File listing? → storage.list()
-├─ Public file access? → storage.url()
-├─ Private file access? → storage.signedUrl()
-├─ File existence check? → storage.exists()
-├─ File copying? → storage.copy()
-├─ Development/testing? → Local strategy (auto)
-├─ Production/scaling? → S3/R2 strategy (env vars)
-└─ Temporary files? → Use /tmp directory instead
-```
-
-### **Implementation Patterns**
-
-#### **File Upload Handling**
-
-```typescript
-import { store } from '@voilajsx/appkit/storage';
-import multer from 'multer';
-
-const storage = store.get();
-const upload = multer({ storage: multer.memoryStorage() });
-
-// Avatar upload endpoint
-app.post('/users/:id/avatar', upload.single('avatar'), async (req, res) => {
-  const { id } = req.params;
-  const file = req.file;
-
-  if (!file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-
-  try {
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return res.status(400).json({ error: 'Invalid file type' });
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      return res.status(400).json({ error: 'File too large' });
-    }
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const extension = file.originalname.split('.').pop();
-    const filename = `avatars/${id}/${timestamp}.${extension}`;
-
-    // Upload to storage
-    await storage.put(filename, file.buffer, {
-      contentType: file.mimetype,
-      metadata: {
-        userId: id,
-        originalName: file.originalname,
-        uploadedAt: new Date().toISOString(),
-      },
-    });
-
-    // Update user avatar URL
-    const avatarUrl = storage.url(filename);
-    await db.updateUser(id, { avatarUrl });
-
-    res.json({
-      success: true,
-      avatarUrl,
-      filename,
-    });
-  } catch (error) {
-    console.error('Avatar upload failed:', error);
-    res.status(500).json({ error: 'Upload failed' });
-  }
-});
-```
-
-#### **Document Management System**
-
-```typescript
-class DocumentManager {
-  private storage = store.get();
-
-  async uploadDocument(
-    file: Buffer,
-    metadata: {
-      userId: string;
-      category: string;
-      filename: string;
-      contentType: string;
-    }
-  ) {
-    const { userId, category, filename } = metadata;
-    const timestamp = Date.now();
-    const key = `documents/${userId}/${category}/${timestamp}-${filename}`;
-
-    await this.storage.put(key, file, {
-      contentType: metadata.contentType,
-      metadata: {
-        userId,
-        category,
-        originalName: filename,
-        uploadedAt: new Date().toISOString(),
-      },
-    });
-
-    return {
-      documentId: key,
-      url: this.storage.url(key),
-      category,
-      uploadedAt: new Date(),
-    };
-  }
-
-  async getUserDocuments(userId: string, category?: string) {
-    const prefix = category
-      ? `documents/${userId}/${category}/`
-      : `documents/${userId}/`;
-
-    const files = await this.storage.list(prefix);
-
-    return files.map((file) => ({
-      documentId: file.key,
-      filename: file.key.split('/').pop(),
-      category: file.key.split('/')[2],
-      size: file.size,
-      lastModified: file.lastModified,
-      url: this.storage.url(file.key),
-    }));
-  }
-
-  async generateShareLink(documentId: string, expiresInHours: number = 24) {
-    const expiresIn = expiresInHours * 3600; // Convert to seconds
-    const signedUrl = await this.storage.signedUrl(documentId, expiresIn);
-
-    return {
-      url: signedUrl,
-      expiresAt: new Date(Date.now() + expiresIn * 1000),
-      expiresInHours,
-    };
-  }
-
-  async deleteDocument(documentId: string) {
-    return await this.storage.delete(documentId);
-  }
-}
-
-// Usage
-const docManager = new DocumentManager();
-
-app.post('/documents', upload.single('document'), async (req, res) => {
-  const { category } = req.body;
-  const file = req.file;
-
-  const document = await docManager.uploadDocument(file.buffer, {
-    userId: req.user.id,
-    category,
-    filename: file.originalname,
-    contentType: file.mimetype,
-  });
-
-  res.json(document);
-});
-```
-
-#### **Image Processing Pipeline**
-
-```typescript
-import sharp from 'sharp';
-
-class ImageProcessor {
-  private storage = store.get();
-
-  async processAndStoreImage(
-    imageBuffer: Buffer,
-    basePath: string,
-    options: {
-      formats?: ('webp' | 'jpeg' | 'png')[];
-      sizes?: { name: string; width: number; height?: number }[];
-    } = {}
-  ) {
-    const {
-      formats = ['webp', 'jpeg'],
-      sizes = [
-        { name: 'thumb', width: 150, height: 150 },
-        { name: 'medium', width: 500 },
-        { name: 'large', width: 1200 },
-      ],
-    } = options;
-
-    const results = [];
-
-    // Process each size and format combination
-    for (const size of sizes) {
-      for (const format of formats) {
-        try {
-          let processor = sharp(imageBuffer).resize(size.width, size.height, {
-            fit: 'cover',
-            withoutEnlargement: true,
-          });
-
-          // Apply format-specific optimization
-          switch (format) {
-            case 'webp':
-              processor = processor.webp({ quality: 85 });
-              break;
-            case 'jpeg':
-              processor = processor.jpeg({ quality: 85, mozjpeg: true });
-              break;
-            case 'png':
-              processor = processor.png({ compressionLevel: 9 });
-              break;
-          }
-
-          const processedBuffer = await processor.toBuffer();
-          const filename = `${basePath}-${size.name}.${format}`;
-
-          await this.storage.put(filename, processedBuffer, {
-            contentType: `image/${format}`,
-            metadata: {
-              size: size.name,
-              format,
-              width: size.width,
-              height: size.height || 'auto',
-            },
-          });
-
-          results.push({
-            size: size.name,
-            format,
-            filename,
-            url: this.storage.url(filename),
-          });
-        } catch (error) {
-          console.error(`Failed to process ${size.name} ${format}:`, error);
-        }
-      }
-    }
-
-    return results;
-  }
-
-  async cleanupOldImages(basePath: string) {
-    const files = await this.storage.list(basePath);
-
-    for (const file of files) {
-      if (
-        file.key.includes('-thumb.') ||
-        file.key.includes('-medium.') ||
-        file.key.includes('-large.')
-      ) {
-        await this.storage.delete(file.key);
-      }
-    }
-  }
-}
-```
-
-#### **Backup and Archive System**
-
-```typescript
-class BackupManager {
-  private storage = store.get();
-
-  async createBackup(sourcePrefix: string) {
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const backupPrefix = `backups/${timestamp}/`;
-
-    const sourceFiles = await this.storage.list(sourcePrefix);
-    const backupResults = [];
-
-    for (const file of sourceFiles) {
-      try {
-        const fileData = await this.storage.get(file.key);
-        const backupKey = `${backupPrefix}${file.key}`;
-
-        await this.storage.put(backupKey, fileData, {
-          contentType: file.contentType,
-          metadata: {
-            originalKey: file.key,
-            backupDate: timestamp,
-            originalSize: file.size,
-          },
-        });
-
-        backupResults.push({
-          original: file.key,
-          backup: backupKey,
-          size: file.size,
-        });
-      } catch (error) {
-        console.error(`Failed to backup ${file.key}:`, error);
-      }
-    }
-
-    return {
-      backupDate: timestamp,
-      backupPrefix,
-      filesBackedUp: backupResults.length,
-      files: backupResults,
-    };
-  }
-
-  async cleanupOldBackups(retentionDays: number = 30) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-
-    const backups = await this.storage.list('backups/');
-
-    for (const backup of backups) {
-      const datePart = backup.key.split('/')[1]; // Extract date from backups/YYYY-MM-DD/...
-      const backupDate = new Date(datePart);
-
-      if (backupDate < cutoffDate) {
-        await this.storage.delete(backup.key);
-      }
-    }
-  }
-}
-```
-
-### **Environment Configuration**
-
-```bash
-# Local storage (development)
-# No configuration needed - auto-detected
-
-# AWS S3 (production)
-AWS_S3_BUCKET=my-app-storage
-AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-
-# Cloudflare R2 (recommended - zero egress fees)
-CLOUDFLARE_R2_BUCKET=my-app-storage
-CLOUDFLARE_ACCOUNT_ID=...
-CLOUDFLARE_R2_ACCESS_KEY_ID=...
-CLOUDFLARE_R2_SECRET_ACCESS_KEY=...
-
-# Custom domain for public URLs
-VOILA_STORAGE_PUBLIC_URL=https://cdn.myapp.com
-
-# Local storage customization
-VOILA_STORAGE_LOCAL_DIR=./uploads
-VOILA_STORAGE_LOCAL_BASE_URL=http://localhost:3000/uploads
-```
-
----
-
-## 🔄 Module 6: Queue - Background Processing
-
-### **When to Use Queue**
-
-```typescript
-// ✅ ALWAYS use for:
-// - Email sending (async)
-// - Image/video processing
-// - Data import/export operations
-// - Report generation
-// - Webhook delivery
-// - Notification sending
-// - Cleanup tasks
-// - Third-party API calls
-
-// ❌ DON'T use for:
-// - Real-time responses (use direct processing)
-// - Simple synchronous operations
-// - Database transactions that need immediate consistency
-// - User-facing operations that need instant feedback
-```
-
-### **LLM Decision Tree**
-
-```
-User needs background processing?
-├─ Send emails? → queue.add('email', data)
-├─ Process images? → queue.add('image-process', data)
-├─ Generate reports? → queue.add('report', data)
-├─ Send webhooks? → queue.add('webhook', data)
-├─ Cleanup tasks? → queue.add('cleanup', data)
-├─ Delayed execution? → queue.schedule(jobType, data, delay)
-├─ High priority task? → queue.add(type, data, { priority: 10 })
-├─ Job monitoring? → queue.getStats()
-├─ Development/testing? → Memory transport (auto)
-├─ Production/scaling? → Redis/Database transport (env vars)
-└─ Real-time processing? → Process directly, don't queue
-```
-
-### **Implementation Patterns**
-
-#### **Email Queue System**
-
-```typescript
-import { queuing } from '@voilajsx/appkit/queue';
-const queue = queuing.get();
-
-// Email processor
-queue.process('email', async (data) => {
-  const { to, subject, html, template, templateData } = data;
-
-  try {
-    if (template) {
-      // Send templated email
-      await emailService.sendTemplate(template, {
-        to,
-        subject,
-        data: templateData,
-      });
-    } else {
-      // Send regular email
-      await emailService.send({
-        to,
-        subject,
-        html,
-      });
-    }
-
-    return {
-      sent: true,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    throw error; // Will trigger retry
-  }
-});
-
-// Queue emails from application
-async function sendWelcomeEmail(user: any) {
-  await queue.add(
-    'email',
-    {
-      to: user.email,
-      template: 'welcome',
-      templateData: {
-        name: user.name,
-        loginUrl: `${process.env.APP_URL}/login`,
-      },
-    },
-    {
-      priority: 5, // Normal priority
-      attempts: 3, // Retry up to 3 times
-    }
-  );
-}
-
-async function sendPasswordReset(user: any, resetToken: string) {
-  await queue.add(
-    'email',
-    {
-      to: user.email,
-      template: 'password-reset',
-      templateData: {
-        name: user.name,
-        resetUrl: `${process.env.APP_URL}/reset?token=${resetToken}`,
-      },
-    },
-    {
-      priority: 8, // High priority
-      attempts: 5, // Important email, more retries
-    }
-  );
-}
-```
-
-#### **Image Processing Queue**
-
-```typescript
-// Image processing job
-queue.process('image-process', async (data) => {
-  const { imageUrl, userId, sizes = ['thumb', 'medium', 'large'] } = data;
-
-  try {
-    // Download original image
-    const response = await fetch(imageUrl);
-    const imageBuffer = await response.buffer();
-
-    const results = [];
-
-    // Process different sizes
-    for (const size of sizes) {
-      const processed = await processImageSize(imageBuffer, size);
-      const filename = `images/${userId}/${size}-${Date.now()}.webp`;
-
-      // Upload processed image
-      await storage.put(filename, processed, {
-        contentType: 'image/webp',
-      });
-
-      results.push({
-        size,
-        url: storage.url(filename),
-      });
-    }
-
-    // Update database with processed images
-    await db.updateUserImages(userId, results);
-
-    return {
-      processed: results.length,
-      images: results,
-    };
-  } catch (error) {
-    console.error('Image processing failed:', error);
-    throw error;
-  }
-});
-
-// Queue image processing
-app.post(
-  '/users/:id/upload-image',
-  upload.single('image'),
-  async (req, res) => {
-    const { id } = req.params;
-    const file = req.file;
-
-    // Store original image
-    const originalKey = `images/${id}/original-${Date.now()}.${file.originalname.split('.').pop()}`;
-    await storage.put(originalKey, file.buffer, {
-      contentType: file.mimetype,
-    });
-
-    // Queue processing
-    await queue.add(
-      'image-process',
-      {
-        imageUrl: storage.url(originalKey),
-        userId: id,
-        sizes: ['thumb', 'medium', 'large'],
-      },
-      {
-        priority: 3,
-        attempts: 2,
-      }
-    );
-
-    res.json({
-      message: 'Image uploaded, processing in background',
-      originalUrl: storage.url(originalKey),
-    });
-  }
-);
-```
-
-#### **Report Generation System**
-
-```typescript
-// Report generation job
-queue.process('report', async (data) => {
-  const { reportType, userId, filters, format = 'pdf' } = data;
-
-  try {
-    let reportData;
-
-    // Generate different types of reports
-    switch (reportType) {
-      case 'user-activity':
-        reportData = await generateUserActivityReport(userId, filters);
-        break;
-      case 'sales-summary':
-        reportData = await generateSalesReport(filters);
-        break;
-      case 'analytics':
-        reportData = await generateAnalyticsReport(filters);
-        break;
-      default:
-        throw new Error(`Unknown report type: ${reportType}`);
-    }
-
-    // Generate file based on format
-    let fileBuffer;
-    let contentType;
-    let extension;
-
-    switch (format) {
-      case 'pdf':
-        fileBuffer = await generatePDF(reportData);
-        contentType = 'application/pdf';
-        extension = 'pdf';
-        break;
-      case 'csv':
-        fileBuffer = Buffer.from(generateCSV(reportData));
-        contentType = 'text/csv';
-        extension = 'csv';
-        break;
-      case 'xlsx':
-        fileBuffer = await generateExcel(reportData);
-        contentType =
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-        extension = 'xlsx';
-        break;
-    }
-
-    // Store report file
-    const filename = `reports/${userId}/${reportType}-${Date.now()}.${extension}`;
-    await storage.put(filename, fileBuffer, { contentType });
-
-    // Generate signed URL for download
-    const downloadUrl = await storage.signedUrl(filename, 24 * 3600); // 24 hours
-
-    // Notify user that report is ready
-    await queue.add('email', {
-      to: await getUserEmail(userId),
-      template: 'report-ready',
-      templateData: {
-        reportType,
-        downloadUrl,
-        expiresIn: '24 hours',
-      },
-    });
-
-    return {
-      reportId: filename,
-      downloadUrl,
-      expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
-    };
-  } catch (error) {
-    console.error('Report generation failed:', error);
-
-    // Notify user of failure
-    await queue.add('email', {
-      to: await getUserEmail(userId),
-      template: 'report-failed',
-      templateData: { reportType },
-    });
-
-    throw error;
-  }
-});
-
-// API endpoint to request report
-app.post('/reports/generate', async (req, res) => {
-  const { reportType, filters, format } = req.body;
-  const userId = req.user.id;
-
-  // Queue report generation
-  const jobId = await queue.add(
-    'report',
-    {
-      reportType,
-      userId,
-      filters,
-      format,
-    },
-    {
-      priority: 1, // Low priority
-      attempts: 1, // Don't retry failed reports
-      removeOnComplete: 10, // Keep only 10 completed
-      removeOnFail: 50, // Keep 50 failed for debugging
-    }
-  );
-
-  res.json({
-    message: 'Report generation started',
-    jobId,
-    estimatedTime: '5-10 minutes',
-  });
-});
-```
-
-#### **Webhook Delivery System**
-
-```typescript
-// Webhook delivery job with retry logic
-queue.process('webhook', async (data) => {
-  const { url, payload, headers = {}, event } = data;
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'MyApp-Webhook/1.0',
-        'X-Event-Type': event,
-        'X-Delivery-ID': crypto.randomUUID(),
-        ...headers,
-      },
-      body: JSON.stringify(payload),
-      timeout: 30000, // 30 second timeout
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Webhook delivery failed: ${response.status} ${response.statusText}`
-      );
-    }
-
-    return {
-      delivered: true,
-      statusCode: response.status,
-      responseHeaders: Object.fromEntries(response.headers.entries()),
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    console.error('Webhook delivery failed:', error);
-    throw error; // Will trigger retry
-  }
-});
-
-// Send webhooks for various events
-async function sendWebhook(event: string, data: any) {
-  const webhookUrls = await getWebhookUrls(event);
-
-  for (const webhook of webhookUrls) {
-    await queue.add(
-      'webhook',
-      {
-        url: webhook.url,
-        payload: {
-          event,
-          data,
-          timestamp: new Date().toISOString(),
-          version: '1.0',
-        },
-        headers: webhook.headers,
-        event,
-      },
-      {
-        priority: 6, // Medium-high priority
-        attempts: 5, // Retry up to 5 times
-        backoff: 'exponential',
-      }
-    );
-  }
-}
-
-// Usage in application events
-app.post('/users', async (req, res) => {
-  const userData = req.body;
-
-  try {
-    const user = await db.createUser(userData);
-
-    // Send webhook notification
-    await sendWebhook('user.created', {
-      userId: user.id,
-      email: user.email,
-      createdAt: user.createdAt,
-    });
-
-    res.json({ user });
-  } catch (error) {
-    res.status(500).json({ error: 'User creation failed' });
-  }
-});
-```
-
-#### **Scheduled Jobs and Cleanup Tasks**
-
-```typescript
-// Cleanup job processor
-queue.process('cleanup', async (data) => {
-  const { type, params } = data;
-
-  try {
-    switch (type) {
-      case 'expired-tokens':
-        const deletedTokens = await db.deleteExpiredTokens();
-        return { deletedTokens };
-
-      case 'old-logs':
-        const retentionDays = params.retentionDays || 30;
-        const deletedLogs = await db.deleteOldLogs(retentionDays);
-        return { deletedLogs, retentionDays };
-
-      case 'unused-files':
-        const deletedFiles = await cleanupUnusedFiles();
-        return { deletedFiles };
-
-      case 'failed-jobs':
-        const stats = await queue.clean('failed', 24 * 60 * 60 * 1000); // 24 hours
-        return { cleanedJobs: stats };
-
-      default:
-        throw new Error(`Unknown cleanup type: ${type}`);
-    }
-  } catch (error) {
-    console.error(`Cleanup task failed: ${type}`, error);
-    throw error;
-  }
-});
-
-// Schedule recurring cleanup tasks
-async function scheduleCleanupTasks() {
-  // Clean expired tokens daily
-  await queue.schedule(
-    'cleanup',
-    {
-      type: 'expired-tokens',
-    },
-    24 * 60 * 60 * 1000
-  ); // 24 hours
-
-  // Clean old logs weekly
-  await queue.schedule(
-    'cleanup',
-    {
-      type: 'old-logs',
-      params: { retentionDays: 30 },
-    },
-    7 * 24 * 60 * 60 * 1000
-  ); // 7 days
-
-  // Clean unused files monthly
-  await queue.schedule(
-    'cleanup',
-    {
-      type: 'unused-files',
-    },
-    30 * 24 * 60 * 60 * 1000
-  ); // 30 days
-}
-
-// Initialize cleanup schedule on app startup
-app.listen(port, async () => {
-  await scheduleCleanupTasks();
-  console.log('Cleanup tasks scheduled');
-});
-```
-
-#### **Job Monitoring and Management**
-
-```typescript
-// Queue monitoring dashboard
-app.get('/admin/queue/stats', async (req, res) => {
-  try {
-    const stats = await queue.getStats();
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/admin/queue/jobs/:status', async (req, res) => {
-  const { status } = req.params;
-  const { limit = 50 } = req.query;
-
-  try {
-    const jobs = await queue.getJobs(status, { limit: parseInt(limit) });
-    res.json(jobs);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Retry failed job
-app.post('/admin/queue/jobs/:jobId/retry', async (req, res) => {
-  const { jobId } = req.params;
-
-  try {
-    await queue.retry(jobId);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Remove job
-app.delete('/admin/queue/jobs/:jobId', async (req, res) => {
-  const { jobId } = req.params;
-
-  try {
-    await queue.remove(jobId);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Clean old jobs
-app.post('/admin/queue/clean', async (req, res) => {
-  const { status, grace = 86400000 } = req.body; // Default 24 hours
-
-  try {
-    await queue.clean(status, grace);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-```
-
-#### **Advanced Job Options and Patterns**
-
-```typescript
-// High priority job
-await queue.add(
-  'critical-alert',
-  {
-    message: 'System overload detected',
-    severity: 'critical',
-  },
-  {
-    priority: 10, // Highest priority
-    attempts: 5, // More retries for critical tasks
-    backoff: 'exponential',
-  }
-);
-
-// Low priority batch job
-await queue.add(
-  'analytics-batch',
-  {
-    date: '2024-01-15',
-    type: 'daily-report',
-  },
-  {
-    priority: -5, // Lower priority
-    attempts: 1, // Don't retry batch jobs
-    removeOnComplete: 10, // Keep only 10 completed
-    removeOnFail: 50, // Keep 50 failed for debugging
-  }
-);
-
-// Job with custom retry strategy
-await queue.add(
-  'api-sync',
-  {
-    endpoint: 'https://api.partner.com/sync',
-    data: payload,
-  },
-  {
-    attempts: 3,
-    backoff: 'fixed', // Fixed delay between retries
-  }
-);
-
-// Scheduled job with priority
-const reminderDate = new Date('2024-12-25T09:00:00Z');
-const delay = reminderDate.getTime() - Date.now();
-
-await queue.schedule(
-  'holiday-reminder',
-  {
-    type: 'holiday',
-    message: 'Merry Christmas!',
-  },
-  delay
-);
-```
-
-### **Environment Configuration**
-
-```bash
-# Memory transport (development)
-# No configuration needed - auto-detected
-
-# Redis transport (production distributed)
-REDIS_URL=redis://localhost:6379
-
-# Database transport (persistent)
-DATABASE_URL=postgres://user:pass@localhost/db
-
-# Queue configuration
-VOILA_QUEUE_CONCURRENCY=5              # Concurrent jobs (default: 5)
-VOILA_QUEUE_MAX_ATTEMPTS=3             # Max retry attempts (default: 3)
-VOILA_QUEUE_RETRY_DELAY=5000           # Retry delay ms (default: 5000)
-VOILA_QUEUE_RETRY_BACKOFF=exponential  # fixed or exponential
-
-# Worker configuration
-VOILA_QUEUE_WORKER=true                # Enable worker (default: true)
-VOILA_QUEUE_REMOVE_COMPLETE=100        # Keep completed jobs (default: 100)
-VOILA_QUEUE_REMOVE_FAILED=50           # Keep failed jobs (default: 50)
-
-# Service identification
-VOILA_SERVICE_NAME=my-app
-VOILA_SERVICE_VERSION=1.0.0
-```
-
-### **Testing Queue Jobs**
-
-```typescript
-// Test utilities for queue jobs
-describe('Queue Jobs', () => {
-  beforeEach(async () => {
-    // Clear queue before each test
-    await queue.clear();
-  });
-
-  afterAll(async () => {
-    // Clean up after tests
-    await queue.close();
-  });
-
-  test('should process email job', async () => {
-    const emailData = {
-      to: 'test@example.com',
-      subject: 'Test Email',
-      html: '<p>Test content</p>',
-    };
-
-    // Add job
-    const jobId = await queue.add('email', emailData);
-
-    // Wait for job completion (in test environment)
-    const result = await waitForJobCompletion(jobId);
-
-    expect(result.sent).toBe(true);
-    expect(result.timestamp).toBeDefined();
-  });
-
-  test('should retry failed jobs', async () => {
-    // Mock a failing service
-    emailService.send = jest
-      .fn()
-      .mockRejectedValueOnce(new Error('Service down'))
-      .mockResolvedValueOnce({ sent: true });
-
-    const jobId = await queue.add(
-      'email',
-      {
-        to: 'test@example.com',
-        subject: 'Test',
-      },
-      { attempts: 2 }
-    );
-
-    const result = await waitForJobCompletion(jobId);
-
-    expect(emailService.send).toHaveBeenCalledTimes(2);
-    expect(result.sent).toBe(true);
-  });
-});
-```
+## 📋 QUICK CHECKLIST FOR LLMs
+
+- [ ] Always validate environment variables at startup
+- [ ] Follow exact module initialization order (Utils → Config → Logging → etc.)
+- [ ] Implement graceful shutdown for all production apps
+- [ ] Reset module state between tests (`utility.clearCache()`, etc.)
+- [ ] Use health check endpoints for monitoring
+- [ ] Set up proper middleware order (session → CSRF → rate limiting → error
+      handling)
+- [ ] Test database connections before starting server
+- [ ] Use structured logging with request IDs
+- [ ] Handle Docker signals properly (SIGTERM, SIGINT)
+- [ ] Set all required environment variables for production

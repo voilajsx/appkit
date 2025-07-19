@@ -211,6 +211,106 @@ export function validateProductionRequirements() {
     }
 }
 /**
+ * Validates startup configuration and throws detailed errors
+ * @llm-rule WHEN: App startup to ensure event configuration is valid before starting
+ * @llm-rule AVOID: Skipping validation - catches config issues early
+ * @llm-rule NOTE: Comprehensive validation for production readiness
+ */
+export function validateStartupConfiguration() {
+    const warnings = [];
+    const errors = [];
+    try {
+        const config = getSmartDefaults();
+        const strategy = config.strategy;
+        // Strategy-specific validation
+        switch (strategy) {
+            case 'redis':
+                if (!config.redis?.url) {
+                    errors.push('REDIS_URL is required for Redis strategy');
+                }
+                else if (!isValidRedisUrl(config.redis.url)) {
+                    errors.push('REDIS_URL must start with redis:// or rediss://');
+                }
+                break;
+            case 'memory':
+                if (config.environment.isProduction) {
+                    warnings.push('Memory strategy in production - events will not work across servers');
+                }
+                break;
+        }
+        // Namespace validation
+        if (!config.namespace || config.namespace === 'default') {
+            if (config.environment.isProduction) {
+                warnings.push('Using default namespace in production - consider setting VOILA_EVENT_NAMESPACE');
+            }
+        }
+        // Environment-specific warnings
+        if (config.environment.isProduction && strategy === 'memory') {
+            warnings.push('No Redis configured for distributed events in production');
+        }
+        if (config.environment.isDevelopment && strategy === 'redis') {
+            warnings.push('Using Redis in development - memory strategy is faster for local development');
+        }
+        return {
+            strategy,
+            warnings,
+            errors,
+            ready: errors.length === 0,
+        };
+    }
+    catch (error) {
+        errors.push(`Configuration validation failed: ${error.message}`);
+        return {
+            strategy: 'unknown',
+            warnings,
+            errors,
+            ready: false,
+        };
+    }
+}
+/**
+ * Performs comprehensive event system health check
+ * @llm-rule WHEN: Health check endpoints or monitoring systems
+ * @llm-rule AVOID: Running in critical path - this is for monitoring only
+ * @llm-rule NOTE: Returns detailed health status without exposing sensitive data
+ */
+export function performHealthCheck() {
+    const issues = [];
+    let status = 'healthy';
+    try {
+        const validation = validateStartupConfiguration();
+        // Determine overall status
+        if (validation.errors.length > 0) {
+            status = 'error';
+            issues.push(...validation.errors);
+        }
+        else if (validation.warnings.length > 0) {
+            status = 'warning';
+            issues.push(...validation.warnings);
+        }
+        const configured = validation.strategy !== 'memory' ||
+            process.env.NODE_ENV !== 'production';
+        return {
+            status,
+            strategy: validation.strategy,
+            configured,
+            issues,
+            ready: validation.ready,
+            timestamp: new Date().toISOString(),
+        };
+    }
+    catch (error) {
+        return {
+            status: 'error',
+            strategy: 'unknown',
+            configured: false,
+            issues: [`Health check failed: ${error.message}`],
+            ready: false,
+            timestamp: new Date().toISOString(),
+        };
+    }
+}
+/**
  * Gets optimal event configuration for different environments
  * @llm-rule WHEN: Setting up environment-specific event behavior
  * @llm-rule AVOID: Manual environment handling - this provides optimal defaults

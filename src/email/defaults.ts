@@ -400,3 +400,141 @@ export function validateProductionRequirements(): void {
     }
   }
 }
+
+/**
+ * Validates startup configuration and throws detailed errors
+ * @llm-rule WHEN: App startup to ensure email configuration is valid before starting
+ * @llm-rule AVOID: Skipping validation - catches config issues early
+ * @llm-rule NOTE: Comprehensive validation for production readiness
+ */
+export function validateStartupConfiguration(): {
+  strategy: string;
+  warnings: string[];
+  errors: string[];
+  ready: boolean;
+} {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  
+  try {
+    const config = getSmartDefaults();
+    const strategy = config.strategy;
+    
+    // Strategy-specific validation
+    switch (strategy) {
+      case 'resend':
+        if (!config.resend?.apiKey) {
+          errors.push('RESEND_API_KEY is required for Resend strategy');
+        } else if (!config.resend.apiKey.startsWith('re_')) {
+          errors.push('RESEND_API_KEY must start with "re_"');
+        }
+        break;
+        
+      case 'smtp':
+        if (!config.smtp?.host) {
+          errors.push('SMTP_HOST is required for SMTP strategy');
+        }
+        if (config.smtp?.auth.user && !config.smtp?.auth.pass) {
+          errors.push('SMTP_PASS is required when SMTP_USER is set');
+        }
+        if (!config.smtp?.auth.user && config.smtp?.auth.pass) {
+          errors.push('SMTP_USER is required when SMTP_PASS is set');
+        }
+        break;
+        
+      case 'console':
+        if (config.environment.isProduction) {
+          warnings.push('Console strategy in production - emails will only be logged');
+        }
+        break;
+    }
+    
+    // FROM email validation
+    if (!config.from.email || config.from.email.includes('example.com')) {
+      if (config.environment.isProduction) {
+        errors.push('VOILA_EMAIL_FROM_EMAIL must be set in production');
+      } else {
+        warnings.push('VOILA_EMAIL_FROM_EMAIL not configured - using default');
+      }
+    }
+    
+    // Environment-specific warnings
+    if (config.environment.isProduction && strategy === 'console') {
+      warnings.push('No real email provider configured in production');
+    }
+    
+    if (config.environment.isDevelopment && strategy !== 'console') {
+      warnings.push('Using real email provider in development');
+    }
+    
+    return {
+      strategy,
+      warnings,
+      errors,
+      ready: errors.length === 0,
+    };
+    
+  } catch (error) {
+    errors.push(`Configuration validation failed: ${(error as Error).message}`);
+    
+    return {
+      strategy: 'unknown',
+      warnings,
+      errors,
+      ready: false,
+    };
+  }
+}
+
+/**
+ * Performs comprehensive email system health check
+ * @llm-rule WHEN: Health check endpoints or monitoring systems
+ * @llm-rule AVOID: Running in critical path - this is for monitoring only
+ * @llm-rule NOTE: Returns detailed health status without exposing sensitive data
+ */
+export function performHealthCheck(): {
+  status: 'healthy' | 'warning' | 'error';
+  strategy: string;
+  configured: boolean;
+  issues: string[];
+  ready: boolean;
+  timestamp: string;
+} {
+  const issues: string[] = [];
+  let status: 'healthy' | 'warning' | 'error' = 'healthy';
+  
+  try {
+    const validation = validateStartupConfiguration();
+    
+    // Determine overall status
+    if (validation.errors.length > 0) {
+      status = 'error';
+      issues.push(...validation.errors);
+    } else if (validation.warnings.length > 0) {
+      status = 'warning';
+      issues.push(...validation.warnings);
+    }
+    
+    const configured = validation.strategy !== 'console' || 
+                      process.env.NODE_ENV !== 'production';
+    
+    return {
+      status,
+      strategy: validation.strategy,
+      configured,
+      issues,
+      ready: validation.ready,
+      timestamp: new Date().toISOString(),
+    };
+    
+  } catch (error) {
+    return {
+      status: 'error',
+      strategy: 'unknown',
+      configured: false,
+      issues: [`Health check failed: ${(error as Error).message}`],
+      ready: false,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}

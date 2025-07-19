@@ -107,6 +107,265 @@ const userFiles = await storage.list('users/123/');
 const productGallery = await storage.list('products/456/gallery/');
 ```
 
+## 🤖 LLM Quick Reference - Copy These Patterns
+
+### **Basic Storage Setup (Copy Exactly)**
+
+```typescript
+// ✅ CORRECT - Complete storage setup
+import { store } from '@voilajsx/appkit/storage';
+const storage = store.get();
+
+// Upload files
+await storage.put('folder/file.jpg', buffer);
+const data = await storage.get('folder/file.jpg');
+await storage.delete('folder/file.jpg');
+
+// URL generation
+const publicUrl = storage.url('file.jpg');
+const signedUrl = await storage.signedUrl('private.pdf', 3600);
+
+// File organization
+const files = await storage.list('images/');
+const exists = await storage.exists('document.pdf');
+```
+
+### **Helper Methods (Copy These)**
+
+```typescript
+// ✅ Quick upload with auto-naming
+const { key, url } = await store.upload(buffer, {
+  folder: 'uploads',
+  filename: 'document.pdf',
+});
+
+// ✅ Quick download with content type
+const { data, contentType } = await store.download('file.jpg');
+
+// ✅ Strategy detection
+const strategy = store.getStrategy(); // 'local' | 's3' | 'r2'
+const isCloud = store.hasCloudStorage(); // true if S3/R2
+```
+
+### **Error Handling (Copy This Pattern)**
+
+```typescript
+// ✅ CORRECT - Comprehensive error handling
+try {
+  await storage.put('file.jpg', buffer);
+  console.log('✅ File uploaded successfully');
+} catch (error) {
+  if (error.message.includes('File too large')) {
+    return res.status(413).json({ error: 'File size limit exceeded' });
+  }
+  if (error.message.includes('File type not allowed')) {
+    return res.status(400).json({ error: 'Invalid file type' });
+  }
+  console.error('❌ Upload failed:', error.message);
+  return res.status(500).json({ error: 'Upload failed' });
+}
+```
+
+## ⚠️ Common LLM Mistakes - Avoid These
+
+### **Wrong Storage Usage**
+
+```typescript
+// ❌ WRONG - Don't create StorageClass directly
+import { StorageClass } from '@voilajsx/appkit/storage';
+const storage = new StorageClass(config); // Wrong!
+
+// ❌ WRONG - Missing await
+storage.put('file.jpg', buffer); // Missing await!
+
+// ❌ WRONG - Invalid keys
+await storage.put('/file.jpg', buffer); // Leading slash
+await storage.put('folder/../file.jpg', buffer); // Path traversal
+await storage.put('folder\\file.jpg', buffer); // Backslashes
+
+// ✅ CORRECT - Use store.get()
+import { store } from '@voilajsx/appkit/storage';
+const storage = store.get();
+await storage.put('folder/file.jpg', buffer);
+```
+
+### **Wrong Error Handling**
+
+```typescript
+// ❌ WRONG - Ignoring errors
+await storage.put('file.jpg', buffer); // No try-catch
+
+// ❌ WRONG - Generic error handling
+try {
+  await storage.put('file.jpg', buffer);
+} catch (error) {
+  res.status(500).json({ error: 'Something went wrong' });
+}
+
+// ✅ CORRECT - Specific error handling
+try {
+  await storage.put('file.jpg', buffer);
+} catch (error) {
+  if (error.message.includes('File too large')) {
+    return res.status(413).json({
+      error: 'File too large',
+      maxSize: '50MB',
+    });
+  }
+  throw error;
+}
+```
+
+### **Wrong Testing**
+
+```typescript
+// ❌ WRONG - No cleanup between tests
+test('should upload file', async () => {
+  await storage.put('test.jpg', buffer);
+  // Missing: await store.clear();
+});
+
+// ✅ CORRECT - Proper test cleanup
+afterEach(async () => {
+  await store.clear(); // Essential for tests
+});
+```
+
+## 🚨 Error Handling Patterns
+
+### **File Upload API**
+
+```typescript
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Validate file size (optional - storage handles this)
+    if (req.file.size > 50 * 1024 * 1024) {
+      // 50MB
+      return res.status(413).json({
+        error: 'File too large',
+        maxSize: '50MB',
+      });
+    }
+
+    const key = `uploads/${Date.now()}-${req.file.originalname}`;
+
+    await storage.put(key, req.file.buffer, {
+      contentType: req.file.mimetype,
+    });
+
+    const url = storage.url(key);
+
+    res.json({
+      success: true,
+      file: { key, url, size: req.file.size },
+    });
+  } catch (error) {
+    if (error.message.includes('File type not allowed')) {
+      return res.status(400).json({
+        error: 'Invalid file type',
+        allowed: 'jpg, png, pdf, txt',
+      });
+    }
+
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+```
+
+### **File Download API**
+
+```typescript
+app.get('/files/:key(*)', async (req, res) => {
+  try {
+    const key = req.params.key;
+
+    if (!(await storage.exists(key))) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const buffer = await storage.get(key);
+
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${key.split('/').pop()}"`
+    );
+
+    res.send(buffer);
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'Download failed' });
+  }
+});
+```
+
+### **Startup Validation**
+
+```typescript
+// ✅ App startup validation
+try {
+  store.validateConfig();
+  console.log('✅ Storage validation passed');
+} catch (error) {
+  console.error('❌ Storage validation failed:', error.message);
+  process.exit(1);
+}
+```
+
+## 🔒 Security & Production
+
+### **File Type Security**
+
+```bash
+# ✅ SECURE - Specific file types only
+VOILA_STORAGE_ALLOWED_TYPES=image/jpeg,image/png,application/pdf,text/plain
+
+# ⚠️ DEVELOPMENT ONLY - All file types
+VOILA_STORAGE_ALLOWED_TYPES=*
+
+# ✅ SECURE - File size limits
+VOILA_STORAGE_MAX_SIZE=52428800  # 50MB limit
+```
+
+### **Production Checklist**
+
+- ✅ **Cloud Storage**: Set `AWS_S3_BUCKET` or `CLOUDFLARE_R2_BUCKET`
+- ✅ **File Types**: Set `VOILA_STORAGE_ALLOWED_TYPES` (never use `*`)
+- ✅ **Size Limits**: Set reasonable `VOILA_STORAGE_MAX_SIZE`
+- ✅ **CDN**: Set `VOILA_STORAGE_CDN_URL` for performance
+- ✅ **Error Handling**: Implement proper error responses
+- ✅ **Monitoring**: Log upload/download operations
+
+### **Security Validation**
+
+```typescript
+// File type validation (automatic)
+try {
+  await storage.put('malicious.exe', buffer);
+} catch (error) {
+  // Error: File type not allowed: application/x-executable
+}
+
+// File size validation (automatic)
+try {
+  await storage.put('huge.zip', massiveBuffer);
+} catch (error) {
+  // Error: File too large: 100MB (max: 50MB)
+}
+
+// Path traversal prevention (automatic)
+try {
+  await storage.put('../../../etc/passwd', buffer);
+} catch (error) {
+  // Error: Storage key contains invalid path components
+}
+```
+
 ## 📖 Complete API Reference
 
 ### Core Function
@@ -559,64 +818,6 @@ VOILA_STORAGE_SIGNED_EXPIRY=3600              # 1 hour default
 VOILA_STORAGE_CDN_URL=https://cdn.example.com # For any strategy
 ```
 
-### Provider-Specific Examples
-
-#### **Cloudflare R2**
-
-```bash
-# R2 with custom domain
-CLOUDFLARE_R2_BUCKET=my-assets
-CLOUDFLARE_ACCOUNT_ID=abc123
-CLOUDFLARE_R2_ACCESS_KEY_ID=access_key
-CLOUDFLARE_R2_SECRET_ACCESS_KEY=secret_key
-CLOUDFLARE_R2_CDN_URL=https://assets.myapp.com
-```
-
-#### **AWS S3**
-
-```bash
-# Standard AWS S3
-AWS_S3_BUCKET=my-app-assets
-AWS_ACCESS_KEY_ID=AKIA...
-AWS_SECRET_ACCESS_KEY=secret...
-AWS_REGION=us-west-2
-VOILA_STORAGE_CDN_URL=https://d123456.cloudfront.net
-```
-
-#### **Wasabi**
-
-```bash
-# Wasabi S3-compatible
-AWS_S3_BUCKET=my-wasabi-bucket
-AWS_ACCESS_KEY_ID=wasabi_key
-AWS_SECRET_ACCESS_KEY=wasabi_secret
-S3_ENDPOINT=https://s3.us-east-1.wasabisys.com
-AWS_REGION=us-east-1
-```
-
-#### **MinIO**
-
-```bash
-# Self-hosted MinIO
-AWS_S3_BUCKET=my-bucket
-AWS_ACCESS_KEY_ID=minioadmin
-AWS_SECRET_ACCESS_KEY=minioadmin
-S3_ENDPOINT=http://localhost:9000
-S3_FORCE_PATH_STYLE=true
-```
-
-#### **DigitalOcean Spaces**
-
-```bash
-# DigitalOcean Spaces
-AWS_S3_BUCKET=my-space
-AWS_ACCESS_KEY_ID=do_key
-AWS_SECRET_ACCESS_KEY=do_secret
-S3_ENDPOINT=https://nyc3.digitaloceanspaces.com
-AWS_REGION=us-east-1
-VOILA_STORAGE_CDN_URL=https://my-space.nyc3.cdn.digitaloceanspaces.com
-```
-
 ## 🔄 Development vs Production
 
 ### **Development Mode**
@@ -720,102 +921,6 @@ describe('Storage with Local Strategy', () => {
     await fs.rm('./test-uploads', { recursive: true, force: true });
   });
 });
-```
-
-## 🤖 LLM Guidelines
-
-### **Essential Patterns**
-
-```typescript
-// ✅ ALWAYS use these patterns
-import { store } from '@voilajsx/appkit/storage';
-const storage = store.get();
-
-// ✅ File operations
-await storage.put('folder/file.jpg', buffer);
-const data = await storage.get('folder/file.jpg');
-await storage.delete('folder/file.jpg');
-
-// ✅ URL generation
-const publicUrl = storage.url('file.jpg');
-const signedUrl = await storage.signedUrl('private.pdf', 3600);
-
-// ✅ File organization
-const files = await storage.list('images/');
-const exists = await storage.exists('document.pdf');
-
-// ✅ Helper methods for quick operations
-const { key, url } = await store.upload(buffer, {
-  folder: 'uploads',
-  filename: 'document.pdf',
-});
-```
-
-### **Anti-Patterns to Avoid**
-
-```typescript
-// ❌ DON'T create StorageClass directly
-import { StorageClass } from '@voilajsx/appkit/storage';
-const storage = new StorageClass(config); // Wrong!
-
-// ❌ DON'T forget to handle async operations
-storage.put('file.jpg', buffer); // Missing await!
-
-// ❌ DON'T use invalid keys
-await storage.put('/file.jpg', buffer); // Leading slash
-await storage.put('folder/../file.jpg', buffer); // Path traversal
-await storage.put('folder\\file.jpg', buffer); // Backslashes
-
-// ❌ DON'T ignore file size limits
-// Check file size before upload for large files
-
-// ❌ DON'T forget cleanup in tests
-test('my test', () => {
-  // ... test code
-  // Missing: await store.clear();
-});
-
-// ❌ DON'T hardcode storage strategy
-if (storage.getStrategy() === 'local') {
-} // Use storage methods instead
-```
-
-### **Common Patterns**
-
-```typescript
-// File upload with validation
-const maxSize = 10 * 1024 * 1024; // 10MB
-if (buffer.length > maxSize) {
-  throw new Error('File too large');
-}
-
-await storage.put(`uploads/${userId}/${filename}`, buffer, {
-  contentType: mimeType,
-  metadata: {
-    userId,
-    uploadedAt: new Date().toISOString(),
-  },
-});
-
-// Image processing workflow
-const originalKey = await storage.put('originals/image.jpg', buffer);
-const thumbnailBuffer = await processImage(buffer, { width: 150 });
-const thumbnailKey = await storage.put('thumbnails/image.jpg', thumbnailBuffer);
-
-// Document sharing
-const signedUrl = await storage.signedUrl('documents/secret.pdf', 3600);
-const shareLink = {
-  url: signedUrl,
-  expiresAt: new Date(Date.now() + 3600 * 1000),
-};
-
-// Batch operations
-const files = await storage.list('temp/');
-for (const file of files) {
-  if (file.lastModified < cutoffDate) {
-    await storage.delete(file.key);
-  }
-}
 ```
 
 ## 📈 Performance

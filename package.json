@@ -1,22 +1,39 @@
 {
   "name": "@voilajsx/appkit",
-  "version": "1.0.16",
+  "version": "1.1.0",
   "description": "A minimal, framework-agnostic Node.js application toolkit",
   "main": "dist/index.js",
   "type": "module",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
     "./auth": {
       "types": "./dist/auth/index.d.ts",
       "default": "./dist/auth/index.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "default": "./dist/config/index.js"
+    },
+    "./security": {
+      "types": "./dist/security/index.d.ts",
+      "default": "./dist/security/index.js"
     },
     "./database": {
       "types": "./dist/database/index.d.ts",
       "default": "./dist/database/index.js"
     },
-    "./security": {
-      "types": "./dist/security/index.d.ts",
-      "default": "./dist/security/index.js"
+    "./cache": {
+      "types": "./dist/cache/index.d.ts",
+      "default": "./dist/cache/index.js"
+    },
+    "./email": {
+      "types": "./dist/email/index.d.ts",
+      "default": "./dist/email/index.js"
     },
     "./error": {
       "types": "./dist/error/index.d.ts",
@@ -26,13 +43,20 @@
       "types": "./dist/logging/index.d.ts",
       "default": "./dist/logging/index.js"
     },
-    "./config": {
-      "types": "./dist/config/index.d.ts",
-      "default": "./dist/config/index.js"
+    "./queue": {
+      "types": "./dist/queue/index.d.ts",
+      "default": "./dist/queue/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "default": "./dist/storage/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
     }
   },
   "files": [
-    "types/",
     "dist/",
     "README.md",
     "LICENSE"
@@ -46,7 +70,7 @@
     "format": "prettier --write 'src/**/*.js'",
     "build": "tsc",
     "build:types": "tsc",
-    "prepublishOnly": "npm test && npm run build:types",
+    "prepublishOnly": "npm test && npm run build",
     "version": "npm test",
     "build:docs": "node scripts/build-docs.js",
     "deploy:docs": "node scripts/build-docs.js && node scripts/deploy-docs.js",
@@ -96,7 +120,10 @@
     "utilities",
     "express",
     "middleware",
-    "error-handling"
+    "error-handling",
+    "tree-shaking",
+    "esm",
+    "typescript"
   ],
   "author": "VoilaJS",
   "contributors": [
@@ -109,24 +136,52 @@
   "creator": "Krishna Teja GS",
   "license": "MIT",
   "dependencies": {
-    "@fastify/cookie": "^11.0.2",
-    "@fastify/formbody": "^8.0.2",
-    "@fastify/helmet": "^13.0.1",
-    "@fastify/session": "^11.1.0",
-    "@voilajsx/appkit": "github:voilajsx/appkit",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.6.1",
-    "express-session": "^1.18.1",
-    "fastify": "^5.3.3",
     "ioredis": "^5.6.1",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.0"
+    "jsonwebtoken": "^9.0.2"
+  },
+  "peerDependencies": {
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/formbody": "^8.0.0",
+    "@fastify/helmet": "^13.0.0",
+    "@fastify/session": "^11.0.0",
+    "express": "^4.0.0 || ^5.0.0",
+    "express-session": "^1.18.0",
+    "fastify": "^4.0.0 || ^5.0.0",
+    "multer": "^1.0.0 || ^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@fastify/cookie": {
+      "optional": true
+    },
+    "@fastify/formbody": {
+      "optional": true
+    },
+    "@fastify/helmet": {
+      "optional": true
+    },
+    "@fastify/session": {
+      "optional": true
+    },
+    "express": {
+      "optional": true
+    },
+    "express-session": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "multer": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.0.8",
+    "@types/node": "^18.0.0",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.10.0",
     "@vitest/coverage-v8": "^3.1.3",
@@ -155,7 +210,7 @@
     "sqlite3": "^5.1.6"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",

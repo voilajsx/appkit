@@ -147,9 +147,9 @@ function detectStorageStrategy(): 'local' | 's3' | 'r2' {
 }
 
 /**
- * Parse allowed file types from environment
+ * Parse allowed file types from environment with safe defaults
  * @llm-rule WHEN: Setting up file type restrictions for security
- * @llm-rule AVOID: Allowing all file types - security risk
+ * @llm-rule AVOID: Allowing all file types in production - security risk
  */
 function parseAllowedTypes(): string[] {
   const envTypes = process.env.VOILA_STORAGE_ALLOWED_TYPES;
@@ -165,6 +165,12 @@ function parseAllowedTypes(): string[] {
   }
 
   if (envTypes === '*') {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[VoilaJSX AppKit] SECURITY WARNING: All file types allowed in production. ' +
+        'Set VOILA_STORAGE_ALLOWED_TYPES to specific types for security.'
+      );
+    }
     return ['*']; // Allow all types (use with caution)
   }
 

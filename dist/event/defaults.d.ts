@@ -65,6 +65,32 @@ export declare function getConfigSummary(): {
  */
 export declare function validateProductionRequirements(): void;
 /**
+ * Validates startup configuration and throws detailed errors
+ * @llm-rule WHEN: App startup to ensure event configuration is valid before starting
+ * @llm-rule AVOID: Skipping validation - catches config issues early
+ * @llm-rule NOTE: Comprehensive validation for production readiness
+ */
+export declare function validateStartupConfiguration(): {
+    strategy: string;
+    warnings: string[];
+    errors: string[];
+    ready: boolean;
+};
+/**
+ * Performs comprehensive event system health check
+ * @llm-rule WHEN: Health check endpoints or monitoring systems
+ * @llm-rule AVOID: Running in critical path - this is for monitoring only
+ * @llm-rule NOTE: Returns detailed health status without exposing sensitive data
+ */
+export declare function performHealthCheck(): {
+    status: 'healthy' | 'warning' | 'error';
+    strategy: string;
+    configured: boolean;
+    issues: string[];
+    ready: boolean;
+    timestamp: string;
+};
+/**
  * Gets optimal event configuration for different environments
  * @llm-rule WHEN: Setting up environment-specific event behavior
  * @llm-rule AVOID: Manual environment handling - this provides optimal defaults
