@@ -124,30 +124,30 @@ and logging. **Zero configuration needed.**
 
 ### **🔧 Core Infrastructure**
 
-| Module                    | Purpose                            | AI-Optimized Features                    |
-| ------------------------- | ---------------------------------- | ---------------------------------------- |
-| **[Auth](/auth)**         | JWT tokens, role-based permissions | Semantic role hierarchy, auto-middleware |
-| **[Database](/database)** | Multi-tenant, progressive scaling  | Auto-tenant filtering, org management    |
-| **[Security](/security)** | CSRF, rate limiting, encryption    | Enterprise-grade by default              |
-| **[Error](/error)**       | HTTP status codes, semantic errors | Framework-agnostic middleware            |
+| Module                                  | Purpose                            | AI-Optimized Features                    |
+| --------------------------------------- | ---------------------------------- | ---------------------------------------- |
+| **[Auth](/src/auth/README.md)**         | JWT tokens, role-based permissions | Semantic role hierarchy, auto-middleware |
+| **[Database](/src/database/README.md)** | Multi-tenant, progressive scaling  | Auto-tenant filtering, org management    |
+| **[Security](/src/security/README.md)** | CSRF, rate limiting, encryption    | Enterprise-grade by default              |
+| **[Error](/src/error/README.md)**       | HTTP status codes, semantic errors | Framework-agnostic middleware            |
 
 ### **📊 Data & Communication**
 
-| Module                  | Auto-Scales                | Production Features                 |
-| ----------------------- | -------------------------- | ----------------------------------- |
-| **[Cache](/cache)**     | Memory → Redis             | Namespace isolation, TTL management |
-| **[Storage](/storage)** | Local → S3/R2              | CDN integration, signed URLs        |
-| **[Queue](/queue)**     | Memory → Redis → DB        | Background jobs, scheduling         |
-| **[Email](/email)**     | Console → SMTP → Resend    | Templates, multi-provider           |
-| **[Events](/events)**   | Memory → Redis → WebSocket | Real-time, pub/sub, notifications   |
+| Module                                | Auto-Scales                | Production Features                 |
+| ------------------------------------- | -------------------------- | ----------------------------------- |
+| **[Cache](/src/cache/README.md)**     | Memory → Redis             | Namespace isolation, TTL management |
+| **[Storage](/src/storage/README.md)** | Local → S3/R2              | CDN integration, signed URLs        |
+| **[Queue](/src/queue/README.md)**     | Memory → Redis → DB        | Background jobs, scheduling         |
+| **[Email](/src/email/README.md)**     | Console → SMTP → Resend    | Templates, multi-provider           |
+| **[Events](/src/events/README.md)**   | Memory → Redis → WebSocket | Real-time, pub/sub, notifications   |
 
 ### **🛠️ Developer Experience**
 
-| Module                  | Purpose                | LLM Benefits                              |
-| ----------------------- | ---------------------- | ----------------------------------------- |
-| **[Utils](/utils)**     | 12 essential utilities | Safe property access, performance helpers |
-| **[Config](/config)**   | Environment variables  | Type-safe, validation included            |
-| **[Logging](/logging)** | Structured logging     | Multi-transport, auto-scaling             |
+| Module                                | Purpose                | Auto-Scales                               |
+| ------------------------------------- | ---------------------- | ----------------------------------------- |
+| **[Utils](/src/utils/README.md)**     | 12 essential utilities | Safe property access, performance helpers |
+| **[Config](/src/config/README.md)**   | Environment variables  | Type-safe, validation included            |
+| **[Logging](/src/logging/README.md)** | Structured logging     | Multi-transport, auto-scaling             |
 
 ## 🌍 Environment-Driven Progressive Scaling
 
@@ -669,30 +669,38 @@ describe('API Tests', () => {
 
 ## 📚 Learning Resources
 
+## 📚 Learning Resources
+
 ### **Quick References**
 
-- [🚀 Getting Started Guide](/docs/getting-started) - Zero to production in 10
+- [🚀 Getting Started Guide](docs/getting-started.md) - Zero to production in 10
   minutes
-- [🏗️ Architecture Guide](/docs/architecture) - How modules work together
-- [🔒 Security Best Practices](/docs/security) - Production-ready security
-- [📈 Scaling Guide](/docs/scaling) - Development to enterprise
-- [🤖 AI Integration](/docs/ai-integration) - LLM code generation patterns
+- [🏗️ Architecture Guide](docs/architecture.md) - How modules work together
+- [🔒 Security Best Practices](docs/security.md) - Production-ready security
+- [📈 Scaling Guide](docs/scaling.md) - Development to enterprise
+- [🤖 AI Integration](docs/ai-integration.md) - LLM code generation patterns
 
 ### **Module Documentation**
 
-- [Authentication & Authorization](/docs/auth) - JWT, roles, permissions
-- [Database & Multi-tenancy](/docs/database) - Progressive scaling,
+- [Authentication & Authorization](/src/auth/README.md) - JWT, roles,
+  permissions
+- [Database & Multi-tenancy](/src/database/README.md) - Progressive scaling,
   organizations
-- [File Storage & CDN](/docs/storage) - Local to cloud, automatic optimization
-- [Caching & Performance](/docs/cache) - Memory to Redis, namespace isolation
-- [Background Jobs](/docs/queue) - Processing, scheduling, reliability
-- [Email & Communications](/docs/email) - Multi-provider, templates
-- [Real-time Events](/docs/events) - WebSocket, pub/sub, notifications
-- [Security & Compliance](/docs/security) - CSRF, encryption, rate limiting
-- [Error Handling](/docs/error) - HTTP status codes, semantic errors
-- [Logging & Observability](/docs/logging) - Structured, multi-transport
-- [Configuration Management](/docs/config) - Environment-driven, type-safe
-- [Utilities & Helpers](/docs/utils) - 12 essential developer tools
+- [File Storage & CDN](/src/storage/README.md) - Local to cloud, automatic
+  optimization
+- [Caching & Performance](/src/cache/README.md) - Memory to Redis, namespace
+  isolation
+- [Background Jobs](/src/queue/README.md) - Processing, scheduling, reliability
+- [Email & Communications](/src/email/README.md) - Multi-provider, templates
+- [Real-time Events](/src/events/README.md) - WebSocket, pub/sub, notifications
+- [Security & Compliance](/src/security/README.md) - CSRF, encryption, rate
+  limiting
+- [Error Handling](/src/error/README.md) - HTTP status codes, semantic errors
+- [Logging & Observability](/src/logging/README.md) - Structured,
+  multi-transport
+- [Configuration Management](/src/config/README.md) - Environment-driven,
+  type-safe
+- [Utilities & Helpers](/src/utils/README.md) - 12 essential developer tools
 
 ## 🌟 Community & Support
 
