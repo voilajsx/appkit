@@ -5,8 +5,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
 [![AI Ready](https://img.shields.io/badge/AI-Optimized-purple.svg)](https://github.com/voilajsx/appkit)
 
-> **A comprehensive Node.js toolkit designed for modern application
-> development**
+> **Minimal and framework agnostic Node.js toolkit designed for AI agentic
+> backend development**
 
 **Zero configuration. Enterprise features by default. Optimized for both human
 developers and AI code generation.**

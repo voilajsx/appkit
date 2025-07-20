@@ -1,7 +1,7 @@
 {
   "name": "@voilajsx/appkit",
-  "version": "1.1.0",
-  "description": "A minimal, framework-agnostic Node.js application toolkit",
+  "version": "1.1.1",
+  "description": "Minimal and framework agnostic Node.js toolkit designed for AI agentic backend development",
   "main": "dist/index.js",
   "type": "module",
   "types": "./dist/index.d.ts",
