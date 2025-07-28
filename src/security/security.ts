@@ -4,7 +4,7 @@
  * @file src/security/security.ts
  * 
  * @llm-rule WHEN: Building apps that need security protection (CSRF, rate limiting, input sanitization, encryption)
- * @llm-rule AVOID: Using directly - always get instance via security.get()
+ * @llm-rule AVOID: Using directly - always get instance via securityClass.get()
  * @llm-rule NOTE: Provides enterprise-grade security with CSRF tokens, rate limiting, XSS prevention, and AES-256-GCM encryption
  */
 

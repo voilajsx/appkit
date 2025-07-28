@@ -1,4 +1,4 @@
-# @voilajsx/appkit - Utils Module 🛠️
+# @voilajsx/appkit - Util Module 🛠️
 
 [![npm version](https://img.shields.io/npm/v/@voilajsx/appkit.svg)](https://www.npmjs.com/package/@voilajsx/appkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -11,7 +11,7 @@ optimization and comprehensive edge case handling.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `utility.get()`, everything else is automatic
+- **⚡ One Function** - Just `utilClass.get()`, everything else is automatic
 - **🎯 Essential 12** - The utilities you actually use every day
 - **🛡️ Null-Safe** - Never crash on undefined/null access
 - **⚙️ Performance Optimized** - Smart caching and efficient algorithms
@@ -27,39 +27,39 @@ npm install @voilajsx/appkit
 ## 🏃‍♂️ Quick Start (30 seconds)
 
 ```typescript
-import { utility } from '@voilajsx/appkit/utils';
+import { utilClass } from '@voilajsx/appkit/util';
 
-const utils = utility.get();
+const util = utilClass.get();
 
 // Safe property access
-const userName = utils.get(user, 'profile.name', 'Guest');
+const userName = util.get(user, 'profile.name', 'Guest');
 
 // Array operations
-const uniqueIds = utils.unique([1, 2, 2, 3, 4]);
-const batches = utils.chunk(items, 10);
+const uniqueIds = util.unique([1, 2, 2, 3, 4]);
+const batches = util.chunk(items, 10);
 
 // String utilities
-const slug = utils.slugify('Hello World! 123'); // → 'hello-world-123'
-const preview = utils.truncate(content, { length: 100 });
+const slug = util.slugify('Hello World! 123'); // → 'hello-world-123'
+const preview = util.truncate(content, { length: 100 });
 
 // Performance optimization
-const debouncedSearch = utils.debounce(searchAPI, 300);
+const debouncedSearch = util.debounce(searchAPI, 300);
 
 // Data extraction
-const publicData = utils.pick(user, ['id', 'name', 'email']);
+const publicData = util.pick(user, ['id', 'name', 'email']);
 
 // Number utilities
-const volume = utils.clamp(userInput, 0, 1);
-const fileSize = utils.formatBytes(1048576); // → '1 MB'
+const volume = util.clamp(userInput, 0, 1);
+const fileSize = util.formatBytes(1048576); // → '1 MB'
 
 // Async helpers
-await utils.sleep(1000); // Wait 1 second
+await util.sleep(1000); // Wait 1 second
 
 // Generate unique IDs
-const sessionId = utils.uuid();
+const sessionId = util.uuid();
 
 // Universal empty check
-if (utils.isEmpty(value)) {
+if (util.isEmpty(value)) {
   // Handle empty case
 }
 ```
@@ -72,37 +72,37 @@ if (utils.isEmpty(value)) {
 
 ```typescript
 // Never crash on undefined/null access
-utils.get(user, 'profile.settings.theme', 'light');
-utils.get(data, 'items[0].name', 'Unknown');
-utils.get(api, 'response.data.users[5].email');
+util.get(user, 'profile.settings.theme', 'light');
+util.get(data, 'items[0].name', 'Unknown');
+util.get(api, 'response.data.users[5].email');
 
 // Supports array indexing and complex paths
-utils.get(obj, 'users[0].addresses[1].city', 'N/A');
+util.get(obj, 'users[0].addresses[1].city', 'N/A');
 ```
 
 ### **2. isEmpty() - Universal Empty Check**
 
 ```typescript
 // True for all empty values
-utils.isEmpty(null); // → true
-utils.isEmpty({}); // → true
-utils.isEmpty([]); // → true
-utils.isEmpty(''); // → true
-utils.isEmpty('   '); // → true (whitespace only)
-utils.isEmpty(0); // → false (number is not empty)
-utils.isEmpty(false); // → false (boolean is not empty)
+util.isEmpty(null); // → true
+util.isEmpty({}); // → true
+util.isEmpty([]); // → true
+util.isEmpty(''); // → true
+util.isEmpty('   '); // → true (whitespace only)
+util.isEmpty(0); // → false (number is not empty)
+util.isEmpty(false); // → false (boolean is not empty)
 ```
 
 ### **3. slugify() - URL-Safe Strings**
 
 ```typescript
 // Perfect for URLs, file names, IDs
-utils.slugify('Hello World! 123'); // → 'hello-world-123'
-utils.slugify('User@Email.com'); // → 'user-email-com'
-utils.slugify('Café & Restaurant'); // → 'cafe-restaurant'
+util.slugify('Hello World! 123'); // → 'hello-world-123'
+util.slugify('User@Email.com'); // → 'user-email-com'
+util.slugify('Café & Restaurant'); // → 'cafe-restaurant'
 
 // Custom options
-utils.slugify('Hello_World', {
+util.slugify('Hello_World', {
   replacement: '_',
   lowercase: false,
 }); // → 'Hello_World'
@@ -112,12 +112,12 @@ utils.slugify('Hello_World', {
 
 ```typescript
 // Split arrays into manageable pieces
-utils.chunk([1, 2, 3, 4, 5, 6], 2); // → [[1,2], [3,4], [5,6]]
-utils.chunk(users, 10); // Perfect for pagination
-utils.chunk(items, 3); // Grid layouts
+util.chunk([1, 2, 3, 4, 5, 6], 2); // → [[1,2], [3,4], [5,6]]
+util.chunk(users, 10); // Perfect for pagination
+util.chunk(items, 3); // Grid layouts
 
 // Fill incomplete chunks
-utils.chunk([1, 2, 3, 4, 5], 3, {
+util.chunk([1, 2, 3, 4, 5], 3, {
   fillIncomplete: true,
   fillValue: null,
 }); // → [[1,2,3], [4,5,null]]
@@ -127,12 +127,12 @@ utils.chunk([1, 2, 3, 4, 5], 3, {
 
 ```typescript
 // Prevent excessive function calls
-const search = utils.debounce(searchAPI, 300);
-const saveSettings = utils.debounce(saveToStorage, 1000);
-const resizeHandler = utils.debounce(handleResize, 150);
+const search = util.debounce(searchAPI, 300);
+const saveSettings = util.debounce(saveToStorage, 1000);
+const resizeHandler = util.debounce(handleResize, 150);
 
 // Advanced options
-const advancedDebounce = utils.debounce(fn, 300, {
+const advancedDebounce = util.debounce(fn, 300, {
   leading: true, // Call on leading edge
   trailing: false, // Don't call on trailing edge
   maxWait: 1000, // Max time to wait
@@ -143,12 +143,12 @@ const advancedDebounce = utils.debounce(fn, 300, {
 
 ```typescript
 // Get only what you need
-utils.pick(user, ['id', 'name', 'email']);
-utils.pick(settings, ['theme', 'language']);
-utils.pick(product, ['title', 'price', 'image']);
+util.pick(user, ['id', 'name', 'email']);
+util.pick(settings, ['theme', 'language']);
+util.pick(product, ['title', 'price', 'image']);
 
 // Perfect for API responses
-const publicUserData = utils.pick(user, [
+const publicUserData = util.pick(user, [
   'id',
   'username',
   'avatar',
@@ -160,39 +160,39 @@ const publicUserData = utils.pick(user, [
 
 ```typescript
 // Clean duplicate values
-utils.unique([1, 2, 2, 3, 3, 4]); // → [1, 2, 3, 4]
-utils.unique(['a', 'b', 'a', 'c']); // → ['a', 'b', 'c']
-utils.unique(userIds); // Remove duplicate IDs
+util.unique([1, 2, 2, 3, 3, 4]); // → [1, 2, 3, 4]
+util.unique(['a', 'b', 'a', 'c']); // → ['a', 'b', 'c']
+util.unique(userIds); // Remove duplicate IDs
 
 // Works with objects (by reference)
-utils.unique([obj1, obj2, obj1, obj3]); // → [obj1, obj2, obj3]
+util.unique([obj1, obj2, obj1, obj3]); // → [obj1, obj2, obj3]
 ```
 
 ### **8. clamp() - Constrain Numbers**
 
 ```typescript
 // Keep numbers within bounds
-utils.clamp(150, 0, 100); // → 100 (max limit)
-utils.clamp(-10, 0, 100); // → 0 (min limit)
-utils.clamp(50, 0, 100); // → 50 (within bounds)
+util.clamp(150, 0, 100); // → 100 (max limit)
+util.clamp(-10, 0, 100); // → 0 (min limit)
+util.clamp(50, 0, 100); // → 50 (within bounds)
 
 // Practical uses
-const volume = utils.clamp(userInput, 0, 1); // Audio volume
-const opacity = utils.clamp(fadeValue, 0, 1); // CSS opacity
-const progress = utils.clamp(loaded / total, 0, 1); // Progress bars
+const volume = util.clamp(userInput, 0, 1); // Audio volume
+const opacity = util.clamp(fadeValue, 0, 1); // CSS opacity
+const progress = util.clamp(loaded / total, 0, 1); // Progress bars
 ```
 
 ### **9. formatBytes() - Human-Readable File Sizes**
 
 ```typescript
 // Display file sizes properly
-utils.formatBytes(1024); // → '1 KB'
-utils.formatBytes(1048576); // → '1 MB'
-utils.formatBytes(1073741824); // → '1 GB'
-utils.formatBytes(0); // → '0 Bytes'
+util.formatBytes(1024); // → '1 KB'
+util.formatBytes(1048576); // → '1 MB'
+util.formatBytes(1073741824); // → '1 GB'
+util.formatBytes(0); // → '0 Bytes'
 
 // Custom formatting
-utils.formatBytes(1024, {
+util.formatBytes(1024, {
   decimals: 3,
   binary: false, // Use 1000 instead of 1024
   unitSeparator: ' ',
@@ -203,14 +203,14 @@ utils.formatBytes(1024, {
 
 ```typescript
 // Truncate text intelligently
-utils.truncate('This is a long text', { length: 10 });
+util.truncate('This is a long text', { length: 10 });
 // → 'This is...'
 
-utils.truncate('Short', { length: 10 });
+util.truncate('Short', { length: 10 });
 // → 'Short'
 
 // Preserve word boundaries
-utils.truncate('This is a very long sentence', {
+util.truncate('This is a very long sentence', {
   length: 15,
   preserveWords: true,
   suffix: '... read more',
@@ -221,14 +221,14 @@ utils.truncate('This is a very long sentence', {
 
 ```typescript
 // Clean async delays
-await utils.sleep(1000); // Wait 1 second
-await utils.sleep(500); // Wait 0.5 seconds
+await util.sleep(1000); // Wait 1 second
+await util.sleep(500); // Wait 0.5 seconds
 
 // Usage in async functions
 async function processItems() {
   for (const item of items) {
     await processItem(item);
-    await utils.sleep(100); // Rate limiting
+    await util.sleep(100); // Rate limiting
   }
 }
 
@@ -236,7 +236,7 @@ async function processItems() {
 async function fadeIn(element) {
   for (let opacity = 0; opacity <= 1; opacity += 0.1) {
     element.style.opacity = opacity;
-    await utils.sleep(50); // 50ms per frame
+    await util.sleep(50); // 50ms per frame
   }
 }
 ```
@@ -245,17 +245,17 @@ async function fadeIn(element) {
 
 ```typescript
 // Generate unique identifiers
-utils.uuid(); // → 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+util.uuid(); // → 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
 
 // Usage examples
-const sessionId = utils.uuid();
-const uploadId = utils.uuid();
-const tempId = utils.uuid();
-const trackingId = utils.uuid();
+const sessionId = util.uuid();
+const uploadId = util.uuid();
+const tempId = util.uuid();
+const trackingId = util.uuid();
 
 // Perfect for temporary keys
 const tempData = {
-  id: utils.uuid(),
+  id: util.uuid(),
   data: userInput,
   created: Date.now(),
 };
@@ -266,90 +266,90 @@ const tempData = {
 ### **Core Function**
 
 ```typescript
-import { utility } from '@voilajsx/appkit/utils';
+import { utilClass } from '@voilajsx/appkit/util';
 
-const utils = utility.get(); // One function, everything you need
+const util = utilClass.get(); // One function, everything you need
 ```
 
 ### **Safe Operations**
 
 ```typescript
 // Safe property access
-utils.get(obj, path, defaultValue, options?)
+util.get(obj, path, defaultValue, options?)
 
 // Universal empty check
-utils.isEmpty(value)
+util.isEmpty(value)
 
 // Extract object properties
-utils.pick(obj, keys)
+util.pick(obj, keys)
 ```
 
 ### **Array Utilities**
 
 ```typescript
 // Split into chunks
-utils.chunk(array, size, options?)
+util.chunk(array, size, options?)
 
 // Remove duplicates
-utils.unique(array)
+util.unique(array)
 ```
 
 ### **String Utilities**
 
 ```typescript
 // URL-safe slugs
-utils.slugify(text, options?)
+util.slugify(text, options?)
 
 // Smart text truncation
-utils.truncate(text, options)
+util.truncate(text, options)
 ```
 
 ### **Number Utilities**
 
 ```typescript
 // Constrain to bounds
-utils.clamp(value, min, max)
+util.clamp(value, min, max)
 
 // Format file sizes
-utils.formatBytes(bytes, options?)
+util.formatBytes(bytes, options?)
 ```
 
 ### **Function Utilities**
 
 ```typescript
 // Debounce function calls
-utils.debounce(func, wait, options?)
+util.debounce(func, wait, options?)
 ```
 
 ### **Async Utilities**
 
 ```typescript
 // Promise-based delay
-utils.sleep(milliseconds);
+util.sleep(milliseconds);
 ```
 
 ### **ID Generation**
 
 ```typescript
 // Generate UUID v4
-utils.uuid();
+util.uuid();
 ```
 
 ### **Utility Methods**
 
 ```typescript
 // Configuration and status
-utility.getConfig(); // Current utility configuration
-utility.getStatus(); // Utility feature availability
-utility.validateConfig(); // Startup validation
+utilClass.getConfig(); // Current utility configuration
+utilClass.getStatus(); // Utility feature availability
+utilClass.validateConfig(); // Startup validation
 
 // Environment helpers
-utility.isDevelopment(); // NODE_ENV === 'development'
-utility.isProduction(); // NODE_ENV === 'production'
+utilClass.isDevelopment(); // NODE_ENV === 'development'
+utilClass.isProduction(); // NODE_ENV === 'production'
 
 // Testing support
-utility.reset(newConfig); // Reset with custom config
-utility.clearCache(); // Clear cached config
+utilClass.reset(newConfig); // Reset with custom config
+utilClass.clearCache(); // Clear cached config
 ```
 
 ## 🎯 Real-World Examples
@@ -358,37 +358,37 @@ utility.clearCache(); // Clear cached config
 
 ```typescript
 import React, { useState, useCallback } from 'react';
-import { utility } from '@voilajsx/appkit/utils';
+import { utilClass } from '@voilajsx/appkit/util';
 
-const utils = utility.get();
+const util = utilClass.get();
 
 function UserProfile({ user, onSave }) {
   const [formData, setFormData] = useState({});
 
   // Debounced auto-save
   const debouncedSave = useCallback(
-    utils.debounce((data) => {
+    util.debounce((data) => {
       onSave(data);
     }, 1000),
     [onSave]
   );
 
   // Safe data extraction
-  const profileData = utils.pick(user, [
+  const profileData = util.pick(user, [
     'id', 'name', 'email', 'bio', 'avatar'
   ]);
 
   // Generate preview
-  const bioPreview = utils.truncate(profileData.bio || '', {
+  const bioPreview = util.truncate(profileData.bio || '', {
     length: 150,
     preserveWords: true
   });
 
   return (
     <div className="profile">
-      <h1>{utils.get(user, 'profile.displayName', 'Anonymous User')}</h1>
+      <h1>{util.get(user, 'profile.displayName', 'Anonymous User')}</h1>
 
-      {!utils.isEmpty(bioPreview) && (
+      {!util.isEmpty(bioPreview) && (
         <p className="bio-preview">{bioPreview}</p>
       )}
 
@@ -397,7 +397,7 @@ function UserProfile({ user, onSave }) {
           <img src={profileData.avatar} alt="Avatar" />
         ) : (
           <div className="avatar-placeholder">
-            {utils.get(user, 'name', 'U')[0].toUpperCase()}
+            {util.get(user, 'name', 'U')[0].toUpperCase()}
           </div>
         )}
       </div>
@@ -409,35 +409,35 @@ function UserProfile({ user, onSave }) {
 ### **API Service with Utils**
 
 ```typescript
-import { utility } from '@voilajsx/appkit/utils';
+import { utilClass } from '@voilajsx/appkit/util';
 
-const utils = utility.get();
+const util = utilClass.get();
 
 class APIService {
   constructor(baseURL) {
     this.baseURL = baseURL;
 
     // Debounce search to avoid excessive API calls
-    this.debouncedSearch = utils.debounce(this.performSearch.bind(this), 300);
+    this.debouncedSearch = util.debounce(this.performSearch.bind(this), 300);
   }
 
   // Process API response safely
   processUsers(response) {
-    const users = utils.get(response, 'data.users', []);
+    const users = util.get(response, 'data.users', []);
 
     return users.map((user) => ({
-      id: utils.get(user, 'id'),
-      name: utils.get(user, 'profile.fullName', 'Unknown'),
-      email: utils.get(user, 'contact.email', ''),
-      avatar: utils.get(user, 'profile.avatar.url'),
-      slug: utils.slugify(utils.get(user, 'profile.fullName', '')),
-      isActive: !utils.isEmpty(utils.get(user, 'lastLoginAt')),
+      id: util.get(user, 'id'),
+      name: util.get(user, 'profile.fullName', 'Unknown'),
+      email: util.get(user, 'contact.email', ''),
+      avatar: util.get(user, 'profile.avatar.url'),
+      slug: util.slugify(util.get(user, 'profile.fullName', '')),
+      isActive: !util.isEmpty(util.get(user, 'lastLoginAt')),
     }));
   }
 
   // Batch process large datasets
   async processBatches(items, batchSize = 50) {
-    const batches = utils.chunk(items, batchSize);
+    const batches = util.chunk(items, batchSize);
     const results = [];
 
     for (const batch of batches) {
@@ -445,7 +445,7 @@ class APIService {
       results.push(...batchResults);
 
       // Rate limiting between batches
-      await utils.sleep(100);
+      await util.sleep(100);
     }
 
     return results;
@@ -453,8 +453,8 @@ class APIService {
 
   // File upload with progress
   async uploadFile(file) {
-    const uploadId = utils.uuid();
-    const formattedSize = utils.formatBytes(file.size);
+    const uploadId = util.uuid();
+    const formattedSize = util.formatBytes(file.size);
 
     console.log(
       `Uploading ${file.name} (${formattedSize}) with ID: ${uploadId}`
@@ -469,48 +469,48 @@ class APIService {
 ### **Data Processing Pipeline**
 
 ```typescript
-import { utility } from '@voilajsx/appkit/utils';
+import { utilClass } from '@voilajsx/appkit/util';
 
-const utils = utility.get();
+const util = utilClass.get();
 
 class DataProcessor {
   // Clean and process raw data
   processRawData(rawData) {
-    if (utils.isEmpty(rawData)) {
+    if (util.isEmpty(rawData)) {
       return [];
     }
 
     // Extract and clean data
-    const items = utils.get(rawData, 'items', []);
+    const items = util.get(rawData, 'items', []);
 
     return items
       .map((item) => ({
-        id: utils.get(item, 'id'),
-        title: utils.get(item, 'title', '').trim(),
-        slug: utils.slugify(utils.get(item, 'title', '')),
-        category: utils.get(item, 'category.name', 'uncategorized'),
-        tags: utils.unique(utils.get(item, 'tags', [])),
-        price: utils.clamp(utils.get(item, 'price', 0), 0, 999999),
-        description: utils.truncate(utils.get(item, 'description', ''), {
+        id: util.get(item, 'id'),
+        title: util.get(item, 'title', '').trim(),
+        slug: util.slugify(util.get(item, 'title', '')),
+        category: util.get(item, 'category.name', 'uncategorized'),
+        tags: util.unique(util.get(item, 'tags', [])),
+        price: util.clamp(util.get(item, 'price', 0), 0, 999999),
+        description: util.truncate(util.get(item, 'description', ''), {
           length: 500,
           preserveWords: true,
         }),
       }))
-      .filter((item) => !utils.isEmpty(item.title)); // Remove items without titles
+      .filter((item) => !util.isEmpty(item.title)); // Remove items without titles
   }
 
   // Create data summary
   createSummary(processedData) {
-    const categories = utils.unique(processedData.map((item) => item.category));
+    const categories = util.unique(processedData.map((item) => item.category));
 
-    const totalSize = utils.formatBytes(JSON.stringify(processedData).length);
+    const totalSize = util.formatBytes(JSON.stringify(processedData).length);
 
     return {
       totalItems: processedData.length,
       categories: categories.length,
       uniqueCategories: categories,
       dataSize: totalSize,
-      summary: utils.truncate(
+      summary: util.truncate(
         `Processed ${processedData.length} items across ${categories.length} categories`,
         { length: 100 }
       ),
@@ -519,9 +519,9 @@ class DataProcessor {
 
   // Paginate results
   paginate(data, page = 1, pageSize = 20) {
-    const chunks = utils.chunk(data, pageSize);
+    const chunks = util.chunk(data, pageSize);
     const totalPages = chunks.length;
-    const currentPage = utils.clamp(page, 1, totalPages);
+    const currentPage = util.clamp(page, 1, totalPages);
 
     return {
       data: chunks[currentPage - 1] || [],
@@ -541,29 +541,29 @@ class DataProcessor {
 ### **Form Handling with Validation**
 
 ```typescript
-import { utility } from '@voilajsx/appkit/utils';
+import { utilClass } from '@voilajsx/appkit/util';
 
-const utils = utility.get();
+const util = utilClass.get();
 
 class FormHandler {
   constructor() {
     // Debounce validation to avoid excessive checks
-    this.debouncedValidate = utils.debounce(this.validateForm.bind(this), 300);
+    this.debouncedValidate = util.debounce(this.validateForm.bind(this), 300);
   }
 
   // Process form data safely
   processFormData(formData) {
     const cleaned = {
       // Extract and clean basic fields
-      name: utils.get(formData, 'name', '').trim(),
-      email: utils.get(formData, 'email', '').toLowerCase().trim(),
-      bio: utils.get(formData, 'bio', '').trim(),
+      name: util.get(formData, 'name', '').trim(),
+      email: util.get(formData, 'email', '').toLowerCase().trim(),
+      bio: util.get(formData, 'bio', '').trim(),
 
       // Generate slug from name
-      slug: utils.slugify(utils.get(formData, 'name', '')),
+      slug: util.slugify(util.get(formData, 'name', '')),
 
       // Process file upload
-      avatar: this.processFileUpload(utils.get(formData, 'avatar')),
+      avatar: this.processFileUpload(util.get(formData, 'avatar')),
 
       // Clean and limit tags
       tags: utils
@@ -571,13 +571,13 @@ class FormHandler {
           utils
             .get(formData, 'tags', [])
             .map((tag) => tag.trim())
-            .filter((tag) => !utils.isEmpty(tag))
+            .filter((tag) => !util.isEmpty(tag))
         )
         .slice(0, 10), // Limit to 10 tags
 
       // Generate metadata
       metadata: {
-        id: utils.uuid(),
+        id: util.uuid(),
         createdAt: new Date().toISOString(),
         source: 'form',
       },
@@ -587,16 +587,16 @@ class FormHandler {
   }
 
   processFileUpload(file) {
-    if (utils.isEmpty(file)) {
+    if (util.isEmpty(file)) {
       return null;
     }
 
     return {
-      id: utils.uuid(),
-      name: utils.get(file, 'name', 'unknown'),
-      size: utils.formatBytes(utils.get(file, 'size', 0)),
-      type: utils.get(file, 'type', 'unknown'),
-      lastModified: utils.get(file, 'lastModified'),
+      id: util.uuid(),
+      name: util.get(file, 'name', 'unknown'),
+      size: util.formatBytes(util.get(file, 'size', 0)),
+      type: util.get(file, 'type', 'unknown'),
+      lastModified: util.get(file, 'lastModified'),
     };
   }
 
@@ -605,29 +605,29 @@ class FormHandler {
     const errors = {};
 
     // Required field validation
-    if (utils.isEmpty(utils.get(formData, 'name'))) {
+    if (util.isEmpty(util.get(formData, 'name'))) {
       errors.name = 'Name is required';
     }
 
-    if (utils.isEmpty(utils.get(formData, 'email'))) {
+    if (util.isEmpty(util.get(formData, 'email'))) {
       errors.email = 'Email is required';
     }
 
     // Length validation
-    const bio = utils.get(formData, 'bio', '');
+    const bio = util.get(formData, 'bio', '');
     if (bio.length > 500) {
       errors.bio = `Bio too long (${bio.length}/500 characters)`;
     }
 
     // File size validation
-    const avatar = utils.get(formData, 'avatar');
-    if (avatar && utils.get(avatar, 'size', 0) > 5 * 1024 * 1024) {
-      const fileSize = utils.formatBytes(avatar.size);
+    const avatar = util.get(formData, 'avatar');
+    if (avatar && util.get(avatar, 'size', 0) > 5 * 1024 * 1024) {
+      const fileSize = util.formatBytes(avatar.size);
       errors.avatar = `File too large (${fileSize}). Maximum 5 MB allowed.`;
     }
 
     return {
-      isValid: utils.isEmpty(errors),
+      isValid: util.isEmpty(errors),
       errors,
     };
   }
@@ -679,58 +679,58 @@ VOILA_UTILS_SLUGIFY_STRICT=false         # Default: false
 ### **Basic Testing Setup**
 
 ```typescript
-import { utility } from '@voilajsx/appkit/utils';
+import { utilClass } from '@voilajsx/appkit/util';
 
 describe('Utility Tests', () => {
   beforeEach(() => {
     // Reset utility instance for clean tests
-    utility.clearCache();
+    utilClass.clearCache();
   });
 
   test('should safely access nested properties', () => {
-    const utils = utility.get();
+    const util = utilClass.get();
     const obj = { user: { profile: { name: 'John' } } };
 
-    expect(utils.get(obj, 'user.profile.name')).toBe('John');
-    expect(utils.get(obj, 'user.profile.age', 25)).toBe(25);
-    expect(utils.get(obj, 'user.missing.prop', 'default')).toBe('default');
+    expect(util.get(obj, 'user.profile.name')).toBe('John');
+    expect(util.get(obj, 'user.profile.age', 25)).toBe(25);
+    expect(util.get(obj, 'user.missing.prop', 'default')).toBe('default');
   });
 
   test('should handle empty values correctly', () => {
-    const utils = utility.get();
+    const util = utilClass.get();
 
-    expect(utils.isEmpty(null)).toBe(true);
-    expect(utils.isEmpty({})).toBe(true);
-    expect(utils.isEmpty([])).toBe(true);
-    expect(utils.isEmpty('')).toBe(true);
-    expect(utils.isEmpty('   ')).toBe(true);
-    expect(utils.isEmpty(0)).toBe(false);
-    expect(utils.isEmpty(false)).toBe(false);
+    expect(util.isEmpty(null)).toBe(true);
+    expect(util.isEmpty({})).toBe(true);
+    expect(util.isEmpty([])).toBe(true);
+    expect(util.isEmpty('')).toBe(true);
+    expect(util.isEmpty('   ')).toBe(true);
+    expect(util.isEmpty(0)).toBe(false);
+    expect(util.isEmpty(false)).toBe(false);
   });
 
   test('should create URL-safe slugs', () => {
-    const utils = utility.get();
+    const util = utilClass.get();
 
-    expect(utils.slugify('Hello World!')).toBe('hello-world');
-    expect(utils.slugify('Café & Restaurant')).toBe('cafe-restaurant');
-    expect(utils.slugify('User@Email.com')).toBe('user-email-com');
+    expect(util.slugify('Hello World!')).toBe('hello-world');
+    expect(util.slugify('Café & Restaurant')).toBe('cafe-restaurant');
+    expect(util.slugify('User@Email.com')).toBe('user-email-com');
   });
 
   test('should chunk arrays correctly', () => {
-    const utils = utility.get();
+    const util = utilClass.get();
 
-    expect(utils.chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
-    expect(utils.chunk([], 3)).toEqual([]);
-    expect(utils.chunk([1, 2, 3], 5)).toEqual([[1, 2, 3]]);
+    expect(util.chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    expect(util.chunk([], 3)).toEqual([]);
+    expect(util.chunk([1, 2, 3], 5)).toEqual([[1, 2, 3]]);
   });
 
   test('should format bytes correctly', () => {
-    const utils = utility.get();
+    const util = utilClass.get();
 
-    expect(utils.formatBytes(0)).toBe('0 Bytes');
-    expect(utils.formatBytes(1024)).toBe('1 KB');
-    expect(utils.formatBytes(1048576)).toBe('1 MB');
-    expect(utils.formatBytes(1073741824)).toBe('1 GB');
+    expect(util.formatBytes(0)).toBe('0 Bytes');
+    expect(util.formatBytes(1024)).toBe('1 KB');
+    expect(util.formatBytes(1048576)).toBe('1 MB');
+    expect(util.formatBytes(1073741824)).toBe('1 GB');
   });
 });
 ```
@@ -740,7 +740,7 @@ describe('Utility Tests', () => {
 ```typescript
 // Test helper for custom utility config
 function createTestUtils(overrides = {}) {
-  return utility.reset({
+  return utilClass.reset({
     cache: { enabled: false },
     performance: { enabled: false },
     debug: { enabled: true },
@@ -754,7 +754,7 @@ describe('Custom Configuration', () => {
       slugify: { replacement: '_', lowercase: false },
     });
 
-    expect(utils.slugify('Hello World')).toBe('Hello_World');
+    expect(util.slugify('Hello World')).toBe('Hello_World');
   });
 });
 ```
@@ -765,57 +765,57 @@ describe('Custom Configuration', () => {
 
 ```typescript
 // ✅ ALWAYS use these patterns
-import { utility } from '@voilajsx/appkit/utils';
-const utils = utility.get();
+import { utilClass } from '@voilajsx/appkit/util';
+const util = utilClass.get();
 
 // ✅ Safe property access instead of direct access
-const name = utils.get(user, 'profile.name', 'Anonymous');
+const name = util.get(user, 'profile.name', 'Anonymous');
 // NOT: const name = user.profile.name; // Can crash
 
 // ✅ Proper empty checking
-if (utils.isEmpty(value)) {
+if (util.isEmpty(value)) {
   /* handle empty */
 }
 // NOT: if (!value) { /* incomplete check */ }
 
 // ✅ URL-safe string conversion
-const slug = utils.slugify(title);
+const slug = util.slugify(title);
 // NOT: const slug = title.toLowerCase().replace(/\s+/g, '-'); // Incomplete
 
 // ✅ Smart array chunking
-const batches = utils.chunk(items, 10);
+const batches = util.chunk(items, 10);
 // NOT: Manual slicing with loops
 
 // ✅ Performance-optimized debouncing
-const debouncedFn = utils.debounce(fn, 300);
+const debouncedFn = util.debounce(fn, 300);
 // NOT: Manual setTimeout management
 
 // ✅ Clean object property extraction
-const publicData = utils.pick(user, ['id', 'name', 'email']);
+const publicData = util.pick(user, ['id', 'name', 'email']);
 // NOT: Manual object building
 
 // ✅ Efficient duplicate removal
-const uniqueItems = utils.unique(array);
+const uniqueItems = util.unique(array);
 // NOT: [...new Set(array)] // Limited to primitives
 
 // ✅ Safe number constraining
-const volume = utils.clamp(input, 0, 1);
+const volume = util.clamp(input, 0, 1);
 // NOT: Math.min(Math.max(input, 0), 1) // Missing validation
 
 // ✅ Human-readable file sizes
-const size = utils.formatBytes(bytes);
+const size = util.formatBytes(bytes);
 // NOT: Manual byte conversion
 
 // ✅ Intelligent text truncation
-const preview = utils.truncate(text, { length: 100, preserveWords: true });
+const preview = util.truncate(text, { length: 100, preserveWords: true });
 // NOT: text.slice(0, 100) + '...' // Breaks words
 
 // ✅ Clean async delays
-await utils.sleep(1000);
+await util.sleep(1000);
 // NOT: new Promise(resolve => setTimeout(resolve, 1000))
 
 // ✅ Secure unique ID generation
-const id = utils.uuid();
+const id = util.uuid();
 // NOT: Math.random().toString(36) // Not unique enough
 ```
 
@@ -833,14 +833,14 @@ if (!value) {
 const slug = title.toLowerCase().replace(/\s+/g, '-'); // Incomplete
 
 // ❌ DON'T use utilities for wrong purposes
-utils.clamp('string', 0, 100); // Wrong type
+util.clamp('string', 0, 100); // Wrong type
 
 // ❌ DON'T ignore error handling
-utils.chunk(null, 5); // Will be handled gracefully
+util.chunk(null, 5); // Will be handled gracefully
 
 // ❌ DON'T mix different utility libraries
 import _ from 'lodash';
-const result = _.get(obj, 'path') + utils.slugify(text); // Inconsistent
+const result = _.get(obj, 'path') + util.slugify(text); // Inconsistent
 ```
 
 ### **Common Patterns**
@@ -848,48 +848,48 @@ const result = _.get(obj, 'path') + utils.slugify(text); // Inconsistent
 ```typescript
 // Data processing pipeline
 const processedUsers = rawUsers
-  .map((user) => utils.pick(user, ['id', 'name', 'email']))
-  .filter((user) => !utils.isEmpty(user.name))
+  .map((user) => util.pick(user, ['id', 'name', 'email']))
+  .filter((user) => !util.isEmpty(user.name))
   .map((user) => ({
     ...user,
-    slug: utils.slugify(user.name),
+    slug: util.slugify(user.name),
   }));
 
 // Form validation pattern
 const validateForm = (data) => {
   const errors = {};
 
-  if (utils.isEmpty(utils.get(data, 'name'))) {
+  if (util.isEmpty(util.get(data, 'name'))) {
     errors.name = 'Name is required';
   }
 
-  return { isValid: utils.isEmpty(errors), errors };
+  return { isValid: util.isEmpty(errors), errors };
 };
 
 // API response processing
 const processResponse = (response) => {
-  const items = utils.get(response, 'data.items', []);
-  const batches = utils.chunk(items, 50);
+  const items = util.get(response, 'data.items', []);
+  const batches = util.chunk(items, 50);
 
   return batches.map((batch) =>
-    batch.map((item) => utils.pick(item, ['id', 'title', 'status']))
+    batch.map((item) => util.pick(item, ['id', 'title', 'status']))
   );
 };
 
 // Search with debouncing
-const searchHandler = utils.debounce((query) => {
-  if (!utils.isEmpty(query)) {
+const searchHandler = util.debounce((query) => {
+  if (!util.isEmpty(query)) {
     performSearch(query);
   }
 }, 300);
 
 // Safe data extraction
 const extractUserData = (user) => ({
-  id: utils.get(user, 'id'),
-  name: utils.get(user, 'profile.displayName', 'Anonymous'),
-  avatar: utils.get(user, 'profile.avatar.url'),
-  slug: utils.slugify(utils.get(user, 'profile.displayName', '')),
-  joinedAt: utils.get(user, 'metadata.createdAt'),
+  id: util.get(user, 'id'),
+  name: util.get(user, 'profile.displayName', 'Anonymous'),
+  avatar: util.get(user, 'profile.avatar.url'),
+  slug: util.slugify(util.get(user, 'profile.displayName', '')),
+  joinedAt: util.get(user, 'metadata.createdAt'),
 });
 ```
 
@@ -918,10 +918,10 @@ import type {
 } from '@voilajsx/appkit/utils';
 
 // Strongly typed utility operations
-const utils = utility.get();
-const userName: string = utils.get<string>(user, 'name', 'Anonymous');
-const chunks: number[][] = utils.chunk<number>([1, 2, 3, 4], 2);
-const debouncedFn: Function & { cancel: () => void } = utils.debounce(fn, 300);
+const util = utilClass.get();
+const userName: string = util.get<string>(user, 'name', 'Anonymous');
+const chunks: number[][] = util.chunk<number>([1, 2, 3, 4], 2);
+const debouncedFn: Function & { cancel: () => void } = util.debounce(fn, 300);
 ```
 
 ## 🎯 Why These 12?

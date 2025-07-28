@@ -4,7 +4,7 @@
  * @file src/error/error.ts
  * 
  * @llm-rule WHEN: Building apps that need semantic HTTP error handling
- * @llm-rule AVOID: Using directly - always get instance via error.get()
+ * @llm-rule AVOID: Using directly - always get instance via errorClass.get()
  * @llm-rule NOTE: Provides semantic error creation (badRequest, unauthorized) and Express middleware
  */
 
@@ -61,7 +61,7 @@ export class ErrorClass {
    * @llm-rule WHEN: Client sends invalid input data (missing fields, wrong format)
    * @llm-rule AVOID: Using for server-side validation errors - use conflict() instead
    * @llm-rule NOTE: EXAMPLES: missing email, invalid JSON, malformed request body
-   * @llm-rule NOTE: PATTERN: if (!req.body.email) throw err.badRequest('Email required');
+   * @llm-rule NOTE: PATTERN: if (!req.body.email) throw error.badRequest('Email required');
    */
   badRequest(message?: string): AppError {
     const error = new Error(message || this.config.messages.badRequest) as AppError;
@@ -75,7 +75,7 @@ export class ErrorClass {
    * @llm-rule WHEN: Authentication is required but missing or invalid
    * @llm-rule AVOID: Using for permission issues - use forbidden() for access control
    * @llm-rule NOTE: EXAMPLES: missing token, invalid token, expired session
-   * @llm-rule NOTE: PATTERN: if (!token) throw err.unauthorized('Token required');
+   * @llm-rule NOTE: PATTERN: if (!token) throw error.unauthorized('Token required');
    */
   unauthorized(message?: string): AppError {
     const error = new Error(message || this.config.messages.unauthorized) as AppError;
@@ -89,7 +89,7 @@ export class ErrorClass {
    * @llm-rule WHEN: User is authenticated but lacks permission for the action
    * @llm-rule AVOID: Using for authentication issues - use unauthorized() instead
    * @llm-rule NOTE: EXAMPLES: insufficient role, blocked user, admin-only endpoint
-   * @llm-rule NOTE: PATTERN: if (!user.isAdmin) throw err.forbidden('Admin access required');
+   * @llm-rule NOTE: PATTERN: if (!user.isAdmin) throw error.forbidden('Admin access required');
    */
   forbidden(message?: string): AppError {
     const error = new Error(message || this.config.messages.forbidden) as AppError;
@@ -103,7 +103,7 @@ export class ErrorClass {
    * @llm-rule WHEN: Requested resource does not exist
    * @llm-rule AVOID: Using for business logic failures - use conflict() instead
    * @llm-rule NOTE: EXAMPLES: user not found, post not found, missing file
-   * @llm-rule NOTE: PATTERN: if (!user) throw err.notFound('User not found');
+   * @llm-rule NOTE: PATTERN: if (!user) throw error.notFound('User not found');
    */
   notFound(message?: string): AppError {
     const error = new Error(message || this.config.messages.notFound) as AppError;
@@ -117,7 +117,7 @@ export class ErrorClass {
    * @llm-rule WHEN: Business logic conflicts or resource already exists
    * @llm-rule AVOID: Using for validation errors - use badRequest() for input validation
    * @llm-rule NOTE: EXAMPLES: email already exists, duplicate username, state conflicts
-   * @llm-rule NOTE: PATTERN: if (existingUser) throw err.conflict('Email already registered');
+   * @llm-rule NOTE: PATTERN: if (existingUser) throw error.conflict('Email already registered');
    */
   conflict(message?: string): AppError {
     const error = new Error(message || this.config.messages.conflict) as AppError;
@@ -131,7 +131,7 @@ export class ErrorClass {
    * @llm-rule WHEN: Internal server failures like database errors, external API failures
    * @llm-rule AVOID: Using for business logic issues - use appropriate 4xx errors instead
    * @llm-rule NOTE: EXAMPLES: database connection failure, external API timeout, file system errors
-   * @llm-rule NOTE: PATTERN: catch (dbError) { throw err.serverError('Database unavailable'); }
+   * @llm-rule NOTE: PATTERN: catch (dbError) { throw error.serverError('Database unavailable'); }
    */
   serverError(message?: string): AppError {
     const error = new Error(message || this.config.messages.serverError) as AppError;
@@ -145,7 +145,7 @@ export class ErrorClass {
    * @llm-rule WHEN: Need custom HTTP status codes not covered by semantic methods
    * @llm-rule AVOID: Using for standard HTTP codes - use semantic methods instead
    * @llm-rule NOTE: EXAMPLES: 429 rate limit, 503 service unavailable, 418 teapot
-   * @llm-rule NOTE: PATTERN: err.createError(429, 'Rate limit exceeded', 'RATE_LIMIT');
+   * @llm-rule NOTE: PATTERN: error.createError(429, 'Rate limit exceeded', 'RATE_LIMIT');
    */
   createError(statusCode: number, message: string, type?: string): AppError {
     const error = new Error(message) as AppError;
@@ -158,7 +158,7 @@ export class ErrorClass {
    * Creates production-ready Express error handling middleware
    * @llm-rule WHEN: Setting up Express app error handling - use as last middleware
    * @llm-rule AVOID: Using multiple error handlers - this should be the final middleware
-   * @llm-rule NOTE: MIDDLEWARE SETUP: app.use(err.handleErrors()); // Must be LAST
+   * @llm-rule NOTE: MIDDLEWARE SETUP: app.use(error.handleErrors()); // Must be LAST
    * @llm-rule NOTE: AUTO-FEATURES: dev vs prod responses, stack trace hiding, error logging
    */
   handleErrors(options: ErrorHandlerOptions = {}): ExpressErrorHandler {
@@ -206,7 +206,7 @@ export class ErrorClass {
    * Wraps async route handlers to catch errors automatically
    * @llm-rule WHEN: Creating async Express route handlers that might throw errors
    * @llm-rule AVOID: Manual try/catch in every route - this handles it automatically
-   * @llm-rule NOTE: ASYNC PATTERN: app.post('/route', err.asyncRoute(async (req, res) => {...}));
+   * @llm-rule NOTE: ASYNC PATTERN: app.post('/route', error.asyncRoute(async (req, res) => {...}));
    * @llm-rule NOTE: ERROR FLOW: thrown errors → automatically caught → sent to handleErrors middleware
    */
   asyncRoute(fn: AsyncRouteHandler): (req: ExpressRequest, res: ExpressResponse, next: ExpressNextFunction) => void {

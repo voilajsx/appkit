@@ -1,11 +1,11 @@
 /**
  * Ultra-simple logging that just works with enterprise features and enhanced error display
- * @module @voilajsx/appkit/logging
- * @file src/logging/index.ts
+ * @module @voilajsx/appkit/logger
+ * @file src/logger/index.ts
  * 
  * @llm-rule WHEN: Need logging in any app - console, files, database, external services
  * @llm-rule AVOID: Using console.log directly - this provides structured logging with levels
- * @llm-rule NOTE: Uses logger.get() pattern like auth - get() → log.info() → done
+ * @llm-rule NOTE: Uses loggerClass.get() pattern like auth - get() → log.info() → done
  * @llm-rule NOTE: Enhanced error() method now provides automatic visual formatting in development
  */
 
@@ -111,7 +111,7 @@ function getConfig() {
 /**
  * Single logger export with minimal API (like auth module)
  */
-export const logger = {
+export const loggerClass = {
   // Core method (like auth.get())
   get,
   
@@ -127,4 +127,4 @@ export type { LoggingConfig } from './defaults.js';
 export { LoggerClass } from './logger.js';
 
 // Default export
-export default logger;
+export default loggerClass;

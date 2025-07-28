@@ -1,10 +1,10 @@
 /**
  * Core logger class with visual error display and simplified transport management
- * @module @voilajsx/appkit/logging
- * @file src/logging/logger.ts
+ * @module @voilajsx/appkit/logger
+ * @file src/logger/logger.ts
  * 
- * @llm-rule WHEN: Building logger instances - called via logger.get(), not directly
- * @llm-rule AVOID: Creating LoggerClass directly - always use logger.get() for proper setup
+ * @llm-rule WHEN: Building logger instances - called via loggerClass.get(), not directly
+ * @llm-rule AVOID: Creating LoggerClass directly - always use loggerClass.get() for proper setup
  * @llm-rule NOTE: Enhanced error() method provides automatic visual formatting for better DX
  */
 

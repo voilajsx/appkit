@@ -11,7 +11,7 @@ protection, rate limiting, input sanitization, and AES-256-GCM encryption.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `security.get()`, everything else is automatic
+- **⚡ One Function** - Just `securityClass.get()`, everything else is automatic
 - **🔒 Enterprise Security** - Production-grade CSRF, rate limiting, encryption
 - **🔧 Zero Configuration** - Smart defaults with environment variable override
 - **🌍 Environment-First** - Auto-detects from `VOILA_SECURITY_*` variables
@@ -40,10 +40,10 @@ VOILA_SECURITY_ENCRYPTION_KEY=64-char-hex-key-for-aes256-encryption
 ```typescript
 import express from 'express';
 import session from 'express-session';
-import { security } from '@voilajsx/appkit/security';
+import { securityClass } from '@voilajsx/appkit/security';
 
 const app = express();
-const secure = security.get();
+const security = securityClass.get();
 
 // Session middleware (required for CSRF)
 app.use(session({ secret: process.env.SESSION_SECRET }));
@@ -95,8 +95,8 @@ secure.decrypt(data); // Authenticated decryption
 
 ```typescript
 // ✅ CORRECT - Complete security setup
-import { security } from '@voilajsx/appkit/security';
-const secure = security.get();
+import { securityClass } from '@voilajsx/appkit/security';
+const security = securityClass.get();
 
 // Required order
 app.use(session({ secret: process.env.SESSION_SECRET }));
@@ -210,7 +210,7 @@ res.send(`<p>User: ${safe}</p>`);
 ```typescript
 // ✅ App startup validation
 try {
-  security.validateRequired({ csrf: true, encryption: true });
+  securityClass.validateRequired({ csrf: true, encryption: true });
   console.log('✅ Security validation passed');
 } catch (error) {
   console.error('❌ Security failed:', error.message);
@@ -364,7 +364,7 @@ class UserDataService {
 ### **Core Function**
 
 ```typescript
-const secure = security.get(); // One function, everything you need
+const security = securityClass.get(); // One function, everything you need
 ```
 
 ### **Middleware Methods**
@@ -372,7 +372,7 @@ const secure = security.get(); // One function, everything you need
 ```typescript
 secure.forms(options?);           // CSRF protection
 secure.requests(max?, window?);   // Rate limiting
-security.quickSetup(options?);    // Quick middleware array
+securityClass.quickSetup(options?);    // Quick middleware array
 ```
 
 ### **Input Sanitization**
@@ -394,11 +394,11 @@ secure.generateKey();             // 256-bit key generation
 ### **Utility Methods**
 
 ```typescript
-security.getConfig(); // Current configuration
-security.getStatus(); // Security feature status
-security.validateRequired(checks); // Startup validation
-security.isDevelopment(); // Environment helpers
-security.isProduction();
+securityClass.getConfig(); // Current configuration
+securityClass.getStatus(); // Security feature status
+securityClass.validateRequired(checks); // Startup validation
+securityClass.isDevelopment(); // Environment helpers
+securityClass.isProduction();
 ```
 
 ## 🌍 Environment Variables
@@ -512,23 +512,23 @@ function validateInput(req, res, next) {
 
 ```typescript
 // ✅ Generate production keys
-const encryptionKey = security.generateKey();
+const encryptionKey = securityClass.generateKey();
 console.log(`VOILA_SECURITY_ENCRYPTION_KEY=${encryptionKey}`);
 
 // ✅ Validate configuration at startup
-security.validateRequired({ csrf: true, encryption: true });
+securityClass.validateRequired({ csrf: true, encryption: true });
 ```
 
 ## 🧪 Testing
 
 ```typescript
-import { security } from '@voilajsx/appkit/security';
+import { securityClass } from '@voilajsx/appkit/security';
 
 describe('Security Tests', () => {
-  beforeEach(() => security.clearCache());
+  beforeEach(() => securityClass.clearCache());
 
   test('should generate and verify CSRF tokens', () => {
-    const secure = security.reset({
+    const secure = securityClass.reset({
       csrf: { secret: 'test-secret-32-characters-long' },
     });
 
@@ -542,7 +542,7 @@ describe('Security Tests', () => {
   });
 
   test('should encrypt and decrypt correctly', () => {
-    const secure = security.reset({
+    const secure = securityClass.reset({
       encryption: { key: 'a'.repeat(64) },
     });
 
@@ -555,7 +555,7 @@ describe('Security Tests', () => {
   });
 
   test('should sanitize malicious input', () => {
-    const secure = security.get();
+    const security = securityClass.get();
     const malicious = '<script>alert("xss")</script><p>Safe</p>';
     const cleaned = secure.html(malicious, { allowedTags: ['p'] });
 
@@ -569,7 +569,7 @@ describe('Security Tests', () => {
 
 ```typescript
 function createTestSecurity(overrides = {}) {
-  return security.reset({
+  return securityClass.reset({
     csrf: { secret: 'test-secret-32-characters-long' },
     encryption: { key: 'a'.repeat(64) },
     environment: { isDevelopment: true, isTest: true },
@@ -596,7 +596,7 @@ import type {
   RateLimitOptions,
 } from '@voilajsx/appkit/security';
 
-const secure = security.get();
+const security = securityClass.get();
 const middleware: ExpressMiddleware = secure.forms();
 const encrypted: string = secure.encrypt(sensitiveData);
 ```

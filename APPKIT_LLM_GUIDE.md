@@ -1348,6 +1348,228 @@ queue.process('process-upload', async (data) => {
 - [ ] Implement proper error handling with fallbacks
 - [ ] Log important operations with structured data
 
+## EVENTS MODULE
+
+### When to Use
+
+✅ **Real-time features, WebSocket connections, pub/sub messaging, live
+notifications**  
+❌ **HTTP APIs, file transfers, database operations, background jobs**
+
+### Core Pattern
+
+```javascript
+import { eventing } from '@voilajsx/appkit/events';
+const events = eventing.get();
+```
+
+### Auto-Strategy Detection
+
+```bash
+# Development → Memory-based event emitter
+# Production → Redis pub/sub (if REDIS_URL) → Memory
+```
+
+### Essential API (6 Core Methods)
+
+```javascript
+// 1. onConnection() - Handle WebSocket connections
+events.onConnection(async (socket) => {
+  const user = auth.verifyToken(socket.handshake.auth.token);
+
+  // Join user-specific rooms
+  await socket.join(`user:${user.userId}`);
+  await socket.join(`tenant:${user.tenant_id}`);
+
+  console.log(`User ${user.userId} connected`);
+});
+
+// 2. emit() - Send events to all clients
+events.emit('global-announcement', {
+  message: 'System maintenance in 5 minutes',
+  type: 'warning',
+});
+
+// 3. to() - Send to specific room/namespace
+events.to('room:chat-123').emit('new-message', {
+  id: messageId,
+  content: message.content,
+  user: { name: user.name },
+  timestamp: new Date(),
+});
+
+// 4. publish() - Cross-server pub/sub (Redis)
+await events.publish('notifications', {
+  userId: 123,
+  type: 'email-verified',
+  data: { email: 'user@example.com' },
+});
+
+// 5. subscribe() - Listen for pub/sub events
+events.subscribe('notifications', (data) => {
+  // Send real-time notification to user
+  events.to(`user:${data.userId}`).emit('notification', {
+    type: data.type,
+    message: 'Email verified successfully!',
+  });
+});
+
+// 6. broadcast() - Send to all connected clients
+events.broadcast('system-status', {
+  status: 'operational',
+  uptime: process.uptime(),
+});
+```
+
+### WebSocket Integration Patterns
+
+```javascript
+// Complete WebSocket setup with authentication
+events.onConnection(async (socket) => {
+  try {
+    // Verify JWT token
+    const token = socket.handshake.auth.token;
+    const user = auth.verifyToken(token);
+
+    // Store user context
+    socket.userId = user.userId;
+    socket.tenantId = user.tenant_id;
+
+    // Join tenant-isolated rooms
+    await socket.join(`tenant:${user.tenant_id}`);
+    await socket.join(`user:${user.userId}`);
+
+    // Handle real-time chat
+    socket.on('send-message', async (data) => {
+      // Validate and save message
+      const message = await db.message.create({
+        data: {
+          content: data.content,
+          userId: user.userId,
+          roomId: data.roomId,
+          tenant_id: user.tenant_id,
+        },
+      });
+
+      // Broadcast to room (tenant-filtered)
+      events.to(`room:${data.roomId}`).emit('new-message', {
+        id: message.id,
+        content: message.content,
+        user: { id: user.userId, name: user.name },
+        timestamp: message.createdAt,
+      });
+    });
+
+    // Handle typing indicators
+    socket.on('typing', (data) => {
+      socket.to(`room:${data.roomId}`).emit('user-typing', {
+        userId: user.userId,
+        userName: user.name,
+      });
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', () => {
+      log.info('User disconnected', { userId: user.userId });
+    });
+  } catch (error) {
+    log.error('Socket authentication failed', { error: error.message });
+    socket.disconnect();
+  }
+});
+```
+
+### REST API + Real-time Integration
+
+```javascript
+// Send notifications via API that trigger real-time events
+app.post('/api/notifications', auth.requireLogin(), async (req, res) => {
+  const user = auth.user(req);
+  const { message, type, targetUserId } = req.body;
+
+  // Save notification to database
+  const notification = await db.notification.create({
+    data: {
+      message,
+      type,
+      userId: targetUserId || user.userId,
+      fromUserId: user.userId,
+      tenant_id: user.tenant_id,
+    },
+  });
+
+  // Send real-time notification
+  events.to(`user:${targetUserId || user.userId}`).emit('notification', {
+    id: notification.id,
+    message: notification.message,
+    type: notification.type,
+    from: { name: user.name },
+    timestamp: notification.createdAt,
+  });
+
+  res.json({ success: true, notificationId: notification.id });
+});
+
+// Broadcast system announcements
+app.post(
+  '/api/admin/broadcast',
+  auth.requireRole('admin.tenant'),
+  async (req, res) => {
+    const user = auth.user(req);
+    const { message, type } = req.body;
+
+    // Send to all users in tenant
+    events.to(`tenant:${user.tenant_id}`).emit('announcement', {
+      message,
+      type,
+      from: 'System',
+      timestamp: new Date(),
+    });
+
+    res.json({ success: true, broadcasted: true });
+  }
+);
+```
+
+### Cross-Server Pub/Sub (Redis)
+
+```javascript
+// Publisher service (API server)
+app.post('/api/orders', async (req, res) => {
+  const order = await db.order.create({ data: req.body });
+
+  // Publish cross-server event
+  await events.publish('order-events', {
+    type: 'order-created',
+    orderId: order.id,
+    userId: order.userId,
+    amount: order.total,
+  });
+
+  res.json({ success: true, orderId: order.id });
+});
+
+// Subscriber service (WebSocket server)
+events.subscribe('order-events', async (data) => {
+  if (data.type === 'order-created') {
+    // Notify user across all servers
+    events.to(`user:${data.userId}`).emit('order-update', {
+      type: 'created',
+      orderId: data.orderId,
+      message: 'Your order has been confirmed!',
+      amount: data.amount,
+    });
+
+    // Notify admin dashboard
+    events.to('admin-dashboard').emit('new-order', {
+      orderId: data.orderId,
+      amount: data.amount,
+      timestamp: new Date(),
+    });
+  }
+});
+```
+
 # PART 4: SYSTEM MODULES - VERIFIED ACCURATE FOR LLMs
 
 ## 🚀 LLM Quick Reference - Copy These Exact Patterns

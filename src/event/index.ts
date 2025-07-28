@@ -5,8 +5,8 @@
  * 
  * @llm-rule WHEN: Building apps that need event-driven architecture with zero configuration
  * @llm-rule AVOID: Complex event setups - this auto-detects Redis/Memory from environment
- * @llm-rule NOTE: Uses eventing.get() pattern like auth - get() → event.emit() → distributed
- * @llm-rule NOTE: Common pattern - eventing.get(namespace) → event.on() → event.emit() → handled
+ * @llm-rule NOTE: Uses eventClass.get() pattern like auth - get() → event.emit() → distributed
+ * @llm-rule NOTE: Common pattern - eventClass.get(namespace) → event.on() → event.emit() → handled
  */
 
 import { EventClass } from './event.js';
@@ -365,7 +365,7 @@ async function shutdown(): Promise<void> {
 /**
  * Single eventing export with minimal API (like auth module)
  */
-export const eventing = {
+export const eventClass = {
   // Core method (like auth.get())
   get,
   
@@ -393,7 +393,7 @@ export type { EventConfig } from './defaults.js';
 export { EventClass } from './event.js';
 
 // Default export
-export default eventing;
+export default eventClass;
 
 // Auto-setup graceful shutdown handlers
 if (typeof process !== 'undefined') {

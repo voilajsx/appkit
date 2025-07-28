@@ -8,7 +8,7 @@
  * @llm-rule NOTE: Called once at startup, cached globally for performance like auth/logging modules
  */
 
-export interface QueuingConfig {
+export interface QueueConfig {
   // Transport selection (auto-detected)
   transport: 'memory' | 'redis' | 'database';
   
@@ -65,7 +65,7 @@ export interface QueuingConfig {
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
  */
-export function getSmartDefaults(): QueuingConfig {
+export function getSmartDefaults(): QueueConfig {
   // Direct environment access with smart defaults (like auth module)
   const nodeEnv = process.env.NODE_ENV || 'development';
   const isProduction = nodeEnv === 'production';
@@ -278,7 +278,7 @@ function isValidDatabaseUrl(url: string): boolean {
  * @llm-rule WHEN: App startup to get production-ready queue configuration
  * @llm-rule AVOID: Calling repeatedly - expensive validation, cache the result
  */
-export function getValidatedDefaults(): QueuingConfig {
+export function getValidatedDefaults(): QueueConfig {
   validateEnvironment();
   return getSmartDefaults();
 }

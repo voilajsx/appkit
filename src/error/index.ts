@@ -6,8 +6,8 @@
  * @llm-rule WHEN: Building apps that need semantic HTTP error handling
  * @llm-rule AVOID: Complex error setups with multiple libraries - this handles everything in one API
  * @llm-rule NOTE: Provides semantic error creation (badRequest, unauthorized) and Express middleware
- * @llm-rule NOTE: Common pattern - error.get() → throw err.badRequest() → app.use(err.handleErrors())
- * @llm-rule NOTE: COMPLETE SETUP: const err = error.get(); app.use(err.handleErrors()); // Done!
+ * @llm-rule NOTE: Common pattern - errorClass.get() → throw error.badRequest() → app.use(error.handleErrors())
+ * @llm-rule NOTE: COMPLETE SETUP: const error = errorClass.get(); app.use(error.handleErrors()); // Done!
  */
 
 import { ErrorClass } from './error.js';
@@ -58,7 +58,7 @@ let globalError: ErrorClass | null = null;
  * @llm-rule WHEN: Starting any error operation - this is your main entry point
  * @llm-rule AVOID: Calling new ErrorClass() directly - always use this function
  * @llm-rule NOTE: USAGE FLOW: get() → create errors → setup middleware → done
- * @llm-rule NOTE: TYPICAL SETUP: const err = error.get(); app.use(err.handleErrors());
+ * @llm-rule NOTE: TYPICAL SETUP: const error = errorClass.get(); app.use(error.handleErrors());
  */
 function get(overrides: Partial<ErrorConfig> = {}): ErrorClass {
   // Lazy initialization - parse environment once
@@ -75,7 +75,7 @@ function get(overrides: Partial<ErrorConfig> = {}): ErrorClass {
  * Reset global instance (useful for testing or config changes)
  * @llm-rule WHEN: Testing error logic with different configurations
  * @llm-rule AVOID: Using in production - only for tests and development
- * @llm-rule NOTE: TEST PATTERN: const err = error.reset({showStack: false}); // Clean slate
+ * @llm-rule NOTE: TEST PATTERN: const error = errorClass.reset({showStack: false}); // Clean slate
  */
 function reset(newConfig: Partial<ErrorConfig> = {}): ErrorClass {
   const defaults = getSmartDefaults();
@@ -85,16 +85,26 @@ function reset(newConfig: Partial<ErrorConfig> = {}): ErrorClass {
 }
 
 /**
+ * Clear global instance cache (for testing)
+ * @llm-rule WHEN: Testing error configurations or between test suites
+ * @llm-rule AVOID: Using in production - only for tests
+ */
+function clearCache(): void {
+  globalError = null;
+}
+
+/**
  * Single error export with semantic methods and Express integration
- * @llm-rule NOTE: TWO USAGE PATTERNS: error.get().badRequest() OR error.badRequest() (shortcuts)
+ * @llm-rule NOTE: TWO USAGE PATTERNS: errorClass.get().badRequest() OR errorClass.badRequest() (shortcuts)
  * @llm-rule NOTE: MIDDLEWARE PATTERN: app.use(error.handleErrors()); // Global error handling
  */
-export const error = {
+export const errorClass = {
   // Core method
   get,
   
   // Utility methods
   reset,
+  clearCache,
   
   // Error creation shortcuts - automatically call get()
   /**

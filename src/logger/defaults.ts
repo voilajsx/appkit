@@ -1,7 +1,7 @@
 /**
  * Smart defaults with direct environment access and auto transport detection
- * @module @voilajsx/appkit/logging
- * @file src/logging/defaults.ts
+ * @module @voilajsx/appkit/logger
+ * @file src/logger/defaults.ts
  * 
  * @llm-rule WHEN: App startup - need production-ready logging configuration
  * @llm-rule AVOID: Calling multiple times - expensive environment parsing, cache results

@@ -1,10 +1,10 @@
 /**
  * Core queuing class with automatic transport management and job processing
  * @module @voilajsx/appkit/queue
- * @file src/queue/queuing.ts
+ * @file src/queue/queue.ts
  * 
- * @llm-rule WHEN: Building queue instances - called via queuing.get(), not directly
- * @llm-rule AVOID: Creating QueuingClass directly - always use queuing.get() for proper setup
+ * @llm-rule WHEN: Building queue instances - called via queueClass.get(), not directly
+ * @llm-rule AVOID: Creating QueueClass directly - always use queueClass.get() for proper setup
  * @llm-rule NOTE: Auto-detects and switches between Memory, Redis, Database transports
  */
 
@@ -12,7 +12,7 @@ import { randomUUID } from 'crypto';
 import { MemoryTransport } from './transports/memory.js';
 import { RedisTransport } from './transports/redis.js';
 import { DatabaseTransport } from './transports/database.js';
-import type { QueuingConfig } from './defaults.js';
+import type { QueueConfig } from './defaults.js';
 import type { JobData, JobOptions, JobHandler, Queue, QueueStats, JobInfo, JobStatus } from './index.js';
 
 export interface Transport {
@@ -33,13 +33,13 @@ export interface Transport {
 /**
  * Core queuing class with automatic transport management
  */
-export class QueuingClass implements Queue {
-  private config: QueuingConfig;
+export class QueueClass implements Queue {
+  private config: QueueConfig;
   private transport: Transport;
   private transportType: string;
   private isClosing = false;
 
-  constructor(config: QueuingConfig) {
+  constructor(config: QueueConfig) {
     this.config = config;
     this.transportType = config.transport;
     this.transport = this.initializeTransport();
@@ -50,7 +50,7 @@ export class QueuingClass implements Queue {
 
   /**
    * Initialize transport based on configuration
-   * @llm-rule WHEN: QueuingClass construction - sets up appropriate transport
+   * @llm-rule WHEN: QueueClass construction - sets up appropriate transport
    * @llm-rule AVOID: Manual transport selection - config determines transport type
    */
   private initializeTransport(): Transport {
@@ -297,7 +297,7 @@ export class QueuingClass implements Queue {
    * @llm-rule WHEN: Debugging configuration or health checks
    * @llm-rule AVOID: Using for runtime decisions - config is set at startup
    */
-  getConfig(): QueuingConfig {
+  getConfig(): QueueConfig {
     return this.config;
   }
 

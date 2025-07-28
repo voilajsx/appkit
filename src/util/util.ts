@@ -1,15 +1,15 @@
 /**
  * Core utility class with 12 essential JavaScript functions
- * @module @voilajsx/appkit/utils
- * @file src/utils/utility.ts
+ * @module @voilajsx/appkit/util
+ * @file src/util/util.ts
  * 
  * @llm-rule WHEN: Building apps that need common utility functions (get, chunk, slugify, debounce, etc.)
- * @llm-rule AVOID: Using directly - always get instance via utility.get()
+ * @llm-rule AVOID: Using directly - always get instance via utilClass.get()
  * @llm-rule NOTE: Provides 12 essential utilities: get, isEmpty, slugify, chunk, debounce, pick, unique, clamp, formatBytes, truncate, sleep, uuid
  */
 
 import crypto from 'crypto';
-import type { UtilityConfig, createUtilityError } from './defaults.js';
+import type { UtilConfig, createUtilityError } from './defaults.js';
 import { createUtilityError as createError } from './defaults.js';
 
 export interface GetOptions {
@@ -51,12 +51,12 @@ export interface SlugifyOptions {
 /**
  * Utility class with 12 essential JavaScript functions
  */
-export class UtilityClass {
-  public config: UtilityConfig;
+export class UtilClass {
+  public config: UtilConfig;
   private memoCache: Map<string, { value: any; timestamp: number }>;
   private debounceCache: Map<string, { timeoutId: any; lastArgs: any[] }>;
 
-  constructor(config: UtilityConfig) {
+  constructor(config: UtilConfig) {
     this.config = config;
     this.memoCache = new Map();
     this.debounceCache = new Map();

@@ -11,7 +11,7 @@ built-in CDN support and cost optimization.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `store.get()`, everything else is automatic
+- **⚡ One Function** - Just `storageClass.get()`, everything else is automatic
 - **☁️ Auto Strategy** - Cloud env vars → Distributed, No vars → Local
 - **🔧 Zero Configuration** - Smart defaults for everything
 - **💰 Cost Optimized** - R2 prioritized for zero egress fees
@@ -31,9 +31,9 @@ npm install @voilajsx/appkit
 ### Local Storage (Development)
 
 ```typescript
-import { store } from '@voilajsx/appkit/storage';
+import { storageClass } from '@voilajsx/appkit/storage';
 
-const storage = store.get();
+const storage = storageClass.get();
 
 // Upload files
 await storage.put('avatars/user123.jpg', imageBuffer);
@@ -65,9 +65,9 @@ AWS_SECRET_ACCESS_KEY=secret_key
 ```
 
 ```typescript
-import { store } from '@voilajsx/appkit/storage';
+import { storageClass } from '@voilajsx/appkit/storage';
 
-const storage = store.get();
+const storage = storageClass.get();
 
 // Same code - now distributed across CDN!
 await storage.put('products/item123.jpg', imageBuffer);
@@ -113,8 +113,8 @@ const productGallery = await storage.list('products/456/gallery/');
 
 ```typescript
 // ✅ CORRECT - Complete storage setup
-import { store } from '@voilajsx/appkit/storage';
-const storage = store.get();
+import { storageClass } from '@voilajsx/appkit/storage';
+const storage = storageClass.get();
 
 // Upload files
 await storage.put('folder/file.jpg', buffer);
@@ -134,17 +134,17 @@ const exists = await storage.exists('document.pdf');
 
 ```typescript
 // ✅ Quick upload with auto-naming
-const { key, url } = await store.upload(buffer, {
+const { key, url } = await storageClass.upload(buffer, {
   folder: 'uploads',
   filename: 'document.pdf',
 });
 
 // ✅ Quick download with content type
-const { data, contentType } = await store.download('file.jpg');
+const { data, contentType } = await storageClass.download('file.jpg');
 
 // ✅ Strategy detection
-const strategy = store.getStrategy(); // 'local' | 's3' | 'r2'
-const isCloud = store.hasCloudStorage(); // true if S3/R2
+const strategy = storageClass.getStrategy(); // 'local' | 's3' | 'r2'
+const isCloud = storageClass.hasCloudStorage(); // true if S3/R2
 ```
 
 ### **Error Handling (Copy This Pattern)**
@@ -183,9 +183,9 @@ await storage.put('/file.jpg', buffer); // Leading slash
 await storage.put('folder/../file.jpg', buffer); // Path traversal
 await storage.put('folder\\file.jpg', buffer); // Backslashes
 
-// ✅ CORRECT - Use store.get()
-import { store } from '@voilajsx/appkit/storage';
-const storage = store.get();
+// ✅ CORRECT - Use storageClass.get()
+import { storageClass } from '@voilajsx/appkit/storage';
+const storage = storageClass.get();
 await storage.put('folder/file.jpg', buffer);
 ```
 
@@ -222,12 +222,12 @@ try {
 // ❌ WRONG - No cleanup between tests
 test('should upload file', async () => {
   await storage.put('test.jpg', buffer);
-  // Missing: await store.clear();
+  // Missing: await storageClass.clear();
 });
 
 // ✅ CORRECT - Proper test cleanup
 afterEach(async () => {
-  await store.clear(); // Essential for tests
+  await storageClass.clear(); // Essential for tests
 });
 ```
 
@@ -309,7 +309,7 @@ app.get('/files/:key(*)', async (req, res) => {
 ```typescript
 // ✅ App startup validation
 try {
-  store.validateConfig();
+  storageClass.validateConfig();
   console.log('✅ Storage validation passed');
 } catch (error) {
   console.error('❌ Storage validation failed:', error.message);
@@ -371,7 +371,7 @@ try {
 ### Core Function
 
 ```typescript
-const storage = store.get(); // One function, everything you need
+const storage = storageClass.get(); // One function, everything you need
 ```
 
 ### File Operations
@@ -433,29 +433,29 @@ files.forEach((file) => {
 
 ```typescript
 // Quick upload with auto-naming
-const { key, url } = await store.upload(buffer, {
+const { key, url } = await storageClass.upload(buffer, {
   folder: 'uploads',
   filename: 'document.pdf',
   contentType: 'application/pdf',
 });
 
 // Quick download with content type
-const { data, contentType } = await store.download('file.jpg');
+const { data, contentType } = await storageClass.download('file.jpg');
 ```
 
 ### Utility Methods
 
 ```typescript
 // Debug info
-store.getStrategy(); // 'local' | 's3' | 'r2'
-store.hasCloudStorage(); // true if S3/R2 configured
-store.isLocal(); // true if using local storage
-store.getConfig(); // Current configuration
-store.getStats(); // Usage statistics
+storageClass.getStrategy(); // 'local' | 's3' | 'r2'
+storageClass.hasCloudStorage(); // true if S3/R2 configured
+storageClass.isLocal(); // true if using local storage
+storageClass.getConfig(); // Current configuration
+storageClass.getStats(); // Usage statistics
 
 // Cleanup
 await storage.disconnect();
-await store.clear(); // For testing
+await storageClass.clear(); // For testing
 ```
 
 ## 🎯 Usage Examples
@@ -465,10 +465,10 @@ await store.clear(); // For testing
 ```typescript
 import express from 'express';
 import multer from 'multer';
-import { store } from '@voilajsx/appkit/storage';
+import { storageClass } from '@voilajsx/appkit/storage';
 
 const app = express();
-const storage = store.get();
+const storage = storageClass.get();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Single file upload
@@ -552,10 +552,10 @@ app.get('/files/:key(*)/signed', async (req, res) => {
 ### **Image Processing Pipeline**
 
 ```typescript
-import { store } from '@voilajsx/appkit/storage';
+import { storageClass } from '@voilajsx/appkit/storage';
 import sharp from 'sharp';
 
-const storage = store.get();
+const storage = storageClass.get();
 
 export class ImageProcessor {
   async processImage(originalKey: string) {
@@ -622,9 +622,9 @@ export class ImageProcessor {
 ### **Document Management System**
 
 ```typescript
-import { store } from '@voilajsx/appkit/storage';
+import { storageClass } from '@voilajsx/appkit/storage';
 
-const storage = store.get();
+const storage = storageClass.get();
 
 export class DocumentManager {
   async uploadDocument(
@@ -695,9 +695,9 @@ export class DocumentManager {
 ### **Backup & Sync System**
 
 ```typescript
-import { store } from '@voilajsx/appkit/storage';
+import { storageClass } from '@voilajsx/appkit/storage';
 
-const storage = store.get();
+const storage = storageClass.get();
 
 export class BackupManager {
   async createBackup(sourcePrefix: string) {
@@ -828,7 +828,7 @@ NODE_ENV=development
 ```
 
 ```typescript
-const storage = store.get();
+const storage = storageClass.get();
 // Strategy: Local filesystem (./uploads/)
 // URLs: /uploads/file.jpg
 // Features: File type validation, size limits
@@ -844,7 +844,7 @@ CLOUDFLARE_R2_BUCKET=prod-assets
 ```
 
 ```typescript
-const storage = store.get();
+const storage = storageClass.get();
 // Strategy: R2 or S3 (distributed)
 // URLs: https://cdn.example.com/file.jpg
 // Features: CDN delivery, signed URLs, zero egress (R2)
@@ -868,16 +868,16 @@ const storage = store.get();
 ### **Test Setup**
 
 ```typescript
-import { store } from '@voilajsx/appkit/storage';
+import { storageClass } from '@voilajsx/appkit/storage';
 
 describe('File Storage', () => {
   afterEach(async () => {
     // IMPORTANT: Clear storage state between tests
-    await store.clear();
+    await storageClass.clear();
   });
 
   test('should upload and download files', async () => {
-    const storage = store.get();
+    const storage = storageClass.get();
 
     const testData = Buffer.from('Hello, World!');
     await storage.put('test.txt', testData);
@@ -887,7 +887,7 @@ describe('File Storage', () => {
   });
 
   test('should generate public URLs', async () => {
-    const storage = store.get();
+    const storage = storageClass.get();
 
     await storage.put('image.jpg', Buffer.from('fake image'));
     const url = storage.url('image.jpg');
@@ -903,7 +903,7 @@ describe('File Storage', () => {
 // Force local strategy for testing
 describe('Storage with Local Strategy', () => {
   beforeEach(() => {
-    store.reset({
+    storageClass.reset({
       strategy: 'local',
       local: {
         dir: './test-uploads',
@@ -916,7 +916,7 @@ describe('Storage with Local Strategy', () => {
   });
 
   afterEach(async () => {
-    await store.clear();
+    await storageClass.clear();
     // Clean up test directory
     await fs.rm('./test-uploads', { recursive: true, force: true });
   });
@@ -952,7 +952,7 @@ import type {
 } from '@voilajsx/appkit/storage';
 
 // Strongly typed storage operations
-const storage: Storage = store.get();
+const storage: Storage = storageClass.get();
 
 const files: StorageFile[] = await storage.list('images/');
 const options: PutOptions = {
@@ -990,8 +990,8 @@ s3.upload(params, callback);
 
 ```typescript
 // 2 lines, works with any provider
-import { store } from '@voilajsx/appkit/storage';
-await store.get().put('file.jpg', buffer);
+import { storageClass } from '@voilajsx/appkit/storage';
+await storageClass.get().put('file.jpg', buffer);
 ```
 
 **Same features, 90% less code, automatic provider detection.**

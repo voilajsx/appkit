@@ -1,7 +1,7 @@
 /**
  * Database transport with automatic connection management and batch processing
- * @module @voilajsx/appkit/logging
- * @file src/logging/transports/database.ts
+ * @module @voilajsx/appkit/logger
+ * @file src/logger/transports/database.ts
  * 
  * @llm-rule WHEN: Need centralized log storage with database persistence
  * @llm-rule AVOID: Manual database setup - auto-detects from DATABASE_URL and creates tables

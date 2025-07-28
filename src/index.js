@@ -8,11 +8,11 @@
  *
  * @example
  * // ✅ Perfect tree-shaking - only specific modules bundled
- * import { authenticator } from '@voilajsx/appkit/auth';
- * import { database } from '@voilajsx/appkit/database';
+ * import { authClass } from '@voilajsx/appkit/auth';
+ * import { databaseClass } from '@voilajsx/appkit/database';
  *
  * // ✅ Also tree-shakable - but imports main index
- * import { authenticator, database } from '@voilajsx/appkit';
+ * import { authClass, databaseClass } from '@voilajsx/appkit';
  *
  * // ❌ Avoid - imports everything
  * import * as appkit from '@voilajsx/appkit';
@@ -39,40 +39,45 @@ export const NODE_VERSION = '>=18.0.0';
 /**
  * Re-export main entry functions for convenience (tree-shakable)
  * Each import only loads the specific module needed
+ *
+ * Pattern: {folderName}Class.get() → creates {folderName} instance
  */
 
 // Authentication
-export { authenticator } from './auth/index.js';
+export { authClass } from './auth/index.js';
 
 // Configuration
-export { configure } from './config/index.js';
+export { configClass } from './config/index.js';
 
 // Security
-export { security } from './security/index.js';
+export { securityClass } from './security/index.js';
 
 // Database
-export { database } from './database/index.js';
+export { databaseClass } from './database/index.js';
 
 // Caching
-export { caching } from './cache/index.js';
+export { cacheClass } from './cache/index.js';
 
 // Email
-export { emailing } from './email/index.js';
+export { emailClass } from './email/index.js';
+
+// Events
+export { eventClass } from './event/index.js';
 
 // Error handling
-export { error } from './error/index.js';
+export { errorClass } from './error/index.js';
 
 // Logging
-export { logger } from './logging/index.js';
+export { loggerClass } from './logger/index.js';
 
 // Queuing
-export { queuing } from './queue/index.js';
+export { queueClass } from './queue/index.js';
 
 // Storage
-export { store } from './storage/index.js';
+export { storageClass } from './storage/index.js';
 
 // Utilities
-export { utility } from './utils/index.js';
+export { utilClass } from './util/index.js';
 
 /**
  * Quick health check for the library

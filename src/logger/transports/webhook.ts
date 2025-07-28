@@ -1,7 +1,7 @@
 /**
  * Webhook transport for real-time alerts with Slack and generic webhook support
- * @module @voilajsx/appkit/logging
- * @file src/logging/transports/webhook.ts
+ * @module @voilajsx/appkit/logger
+ * @file src/logger/transports/webhook.ts
  * 
  * @llm-rule WHEN: Need real-time error alerts or notifications to Slack/Discord/Teams
  * @llm-rule AVOID: High-frequency logging - webhooks are for alerts, not all logs

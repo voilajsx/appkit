@@ -12,7 +12,7 @@ wildcard patterns and event history.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `eventing.get()`, everything else is automatic
+- **⚡ One Function** - Just `eventClass.get()`, everything else is automatic
 - **🔄 Auto Strategy** - REDIS_URL → Distributed, No Redis → Memory
 - **🔧 Zero Configuration** - Smart defaults for everything
 - **🌟 Wildcard Events** - Listen to `user.*` patterns automatically
@@ -31,9 +31,9 @@ npm install @voilajsx/appkit
 ### Basic Events (Memory Strategy)
 
 ```typescript
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
-const events = eventing.get();
+const events = eventClass.get();
 
 // Listen to events
 events.on('user.signup', (data) => {
@@ -55,9 +55,9 @@ REDIS_URL=redis://localhost:6379
 ```
 
 ```typescript
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
-const events = eventing.get();
+const events = eventClass.get();
 
 // Same code - now distributed across all servers!
 events.on('order.completed', (data) => {
@@ -92,9 +92,9 @@ REDIS_URL=redis://localhost:6379
 
 ```typescript
 // Different parts of your app can use separate event channels
-const userEvents = eventing.get('users'); // users:*
-const orderEvents = eventing.get('orders'); // orders:*
-const emailEvents = eventing.get('emails'); // emails:*
+const userEvents = eventClass.get('users'); // users:*
+const orderEvents = eventClass.get('orders'); // orders:*
+const emailEvents = eventClass.get('emails'); // emails:*
 
 // Events don't interfere with each other
 userEvents.emit('created', data); // → users:created
@@ -106,7 +106,7 @@ orderEvents.emit('created', data); // → orders:created
 ### Core Function
 
 ```typescript
-const events = eventing.get(namespace?); // One function, everything you need
+const events = eventClass.get(namespace?); // One function, everything you need
 ```
 
 ### Event Methods
@@ -158,16 +158,16 @@ await events.disconnect();
 
 ```typescript
 // System-wide operations
-eventing.getStrategy(); // Current strategy
-eventing.getActiveNamespaces(); // All active namespaces
-eventing.hasRedis(); // Check if Redis available
+eventClass.getStrategy(); // Current strategy
+eventClass.getActiveNamespaces(); // All active namespaces
+eventClass.hasRedis(); // Check if Redis available
 
 // Broadcast to all namespaces (use sparingly)
-await eventing.broadcast('system.shutdown');
+await eventClass.broadcast('system.shutdown');
 
 // Cleanup for testing
-await eventing.clear();
-await eventing.reset(newConfig);
+await eventClass.clear();
+await eventClass.reset(newConfig);
 ```
 
 ## 🎯 Usage Examples
@@ -176,10 +176,10 @@ await eventing.reset(newConfig);
 
 ```typescript
 import express from 'express';
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
 const app = express();
-const events = eventing.get('api');
+const events = eventClass.get('api');
 
 // Listen to user events
 events.on('user.created', async (user) => {
@@ -227,9 +227,9 @@ app.listen(3000, () => {
 
 ```typescript
 // User Service
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
-const userEvents = eventing.get('users');
+const userEvents = eventClass.get('users');
 
 export class UserService {
   async createUser(userData) {
@@ -250,10 +250,10 @@ export class UserService {
 
 ```typescript
 // Email Service (separate server/container)
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
-const emailEvents = eventing.get('emails');
-const userEvents = eventing.get('users'); // Same namespace, distributed
+const emailEvents = eventClass.get('emails');
+const userEvents = eventClass.get('users'); // Same namespace, distributed
 
 // Listen to user events from User Service
 userEvents.on('user.created', async (userData) => {
@@ -274,9 +274,9 @@ emailEvents.on('send.*', async (eventName, emailData) => {
 ### **Background Jobs & Queues**
 
 ```typescript
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
-const jobEvents = eventing.get('jobs');
+const jobEvents = eventClass.get('jobs');
 
 // Job processor
 class JobProcessor {
@@ -316,13 +316,13 @@ await jobEvents.emit('job.email.welcome', {
 ## 🧪 Testing
 
 ```typescript
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
 describe('Events', () => {
-  afterEach(() => eventing.clear()); // Essential cleanup
+  afterEach(() => eventClass.clear()); // Essential cleanup
 
   test('basic event flow', async () => {
-    const events = eventing.get('test');
+    const events = eventClass.get('test');
 
     const received = [];
     events.on('user.created', (data) => received.push(data));
@@ -354,12 +354,12 @@ events.on('order.payment.failed', handler);
 ```typescript
 // ❌ Memory leaks in tests
 test('my test', () => {
-  const events = eventing.get('test');
-  // Missing: await eventing.clear();
+  const events = eventClass.get('test');
+  // Missing: await eventClass.clear();
 });
 
 // ✅ Always clean up
-afterEach(() => eventing.clear());
+afterEach(() => eventClass.clear());
 ```
 
 ### **3. Memory Strategy in Production**
@@ -422,13 +422,13 @@ async function emitSafely(event, data) {
 ### **Basic Validation**
 
 ```typescript
-import { eventing } from '@voilajsx/appkit/event';
+import { eventClass } from '@voilajsx/appkit/event';
 
 async function startApp() {
   // Validate events at startup
-  eventing.validateConfig();
+  eventClass.validateConfig();
 
-  const strategy = eventing.getStrategy();
+  const strategy = eventClass.getStrategy();
   console.log(`🚀 Events: ${strategy} strategy`);
 
   app.listen(3000);
@@ -438,7 +438,7 @@ async function startApp() {
 ### **Production Checks**
 
 ```typescript
-if (process.env.NODE_ENV === 'production' && !eventing.hasRedis()) {
+if (process.env.NODE_ENV === 'production' && !eventClass.hasRedis()) {
   throw new Error('Redis required in production for distributed events');
 }
 ```
@@ -447,13 +447,13 @@ if (process.env.NODE_ENV === 'production' && !eventing.hasRedis()) {
 
 ```typescript
 app.get('/health/events', (req, res) => {
-  const stats = eventing.getStats();
+  const stats = eventClass.getStats();
 
   res.json({
     status: 'healthy',
-    strategy: eventing.getStrategy(),
+    strategy: eventClass.getStrategy(),
     connected: stats.connected,
-    redis: eventing.hasRedis(),
+    redis: eventClass.hasRedis(),
   });
 });
 ```
@@ -565,7 +565,7 @@ NODE_ENV=development
 
 ```typescript
 // Fast local events, detailed logging
-const events = eventing.get();
+const events = eventClass.get();
 await events.emit('test.event', { data: 'value' });
 // ✅ [AppKit] Event emitted: test.event { data: 'value' }
 ```
@@ -580,7 +580,7 @@ REDIS_URL=redis://production-redis:6379
 
 ```typescript
 // Same code - now distributed across all servers
-const events = eventing.get();
+const events = eventClass.get();
 await events.emit('test.event', { data: 'value' });
 // Events work across all server instances automatically
 ```
@@ -591,8 +591,8 @@ await events.emit('test.event', { data: 'value' });
 
 ```typescript
 // ✅ ALWAYS use these patterns
-import { eventing } from '@voilajsx/appkit/event';
-const events = eventing.get('namespace');
+import { eventClass } from '@voilajsx/appkit/event';
+const events = eventClass.get('namespace');
 
 // ✅ Event listening
 events.on('entity.action', (data) => {
@@ -638,7 +638,7 @@ events.on('created', handler); // Too generic
 // ❌ DON'T forget cleanup in tests
 test('my test', () => {
   // ... test code
-  // Missing: await eventing.clear();
+  // Missing: await eventClass.clear();
 });
 
 // ❌ DON'T emit events without data structure
@@ -670,9 +670,9 @@ events.on('payment.process', async (payment) => {
 });
 
 // Use namespaces for organization
-const userEvents = eventing.get('users');
-const orderEvents = eventing.get('orders');
-const emailEvents = eventing.get('emails');
+const userEvents = eventClass.get('users');
+const orderEvents = eventClass.get('orders');
+const emailEvents = eventClass.get('emails');
 
 // Batch operations for efficiency
 await events.emitBatch([
@@ -703,7 +703,7 @@ import type {
 } from '@voilajsx/appkit/event';
 
 // Strongly typed event handling
-const events: Event = eventing.get('users');
+const events: Event = eventClass.get('users');
 
 const handler: EventHandler = (data: UserData) => {
   console.log('User created:', data.email);

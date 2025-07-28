@@ -11,7 +11,7 @@ processing.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `queuing.get()`, everything else is automatic
+- **⚡ One Function** - Just `queueClass.get()`, everything else is automatic
 - **🔄 Auto-Transport Detection** - Memory → Redis → Database based on
   environment
 - **🔧 Zero Configuration** - Smart defaults for everything
@@ -36,9 +36,9 @@ echo "DATABASE_URL=postgres://user:pass@localhost/db" > .env
 ```
 
 ```typescript
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
-const queue = queuing.get();
+const queue = queueClass.get();
 
 // Add jobs
 const jobId = await queue.add('email', {
@@ -94,7 +94,7 @@ VOILA_QUEUE_WORKER=true
 
 ```typescript
 // Same code, production features
-const queue = queuing.get();
+const queue = queueClass.get();
 await queue.add('webhook', { url: 'https://api.example.com', data: payload });
 // → Redis distributed queue
 // → 10 concurrent workers
@@ -107,9 +107,9 @@ await queue.add('webhook', { url: 'https://api.example.com', data: payload });
 ### Core Methods
 
 ```typescript
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
-const queue = queuing.get();
+const queue = queueClass.get();
 
 // Job management
 await queue.add(jobType, data, options?);        // Add job
@@ -131,11 +131,11 @@ await queue.clean(status, grace?);               // Clean old jobs
 ### Utility Methods
 
 ```typescript
-queuing.getActiveTransport(); // See which transport is running
-queuing.hasTransport('redis'); // Check specific transport
-queuing.getConfig(); // Debug configuration
-queuing.getHealth(); // Health status
-queuing.clear(); // Clear all (testing)
+queueClass.getActiveTransport(); // See which transport is running
+queueClass.hasTransport('redis'); // Check specific transport
+queueClass.getConfig(); // Debug configuration
+queueClass.getHealth(); // Health status
+queueClass.clear(); // Clear all (testing)
 ```
 
 ## 🌍 Environment Variables
@@ -192,10 +192,10 @@ VOILA_QUEUE_DB_BATCH=50                       # Batch size
 
 ```typescript
 import express from 'express';
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
 const app = express();
-const queue = queuing.get();
+const queue = queueClass.get();
 
 // Setup job processors
 queue.process('email', async (data) => {
@@ -270,10 +270,10 @@ app.listen(3000, () => {
 
 ```typescript
 import Fastify from 'fastify';
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
 const fastify = Fastify();
-const queue = queuing.get();
+const queue = queueClass.get();
 
 // Setup scheduled job processors
 queue.process('reminder', async (data) => {
@@ -337,9 +337,9 @@ fastify.listen({ port: 3000 });
 
 ```typescript
 // worker.ts - Separate worker process
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
-const queue = queuing.get();
+const queue = queueClass.get();
 
 // Heavy processing jobs
 queue.process('data-export', async (data) => {
@@ -392,19 +392,19 @@ console.log('🔧 Background worker started');
 
 ```typescript
 import express from 'express';
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
 const app = express();
-const queue = queuing.get();
+const queue = queueClass.get();
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
-  const health = queuing.getHealth();
+  const health = queueClass.getHealth();
   const stats = await queue.getStats();
 
   res.json({
     status: health.status,
-    transport: queuing.getActiveTransport(),
+    transport: queueClass.getActiveTransport(),
     stats,
     timestamp: new Date().toISOString(),
   });
@@ -475,9 +475,9 @@ app.listen(4000, () => {
 ### Advanced Job Options
 
 ```typescript
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
-const queue = queuing.get();
+const queue = queueClass.get();
 
 // High priority job
 await queue.add(
@@ -576,16 +576,16 @@ npx prisma migrate dev --name add_queue_jobs
 ## 🧪 Testing
 
 ```typescript
-import { queuing } from '@voilajsx/appkit/queue';
+import { queueClass } from '@voilajsx/appkit/queue';
 
 describe('Queue Tests', () => {
   afterEach(async () => {
     // IMPORTANT: Clear queue state between tests
-    await queuing.clear();
+    await queueClass.clear();
   });
 
   test('should process jobs', async () => {
-    const queue = queuing.get();
+    const queue = queueClass.get();
     const results: any[] = [];
 
     // Setup processor
@@ -605,7 +605,7 @@ describe('Queue Tests', () => {
   });
 
   test('should retry failed jobs', async () => {
-    const queue = queuing.get();
+    const queue = queueClass.get();
     let attempts = 0;
 
     queue.process('failing-job', async (data) => {
@@ -640,7 +640,7 @@ describe('Queue Tests', () => {
 
 ```typescript
 // Same code works everywhere
-const queue = queuing.get();
+const queue = queueClass.get();
 await queue.add('process-payment', { orderId: 123, amount: 99.99 });
 
 // Development: Memory queue (no setup)
@@ -695,8 +695,8 @@ VOILA_QUEUE_WORKER=true    # Only in worker processes
 
 ```typescript
 // ✅ ALWAYS use these patterns
-import { queuing } from '@voilajsx/appkit/queue';
-const queue = queuing.get();
+import { queueClass } from '@voilajsx/appkit/queue';
+const queue = queueClass.get();
 
 // ✅ Add jobs with proper data
 await queue.add('email', {
@@ -728,9 +728,9 @@ await queue.schedule('reminder', data, 24 * 60 * 60 * 1000);
 ### **Anti-Patterns to Avoid**
 
 ```typescript
-// ❌ DON'T call queuing.get() repeatedly
-const queue1 = queuing.get();
-const queue2 = queuing.get(); // Unnecessary - same instance
+// ❌ DON'T call queueClass.get() repeatedly
+const queue1 = queueClass.get();
+const queue2 = queueClass.get(); // Unnecessary - same instance
 
 // ❌ DON'T forget to handle job failures
 queue.process('job', async (data) => {
@@ -752,7 +752,7 @@ queue.process('job', async (data) => {
 // ❌ DON'T forget cleanup in tests
 test('my test', () => {
   // ... test code
-  // Missing: await queuing.clear();
+  // Missing: await queueClass.clear();
 });
 ```
 
@@ -797,7 +797,7 @@ await queue.schedule(
 
 // Monitoring and stats
 const stats = await queue.getStats();
-const health = queuing.getHealth();
+const health = queueClass.getHealth();
 const failedJobs = await queue.getJobs('failed');
 ```
 
@@ -833,8 +833,8 @@ const agenda = new Agenda({
 
 ```typescript
 // 2 lines, production ready with 3 transports
-import { queuing } from '@voilajsx/appkit/queue';
-const queue = queuing.get();
+import { queueClass } from '@voilajsx/appkit/queue';
+const queue = queueClass.get();
 ```
 
 **Same features, 90% less code, zero configuration.**

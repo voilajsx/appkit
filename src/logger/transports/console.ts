@@ -1,12 +1,12 @@
 /**
  * Console transport with smart formatting, minimal mode support, and visual error enhancement
- * @module @voilajsx/appkit/logging
- * @file src/logging/transports/console.ts
+ * @module @voilajsx/appkit/loggier
+ * @file src/logger/transports/console.ts
  * 
  * @llm-rule WHEN: Need console output for development or production monitoring
  * @llm-rule AVOID: Using console.log directly - this handles levels, colors, and formatting
  * @llm-rule NOTE: Auto-detects production/development mode and adjusts formatting accordingly
- * @llm-rule NOTE: Enhanced to work with visual error formatting from logger.error() method
+ * @llm-rule NOTE: Enhanced to work with visual error formatting from loggerClass.error() method
  */
 
 import type { LogEntry, Transport } from '../logger.js';
@@ -38,7 +38,7 @@ export class ConsoleTransport implements Transport {
    * Write log entry to console with smart formatting
    * @llm-rule WHEN: Outputting logs to console for development or production
    * @llm-rule AVOID: Calling directly - logger routes entries automatically
-   * @llm-rule NOTE: Skips visual error entries since they're handled by logger.error() method directly
+   * @llm-rule NOTE: Skips visual error entries since they're handled by loggerClass.error() method directly
    */
   write(entry: LogEntry): void {
     try {

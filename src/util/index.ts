@@ -1,33 +1,33 @@
 /**
  * Ultra-simple utilities that just work
- * @module @voilajsx/appkit/utils
- * @file src/utils/index.ts
+ * @module @voilajsx/appkit/util
+ * @file src/util/index.ts
  * 
  * @llm-rule WHEN: Building apps that need common utility functions (get, chunk, slugify, debounce, etc.)
  * @llm-rule AVOID: Manual utility implementation - this provides tested, optimized functions with edge cases handled
- * @llm-rule NOTE: Common pattern - utility.get() → utils.get() → utils.chunk() → utils.slugify()
+ * @llm-rule NOTE: Common pattern - utilclass.get() → util.get() → util.chunk() → util.slugify()
  * @llm-rule NOTE: 12 essential utilities: get, isEmpty, slugify, chunk, debounce, pick, unique, clamp, formatBytes, truncate, sleep, uuid
  */
 
-import { UtilityClass } from './utility.js';
-import { getSmartDefaults, type UtilityConfig } from './defaults.js';
+import { UtilClass } from './util.js';
+import { getSmartDefaults, type UtilConfig } from './defaults.js';
 
 // Global utility instance for performance
-let globalUtility: UtilityClass | null = null;
+let globalUtility: UtilClass | null = null;
 
 /**
  * Get utility instance - the only function you need to learn
  * Environment variables parsed once for performance
  * @llm-rule WHEN: Starting any utility operation - this is your main entry point
- * @llm-rule AVOID: Calling new UtilityClass() directly - always use this function
- * @llm-rule NOTE: Typical flow - get() → utils.get() → utils.chunk() → utils.slugify()
+ * @llm-rule AVOID: Calling new UtilClass() directly - always use this function
+ * @llm-rule NOTE: Typical flow - get() → util.get() → util.chunk() → util.slugify()
  */
-function get(overrides: Partial<UtilityConfig> = {}): UtilityClass {
+function get(overrides: Partial<UtilConfig> = {}): UtilClass {
   // Lazy initialization - parse environment once
   if (!globalUtility) {
     const defaults = getSmartDefaults();
-    const config: UtilityConfig = { ...defaults, ...overrides };
-    globalUtility = new UtilityClass(config);
+    const config: UtilConfig = { ...defaults, ...overrides };
+    globalUtility = new UtilClass(config);
   }
 
   return globalUtility;
@@ -38,10 +38,10 @@ function get(overrides: Partial<UtilityConfig> = {}): UtilityClass {
  * @llm-rule WHEN: Testing utility logic with different configurations
  * @llm-rule AVOID: Using in production - only for tests and development
  */
-function reset(newConfig: Partial<UtilityConfig> = {}): UtilityClass {
+function reset(newConfig: Partial<UtilConfig> = {}): UtilClass {
   const defaults = getSmartDefaults();
-  const config: UtilityConfig = { ...defaults, ...newConfig };
-  globalUtility = new UtilityClass(config);
+  const config: UtilConfig = { ...defaults, ...newConfig };
+  globalUtility = new UtilClass(config);
   return globalUtility;
 }
 
@@ -59,9 +59,9 @@ function clearCache(): void {
  * @llm-rule WHEN: Debugging utility behavior or documenting utility configuration
  * @llm-rule AVOID: Using for runtime utility decisions - use get() instead
  */
-function getConfig(): UtilityConfig {
-  const utils = get();
-  return utils.config;
+function getConfig(): UtilConfig {
+  const util = get();
+  return util.config;
 }
 
 /**
@@ -115,8 +115,8 @@ function quickSetup(options: {
   performance?: boolean;
   cache?: boolean;
   debug?: boolean;
-} = {}): UtilityClass {
-  const config: Partial<UtilityConfig> = {};
+} = {}): UtilClass {
+  const config: Partial<UtilConfig> = {};
 
   if (options.performance !== undefined) {
     config.performance = { 
@@ -175,7 +175,7 @@ function validateConfig(): void {
 /**
  * Single utility export with enhanced functionality
  */
-export const utility = {
+export const utilClass = {
   // Core method
   get,
   
@@ -195,7 +195,7 @@ export const utility = {
 } as const;
 
 // Re-export types for consumers
-export type { UtilityConfig } from './defaults.js';
+export type { UtilConfig } from './defaults.js';
 
 export type {
   GetOptions,
@@ -204,6 +204,6 @@ export type {
   DebounceOptions,
   FormatBytesOptions,
   SlugifyOptions,
-} from './utility.js';
+} from './util.js';
 
-export { UtilityClass } from './utility.js';
+export { UtilClass } from './util.js';

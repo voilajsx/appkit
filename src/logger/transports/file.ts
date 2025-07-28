@@ -1,7 +1,7 @@
 /**
  * File transport with automatic rotation, retention and scope optimization
- * @module @voilajsx/appkit/logging
- * @file src/logging/transports/file.ts
+ * @module @voilajsx/appkit/logger
+ * @file src/logger/transports/file.ts
  * 
  * @llm-rule WHEN: Need persistent log storage with automatic file management
  * @llm-rule AVOID: Manual file handling - this manages rotation and cleanup automatically

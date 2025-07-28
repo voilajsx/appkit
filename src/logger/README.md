@@ -8,7 +8,7 @@
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `logger.get()`, everything else is automatic
+- **⚡ One Function** - Just `loggerClass.get()`, everything else is automatic
 - **🎯 Five Transports** - Console, file, database, HTTP, webhook - all
   auto-detected
 - **🔧 Zero Configuration** - Smart defaults with environment variable override
@@ -25,14 +25,14 @@ npm install @voilajsx/appkit
 ## 🏃‍♂️ Quick Start (30 seconds)
 
 ```typescript
-import { logger } from '@voilajsx/appkit/logging';
+import { loggerClass } from '@voilajsx/appkit/logger';
 
-const log = logger.get();
+const log = loggerClass.get();
 log.info('🚀 App started');
 log.error('💥 Something broke', { userId: 123, error: 'timeout' });
 
 // Component logging
-const dbLog = logger.get('database');
+const dbLog = loggerClass.get('database');
 dbLog.warn('⚠️ Connection slow', { latency: '2s' });
 ```
 
@@ -57,11 +57,11 @@ The logger **automatically detects** what you need:
 
 ```typescript
 // ✅ CORRECT - Basic pattern
-import { logger } from '@voilajsx/appkit/logging';
+import { loggerClass } from '@voilajsx/appkit/logger';
 
-const log = logger.get();
-const apiLog = logger.get('api');
-const dbLog = logger.get('database');
+const log = loggerClass.get();
+const apiLog = loggerClass.get('api');
+const dbLog = loggerClass.get('database');
 
 log.info('User registered', { userId: 123, email: 'user@example.com' });
 log.error('Database error', { table: 'users', operation: 'INSERT' });
@@ -72,20 +72,22 @@ log.error('Database error', { table: 'users', operation: 'INSERT' });
 ```typescript
 // ✅ EXPRESS - Request logging
 app.use((req, res, next) => {
-  req.log = logger.get('api').child({ requestId: crypto.randomUUID() });
+  req.log = loggerClass.get('api').child({ requestId: crypto.randomUUID() });
   req.log.info('Request started');
   next();
 });
 
 // ✅ FASTIFY - Hook pattern
 fastify.addHook('onRequest', async (request) => {
-  request.log = logger.get('api').child({ requestId: crypto.randomUUID() });
+  request.log = loggerClass
+    .get('api')
+    .child({ requestId: crypto.randomUUID() });
   request.log.info('Request started');
 });
 
 // ✅ NEXT.JS - API routes
 export default function handler(req, res) {
-  const log = logger.get('api').child({ requestId: crypto.randomUUID() });
+  const log = loggerClass.get('api').child({ requestId: crypto.randomUUID() });
   log.info('API request started');
   // Handle request...
 }
@@ -97,7 +99,7 @@ export default function handler(req, res) {
 // ✅ CORRECT - Child loggers with context
 const userLog = log.child({ userId: 123, sessionId: 'abc-123' });
 const requestLog = log.child({ requestId: 'req-456', traceId: 'trace-789' });
-const jobLog = logger.get('worker').child({ jobId: job.id, attempt: 1 });
+const jobLog = loggerClass.get('worker').child({ jobId: job.id, attempt: 1 });
 ```
 
 ## ⚠️ Common LLM Mistakes - Avoid These
@@ -160,9 +162,9 @@ log.info('User login', {
 
 ```typescript
 try {
-  const log = logger.get();
+  const log = loggerClass.get();
   log.info('✅ Logging initialized', {
-    transports: logger.getActiveTransports(),
+    transports: loggerClass.getActiveTransports(),
   });
 } catch (error) {
   console.error('❌ Logging setup failed:', error.message);
@@ -174,7 +176,7 @@ try {
 
 ```typescript
 process.on('uncaughtException', (error) => {
-  logger.get('error').error('🚨 Uncaught exception', {
+  loggerClass.get('error').error('🚨 Uncaught exception', {
     error: error.message,
     stack: error.stack,
   });
@@ -186,7 +188,7 @@ process.on('uncaughtException', (error) => {
 
 ```typescript
 async function createUser(userData) {
-  const log = logger.get('user-service');
+  const log = loggerClass.get('user-service');
 
   try {
     log.debug('Creating user', { email: userData.email });
@@ -247,11 +249,11 @@ VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/xxx
 
 ```typescript
 // ✅ Startup validation
-const log = logger.get();
-const config = logger.getConfig();
+const log = loggerClass.get();
+const config = loggerClass.getConfig();
 
 console.log('✅ Logging validation passed');
-console.log(`Transports: ${logger.getActiveTransports().join(', ')}`);
+console.log(`Transports: ${loggerClass.getActiveTransports().join(', ')}`);
 
 if (config.environment === 'production' && config.scope !== 'minimal') {
   console.warn('⚠️ Production should use minimal scope');
@@ -263,8 +265,8 @@ if (config.environment === 'production' && config.scope !== 'minimal') {
 ### **Core Function**
 
 ```typescript
-const log = logger.get(); // Main logger
-const log = logger.get('component'); // Component logger
+const log = loggerClass.get(); // Main logger
+const log = loggerClass.get('component'); // Component logger
 ```
 
 ### **Log Methods**
@@ -287,10 +289,10 @@ log.close(); // Close transports
 ### **Utility Methods**
 
 ```typescript
-logger.getActiveTransports(); // ['console', 'file', 'database']
-logger.hasTransport('database'); // true/false
-logger.getConfig(); // Debug configuration
-logger.clear(); // Clear state (testing)
+loggerClass.getActiveTransports(); // ['console', 'file', 'database']
+loggerClass.gethasTransport('database'); // true/false
+loggerClass.getConfig(); // Debug configuration
+loggerClass.getclear(); // Clear state (testing)
 ```
 
 ## 💡 Simple Examples
@@ -299,7 +301,7 @@ logger.clear(); // Clear state (testing)
 
 ```typescript
 app.post('/users', async (req, res) => {
-  const log = logger.get('api').child({ requestId: crypto.randomUUID() });
+  const log = loggerClass.get('api').child({ requestId: crypto.randomUUID() });
 
   try {
     log.info('Creating user', { email: req.body.email });
@@ -317,7 +319,7 @@ app.post('/users', async (req, res) => {
 
 ```typescript
 async function processJob(job) {
-  const log = logger.get('worker').child({ jobId: job.id });
+  const log = loggerClass.get('worker').child({ jobId: job.id });
 
   log.info('Job started');
 
@@ -336,7 +338,7 @@ async function processJob(job) {
 ```typescript
 class DatabaseService {
   constructor() {
-    this.log = logger.get('database');
+    this.log = loggerClass.get('database');
   }
 
   async connect() {
@@ -387,15 +389,15 @@ VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
 ## 🧪 Testing
 
 ```typescript
-import { logger } from '@voilajsx/appkit/logging';
+import { loggerClass } from '@voilajsx/appkit/logger';
 
 describe('Payment Service', () => {
   afterEach(async () => {
-    await logger.clear(); // Clear state between tests
+    await loggerClass.getclear(); // Clear state between tests
   });
 
   test('should log payment success', async () => {
-    const log = logger.get('test');
+    const log = loggerClass.get('test');
     log.info('Test started');
 
     const result = await processPayment('order-123', 99.99);
@@ -417,7 +419,7 @@ describe('Payment Service', () => {
 ```typescript
 import type { LoggingConfig, LogMeta, Logger } from '@voilajsx/appkit/logging';
 
-const log: Logger = logger.get();
+const log: Logger = loggerClass.get();
 const meta: LogMeta = { userId: 123, action: 'login' };
 ```
 

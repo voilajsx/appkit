@@ -31,23 +31,23 @@ npm install @voilajsx/appkit
 
 ```typescript
 import express from 'express';
-import { error } from '@voilajsx/appkit/error';
+import { errorClass } from '@voilajsx/appkit/error';
 
 const app = express();
-const err = error.get();
+const error = errorClass.get();
 
 // Setup (must be last middleware)
-app.use(err.handleErrors());
+app.use(error.handleErrors());
 
 // Create semantic errors
 app.post(
   '/users',
-  err.asyncRoute(async (req, res) => {
-    if (!req.body.email) throw err.badRequest('Email required');
-    if (!req.body.password) throw err.badRequest('Password required');
+  error.asyncRoute(async (req, res) => {
+    if (!req.body.email) throw error.badRequest('Email required');
+    if (!req.body.password) throw error.badRequest('Password required');
 
     const existingUser = await findUser(req.body.email);
-    if (existingUser) throw err.conflict('Email already exists');
+    if (existingUser) throw error.conflict('Email already exists');
 
     const user = await createUser(req.body);
     res.json({ user });
@@ -81,14 +81,14 @@ throw new Error('Something went wrong'); // No status code
 
 ```typescript
 // ✅ CORRECT - Express middleware setup
-const err = error.get();
-app.use(err.handleErrors()); // Must be LAST middleware
+const error = errorClass.get();
+app.use(error.handleErrors()); // Must be LAST middleware
 
 // ✅ CORRECT - Express async route pattern
 app.post(
   '/api',
-  err.asyncRoute(async (req, res) => {
-    if (!data) throw err.badRequest('Data required');
+  error.asyncRoute(async (req, res) => {
+    if (!data) throw error.badRequest('Data required');
   })
 );
 ```
@@ -99,10 +99,10 @@ app.post(
 // ✅ CORRECT - Fastify error handler setup
 import Fastify from 'fastify';
 const fastify = Fastify();
-const err = error.get();
+const error = errorClass.get();
 
 fastify.setErrorHandler((error, request, reply) => {
-  const appError = error.statusCode ? error : err.serverError(error.message);
+  const appError = error.statusCode ? error : error.serverError(error.message);
   reply.status(appError.statusCode).send({
     error: appError.type,
     message: appError.message,
@@ -111,7 +111,7 @@ fastify.setErrorHandler((error, request, reply) => {
 
 // ✅ CORRECT - Fastify route pattern
 fastify.post('/api', async (request, reply) => {
-  if (!request.body.data) throw err.badRequest('Data required');
+  if (!request.body.data) throw error.badRequest('Data required');
   // Fastify automatically catches errors
 });
 ```
@@ -122,13 +122,15 @@ fastify.post('/api', async (request, reply) => {
 // ✅ CORRECT - Koa error handler setup
 import Koa from 'koa';
 const app = new Koa();
-const err = error.get();
+const error = errorClass.get();
 
 app.use(async (ctx, next) => {
   try {
     await next();
   } catch (error) {
-    const appError = error.statusCode ? error : err.serverError(error.message);
+    const appError = error.statusCode
+      ? error
+      : error.serverError(error.message);
     ctx.status = appError.statusCode;
     ctx.body = {
       error: appError.type,
@@ -139,7 +141,7 @@ app.use(async (ctx, next) => {
 
 // ✅ CORRECT - Koa route pattern
 app.use(async (ctx, next) => {
-  if (!ctx.request.body.data) throw err.badRequest('Data required');
+  if (!ctx.request.body.data) throw error.badRequest('Data required');
 });
 ```
 
@@ -198,6 +200,7 @@ app.post('/api', (req, res) => {
 
 // ✅ Proper middleware setup
 const app = express();
+const error = errorClass.get();
 app.use(error.handleErrors()); // Catches all errors
 app.post('/api', (req, res) => {
   throw error.badRequest('Error'); // Automatically handled
@@ -389,7 +392,7 @@ VOILA_ERROR_LOG=true             # Enable error logging
 
 ```typescript
 import express from 'express';
-import { error } from '@voilajsx/appkit/error';
+import { errorClass } from '@voilajsx/appkit/error';
 
 const app = express();
 
@@ -402,6 +405,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api', apiRoutes);
 
 // ERROR MIDDLEWARE MUST BE LAST!
+const error = errorClass.get();
 app.use(error.handleErrors());
 
 app.listen(3000, () => {
@@ -413,17 +417,17 @@ app.listen(3000, () => {
 
 ```typescript
 import Fastify from 'fastify';
-import { error } from '@voilajsx/appkit/error';
+import { errorClass } from '@voilajsx/appkit/error';
 
 const fastify = Fastify({ logger: true });
-const err = error.get();
+const error = errorClass.get();
 
 // Global error handler
 fastify.setErrorHandler((error, request, reply) => {
-  const appError = error.statusCode ? error : err.serverError(error.message);
+  const appError = error.statusCode ? error : error.serverError(error.message);
 
   // Log in production
-  if (err.getEnvironmentInfo().isProduction) {
+  if (error.getEnvironmentInfo().isProduction) {
     fastify.log.error(error);
   }
 
@@ -452,8 +456,8 @@ start();
 ```typescript
 // App startup validation
 try {
-  const err = error.get();
-  const env = err.getEnvironmentInfo();
+  const error = errorClass.get();
+  const env = error.getEnvironmentInfo();
 
   console.log(`✅ Error handling initialized`);
   console.log(`Environment: ${env.nodeEnv}`);
@@ -486,46 +490,46 @@ try {
 ### **Core Function**
 
 ```typescript
-const err = error.get(); // One function, all methods
+const error = errorClass.get(); // One function, all methods
 ```
 
 ### **Error Creation Methods**
 
 ```typescript
 // Semantic HTTP errors
-err.badRequest(message?);   // 400 - Invalid input
-err.unauthorized(message?); // 401 - Auth required
-err.forbidden(message?);    // 403 - Access denied
-err.notFound(message?);     // 404 - Resource missing
-err.conflict(message?);     // 409 - Business conflicts
-err.serverError(message?);  // 500 - Internal failures
+error.badRequest(message?);   // 400 - Invalid input
+error.unauthorized(message?); // 401 - Auth required
+error.forbidden(message?);    // 403 - Access denied
+error.notFound(message?);     // 404 - Resource missing
+error.conflict(message?);     // 409 - Business conflicts
+error.serverError(message?);  // 500 - Internal failures
 
 // Custom errors
-err.createError(statusCode, message, type?); // Any status code
+error.createError(statusCode, message, type?); // Any status code
 ```
 
 ### **Express Middleware**
 
 ```typescript
 // Error handling (must be last middleware)
-err.handleErrors(options?);
+error.handleErrors(options?);
 
 // Async route wrapper
-err.asyncRoute(handler);
+error.asyncRoute(handler);
 
 // Error categorization
-err.isClientError(error);  // 4xx status codes
-err.isServerError(error);  // 5xx status codes
+error.isClientError(error);  // 4xx status codes
+error.isServerError(error);  // 5xx status codes
 ```
 
 ### **Utility Methods**
 
 ```typescript
 // Environment info
-err.getEnvironmentInfo(); // Current environment details
+error.getEnvironmentInfo(); // Current environment details
 
 // Configuration access
-err.getConfig(); // Current error configuration
+error.getConfig(); // Current error configuration
 
 // Shortcut methods (direct usage without get())
 error.badRequest('Message');
@@ -586,10 +590,10 @@ try {
 ## 🧪 Testing
 
 ```typescript
-import { error } from '@voilajsx/appkit/error';
+import { errorClass } from '@voilajsx/appkit/error';
 
 // Reset for clean testing
-const err = error.reset({
+const error = errorClass.reset({
   middleware: {
     showStack: false,
     logErrors: false,
@@ -597,19 +601,19 @@ const err = error.reset({
 });
 
 // Test error creation
-const badRequestError = err.badRequest('Test message');
+const badRequestError = error.badRequest('Test message');
 expect(badRequestError.statusCode).toBe(400);
 expect(badRequestError.type).toBe('BAD_REQUEST');
 
 // Test error categorization
-const clientError = err.badRequest('Client error');
-const serverError = err.serverError('Server error');
+const clientError = error.badRequest('Client error');
+const serverError = error.serverError('Server error');
 
-expect(err.isClientError(clientError)).toBe(true);
-expect(err.isServerError(serverError)).toBe(true);
+expect(error.isClientError(clientError)).toBe(true);
+expect(error.isServerError(serverError)).toBe(true);
 
 // Test environment detection
-const env = err.getEnvironmentInfo();
+const env = error.getEnvironmentInfo();
 expect(env.isDevelopment).toBeDefined();
 expect(env.isProduction).toBeDefined();
 ```
@@ -634,12 +638,12 @@ import type {
 } from '@voilajsx/appkit/error';
 
 // All methods are fully typed
-const err = error.get();
-const middleware: ExpressErrorHandler = err.handleErrors();
-const wrapper: AsyncRouteHandler = err.asyncRoute(handler);
+const error = errorClass.get();
+const middleware: ExpressErrorHandler = error.handleErrors();
+const wrapper: AsyncRouteHandler = error.asyncRoute(handler);
 
 // Environment info is typed
-const env = err.getEnvironmentInfo();
+const env = error.getEnvironmentInfo();
 // env.isDevelopment: boolean
 // env.isProduction: boolean
 // env.nodeEnv: string

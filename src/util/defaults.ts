@@ -1,7 +1,7 @@
 /**
  * Smart defaults and environment validation for utilities
- * @module @voilajsx/appkit/utils
- * @file src/utils/defaults.ts
+ * @module @voilajsx/appkit/util
+ * @file src/util/defaults.ts
  * 
  * @llm-rule WHEN: App startup - need to configure utility behavior and performance settings
  * @llm-rule AVOID: Calling multiple times - expensive environment parsing, use lazy loading in get()
@@ -48,7 +48,7 @@ export interface EnvironmentConfig {
   nodeEnv: string;
 }
 
-export interface UtilityConfig {
+export interface UtilConfig {
   version: string;
   cache: CacheConfig;
   performance: PerformanceConfig;
@@ -64,7 +64,7 @@ export interface UtilityConfig {
  * @llm-rule AVOID: Calling repeatedly - expensive validation, cache the result
  * @llm-rule NOTE: Called once at startup, cached globally for performance
  */
-export function getSmartDefaults(): UtilityConfig {
+export function getSmartDefaults(): UtilConfig {
   validateEnvironment();
 
   const nodeEnv = process.env.NODE_ENV || 'development';
