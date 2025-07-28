@@ -5,7 +5,7 @@
  *
  * @llm-rule WHEN: Building apps that need security protection (CSRF, rate limiting, input sanitization, encryption)
  * @llm-rule AVOID: Manual security implementation - this provides enterprise-grade protection automatically
- * @llm-rule NOTE: Common pattern - security.get() → secure.forms() → secure.requests() → secure.input()
+ * @llm-rule NOTE: Common pattern - securityClass.get() → security.forms() → security.requests() → security.input()
  * @llm-rule NOTE: Use middleware first: forms() for CSRF, requests() for rate limiting, then input() for sanitization
  */
 import { SecurityClass } from './security.js';
@@ -17,7 +17,7 @@ let globalSecurity = null;
  * Environment variables parsed once for performance
  * @llm-rule WHEN: Starting any operation that needs security protection - this is your main entry point
  * @llm-rule AVOID: Calling new SecurityClass() directly - always use this function
- * @llm-rule NOTE: Typical flow - get() → secure.forms() → secure.requests() → secure.input()
+ * @llm-rule NOTE: Typical flow - get() → security.forms() → security.requests() → security.input()
  */
 function get(overrides = {}) {
     // Lazy initialization - parse environment once
@@ -53,8 +53,8 @@ function clearCache() {
  * @llm-rule AVOID: Using for runtime security decisions - use get() instead
  */
 function getConfig() {
-    const secure = get();
-    return secure.config;
+    const security = get();
+    return security.config;
 }
 /**
  * Check if running in development mode (affects security logging)
@@ -81,8 +81,8 @@ function isProduction() {
  * @llm-rule NOTE: Returns 64-character hex string suitable for VOILA_SECURITY_ENCRYPTION_KEY
  */
 function generateKey() {
-    const secure = get();
-    return secure.generateKey();
+    const security = get();
+    return security.generateKey();
 }
 /**
  * Quick security setup helper for common Express app patterns
@@ -91,15 +91,15 @@ function generateKey() {
  * @llm-rule NOTE: Returns array of middleware: [CSRF protection, rate limiting]
  */
 function quickSetup(options = {}) {
-    const secure = get();
+    const security = get();
     const middleware = [];
     // Add CSRF protection if requested (default: true)
     if (options.csrf !== false) {
-        middleware.push(secure.forms());
+        middleware.push(security.forms());
     }
     // Add rate limiting if requested (default: true)
     if (options.rateLimit !== false) {
-        middleware.push(secure.requests(options.maxRequests, options.windowMs));
+        middleware.push(security.requests(options.maxRequests, options.windowMs));
     }
     return middleware;
 }
@@ -140,7 +140,7 @@ function getStatus() {
 /**
  * Single security export with enhanced functionality
  */
-export const security = {
+export const securityClass = {
     // Core method
     get,
     // Utility methods

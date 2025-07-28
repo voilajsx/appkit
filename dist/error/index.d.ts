@@ -6,8 +6,8 @@
  * @llm-rule WHEN: Building apps that need semantic HTTP error handling
  * @llm-rule AVOID: Complex error setups with multiple libraries - this handles everything in one API
  * @llm-rule NOTE: Provides semantic error creation (badRequest, unauthorized) and Express middleware
- * @llm-rule NOTE: Common pattern - error.get() → throw err.badRequest() → app.use(err.handleErrors())
- * @llm-rule NOTE: COMPLETE SETUP: const err = error.get(); app.use(err.handleErrors()); // Done!
+ * @llm-rule NOTE: Common pattern - errorClass.get() → throw error.badRequest() → app.use(error.handleErrors())
+ * @llm-rule NOTE: COMPLETE SETUP: const error = errorClass.get(); app.use(error.handleErrors()); // Done!
  */
 import { ErrorClass } from './error.js';
 import { type ErrorConfig } from './defaults.js';
@@ -37,24 +37,31 @@ export interface ErrorHandlerOptions {
  * @llm-rule WHEN: Starting any error operation - this is your main entry point
  * @llm-rule AVOID: Calling new ErrorClass() directly - always use this function
  * @llm-rule NOTE: USAGE FLOW: get() → create errors → setup middleware → done
- * @llm-rule NOTE: TYPICAL SETUP: const err = error.get(); app.use(err.handleErrors());
+ * @llm-rule NOTE: TYPICAL SETUP: const error = errorClass.get(); app.use(error.handleErrors());
  */
 declare function get(overrides?: Partial<ErrorConfig>): ErrorClass;
 /**
  * Reset global instance (useful for testing or config changes)
  * @llm-rule WHEN: Testing error logic with different configurations
  * @llm-rule AVOID: Using in production - only for tests and development
- * @llm-rule NOTE: TEST PATTERN: const err = error.reset({showStack: false}); // Clean slate
+ * @llm-rule NOTE: TEST PATTERN: const error = errorClass.reset({showStack: false}); // Clean slate
  */
 declare function reset(newConfig?: Partial<ErrorConfig>): ErrorClass;
 /**
+ * Clear global instance cache (for testing)
+ * @llm-rule WHEN: Testing error configurations or between test suites
+ * @llm-rule AVOID: Using in production - only for tests
+ */
+declare function clearCache(): void;
+/**
  * Single error export with semantic methods and Express integration
- * @llm-rule NOTE: TWO USAGE PATTERNS: error.get().badRequest() OR error.badRequest() (shortcuts)
+ * @llm-rule NOTE: TWO USAGE PATTERNS: errorClass.get().badRequest() OR errorClass.badRequest() (shortcuts)
  * @llm-rule NOTE: MIDDLEWARE PATTERN: app.use(error.handleErrors()); // Global error handling
  */
-export declare const error: {
+export declare const errorClass: {
     readonly get: typeof get;
     readonly reset: typeof reset;
+    readonly clearCache: typeof clearCache;
     /**
      * Creates 400 Bad Request error
      * @llm-rule WHEN: Client input validation failures (missing/invalid data)

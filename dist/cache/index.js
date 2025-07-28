@@ -5,8 +5,8 @@
  *
  * @llm-rule WHEN: Building apps that need caching with zero configuration
  * @llm-rule AVOID: Complex cache setups - this auto-detects Redis vs Memory from environment
- * @llm-rule NOTE: Uses caching.get(namespace) pattern like auth - get() → cache.set() → done
- * @llm-rule NOTE: Common pattern - caching.get('users') → cache.set('user:123', data) → cache.get('user:123')
+ * @llm-rule NOTE: Uses cacheClass.get(namespace) pattern like auth - get() → cache.set() → done
+ * @llm-rule NOTE: Common pattern - cacheClass.get('users') → cache.set('user:123', data) → cache.get('user:123')
  */
 import { CacheClass } from './cache.js';
 import { getSmartDefaults } from './defaults.js';
@@ -20,7 +20,7 @@ const namedCaches = new Map();
  * @llm-rule AVOID: Creating CacheClass directly - always use this function
  * @llm-rule NOTE: Typical flow - get(namespace) → cache.set() → cache.get() → cached data
  */
-function get(namespace = 'default') {
+function get(namespace = 'app') {
     // Validate namespace
     if (!namespace || typeof namespace !== 'string') {
         throw new Error('Cache namespace must be a non-empty string');
@@ -160,7 +160,7 @@ async function shutdown() {
 /**
  * Single caching export with minimal API (like auth module)
  */
-export const caching = {
+export const cacheClass = {
     // Core method (like auth.get())
     get,
     // Utility methods
@@ -175,7 +175,7 @@ export const caching = {
 };
 export { CacheClass } from './cache.js';
 // Default export
-export default caching;
+export default cacheClass;
 // Auto-setup graceful shutdown handlers
 if (typeof process !== 'undefined') {
     // Handle graceful shutdown

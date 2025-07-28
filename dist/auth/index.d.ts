@@ -9,7 +9,7 @@
  * @llm-rule NOTE: Common pattern - auth.requireLogin() → auth.requireRole() → handler
  * @llm-rule NOTE: Safe user access - const user = auth.user(req); if (!user) return error;
  */
-import { AuthenticationClass } from './authentication.js';
+import { AuthenticationClass } from './auth.js';
 import { type AuthConfig, type RoleHierarchy } from './defaults.js';
 /**
  * Get authentication instance - the only function you need to learn
@@ -56,7 +56,7 @@ declare function getAllRoles(): string[];
 /**
  * Single authentication export with minimal functionality
  */
-export declare const authenticator: {
+export declare const authClass: {
     readonly get: typeof get;
     readonly reset: typeof reset;
     readonly getRoles: typeof getRoles;
@@ -65,6 +65,6 @@ export declare const authenticator: {
     readonly getAllRoles: typeof getAllRoles;
 };
 export type { AuthConfig, RoleConfig, RoleHierarchy, PermissionDefaults, } from './defaults.js';
-export type { JwtPayload, FastifyRequest, FastifyReply, FastifyError, ExpressRequest, ExpressResponse, MiddlewareOptions, FastifyPreHandler, ExpressMiddleware, } from './authentication.js';
-export { AuthenticationClass } from './authentication.js';
+export type { JwtPayload, FastifyRequest, FastifyReply, FastifyError, ExpressRequest, ExpressResponse, MiddlewareOptions, FastifyPreHandler, ExpressMiddleware, } from './auth.js';
+export { AuthenticationClass } from './auth.js';
 //# sourceMappingURL=index.d.ts.map

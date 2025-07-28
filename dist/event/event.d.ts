@@ -4,7 +4,7 @@
  * @file src/event/event.ts
  *
  * @llm-rule WHEN: Building apps that need event-driven architecture with automatic Redis/Memory selection
- * @llm-rule AVOID: Using directly - always get instance via eventing.get()
+ * @llm-rule AVOID: Using directly - always get instance via eventClass.get()
  * @llm-rule NOTE: Auto-detects Redis vs Memory based on environment variables
  */
 import type { EventConfig } from './defaults.js';

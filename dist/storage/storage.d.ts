@@ -4,7 +4,7 @@
  * @file src/storage/storage.ts
  *
  * @llm-rule WHEN: Building apps that need file storage with automatic Local/S3/R2 selection
- * @llm-rule AVOID: Using directly - always get instance via store.get()
+ * @llm-rule AVOID: Using directly - always get instance via storageClass.get()
  * @llm-rule NOTE: Auto-detects Local vs S3 vs R2 based on environment variables
  */
 import type { StorageConfig } from './defaults.js';

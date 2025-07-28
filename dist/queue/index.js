@@ -5,11 +5,11 @@
  *
  * @llm-rule WHEN: Building apps that need background job processing
  * @llm-rule AVOID: Complex queue setups with multiple libraries - this handles everything automatically
- * @llm-rule NOTE: Uses queuing.get() pattern like other modules - get() → queue.add() → queue.process() → done
+ * @llm-rule NOTE: Uses queueClass.get() pattern like other modules - get() → queue.add() → queue.process() → done
  * @llm-rule NOTE: Auto-detects transports: Memory (dev) → Redis (REDIS_URL) → Database (DATABASE_URL)
- * @llm-rule NOTE: Common pattern - queuing.get() → queue.add() → queue.process() → automatic retry + dead letter queue
+ * @llm-rule NOTE: Common pattern - queueClass.get() → queue.add() → queue.process() → automatic retry + dead letter queue
  */
-import { QueuingClass } from './queuing.js';
+import { QueueClass } from './queue.js';
 import { getSmartDefaults } from './defaults.js';
 // Global queuing instance for performance (like auth module)
 let globalQueuing = null;
@@ -17,7 +17,7 @@ let globalQueuing = null;
  * Get queuing instance - the only function you need to learn
  * Transport auto-detection: Memory → Redis → Database based on environment
  * @llm-rule WHEN: Starting any background job operation - this is your main entry point
- * @llm-rule AVOID: Creating QueuingClass directly - always use this function
+ * @llm-rule AVOID: Creating QueueClass directly - always use this function
  * @llm-rule NOTE: Typical flow - get() → queue.add() → queue.process() → automatic handling
  */
 function get(overrides = {}) {
@@ -25,7 +25,7 @@ function get(overrides = {}) {
     if (!globalQueuing) {
         const defaults = getSmartDefaults();
         const config = { ...defaults, ...overrides };
-        globalQueuing = new QueuingClass(config);
+        globalQueuing = new QueueClass(config);
     }
     return globalQueuing;
 }
@@ -41,7 +41,7 @@ function reset(newConfig = {}) {
     }
     const defaults = getSmartDefaults();
     const config = { ...defaults, ...newConfig };
-    globalQueuing = new QueuingClass(config);
+    globalQueuing = new QueueClass(config);
     return globalQueuing;
 }
 /**
@@ -102,7 +102,7 @@ function getHealth() {
 /**
  * Single queuing export with minimal functionality (like auth module)
  */
-export const queuing = {
+export const queueClass = {
     // Core method (like auth.get())
     get,
     // Utility methods

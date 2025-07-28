@@ -5,8 +5,8 @@
  *
  * @llm-rule WHEN: Building apps that need caching with zero configuration
  * @llm-rule AVOID: Complex cache setups - this auto-detects Redis vs Memory from environment
- * @llm-rule NOTE: Uses caching.get(namespace) pattern like auth - get() → cache.set() → done
- * @llm-rule NOTE: Common pattern - caching.get('users') → cache.set('user:123', data) → cache.get('user:123')
+ * @llm-rule NOTE: Uses cacheClass.get(namespace) pattern like auth - get() → cache.set() → done
+ * @llm-rule NOTE: Common pattern - cacheClass.get('users') → cache.set('user:123', data) → cache.get('user:123')
  */
 import { type CacheConfig } from './defaults.js';
 export interface Cache {
@@ -84,7 +84,7 @@ declare function shutdown(): Promise<void>;
 /**
  * Single caching export with minimal API (like auth module)
  */
-export declare const caching: {
+export declare const cacheClass: {
     readonly get: typeof get;
     readonly clear: typeof clear;
     readonly reset: typeof reset;
@@ -97,5 +97,5 @@ export declare const caching: {
 };
 export type { CacheConfig } from './defaults.js';
 export { CacheClass } from './cache.js';
-export default caching;
+export default cacheClass;
 //# sourceMappingURL=index.d.ts.map

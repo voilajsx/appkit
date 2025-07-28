@@ -4,7 +4,7 @@
  * @file src/email/email.ts
  *
  * @llm-rule WHEN: Building apps that need email sending with automatic provider selection
- * @llm-rule AVOID: Using directly - always get instance via emailing.get()
+ * @llm-rule AVOID: Using directly - always get instance via emailClass.get()
  * @llm-rule NOTE: Auto-detects Resend → SMTP → Console based on environment variables
  */
 import type { EmailConfig } from './defaults.js';

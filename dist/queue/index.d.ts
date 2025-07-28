@@ -5,11 +5,11 @@
  *
  * @llm-rule WHEN: Building apps that need background job processing
  * @llm-rule AVOID: Complex queue setups with multiple libraries - this handles everything automatically
- * @llm-rule NOTE: Uses queuing.get() pattern like other modules - get() → queue.add() → queue.process() → done
+ * @llm-rule NOTE: Uses queueClass.get() pattern like other modules - get() → queue.add() → queue.process() → done
  * @llm-rule NOTE: Auto-detects transports: Memory (dev) → Redis (REDIS_URL) → Database (DATABASE_URL)
- * @llm-rule NOTE: Common pattern - queuing.get() → queue.add() → queue.process() → automatic retry + dead letter queue
+ * @llm-rule NOTE: Common pattern - queueClass.get() → queue.add() → queue.process() → automatic retry + dead letter queue
  */
-import { type QueuingConfig } from './defaults.js';
+import { type QueueConfig } from './defaults.js';
 export interface JobData {
     [key: string]: any;
 }
@@ -64,16 +64,16 @@ export type JobStatus = 'waiting' | 'active' | 'completed' | 'failed' | 'delayed
  * Get queuing instance - the only function you need to learn
  * Transport auto-detection: Memory → Redis → Database based on environment
  * @llm-rule WHEN: Starting any background job operation - this is your main entry point
- * @llm-rule AVOID: Creating QueuingClass directly - always use this function
+ * @llm-rule AVOID: Creating QueueClass directly - always use this function
  * @llm-rule NOTE: Typical flow - get() → queue.add() → queue.process() → automatic handling
  */
-declare function get(overrides?: Partial<QueuingConfig>): Queue;
+declare function get(overrides?: Partial<QueueConfig>): Queue;
 /**
  * Reset global instance (useful for testing or config changes)
  * @llm-rule WHEN: Testing queuing logic with different configurations
  * @llm-rule AVOID: Using in production - only for tests and development
  */
-declare function reset(newConfig?: Partial<QueuingConfig>): Queue;
+declare function reset(newConfig?: Partial<QueueConfig>): Queue;
 /**
  * Get active transport type for debugging
  * @llm-rule WHEN: Need to see which transport is running (memory, redis, database)
@@ -91,7 +91,7 @@ declare function hasTransport(name: string): boolean;
  * @llm-rule WHEN: Debugging queuing setup or checking environment detection
  * @llm-rule AVOID: Using for runtime decisions - configuration is set at startup
  */
-declare function getConfig(): QueuingConfig | null;
+declare function getConfig(): QueueConfig | null;
 /**
  * Clear all queues and close transports - essential for testing
  * @llm-rule WHEN: Testing queuing logic or app shutdown
@@ -111,7 +111,7 @@ declare function getHealth(): {
 /**
  * Single queuing export with minimal functionality (like auth module)
  */
-export declare const queuing: {
+export declare const queueClass: {
     readonly get: typeof get;
     readonly reset: typeof reset;
     readonly clear: typeof clear;

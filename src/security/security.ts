@@ -13,12 +13,12 @@ import type { SecurityConfig, SecurityError } from './defaults.js';
 import { createSecurityError } from './defaults.js';
 
 // Extended crypto interfaces for GCM mode
-interface CipherGCM extends crypto.Cipheriv {
+interface CipherGCM extends crypto.Cipher {
   setAAD(buffer: Buffer): this;
   getAuthTag(): Buffer;
 }
 
-interface DecipherGCM extends crypto.Decipheriv {
+interface DecipherGCM extends crypto.Decipher {
   setAAD(buffer: Buffer): this;
   setAuthTag(buffer: Buffer): this;
 }

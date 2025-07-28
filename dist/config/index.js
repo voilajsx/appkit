@@ -6,7 +6,7 @@
  * @llm-rule WHEN: Building apps that need configuration from environment variables
  * @llm-rule AVOID: Complex config setups with multiple files - this handles everything automatically
  * @llm-rule NOTE: Uses UPPER_SNAKE_CASE convention (DATABASE_HOST → config.get('database.host'))
- * @llm-rule NOTE: Common pattern - configure.get() → config.get('path', default) → use value
+ * @llm-rule NOTE: Common pattern - configClass.get() → config.get('path', default) → use value
  *
  * CRITICAL UNDERSCORE CONVENTION:
  * - VOILA_* and FLUX_* = Framework internal variables (NOT parsed as app config)
@@ -144,7 +144,7 @@ function getModuleConfig(modulePrefix, defaults = {}) {
 /**
  * Single configuration export with enhanced functionality
  */
-export const configure = {
+export const configClass = {
     // Core methods
     get,
     reset,

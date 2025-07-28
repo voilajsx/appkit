@@ -5,10 +5,10 @@
  *
  * @llm-rule WHEN: ALWAYS add tenant_id text field to ALL tables (nullable for future compatibility)
  * @llm-rule NOTE: tenant_id = null (single tenant) or "team-1" (multi-tenant)
- * @llm-rule VARIABLE: const db = await database.get() - user's data (single or tenant-filtered)
- * @llm-rule VARIABLE: const dbTenants = await database.getTenants() - all tenants (admin access)
- * @llm-rule VARIABLE: const {orgName}Db = await database.org('{orgName}').get() - org-specific data
- * @llm-rule VARIABLE: const {orgName}DbTenants = await database.org('{orgName}').getTenants() - all tenants in org
+ * @llm-rule VARIABLE: const db = await databaseClass.get() - user's data (single or tenant-filtered)
+ * @llm-rule VARIABLE: const dbTenants = await databaseClass.getTenants() - all tenants (admin access)
+ * @llm-rule VARIABLE: const {orgName}Db = await databaseClass.org('{orgName}').get() - org-specific data
+ * @llm-rule VARIABLE: const {orgName}DbTenants = await databaseClass.org('{orgName}').getTenants() - all tenants in org
  */
 interface DatabaseClient {
     _appKit?: boolean;
@@ -49,7 +49,7 @@ declare class OrgDatabase {
 /**
  * Main database API - ultra-simple like auth module
  */
-export declare const database: {
+export declare const databaseClass: {
     /**
      * Get database client - main function that handles all contexts
      * @param {Object} [req] - Request object for context detection
@@ -133,5 +133,5 @@ export declare const database: {
      */
     _closeConnection(connection: any): Promise<void>;
 };
-export default database;
+export default databaseClass;
 //# sourceMappingURL=index.d.ts.map

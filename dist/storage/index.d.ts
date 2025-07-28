@@ -5,9 +5,10 @@
  *
  * @llm-rule WHEN: Building apps that need file storage with zero configuration
  * @llm-rule AVOID: Complex storage setups - this auto-detects Local/S3/R2 from environment
- * @llm-rule NOTE: Uses store.get() pattern like auth - get() → storage.put() → distributed
- * @llm-rule NOTE: Common pattern - store.get() → storage.put() → storage.url() → served
+ * @llm-rule NOTE: Uses storageClass.get() pattern like auth - get() → storage.put() → distributed
+ * @llm-rule NOTE: Common pattern - storageClass.get() → storage.put() → storage.url() → served
  */
+import { StorageClass } from './storage.js';
 import { type StorageConfig } from './defaults.js';
 export interface Storage {
     put(key: string, data: Buffer | Uint8Array | string, options?: PutOptions): Promise<string>;
@@ -132,7 +133,7 @@ declare function download(key: string): Promise<{
 /**
  * Single storage export with minimal API (like auth module)
  */
-export declare const store: {
+export declare const storageClass: {
     readonly get: typeof get;
     readonly clear: typeof clear;
     readonly reset: typeof reset;
@@ -148,5 +149,5 @@ export declare const store: {
 };
 export type { StorageConfig } from './defaults.js';
 export { StorageClass } from './storage.js';
-export default store;
+export default StorageClass;
 //# sourceMappingURL=index.d.ts.map

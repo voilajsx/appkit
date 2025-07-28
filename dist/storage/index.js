@@ -5,8 +5,8 @@
  *
  * @llm-rule WHEN: Building apps that need file storage with zero configuration
  * @llm-rule AVOID: Complex storage setups - this auto-detects Local/S3/R2 from environment
- * @llm-rule NOTE: Uses store.get() pattern like auth - get() → storage.put() → distributed
- * @llm-rule NOTE: Common pattern - store.get() → storage.put() → storage.url() → served
+ * @llm-rule NOTE: Uses storageClass.get() pattern like auth - get() → storage.put() → distributed
+ * @llm-rule NOTE: Common pattern - storageClass.get() → storage.put() → storage.url() → served
  */
 import { StorageClass } from './storage.js';
 import { getSmartDefaults } from './defaults.js';
@@ -195,7 +195,7 @@ async function download(key) {
 /**
  * Single storage export with minimal API (like auth module)
  */
-export const store = {
+export const storageClass = {
     // Core method (like auth.get())
     get,
     // Utility methods
@@ -214,7 +214,7 @@ export const store = {
 };
 export { StorageClass } from './storage.js';
 // Default export
-export default store;
+export default StorageClass;
 // Auto-setup graceful shutdown handlers
 if (typeof process !== 'undefined') {
     // Handle graceful shutdown

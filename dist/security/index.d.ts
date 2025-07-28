@@ -5,7 +5,7 @@
  *
  * @llm-rule WHEN: Building apps that need security protection (CSRF, rate limiting, input sanitization, encryption)
  * @llm-rule AVOID: Manual security implementation - this provides enterprise-grade protection automatically
- * @llm-rule NOTE: Common pattern - security.get() → secure.forms() → secure.requests() → secure.input()
+ * @llm-rule NOTE: Common pattern - securityClass.get() → security.forms() → security.requests() → security.input()
  * @llm-rule NOTE: Use middleware first: forms() for CSRF, requests() for rate limiting, then input() for sanitization
  */
 import { SecurityClass } from './security.js';
@@ -15,7 +15,7 @@ import { type SecurityConfig } from './defaults.js';
  * Environment variables parsed once for performance
  * @llm-rule WHEN: Starting any operation that needs security protection - this is your main entry point
  * @llm-rule AVOID: Calling new SecurityClass() directly - always use this function
- * @llm-rule NOTE: Typical flow - get() → secure.forms() → secure.requests() → secure.input()
+ * @llm-rule NOTE: Typical flow - get() → security.forms() → security.requests() → security.input()
  */
 declare function get(overrides?: Partial<SecurityConfig>): SecurityClass;
 /**
@@ -92,7 +92,7 @@ declare function getStatus(): {
 /**
  * Single security export with enhanced functionality
  */
-export declare const security: {
+export declare const securityClass: {
     readonly get: typeof get;
     readonly reset: typeof reset;
     readonly clearCache: typeof clearCache;

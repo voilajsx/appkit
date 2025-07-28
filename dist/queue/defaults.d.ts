@@ -7,7 +7,7 @@
  * @llm-rule AVOID: Calling multiple times - expensive validation, use lazy loading in get()
  * @llm-rule NOTE: Called once at startup, cached globally for performance like auth/logging modules
  */
-export interface QueuingConfig {
+export interface QueueConfig {
     transport: 'memory' | 'redis' | 'database';
     concurrency: number;
     maxAttempts: number;
@@ -50,7 +50,7 @@ export interface QueuingConfig {
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
  */
-export declare function getSmartDefaults(): QueuingConfig;
+export declare function getSmartDefaults(): QueueConfig;
 /**
  * Validate environment variables (like auth module validation)
  * @llm-rule WHEN: App startup to catch configuration errors early
@@ -62,5 +62,5 @@ export declare function validateEnvironment(): void;
  * @llm-rule WHEN: App startup to get production-ready queue configuration
  * @llm-rule AVOID: Calling repeatedly - expensive validation, cache the result
  */
-export declare function getValidatedDefaults(): QueuingConfig;
+export declare function getValidatedDefaults(): QueueConfig;
 //# sourceMappingURL=defaults.d.ts.map

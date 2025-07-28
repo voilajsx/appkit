@@ -5,8 +5,8 @@
  *
  * @llm-rule WHEN: Building apps that need email sending with zero configuration
  * @llm-rule AVOID: Complex email setups - this auto-detects Resend/SMTP/Console from environment
- * @llm-rule NOTE: Uses emailing.get() pattern like auth - get() → email.send() → done
- * @llm-rule NOTE: Common pattern - emailing.get() → email.send({ to, subject, text }) → sent
+ * @llm-rule NOTE: Uses emailClass.get() pattern like auth - get() → email.send() → done
+ * @llm-rule NOTE: Common pattern - emailClass.get() → email.send({ to, subject, text }) → sent
  */
 import { type EmailConfig } from './defaults.js';
 export interface Email {
@@ -154,7 +154,7 @@ declare function shutdown(): Promise<void>;
 /**
  * Single email export with minimal API (like auth module)
  */
-export declare const emailing: {
+export declare const emailClass: {
     readonly get: typeof get;
     readonly clear: typeof clear;
     readonly reset: typeof reset;
@@ -172,5 +172,5 @@ export declare const emailing: {
 };
 export type { EmailConfig } from './defaults.js';
 export { EmailClass } from './email.js';
-export default emailing;
+export default emailClass;
 //# sourceMappingURL=index.d.ts.map

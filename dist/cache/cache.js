@@ -4,7 +4,7 @@
  * @file src/cache/cache.ts
  *
  * @llm-rule WHEN: Building apps that need caching with automatic strategy selection
- * @llm-rule AVOID: Using directly - always get instance via caching.get()
+ * @llm-rule AVOID: Using directly - always get instance via cacheClass.get()
  * @llm-rule NOTE: Auto-detects Redis vs Memory from environment, namespace passed to get() function
  */
 import { RedisStrategy } from './strategies/redis.js';
