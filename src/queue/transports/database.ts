@@ -8,7 +8,7 @@
  * @llm-rule NOTE: Uses existing Prisma client from AppKit, perfect for simple persistent queuing
  */
 
-import database  from '@voilajsx/appkit/database'; // Leverage existing Prisma client
+import database  from '../../database/index.js'; // Leverage existing Prisma client
 import type { Transport } from '../queue.js';
 import type { QueueConfig } from '../defaults.js';
 import type { JobData, JobOptions, JobHandler, QueueStats, JobInfo, JobStatus } from '../index.js';

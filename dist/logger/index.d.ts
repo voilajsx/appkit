@@ -52,7 +52,7 @@ declare function hasTransport(name: string): boolean;
  * @llm-rule AVOID: Using for runtime decisions - configuration is set at startup
  */
 declare function getConfig(): {
-    level: "info" | "error" | "warn" | "debug";
+    level: "error" | "warn" | "info" | "debug";
     scope: "minimal" | "full";
     minimal: boolean;
     transports: string[];

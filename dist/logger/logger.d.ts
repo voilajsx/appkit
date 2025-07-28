@@ -145,7 +145,7 @@ export declare class LoggerClass implements Logger {
      * @llm-rule AVOID: Using for runtime business logic - configuration is set at startup
      */
     getConfig(): {
-        level: "info" | "error" | "warn" | "debug";
+        level: "error" | "warn" | "info" | "debug";
         scope: "minimal" | "full";
         minimal: boolean;
         transports: string[];

@@ -7,7 +7,7 @@
  * @llm-rule AVOID: When high-throughput needed - database polling has overhead
  * @llm-rule NOTE: Uses existing Prisma client from AppKit, perfect for simple persistent queuing
  */
-import database from '@voilajsx/appkit/database'; // Leverage existing Prisma client
+import database from '../../database/index.js'; // Leverage existing Prisma client
 /**
  * Database transport using AppKit Prisma for persistent storage
  */
