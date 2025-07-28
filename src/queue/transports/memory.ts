@@ -8,8 +8,8 @@
  * @llm-rule NOTE: Perfect for development and testing - fast, simple, no external dependencies
  */
 
-import type { Transport } from '../queuing.js';
-import type { QueuingConfig } from '../defaults.js';
+import type { Transport } from '../queue.js';
+import type { QueueConfig } from '../defaults.js';
 import type { JobData, JobOptions, JobHandler, QueueStats, JobInfo, JobStatus } from '../index.js';
 
 interface MemoryJob {
@@ -33,7 +33,7 @@ interface MemoryJob {
  * In-memory transport for development and testing
  */
 export class MemoryTransport implements Transport {
-  private config: QueuingConfig;
+  private config: QueueConfig;
   private jobs = new Map<string, MemoryJob>();
   private handlers = new Map<string, JobHandler<any>>();
   private paused = new Set<string>();
@@ -49,7 +49,7 @@ export class MemoryTransport implements Transport {
    * @llm-rule WHEN: Auto-detected as fallback or explicitly configured for development
    * @llm-rule AVOID: Manual memory transport creation - use queuing.get() instead
    */
-  constructor(config: QueuingConfig) {
+  constructor(config: QueueConfig) {
     this.config = config;
     
     // Start processing loops if worker enabled

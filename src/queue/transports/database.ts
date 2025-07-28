@@ -9,8 +9,8 @@
  */
 
 import database  from '@voilajsx/appkit/database'; // Leverage existing Prisma client
-import type { Transport } from '../queuing.js';
-import type { QueuingConfig } from '../defaults.js';
+import type { Transport } from '../queue.js';
+import type { QueueConfig } from '../defaults.js';
 import type { JobData, JobOptions, JobHandler, QueueStats, JobInfo, JobStatus } from '../index.js';
 
 interface DatabaseJob {
@@ -36,7 +36,7 @@ interface DatabaseJob {
  * Database transport using AppKit Prisma for persistent storage
  */
 export class DatabaseTransport implements Transport {
-  private config: QueuingConfig;
+  private config: QueueConfig;
   private db: any;
   private handlers = new Map<string, JobHandler<any>>();
   private paused = new Set<string>();
@@ -52,7 +52,7 @@ export class DatabaseTransport implements Transport {
    * @llm-rule WHEN: Auto-detected from DATABASE_URL with existing AppKit database
    * @llm-rule AVOID: Manual database setup - leverages existing infrastructure
    */
-  constructor(config: QueuingConfig) {
+  constructor(config: QueueConfig) {
     this.config = config;
     this.initialize();
   }

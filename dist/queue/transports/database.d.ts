@@ -7,8 +7,8 @@
  * @llm-rule AVOID: When high-throughput needed - database polling has overhead
  * @llm-rule NOTE: Uses existing Prisma client from AppKit, perfect for simple persistent queuing
  */
-import type { Transport } from '../queuing.js';
-import type { QueuingConfig } from '../defaults.js';
+import type { Transport } from '../queue.js';
+import type { QueueConfig } from '../defaults.js';
 import type { JobData, JobOptions, JobHandler, QueueStats, JobInfo, JobStatus } from '../index.js';
 /**
  * Database transport using AppKit Prisma for persistent storage
@@ -27,7 +27,7 @@ export declare class DatabaseTransport implements Transport {
      * @llm-rule WHEN: Auto-detected from DATABASE_URL with existing AppKit database
      * @llm-rule AVOID: Manual database setup - leverages existing infrastructure
      */
-    constructor(config: QueuingConfig);
+    constructor(config: QueueConfig);
     /**
      * Initialize database transport
      * @llm-rule WHEN: Transport creation - ensures table exists and starts processing

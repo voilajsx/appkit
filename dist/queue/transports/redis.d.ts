@@ -7,8 +7,8 @@
  * @llm-rule AVOID: Development without Redis server - use memory transport instead
  * @llm-rule NOTE: Persistent, distributed, high-performance with Redis data structures
  */
-import type { Transport } from '../queuing.js';
-import type { QueuingConfig } from '../defaults.js';
+import type { Transport } from '../queue.js';
+import type { QueueConfig } from '../defaults.js';
 import type { JobData, JobOptions, JobHandler, QueueStats, JobInfo, JobStatus } from '../index.js';
 /**
  * Redis transport for production distributed queuing
@@ -29,7 +29,7 @@ export declare class RedisTransport implements Transport {
      * @llm-rule WHEN: Auto-detected from REDIS_URL environment variable
      * @llm-rule AVOID: Manual Redis setup - environment detection handles this
      */
-    constructor(config: QueuingConfig);
+    constructor(config: QueueConfig);
     /**
      * Initialize Redis connection and setup
      * @llm-rule WHEN: Transport creation - establishes Redis connection

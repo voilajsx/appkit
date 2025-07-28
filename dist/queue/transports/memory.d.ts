@@ -7,8 +7,8 @@
  * @llm-rule AVOID: Production use - jobs lost on restart, no persistence
  * @llm-rule NOTE: Perfect for development and testing - fast, simple, no external dependencies
  */
-import type { Transport } from '../queuing.js';
-import type { QueuingConfig } from '../defaults.js';
+import type { Transport } from '../queue.js';
+import type { QueueConfig } from '../defaults.js';
 import type { JobData, JobOptions, JobHandler, QueueStats, JobInfo, JobStatus } from '../index.js';
 /**
  * In-memory transport for development and testing
@@ -27,7 +27,7 @@ export declare class MemoryTransport implements Transport {
      * @llm-rule WHEN: Auto-detected as fallback or explicitly configured for development
      * @llm-rule AVOID: Manual memory transport creation - use queuing.get() instead
      */
-    constructor(config: QueuingConfig);
+    constructor(config: QueueConfig);
     /**
      * Add job to memory queue
      * @llm-rule WHEN: Adding jobs for background processing

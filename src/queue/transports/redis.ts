@@ -8,8 +8,8 @@
  * @llm-rule NOTE: Persistent, distributed, high-performance with Redis data structures
  */
 
-import type { Transport } from '../queuing.js';
-import type { QueuingConfig } from '../defaults.js';
+import type { Transport } from '../queue.js';
+import type { QueueConfig } from '../defaults.js';
 import type { JobData, JobOptions, JobHandler, QueueStats, JobInfo, JobStatus } from '../index.js';
 import Redis from 'ioredis';
 
@@ -35,7 +35,7 @@ interface RedisJob {
  * Redis transport for production distributed queuing
  */
 export class RedisTransport implements Transport {
-  private config: QueuingConfig;
+  private config: QueueConfig;
   private client: any = null;
   private subscriber: any = null;
   private connected = false;
@@ -53,7 +53,7 @@ export class RedisTransport implements Transport {
    * @llm-rule WHEN: Auto-detected from REDIS_URL environment variable
    * @llm-rule AVOID: Manual Redis setup - environment detection handles this
    */
-  constructor(config: QueuingConfig) {
+  constructor(config: QueueConfig) {
     this.config = config;
     this.initialize();
   }
