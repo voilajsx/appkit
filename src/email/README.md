@@ -12,7 +12,7 @@ template system and development preview.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `emailing.get()`, everything else is automatic
+- **⚡ One Function** - Just `emailClass.get()`, everything else is automatic
 - **🎯 Auto-Strategy** - RESEND_API_KEY = Resend, SMTP_HOST = SMTP, default =
   Console
 - **🔧 Zero Configuration** - Smart defaults for everything
@@ -32,9 +32,9 @@ npm install @voilajsx/appkit
 ### 1. Basic Setup (Console Preview)
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
-const email = emailing.get();
+const email = emailClass.get();
 
 // Send email (shows in console during development)
 await email.send({
@@ -44,7 +44,7 @@ await email.send({
 });
 
 // Even simpler
-await emailing.sendText('user@example.com', 'Hi', 'Hello!');
+await emailClass.sendText('user@example.com', 'Hi', 'Hello!');
 ```
 
 ### 2. Production Setup (Resend)
@@ -55,10 +55,10 @@ export RESEND_API_KEY=re_your_api_key_here
 ```
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
 // Same code, now sends real emails!
-await emailing.send({
+await emailClass.send({
   to: 'user@example.com',
   subject: 'Welcome!',
   html: '<h1>Hello!</h1><p>Welcome to our app!</p>',
@@ -83,7 +83,7 @@ The email module **automatically detects** what you need:
 
 ```typescript
 // Same code works everywhere
-await emailing.send({
+await emailClass.send({
   to: 'user@example.com',
   subject: 'Welcome!',
   text: 'Hello!',
@@ -98,7 +98,7 @@ await emailing.send({
 ### Core Function
 
 ```typescript
-const email = emailing.get(); // One function, everything you need
+const email = emailClass.get(); // One function, everything you need
 ```
 
 ### Email Operations
@@ -134,11 +134,11 @@ await email.sendBatch([email1, email2, email3]);
 ```typescript
 // Debugging
 email.getStrategy(); // 'resend', 'smtp', or 'console'
-emailing.hasResend(); // true if RESEND_API_KEY set
-emailing.hasSmtp(); // true if SMTP_HOST set
+emailClass.hasResend(); // true if RESEND_API_KEY set
+emailClass.hasSmtp(); // true if SMTP_HOST set
 
 // Convenience
-await emailing.send(emailData); // Direct send without get()
+await emailClass.send(emailData); // Direct send without get()
 ```
 
 ## 💡 Simple Examples
@@ -146,10 +146,10 @@ await emailing.send(emailData); // Direct send without get()
 ### **User Registration Email**
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
 async function sendWelcomeEmail(user) {
-  await emailing.send({
+  await emailClass.send({
     to: user.email,
     subject: `Welcome to ${process.env.APP_NAME}!`,
     html: `
@@ -165,12 +165,12 @@ async function sendWelcomeEmail(user) {
 ### **Password Reset**
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
 async function sendPasswordReset(user, resetToken) {
   const resetUrl = `${process.env.APP_URL}/reset?token=${resetToken}`;
 
-  await emailing.send({
+  await emailClass.send({
     to: user.email,
     subject: 'Reset your password',
     html: `
@@ -189,10 +189,10 @@ async function sendPasswordReset(user, resetToken) {
 ### **Order Confirmation**
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
 async function sendOrderConfirmation(order) {
-  await emailing.send({
+  await emailClass.send({
     to: order.customerEmail,
     subject: `Order Confirmation #${order.id}`,
     html: `
@@ -212,17 +212,17 @@ async function sendOrderConfirmation(order) {
 ### **Built-in Templates**
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
 // Welcome template
-await emailing.get().sendTemplate('welcome', {
+await emailClass.get().sendTemplate('welcome', {
   to: 'user@example.com',
   name: 'John',
   appName: 'MyApp',
 });
 
 // Password reset template
-await emailing.get().sendTemplate('reset', {
+await emailClass.get().sendTemplate('reset', {
   to: 'user@example.com',
   name: 'John',
   resetUrl: 'https://myapp.com/reset?token=abc123',
@@ -233,21 +233,21 @@ await emailing.get().sendTemplate('reset', {
 ## 🧪 Testing
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
 describe('Email Tests', () => {
   afterEach(async () => {
-    await emailing.clear(); // Clean up between tests
+    await emailClass.clear(); // Clean up between tests
   });
 
   test('should send email', async () => {
     // Force console strategy for tests
-    await emailing.reset({
+    await emailClass.reset({
       strategy: 'console',
       from: { name: 'Test App', email: 'test@example.com' },
     });
 
-    const result = await emailing.send({
+    const result = await emailClass.send({
       to: 'user@example.com',
       subject: 'Test',
       text: 'Test message',
@@ -265,13 +265,13 @@ describe('Email Tests', () => {
 
 ```typescript
 // ❌ DON'T forget subject or content
-await emailing.send({
+await emailClass.send({
   to: 'user@example.com',
   // Missing subject and content!
 });
 
 // ✅ DO include all required fields
-await emailing.send({
+await emailClass.send({
   to: 'user@example.com',
   subject: 'Welcome!',
   text: 'Welcome to our app!',
@@ -285,21 +285,21 @@ await emailing.send({
 // This only logs emails, doesn't send them!
 process.env.NODE_ENV = 'production';
 // No RESEND_API_KEY or SMTP_HOST set
-await emailing.send(emailData); // Only logs to console!
+await emailClass.send(emailData); // Only logs to console!
 
 // ✅ DO set up a real email provider
 process.env.RESEND_API_KEY = 're_your_api_key';
-await emailing.send(emailData); // Actually sends emails
+await emailClass.send(emailData); // Actually sends emails
 ```
 
 ### **3. Ignoring Send Results**
 
 ```typescript
 // ❌ DON'T ignore send results
-await emailing.send(emailData); // What if it failed?
+await emailClass.send(emailData); // What if it failed?
 
 // ✅ DO check for success/failure
-const result = await emailing.send(emailData);
+const result = await emailClass.send(emailData);
 if (!result.success) {
   console.error('Email failed:', result.error);
   // Handle failure appropriately
@@ -310,7 +310,7 @@ if (!result.success) {
 
 ```typescript
 // ❌ DON'T use invalid email formats
-await emailing.send({
+await emailClass.send({
   to: 'not-an-email', // Invalid format
   subject: 'Test',
   text: 'Hello',
@@ -327,7 +327,7 @@ if (!isValidEmail(user.email)) {
 
 ```typescript
 // ❌ DON'T use unverified FROM addresses with Resend
-await emailing.send({
+await emailClass.send({
   from: 'random@example.com', // Unverified domain
   to: 'user@example.com',
   subject: 'Test',
@@ -345,7 +345,7 @@ process.env.VOILA_EMAIL_FROM_EMAIL = 'noreply@yourdomain.com'; // Verified
 
 ```typescript
 async function sendWelcomeEmail(user) {
-  const result = await emailing.send({
+  const result = await emailClass.send({
     to: user.email,
     subject: 'Welcome!',
     text: 'Welcome to our app!',
@@ -367,7 +367,7 @@ async function sendWelcomeEmail(user) {
 ```typescript
 async function sendCriticalEmail(emailData, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const result = await emailing.send(emailData);
+    const result = await emailClass.send(emailData);
 
     if (result.success) {
       return result;
@@ -400,8 +400,8 @@ async function sendCriticalEmail(emailData, maxRetries = 3) {
 
 ```typescript
 async function sendEmailWithContext(emailData) {
-  const strategy = emailing.getStrategy();
-  const result = await emailing.send(emailData);
+  const strategy = emailClass.getStrategy();
+  const result = await emailClass.send(emailData);
 
   if (!result.success) {
     // Handle strategy-specific errors
@@ -447,14 +447,14 @@ async function sendEmailWithContext(emailData) {
 ### **Basic App Startup Validation**
 
 ```typescript
-import { emailing } from '@voilajsx/appkit/email';
+import { emailClass } from '@voilajsx/appkit/email';
 
 async function startApp() {
   try {
     // Validate email configuration at startup
-    emailing.validateConfig();
+    emailClass.validateConfig();
 
-    const strategy = emailing.getStrategy();
+    const strategy = emailClass.getStrategy();
     console.log(`📧 Email configured with ${strategy} strategy`);
 
     // Start your app
@@ -475,7 +475,7 @@ async function validateProductionSetup() {
   if (process.env.NODE_ENV !== 'production') return;
 
   // Check if real email provider is configured
-  if (!emailing.hasProvider()) {
+  if (!emailClass.hasProvider()) {
     throw new Error(
       'No email provider configured in production. ' +
         'Set RESEND_API_KEY or SMTP_HOST environment variable.'
@@ -500,8 +500,8 @@ async function validateProductionSetup() {
 // Express middleware for email health check
 function emailHealthCheck(req, res) {
   try {
-    const config = emailing.getConfig();
-    const hasProvider = emailing.hasProvider();
+    const config = emailClass.getConfig();
+    const hasProvider = emailClass.hasProvider();
 
     res.json({
       status: 'ok',
@@ -646,8 +646,8 @@ export VOILA_EMAIL_FROM_EMAIL=noreply@yourdomain.com
 
 ```typescript
 // ✅ ALWAYS use these patterns
-import { emailing } from '@voilajsx/appkit/email';
-const email = emailing.get();
+import { emailClass } from '@voilajsx/appkit/email';
+const email = emailClass.get();
 
 // ✅ Basic email sending
 await email.send({
@@ -665,7 +665,7 @@ await email.send({
 });
 
 // ✅ Convenience methods
-await emailing.sendText('user@example.com', 'Subject', 'Message');
+await emailClass.sendText('user@example.com', 'Subject', 'Message');
 
 // ✅ Template usage
 await email.sendTemplate('welcome', {
@@ -679,7 +679,7 @@ await email.sendTemplate('welcome', {
 
 ```typescript
 // ❌ DON'T create email strategies directly
-const resend = new ResendStrategy(); // Use emailing.get() instead
+const resend = new ResendStrategy(); // Use emailClass.get() instead
 
 // ❌ DON'T forget error handling
 await email.send(data); // Check result.success
@@ -698,7 +698,7 @@ await email.send({ to: 'invalid-email', subject: 'Hi', text: 'Hello' });
 
 ```typescript
 // Email with error handling
-const result = await emailing.send({
+const result = await emailClass.send({
   to: user.email,
   subject: 'Welcome!',
   text: 'Welcome to our app!',
@@ -709,8 +709,8 @@ if (!result.success) {
 }
 
 // Conditional email sending
-if (emailing.hasProvider()) {
-  await emailing.send(emailData);
+if (emailClass.hasProvider()) {
+  await emailClass.send(emailData);
 } else {
   console.log('No email provider configured');
 }
@@ -722,7 +722,7 @@ const emails = users.map((user) => ({
   html: newsletterHtml,
 }));
 
-await emailing.get().sendBatch(emails);
+await emailClass.get().sendBatch(emails);
 ```
 
 ## 📈 Performance
@@ -745,7 +745,7 @@ const emailData: EmailData = {
   text: 'Hello world!',
 };
 
-const result: EmailResult = await emailing.send(emailData);
+const result: EmailResult = await emailClass.send(emailData);
 ```
 
 ## 📄 License

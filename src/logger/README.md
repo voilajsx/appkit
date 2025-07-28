@@ -12,7 +12,7 @@
 - **🎯 Five Transports** - Console, file, database, HTTP, webhook - all
   auto-detected
 - **🔧 Zero Configuration** - Smart defaults with environment variable override
-- **🌍 Environment-First** - Auto-detects from `VOILA_LOGGING_*` variables
+- **🌍 Environment-First** - Auto-detects from `VOILA_LOGGER_*` variables
 - **🎨 Visual Error Display** - Enhanced error formatting in development
 - **🤖 AI-Ready** - Optimized for LLM code generation
 
@@ -42,12 +42,12 @@ dbLog.warn('⚠️ Connection slow', { latency: '2s' });
 
 The logger **automatically detects** what you need:
 
-| Environment Variable        | Transport Enabled  | What You Get            |
-| --------------------------- | ------------------ | ----------------------- |
-| _Nothing_                   | Console + File     | Development logging     |
-| `DATABASE_URL`              | + Database         | Centralized storage     |
-| `VOILA_LOGGING_HTTP_URL`    | + External service | Professional monitoring |
-| `VOILA_LOGGING_WEBHOOK_URL` | + Slack alerts     | Real-time notifications |
+| Environment Variable       | Transport Enabled  | What You Get            |
+| -------------------------- | ------------------ | ----------------------- |
+| _Nothing_                  | Console + File     | Development logging     |
+| `DATABASE_URL`             | + Database         | Centralized storage     |
+| `VOILA_LOGGER_HTTP_URL`    | + External service | Professional monitoring |
+| `VOILA_LOGGER_WEBHOOK_URL` | + Slack alerts     | Real-time notifications |
 
 **Set environment variables, get enterprise features. No code changes.**
 
@@ -208,8 +208,8 @@ async function createUser(userData) {
 
 ```bash
 # Auto-detected log level
-VOILA_LOGGING_LEVEL=debug|info|warn|error  # Default: auto-detected
-VOILA_LOGGING_SCOPE=minimal|full           # Default: minimal
+VOILA_LOGGER_LEVEL=debug|info|warn|error  # Default: auto-detected
+VOILA_LOGGER_SCOPE=minimal|full           # Default: minimal
 
 # Service identification
 VOILA_SERVICE_NAME=my-app                  # Default: package.json name
@@ -222,11 +222,11 @@ VOILA_SERVICE_NAME=my-app                  # Default: package.json name
 DATABASE_URL=postgres://user:pass@localhost/app
 
 # HTTP (Datadog, Elasticsearch, etc.)
-VOILA_LOGGING_HTTP_URL=https://logs.datadog.com/api/v1/logs
+VOILA_LOGGER_HTTP_URL=https://logs.datadog.com/api/v1/logs
 
 # Webhook (Slack alerts)
-VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/xxx
-VOILA_LOGGING_WEBHOOK_LEVEL=error         # Default: error only
+VOILA_LOGGER_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+VOILA_LOGGER_WEBHOOK_LEVEL=error         # Default: error only
 ```
 
 ## 🚀 Production Deployment
@@ -236,13 +236,13 @@ VOILA_LOGGING_WEBHOOK_LEVEL=error         # Default: error only
 ```bash
 # ✅ Production settings
 NODE_ENV=production
-VOILA_LOGGING_SCOPE=minimal
-VOILA_LOGGING_LEVEL=warn
+VOILA_LOGGER_SCOPE=minimal
+VOILA_LOGGER_LEVEL=warn
 
 # ✅ Required transports
 DATABASE_URL=postgres://prod-user:pass@prod-db/app
-VOILA_LOGGING_HTTP_URL=https://logs.datadog.com/api/v1/logs
-VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+VOILA_LOGGER_HTTP_URL=https://logs.datadog.com/api/v1/logs
+VOILA_LOGGER_WEBHOOK_URL=https://hooks.slack.com/services/xxx
 ```
 
 ### **Security Validation**
@@ -360,13 +360,13 @@ class DatabaseService {
 ### **Datadog**
 
 ```bash
-VOILA_LOGGING_HTTP_URL=https://http-intake.logs.datadoghq.com/api/v1/input/YOUR_API_KEY
+VOILA_LOGGER_HTTP_URL=https://http-intake.logs.datadoghq.com/api/v1/input/YOUR_API_KEY
 ```
 
 ### **Slack Alerts**
 
 ```bash
-VOILA_LOGGING_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+VOILA_LOGGER_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
 ```
 
 ## 📊 Output Examples

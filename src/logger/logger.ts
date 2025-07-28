@@ -980,8 +980,8 @@ export class LoggerClass implements Logger {
       environment: {
         NODE_ENV: process.env.NODE_ENV,
         hasDbUrl: !!process.env.DATABASE_URL,
-        hasHttpUrl: !!process.env.VOILA_LOGGING_HTTP_URL,
-        hasWebhookUrl: !!process.env.VOILA_LOGGING_WEBHOOK_URL,
+        hasHttpUrl: !!process.env.VOILA_LOGGER_HTTP_URL,
+        hasWebhookUrl: !!process.env.VOILA_LOGGER_WEBHOOK_URL,
       },
     };
   }

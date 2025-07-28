@@ -7,14 +7,14 @@
 > Ultra-simple database wrapper with automatic tenant isolation and progressive
 > multi-organization support that grows with your needs
 
-**One simple function** - `database.get()` - handles everything from single
+**One simple function** - `databaseClass.get()` - handles everything from single
 databases to complex multi-org, multi-tenant architectures. **Zero configuration
 needed**, production-ready by default, with **mandatory future-proofing** built
 in.
 
 ## 🚀 Why Choose AppKit Database?
 
-- **⚡ One Function** - `database.get()` handles all use cases, environment
+- **⚡ One Function** - `databaseClass.get()` handles all use cases, environment
   controls behavior
 - **🔧 Zero Configuration** - Just `DATABASE_URL`, everything else is optional
 - **📈 Progressive Scaling** - Start simple, add tenants/orgs with zero code
@@ -52,12 +52,12 @@ npm install @voilajsx/appkit @prisma/client mongoose
 import { database } from '@voilajsx/appkit/database';
 
 // PostgreSQL/MySQL with Prisma
-const db = await database.get();
-const users = await db.user.findMany();
+const database = await databaseClass.get();
+const users = await database.user.findMany();
 
 // MongoDB with Mongoose
-const db = await database.get();
-const users = await db.User.find();
+const database = await databaseClass.get();
+const users = await database.User.find();
 ```
 
 ### Multi-Tenant (Month 6 - Zero Code Changes!)
@@ -69,16 +69,16 @@ VOILA_DB_TENANT=auto
 
 ```typescript
 // Same code, now tenant-filtered automatically
-const db = await database.get(); // User's tenant data only
+const database = await databaseClass.get(); // User's tenant data only
 
 // Prisma (SQL databases)
-const users = await db.user.findMany(); // Auto-filtered by tenant
+const users = await database.user.findMany(); // Auto-filtered by tenant
 
 // Mongoose (MongoDB)
-const users = await db.User.find(); // Auto-filtered by tenant
+const users = await database.User.find(); // Auto-filtered by tenant
 
 // Admin access to all tenants
-const dbTenants = await database.getTenants();
+const dbTenants = await databaseClass.getTenants();
 const allUsers = await dbTenants.user.findMany(); // Prisma - All tenant data
 const allUsers = await dbTenants.User.find(); // Mongoose - All tenant data
 ```
@@ -94,46 +94,46 @@ ORG_STARTUP=mysql://startup.gcp.com/prod     # MySQL on GCP
 
 ```typescript
 // Same code, now org-aware with auto-adapter detection
-const acmeDb = await database.org('acme').get(); // Uses Prisma for PostgreSQL
-const techDb = await database.org('tech').get(); // Uses Mongoose for MongoDB
-const startupDb = await database.org('startup').get(); // Uses Prisma for MySQL
+const acmedatabase = await databaseClass.org('acme').get(); // Uses Prisma for PostgreSQL
+const techdatabase = await databaseClass.org('tech').get(); // Uses Mongoose for MongoDB
+const startupdatabase = await databaseClass.org('startup').get(); // Uses Prisma for MySQL
 
 // Different database queries, same simple API
-const acmeUsers = await acmeDb.user.findMany(); // Prisma syntax
-const techUsers = await techDb.User.find(); // Mongoose syntax
-const startupUsers = await startupDb.user.findMany(); // Prisma syntax
+const acmeUsers = await acmedatabase.user.findMany(); // Prisma syntax
+const techUsers = await techdatabase.User.find(); // Mongoose syntax
+const startupUsers = await startupdatabase.user.findMany(); // Prisma syntax
 
 // Org admin access
-const acmeDbTenants = await database.org('acme').getTenants();
-const techDbTenants = await database.org('tech').getTenants();
+const acmeDbTenants = await databaseClass.org('acme').getTenants();
+const techDbTenants = await databaseClass.org('tech').getTenants();
 ```
 
 **That's it!** Your code never changes, only your environment evolves.
 
 ## 🎯 Core API
 
-### **One Function Rule: `database.get()`**
+### **One Function Rule: `databaseClass.get()`**
 
 ```typescript
 // Normal user access (single tenant or their specific tenant)
-const db = await database.get();
+const database = await databaseClass.get();
 
 // Admin access to all tenants
-const dbTenants = await database.getTenants();
+const dbTenants = await databaseClass.getTenants();
 
 // Organization-specific access
-const acmeDb = await database.org('acme').get();
-const acmeDbTenants = await database.org('acme').getTenants();
+const acmedatabase = await databaseClass.org('acme').get();
+const acmeDbTenants = await databaseClass.org('acme').getTenants();
 ```
 
 ### **LLM-Friendly Variable Naming**
 
 ```typescript
 // Standard patterns for AI code generation:
-const db = await database.get(); // Single/tenant user data
-const dbTenants = await database.getTenants(); // All tenants (admin)
-const acmeDb = await database.org('acme').get(); // Acme org data
-const acmeDbTenants = await database.org('acme').getTenants(); // All Acme tenants
+const database = await databaseClass.get(); // Single/tenant user data
+const dbTenants = await databaseClass.getTenants(); // All tenants (admin)
+const acmedatabase = await databaseClass.org('acme').get(); // Acme org data
+const acmeDbTenants = await databaseClass.org('acme').getTenants(); // All Acme tenants
 ```
 
 ## 🛡️ Mandatory Future-Proofing
@@ -284,8 +284,8 @@ echo "ORG_NEWCLIENT=postgresql://newclient.com/db" >> .env
  * Day 1: Simple blog application
  */
 async function getBlogPosts() {
-  const db = await database.get();
-  return await db.posts.findMany({
+  const database = await databaseClass.get();
+  return await database.posts.findMany({
     include: { user: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -296,8 +296,8 @@ async function getBlogPosts() {
  * Just add: VOILA_DB_TENANT=auto to .env
  */
 async function getBlogPosts() {
-  const db = await database.get(); // Now auto-filters by tenant
-  return await db.posts.findMany({
+  const database = await databaseClass.get(); // Now auto-filters by tenant
+  return await database.posts.findMany({
     include: { user: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -308,8 +308,8 @@ async function getBlogPosts() {
  * Just add org URLs to .env
  */
 async function getBlogPosts() {
-  const db = await database.get(); // Now org + tenant aware
-  return await db.posts.findMany({
+  const database = await databaseClass.get(); // Now org + tenant aware
+  return await database.posts.findMany({
     include: { user: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -319,7 +319,7 @@ async function getBlogPosts() {
  * Admin dashboard (any time)
  */
 async function getAllOrgPosts(orgId) {
-  const dbTenants = await database.org(orgId).getTenants();
+  const dbTenants = await databaseClass.org(orgId).getTenants();
   return await dbTenants.posts.findMany({
     include: { user: true },
     orderBy: { createdAt: 'desc' },
@@ -334,14 +334,14 @@ import { database } from '@voilajsx/appkit/database';
 
 // User endpoints - auto-filtered by tenant
 app.get('/api/users', async (req, res) => {
-  const db = await database.get();
-  const users = await db.user.findMany();
+  const database = await databaseClass.get();
+  const users = await database.user.findMany();
   res.json(users); // Only user's tenant data
 });
 
 app.post('/api/users', async (req, res) => {
-  const db = await database.get();
-  const user = await db.user.create({
+  const database = await databaseClass.get();
+  const user = await database.user.create({
     data: req.body, // tenant_id added automatically
   });
   res.json(user);
@@ -349,7 +349,7 @@ app.post('/api/users', async (req, res) => {
 
 // Admin endpoints - see all tenant data
 app.get('/api/admin/users', requireRole('admin'), async (req, res) => {
-  const dbTenants = await database.getTenants();
+  const dbTenants = await databaseClass.getTenants();
   const users = await dbTenants.user.findMany({
     include: { _count: { select: { posts: true } } },
   });
@@ -359,8 +359,8 @@ app.get('/api/admin/users', requireRole('admin'), async (req, res) => {
 // Organization management
 app.get('/api/orgs/:orgId/users', requireRole('admin'), async (req, res) => {
   const { orgId } = req.params;
-  const orgDb = await database.org(orgId).get();
-  const users = await orgDb.user.findMany();
+  const orgdatabase = await databaseClass.org(orgId).get();
+  const users = await orgdatabase.user.findMany();
   res.json(users); // Specific org data
 });
 ```
@@ -389,18 +389,18 @@ VOILA_DB_TENANT=auto
 
 // Code remains identical regardless of backend:
 async function getUserData(orgId, userId) {
-  const db = await database.org(orgId).get();
+  const database = await databaseClass.org(orgId).get();
 
   // Works with any database type - AppKit handles the differences
-  if (db.user?.findUnique) {
+  if (database.user?.findUnique) {
     // Prisma client (PostgreSQL, MySQL, SQLite)
-    return await db.user.findUnique({
+    return await database.user.findUnique({
       where: { id: userId },
       include: { posts: true, profile: true },
     });
-  } else if (db.User?.findOne) {
+  } else if (database.User?.findOne) {
     // Mongoose client (MongoDB)
-    return await db.User.findOne({ _id: userId })
+    return await database.User.findOne({ _id: userId })
       .populate('posts')
       .populate('profile');
   }
@@ -439,8 +439,10 @@ const orgId =
 
 ```typescript
 // Override auto-detection when needed
-const specificTenantDb = await database.get({ tenant: 'specific-tenant' });
-const specificOrgDb = await database.org('specific-org').get();
+const specificTenantdatabase = await databaseClass.get({
+  tenant: 'specific-tenant',
+});
+const specificOrgdatabase = await databaseClass.org('specific-org').get();
 ```
 
 ## 🚀 Framework Integration
@@ -455,14 +457,14 @@ const app = express();
 
 // Simple route - auto-detects tenant from request
 app.get('/users', async (req, res) => {
-  const db = await database.get();
-  const users = await db.user.findMany();
+  const database = await databaseClass.get();
+  const users = await database.user.findMany();
   res.json(users);
 });
 
 // Admin route - access all tenants
 app.get('/admin/users', requireAdmin, async (req, res) => {
-  const dbTenants = await database.getTenants();
+  const dbTenants = await databaseClass.getTenants();
   const users = await dbTenants.user.findMany();
   res.json(users);
 });
@@ -477,8 +479,8 @@ import { database } from '@voilajsx/appkit/database';
 const fastify = Fastify();
 
 fastify.get('/users', async (request, reply) => {
-  const db = await database.get();
-  const users = await db.user.findMany();
+  const database = await databaseClass.get();
+  const users = await database.user.findMany();
   return users;
 });
 
@@ -486,7 +488,7 @@ fastify.get(
   '/admin/users',
   { preHandler: requireAdmin },
   async (request, reply) => {
-    const dbTenants = await database.getTenants();
+    const dbTenants = await databaseClass.getTenants();
     const users = await dbTenants.user.findMany();
     return users;
   }
@@ -500,13 +502,13 @@ fastify.get(
 import { database } from '@voilajsx/appkit/database';
 
 export default async function handler(req, res) {
-  const db = await database.get();
+  const database = await databaseClass.get();
 
   if (req.method === 'GET') {
-    const users = await db.user.findMany();
+    const users = await database.user.findMany();
     res.json(users);
   } else if (req.method === 'POST') {
-    const user = await db.user.create({ data: req.body });
+    const user = await database.user.create({ data: req.body });
     res.json(user);
   }
 }
@@ -515,7 +517,7 @@ export default async function handler(req, res) {
 import { database } from '@voilajsx/appkit/database';
 
 export default async function handler(req, res) {
-  const dbTenants = await database.getTenants();
+  const dbTenants = await databaseClass.getTenants();
   const users = await dbTenants.user.findMany();
   res.json(users);
 }
@@ -527,7 +529,7 @@ export default async function handler(req, res) {
 
 ```typescript
 // System health check
-const health = await database.health();
+const health = await databaseClass.health();
 console.log(health);
 // {
 //   healthy: true,
@@ -540,18 +542,18 @@ console.log(health);
 
 ```typescript
 // List all tenants
-const tenants = await database.list();
+const tenants = await databaseClass.list();
 console.log(tenants); // ['team-alpha', 'team-beta', 'team-gamma']
 
 // Check if tenant exists
-const exists = await database.exists('team-alpha');
+const exists = await databaseClass.exists('team-alpha');
 console.log(exists); // true
 
 // Create tenant (validates ID format)
-await database.create('new-team');
+await databaseClass.create('new-team');
 
 // Delete tenant (requires confirmation)
-await database.delete('old-team', { confirm: true });
+await databaseClass.delete('old-team', { confirm: true });
 ```
 
 ### **Connection Management**
@@ -559,7 +561,7 @@ await database.delete('old-team', { confirm: true });
 ```typescript
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  await database.disconnect();
+  await databaseClass.disconnect();
   process.exit(0);
 });
 ```
@@ -597,8 +599,8 @@ const users = await prisma.user.findMany();
 
 // After: AppKit Database
 import { database } from '@voilajsx/appkit/database';
-const db = await database.get();
-const users = await db.user.findMany();
+const database = await databaseClass.get();
+const users = await database.user.findMany();
 ```
 
 ### **From Manual Multi-Tenancy**
@@ -610,8 +612,8 @@ const users = await prisma.user.findMany({
 });
 
 // After: Automatic tenant filtering
-const db = await database.get();
-const users = await db.user.findMany(); // tenant_id added automatically
+const database = await databaseClass.get();
+const users = await database.user.findMany(); // tenant_id added automatically
 ```
 
 ### **Schema Migration**
@@ -639,38 +641,38 @@ CREATE INDEX idx_comments_tenant ON comments(tenant_id);
 // ✅ Standard patterns for AI code generation:
 
 // Normal user access (single or tenant mode)
-const db = await database.get();
+const database = await databaseClass.get();
 
 // Admin access to all tenants
-const dbTenants = await database.getTenants();
+const dbTenants = await databaseClass.getTenants();
 
 // Organization-specific access (use org name in variable)
-const acmeDb = await database.org('acme').get();
-const techDb = await database.org('tech').get();
-const startupDb = await database.org('startup').get();
+const acmedatabase = await databaseClass.org('acme').get();
+const techdatabase = await databaseClass.org('tech').get();
+const startupdatabase = await databaseClass.org('startup').get();
 
 // Organization admin access (use org name + DbTenants)
-const acmeDbTenants = await database.org('acme').getTenants();
-const techDbTenants = await database.org('tech').getTenants();
+const acmeDbTenants = await databaseClass.org('acme').getTenants();
+const techDbTenants = await databaseClass.org('tech').getTenants();
 ```
 
 ### **Common Patterns**
 
 ```typescript
 // ✅ User data access
-const db = await database.get();
-const users = await db.user.findMany();
+const database = await databaseClass.get();
+const users = await database.user.findMany();
 
 // ✅ Admin functionality
-const dbTenants = await database.getTenants();
+const dbTenants = await databaseClass.getTenants();
 const allUsers = await dbTenants.user.findMany();
 
 // ✅ Organization management
-const acmeDb = await database.org('acme').get();
-const acmeUsers = await acmeDb.user.findMany();
+const acmedatabase = await databaseClass.org('acme').get();
+const acmeUsers = await acmedatabase.user.findMany();
 
 // ✅ Cross-tenant analytics (admin)
-const acmeDbTenants = await database.org('acme').getTenants();
+const acmeDbTenants = await databaseClass.org('acme').getTenants();
 const analytics = await acmeDbTenants.user.groupBy({
   by: ['tenant_id'],
   _count: true,
@@ -746,21 +748,21 @@ const users = await prisma.user.findMany({
 });
 const users = await User.find({ tenant_id: 'hardcoded-tenant' });
 
-// ✅ DO: Use database.get() for automatic filtering
-const db = await database.get();
-const users = await db.user.findMany(); // Prisma - Auto-filtered
-const users = await db.User.find(); // Mongoose - Auto-filtered
+// ✅ DO: Use databaseClass.get() for automatic filtering
+const database = await databaseClass.get();
+const users = await database.user.findMany(); // Prisma - Auto-filtered
+const users = await database.User.find(); // Mongoose - Auto-filtered
 
 // ❌ DON'T: Mix access patterns
-const db = await database.get();
-const adminDb = await database.getTenants();
-const users = await db.user.findMany(); // Which database am I using?
+const database = await databaseClass.get();
+const admindatabase = await databaseClass.getTenants();
+const users = await database.user.findMany(); // Which database am I using?
 
 // ✅ DO: Clear variable naming
-const db = await database.get(); // User data
-const dbTenants = await database.getTenants(); // Admin data
-const users = await db.user.findMany(); // Clear intent (Prisma)
-const users = await db.User.find(); // Clear intent (Mongoose)
+const database = await databaseClass.get(); // User data
+const dbTenants = await databaseClass.getTenants(); // Admin data
+const users = await database.user.findMany(); // Clear intent (Prisma)
+const users = await database.User.find(); // Clear intent (Mongoose)
 ```
 
 ## 🔧 Troubleshooting
@@ -771,7 +773,7 @@ const users = await db.User.find(); // Clear intent (Mongoose)
 // Check configuration
 import { database } from '@voilajsx/appkit/database';
 
-const health = await database.health();
+const health = await databaseClass.health();
 if (!health.healthy) {
   console.error('Database issue:', health.error);
 }

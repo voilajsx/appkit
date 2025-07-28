@@ -11,7 +11,7 @@ hierarchy and permission inheritance. Works with any Node.js framework.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `authenticator.get()`, everything else is automatic
+- **⚡ One Function** - Just `authClass.get()`, everything else is automatic
 - **🔒 Enterprise Security** - Production-grade security by default
 - **🔧 Zero Configuration** - Smart defaults for everything
 - **👥 Smart Role Hierarchy** - Built-in role.level inheritance
@@ -37,9 +37,9 @@ echo "VOILA_AUTH_SECRET=your-super-secure-jwt-secret-key-2024-minimum-32-chars" 
 ```
 
 ```typescript
-import { authenticator } from '@voilajsx/appkit/auth';
+import { authClass } from '@voilajsx/appkit/auth';
 
-const auth = authenticator.get();
+const auth = authClass.get();
 
 // Basic usage patterns
 const token = auth.signToken({ userId: 123, role: 'admin', level: 'tenant' });
@@ -202,7 +202,7 @@ VOILA_AUTH_BCRYPT_ROUNDS=12
 ```typescript
 // App startup validation
 try {
-  const auth = authenticator.get();
+  const auth = authClass.get();
   console.log('✅ Auth initialized successfully');
 } catch (error) {
   console.error('❌ Auth setup failed:', error.message);
@@ -301,7 +301,7 @@ VOILA_AUTH_PERMISSIONS=user.basic:view:own,admin.tenant:manage:tenant
 ### **Core Function**
 
 ```typescript
-const auth = authenticator.get(); // One function, all methods
+const auth = authClass.get(); // One function, all methods
 ```
 
 ### **Authentication Methods**
@@ -327,11 +327,11 @@ auth.requirePermission(permission); // Permission middleware
 ### **Utility Methods**
 
 ```typescript
-authenticator.getRoles(); // Get role hierarchy
-authenticator.getPermissions(); // Get permission config
-authenticator.getAllRoles(); // Get all roles sorted
-authenticator.isValidRole(roleLevel); // Validate role
-authenticator.reset(newConfig); // Reset instance (testing)
+authClass.getRoles(); // Get role hierarchy
+authClass.getPermissions(); // Get permission config
+authClass.getAllRoles(); // Get all roles sorted
+authClass.isValidRole(roleLevel); // Validate role
+authClass.reset(newConfig); // Reset instance (testing)
 ```
 
 ## 🔧 Custom Role Examples
@@ -358,7 +358,7 @@ VOILA_AUTH_ROLES=student.basic:1,teacher.junior:2,principal.school:3,admin.distr
 
 ```typescript
 // Reset for clean testing
-const auth = authenticator.reset({
+const auth = authClass.reset({
   jwt: { secret: 'test-secret-32-characters-long-for-security' },
   roles: {
     'test.user': { level: 1, inherits: [] },

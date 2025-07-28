@@ -64,7 +64,7 @@ export interface LoggingConfig {
 }
 
 /**
- * Get smart defaults using direct VOILA_LOGGING_* environment access
+ * Get smart defaults using direct VOILA_LOGGER_* environment access
  * @llm-rule WHEN: App startup to get production-ready logging configuration
  * @llm-rule AVOID: Calling repeatedly - validates environment each time, expensive operation
  * @llm-rule NOTE: Called once at startup, cached globally for performance
@@ -94,38 +94,38 @@ export function getSmartDefaults(): LoggingConfig {
     
     // Console config - direct env access
     console: {
-      colorize: process.env.VOILA_LOGGING_CONSOLE_COLOR !== 'false' && !isProduction,
-      timestamps: process.env.VOILA_LOGGING_CONSOLE_TIME !== 'false',
+      colorize: process.env.VOILA_LOGGER_CONSOLE_COLOR !== 'false' && !isProduction,
+      timestamps: process.env.VOILA_LOGGER_CONSOLE_TIME !== 'false',
       prettyPrint: isDevelopment && !minimal,
     },
     
     // File config - direct env access
     file: {
-      dir: process.env.VOILA_LOGGING_DIR || 'logs',
-      filename: process.env.VOILA_LOGGING_FILE_NAME || 'app.log',
-      maxSize: parseInt(process.env.VOILA_LOGGING_FILE_SIZE || (isProduction ? '50000000' : '10000000')),
-      retentionDays: parseInt(process.env.VOILA_LOGGING_FILE_RETENTION || (isProduction ? '30' : '7')),
+      dir: process.env.VOILA_LOGGER_DIR || 'logs',
+      filename: process.env.VOILA_LOGGER_FILE_NAME || 'app.log',
+      maxSize: parseInt(process.env.VOILA_LOGGER_FILE_SIZE || (isProduction ? '50000000' : '10000000')),
+      retentionDays: parseInt(process.env.VOILA_LOGGER_FILE_RETENTION || (isProduction ? '30' : '7')),
     },
     
     // Database config - direct env access
     database: {
       url: process.env.DATABASE_URL || null,
-      table: process.env.VOILA_LOGGING_DB_TABLE || 'logs',
-      batchSize: parseInt(process.env.VOILA_LOGGING_DB_BATCH || (minimal ? '50' : '100')),
+      table: process.env.VOILA_LOGGER_DB_TABLE || 'logs',
+      batchSize: parseInt(process.env.VOILA_LOGGER_DB_BATCH || (minimal ? '50' : '100')),
     },
     
     // HTTP config - direct env access
     http: {
-      url: process.env.VOILA_LOGGING_HTTP_URL || null,
-      batchSize: parseInt(process.env.VOILA_LOGGING_HTTP_BATCH || (minimal ? '25' : '50')),
-      timeout: parseInt(process.env.VOILA_LOGGING_HTTP_TIMEOUT || '30000'),
+      url: process.env.VOILA_LOGGER_HTTP_URL || null,
+      batchSize: parseInt(process.env.VOILA_LOGGER_HTTP_BATCH || (minimal ? '25' : '50')),
+      timeout: parseInt(process.env.VOILA_LOGGER_HTTP_TIMEOUT || '30000'),
     },
     
     // Webhook config - direct env access
     webhook: {
-      url: process.env.VOILA_LOGGING_WEBHOOK_URL || null,
-      level: (process.env.VOILA_LOGGING_WEBHOOK_LEVEL as any) || 'error',
-      rateLimit: parseInt(process.env.VOILA_LOGGING_WEBHOOK_RATE || (minimal ? '5' : '10')),
+      url: process.env.VOILA_LOGGER_WEBHOOK_URL || null,
+      level: (process.env.VOILA_LOGGER_WEBHOOK_LEVEL as any) || 'error',
+      rateLimit: parseInt(process.env.VOILA_LOGGER_WEBHOOK_RATE || (minimal ? '5' : '10')),
     },
     
     // Service identification - direct env access
@@ -144,7 +144,7 @@ export function getSmartDefaults(): LoggingConfig {
  */
 function getScope(): 'minimal' | 'full' {
   // Manual override wins (like auth module pattern)
-  const manual = process.env.VOILA_LOGGING_SCOPE?.toLowerCase();
+  const manual = process.env.VOILA_LOGGER_SCOPE?.toLowerCase();
   if (manual === 'minimal' || manual === 'full') {
     return manual;
   }
@@ -164,7 +164,7 @@ function getScope(): 'minimal' | 'full' {
  */
 function getLevel(isProduction: boolean, isDevelopment: boolean): 'debug' | 'info' | 'warn' | 'error' {
   // Manual override wins (like auth module)
-  const manual = process.env.VOILA_LOGGING_LEVEL?.toLowerCase();
+  const manual = process.env.VOILA_LOGGER_LEVEL?.toLowerCase();
   if (manual && ['debug', 'info', 'warn', 'error'].includes(manual)) {
     return manual as any;
   }
@@ -184,19 +184,19 @@ function getLevel(isProduction: boolean, isDevelopment: boolean): 'debug' | 'inf
 function getEnabledTransports(isTest: boolean) {
   return {
     // Console: default on (except test)
-    console: process.env.VOILA_LOGGING_CONSOLE !== 'false' && !isTest,
+    console: process.env.VOILA_LOGGER_CONSOLE !== 'false' && !isTest,
     
     // File: default on (except test)
-    file: process.env.VOILA_LOGGING_FILE !== 'false' && !isTest,
+    file: process.env.VOILA_LOGGER_FILE !== 'false' && !isTest,
     
     // Database: auto-enable if DATABASE_URL exists
-    database: process.env.VOILA_LOGGING_DATABASE === 'true' && !!process.env.DATABASE_URL,
+    database: process.env.VOILA_LOGGER_DATABASE === 'true' && !!process.env.DATABASE_URL,
     
     // HTTP: auto-enable if URL provided
-    http: !!process.env.VOILA_LOGGING_HTTP_URL,
+    http: !!process.env.VOILA_LOGGER_HTTP_URL,
     
     // Webhook: auto-enable if URL provided
-    webhook: !!process.env.VOILA_LOGGING_WEBHOOK_URL,
+    webhook: !!process.env.VOILA_LOGGER_WEBHOOK_URL,
   };
 }
 
@@ -207,15 +207,15 @@ function getEnabledTransports(isTest: boolean) {
  */
 export function validateEnvironment(): void {
   // Validate log level
-  const level = process.env.VOILA_LOGGING_LEVEL;
+  const level = process.env.VOILA_LOGGER_LEVEL;
   if (level && !['debug', 'info', 'warn', 'error'].includes(level)) {
-    throw new Error(`Invalid VOILA_LOGGING_LEVEL: "${level}". Must be: debug, info, warn, error`);
+    throw new Error(`Invalid VOILA_LOGGER_LEVEL: "${level}". Must be: debug, info, warn, error`);
   }
   
   // Validate scope
-  const scope = process.env.VOILA_LOGGING_SCOPE;
+  const scope = process.env.VOILA_LOGGER_SCOPE;
   if (scope && !['minimal', 'full'].includes(scope.toLowerCase())) {
-    throw new Error(`Invalid VOILA_LOGGING_SCOPE: "${scope}". Must be: minimal, full`);
+    throw new Error(`Invalid VOILA_LOGGER_SCOPE: "${scope}". Must be: minimal, full`);
   }
   
   // Validate visual errors setting
@@ -225,30 +225,30 @@ export function validateEnvironment(): void {
   }
   
   // Validate URLs if provided
-  const httpUrl = process.env.VOILA_LOGGING_HTTP_URL;
+  const httpUrl = process.env.VOILA_LOGGER_HTTP_URL;
   if (httpUrl && !isValidUrl(httpUrl)) {
-    throw new Error(`Invalid VOILA_LOGGING_HTTP_URL: "${httpUrl}"`);
+    throw new Error(`Invalid VOILA_LOGGER_HTTP_URL: "${httpUrl}"`);
   }
   
-  const webhookUrl = process.env.VOILA_LOGGING_WEBHOOK_URL;
+  const webhookUrl = process.env.VOILA_LOGGER_WEBHOOK_URL;
   if (webhookUrl && !isValidUrl(webhookUrl)) {
-    throw new Error(`Invalid VOILA_LOGGING_WEBHOOK_URL: "${webhookUrl}"`);
+    throw new Error(`Invalid VOILA_LOGGER_WEBHOOK_URL: "${webhookUrl}"`);
   }
   
   // Validate database URL if database logging enabled
-  const dbEnabled = process.env.VOILA_LOGGING_DATABASE === 'true';
+  const dbEnabled = process.env.VOILA_LOGGER_DATABASE === 'true';
   const dbUrl = process.env.DATABASE_URL;
   if (dbEnabled && !dbUrl) {
-    throw new Error('VOILA_LOGGING_DATABASE=true but DATABASE_URL not provided');
+    throw new Error('VOILA_LOGGER_DATABASE=true but DATABASE_URL not provided');
   }
   if (dbUrl && !isValidDatabaseUrl(dbUrl)) {
     throw new Error(`Invalid DATABASE_URL: "${dbUrl}"`);
   }
   
   // Validate numeric values
-  validateNumericEnv('VOILA_LOGGING_FILE_SIZE', 1000000, 100000000); // 1MB to 100MB
-  validateNumericEnv('VOILA_LOGGING_FILE_RETENTION', 1, 365); // 1 to 365 days
-  validateNumericEnv('VOILA_LOGGING_HTTP_TIMEOUT', 1000, 300000); // 1s to 5min
+  validateNumericEnv('VOILA_LOGGER_FILE_SIZE', 1000000, 100000000); // 1MB to 100MB
+  validateNumericEnv('VOILA_LOGGER_FILE_RETENTION', 1, 365); // 1 to 365 days
+  validateNumericEnv('VOILA_LOGGER_HTTP_TIMEOUT', 1000, 300000); // 1s to 5min
 }
 
 /**

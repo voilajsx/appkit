@@ -11,7 +11,7 @@ default, with built-in type conversion and smart defaults.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `configure.get()`, everything else is automatic
+- **⚡ One Function** - Just `configClass.get()`, everything else is automatic
 - **🔩 UPPER_SNAKE_CASE Convention** - `DATABASE_HOST` becomes
   `config.get('database.host')`
 - **🔧 Zero Configuration** - No config files, no setup, just environment
@@ -52,9 +52,9 @@ API_RATE_LIMIT=1000
 ### 2. Use in Your Code
 
 ```typescript
-import { configure } from '@voilajsx/appkit/config';
+import { configClass } from '@voilajsx/appkit/config';
 
-const config = configure.get();
+const config = configClass.get();
 
 // Access nested values with dot notation (all properly typed!)
 const dbHost = config.get('database.host'); // 'localhost'
@@ -148,7 +148,7 @@ API_TIMEOUT=30000
 
 ```typescript
 // ✅ CORRECT - Basic access with defaults
-const config = configure.get();
+const config = configClass.get();
 const dbHost = config.get('database.host', 'localhost');
 const dbPort = config.get<number>('database.port', 5432);
 const isEnabled = config.get<boolean>('features.analytics.enabled', false);
@@ -158,12 +158,12 @@ const apiKey = config.getRequired<string>('api.key');
 const dbUrl = config.getRequired<string>('database.url');
 
 // ✅ CORRECT - Environment checks
-if (configure.isProduction()) {
+if (configClass.isProduction()) {
   // Production-specific code
 }
 
 // ✅ CORRECT - Module configuration
-const dbConfig = configure.getModuleConfig('database', {
+const dbConfig = configClass.getModuleConfig('database', {
   host: 'localhost',
   port: 5432,
 });
@@ -174,10 +174,10 @@ const dbConfig = configure.getModuleConfig('database', {
 ```typescript
 // ✅ CORRECT - App startup validation
 try {
-  const config = configure.get();
+  const config = configClass.get();
 
   // Validate required configuration
-  configure.validateRequired(['database.url', 'api.key']);
+  configClass.validateRequired(['database.url', 'api.key']);
 
   console.log('✅ Configuration validation passed');
 } catch (error) {
@@ -208,7 +208,7 @@ const dbHost = process.env.DATABASE_HOST;
 const port = parseInt(process.env.DATABASE_PORT || '5432');
 
 // ✅ CORRECT - Use config system
-const config = configure.get();
+const config = configClass.get();
 const dbHost = config.get('database.host');
 const port = config.get<number>('database.port', 5432);
 ```
@@ -230,19 +230,22 @@ const dbUrl = config.getRequired<string>('database.url');
 ### **Startup Validation**
 
 ```typescript
-import { configure } from '@voilajsx/appkit/config';
+import { configClass } from '@voilajsx/appkit/config';
 
 // App startup validation
 async function validateAppConfig() {
   try {
-    const config = configure.get();
+    const config = configClass.get();
 
     // Validate required configuration
-    configure.validateRequired(['database.url', 'redis.url', 'api.key']);
+    configClass.validateRequired(['database.url', 'redis.url', 'api.key']);
 
     // Production-specific validation
-    if (configure.isProduction()) {
-      configure.validateRequired(['monitoring.sentry.dsn', 'email.smtp.host']);
+    if (configClass.isProduction()) {
+      configClass.validateRequired([
+        'monitoring.sentry.dsn',
+        'email.smtp.host',
+      ]);
     }
 
     console.log('✅ Configuration validation passed');
@@ -261,7 +264,7 @@ validateAppConfig();
 ```typescript
 // Safe configuration access with error handling
 function getDatabaseConfig() {
-  const config = configure.get();
+  const config = configClass.get();
 
   try {
     return {
@@ -314,7 +317,7 @@ API_RATE_LIMIT=1000
 ### **Core Function**
 
 ```typescript
-const config = configure.get(); // One function, all methods
+const config = configClass.get(); // One function, all methods
 ```
 
 ### **Configuration Access Methods**
@@ -346,30 +349,30 @@ config.getAll(); // Complete config object
 
 ```typescript
 // Environment detection
-configure.isDevelopment(); // NODE_ENV === 'development'
-configure.isProduction(); // NODE_ENV === 'production'
-configure.isTest(); // NODE_ENV === 'test'
-configure.getEnvironment(); // Current NODE_ENV value
+configClass.isDevelopment(); // NODE_ENV === 'development'
+configClass.isProduction(); // NODE_ENV === 'production'
+configClass.isTest(); // NODE_ENV === 'test'
+configClass.getEnvironment(); // Current NODE_ENV value
 
 // Module-specific configuration
-configure.getModuleConfig('database', {
+configClass.getModuleConfig('database', {
   host: 'localhost',
   port: 5432,
 }); // Gets all 'database.*' config with defaults
 
 // Startup validation
-configure.validateRequired(['database.url', 'api.key']); // Throws with helpful errors if missing
+configClass.validateRequired(['database.url', 'api.key']); // Throws with helpful errors if missing
 ```
 
 ### **Utility Methods**
 
 ```typescript
 // Get all non-framework environment variables
-configure.getEnvVars(); // { DATABASE_HOST: 'localhost', ... }
+configClass.getEnvVars(); // { DATABASE_HOST: 'localhost', ... }
 
 // Reset for testing
-configure.reset(customConfig); // Reset with custom config
-configure.clearCache(); // Clear cached config
+configClass.reset(customConfig); // Reset with custom config
+configClass.clearCache(); // Clear cached config
 ```
 
 ## 🎯 Usage Examples
@@ -378,9 +381,9 @@ configure.clearCache(); // Clear cached config
 
 ```typescript
 import express from 'express';
-import { configure } from '@voilajsx/appkit/config';
+import { configClass } from '@voilajsx/appkit/config';
 
-const config = configure.get();
+const config = configClass.get();
 
 const app = express();
 
@@ -425,7 +428,7 @@ DATABASE_CREDENTIALS_PASSWORD=secret
 // Database module
 class DatabaseService {
   constructor() {
-    const config = configure.get();
+    const config = configClass.get();
 
     // Get all database config with defaults
     this.config = config.getModuleConfig('database', {
@@ -436,7 +439,7 @@ class DatabaseService {
     });
 
     // Validate required values
-    configure.validateRequired([
+    configClass.validateRequired([
       'database.credentials.user',
       'database.credentials.password',
     ]);
@@ -516,12 +519,12 @@ docker run -d \
 ## 🧪 Testing
 
 ```typescript
-import { configure } from '@voilajsx/appkit/config';
+import { configClass } from '@voilajsx/appkit/config';
 
 describe('Configuration Tests', () => {
   beforeEach(() => {
     // Clear cache before each test
-    configure.clearCache();
+    configClass.clearCache();
   });
 
   afterEach(() => {
@@ -535,7 +538,7 @@ describe('Configuration Tests', () => {
     process.env.TEST_CONFIG_NUMBER = '123';
     process.env.TEST_CONFIG_BOOLEAN = 'true';
 
-    const config = configure.get();
+    const config = configClass.get();
 
     expect(config.get('test_config.value')).toBe('test-value');
     expect(config.get('test_config.number')).toBe(123);
@@ -543,7 +546,7 @@ describe('Configuration Tests', () => {
   });
 
   test('should use defaults when environment variables are missing', () => {
-    const config = configure.get();
+    const config = configClass.get();
 
     expect(config.get('missing.value', 'default')).toBe('default');
     expect(config.get('missing.number', 42)).toBe(42);
@@ -551,7 +554,7 @@ describe('Configuration Tests', () => {
 
   test('should validate required configuration', () => {
     expect(() => {
-      configure.validateRequired(['missing.required.value']);
+      configClass.validateRequired(['missing.required.value']);
     }).toThrow('Missing required configuration');
   });
 });
@@ -573,7 +576,7 @@ Full TypeScript support with comprehensive interfaces:
 import type { ConfigValue, AppConfig } from '@voilajsx/appkit/config';
 
 // Strongly typed configuration access
-const config = configure.get();
+const config = configClass.get();
 const dbPort: number = config.get<number>('database.port', 5432);
 const features: boolean = config.get<boolean>('features.enabled', false);
 

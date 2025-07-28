@@ -4,7 +4,7 @@
  * @file src/auth/authentication.ts
  * 
  * @llm-rule WHEN: Building apps that need JWT operations, password hashing, and role-based middleware
- * @llm-rule AVOID: Using directly - always get instance via authenticator.get()
+ * @llm-rule AVOID: Using directly - always get instance via auth.get()
  * @llm-rule NOTE: Use requireRole() for hierarchy-based access, requirePermission() for action-specific access
  * @llm-rule NOTE: Uses role.level format (user.basic, admin.tenant) with automatic inheritance
  */

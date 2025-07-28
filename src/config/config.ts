@@ -14,7 +14,7 @@ export class ConfigClass {
   /**
    * Creates a new, immutable Config instance
    * @llm-rule WHEN: App startup - need to parse environment variables into structured config
-   * @llm-rule AVOID: Calling directly - always use configure.get() instead
+   * @llm-rule AVOID: Calling directly - always use configClass.get() instead
    * @llm-rule NOTE: Config is immutable and deeply frozen for safety
    */
   constructor(initialConfig: Record<string, any> = {}) {

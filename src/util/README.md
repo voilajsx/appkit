@@ -640,38 +640,38 @@ class FormHandler {
 
 ```bash
 # Cache settings
-VOILA_UTILS_CACHE=true                    # Default: true (false in test)
-VOILA_UTILS_CACHE_SIZE=1000              # Default: 1000 items
-VOILA_UTILS_CACHE_TTL=300000             # Default: 5 minutes
+VOILA_UTIL_CACHE=true                    # Default: true (false in test)
+VOILA_UTIL_CACHE_SIZE=1000              # Default: 1000 items
+VOILA_UTIL_CACHE_TTL=300000             # Default: 5 minutes
 
 # Performance optimization
-VOILA_UTILS_PERFORMANCE=true             # Default: true
-VOILA_UTILS_MEMOIZATION=true             # Default: true (false in test)
-VOILA_UTILS_ARRAY_THRESHOLD=10000        # Default: 10K items
-VOILA_UTILS_CHUNK_LIMIT=100000           # Default: 100K items
+VOILA_UTIL_PERFORMANCE=true             # Default: true
+VOILA_UTIL_MEMOIZATION=true             # Default: true (false in test)
+VOILA_UTIL_ARRAY_THRESHOLD=10000        # Default: 10K items
+VOILA_UTIL_CHUNK_LIMIT=100000           # Default: 100K items
 ```
 
 ### **Debug Configuration**
 
 ```bash
 # Debug settings (auto-enabled in development)
-VOILA_UTILS_DEBUG=false                  # Default: true in dev
-VOILA_UTILS_LOG_OPS=false                # Default: true in dev
-VOILA_UTILS_TRACK_PERF=false             # Default: true in dev
+VOILA_UTIL_DEBUG=false                  # Default: true in dev
+VOILA_UTIL_LOG_OPS=false                # Default: true in dev
+VOILA_UTIL_TRACK_PERF=false             # Default: true in dev
 ```
 
 ### **Locale and Formatting**
 
 ```bash
 # Locale settings
-VOILA_UTILS_LOCALE=en-US                 # Default: en-US
-VOILA_UTILS_CURRENCY=USD                 # Default: USD
-VOILA_UTILS_NUMBER_PRECISION=2           # Default: 2 decimal places
+VOILA_UTIL_LOCALE=en-US                 # Default: en-US
+VOILA_UTIL_CURRENCY=USD                 # Default: USD
+VOILA_UTIL_NUMBER_PRECISION=2           # Default: 2 decimal places
 
 # Slugify settings
-VOILA_UTILS_SLUGIFY_REPLACEMENT=-        # Default: -
-VOILA_UTILS_SLUGIFY_LOWERCASE=true       # Default: true
-VOILA_UTILS_SLUGIFY_STRICT=false         # Default: false
+VOILA_UTIL_SLUGIFY_REPLACEMENT=-        # Default: -
+VOILA_UTIL_SLUGIFY_LOWERCASE=true       # Default: true
+VOILA_UTIL_SLUGIFY_STRICT=false         # Default: false
 ```
 
 ## 🧪 Testing

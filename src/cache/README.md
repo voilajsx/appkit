@@ -11,8 +11,8 @@ configuration needed, production-ready performance by default.
 
 ## 🚀 Why Choose This?
 
-- **⚡ One Function** - Just `caching.get(namespace)`, everything else is
-  automatic
+- ⚡ One Function - Just cacheClass.get() (optional namespace), everything else
+  is automatic
 - **🎯 Auto-Strategy** - REDIS_URL = Redis, no URL = Memory
 - **🔧 Zero Configuration** - Smart defaults for everything
 - **🏠 Namespace Isolation** - `users`, `sessions` - completely separate
@@ -30,9 +30,9 @@ npm install @voilajsx/appkit
 ## 🏃‍♂️ Quick Start (30 seconds)
 
 ```typescript
-import { caching } from '@voilajsx/appkit/cache';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
-const cache = caching.get('users');
+const cache = cacheClass.get('users');
 
 // Set data with 1 hour expiration
 await cache.set('user:123', { name: 'John' }, 3600);
@@ -61,8 +61,8 @@ REDIS_URL=redis://localhost:6379
 
 ```typescript
 // ✅ CORRECT - Complete cache setup
-import { caching } from '@voilajsx/appkit/cache';
-const cache = caching.get('namespace');
+import { cacheClass } from '@voilajsx/appkit/cache';
+const cache = cacheClass.get('namespace');
 
 // Cache operations
 await cache.set('key', data, 3600); // Set with TTL
@@ -84,9 +84,9 @@ const data = await cache.getOrSet(
 
 ```typescript
 // ✅ CORRECT - Separate namespaces for different data
-const userCache = caching.get('users');
-const sessionCache = caching.get('sessions');
-const apiCache = caching.get('external-api');
+const userCache = cacheClass.get('users');
+const sessionCache = cacheClass.get('sessions');
+const apiCache = cacheClass.get('external-api');
 
 // Each namespace is completely isolated
 await userCache.set('123', userData);
@@ -132,13 +132,13 @@ const redis = new RedisStrategy(); // Wrong!
 await cache.set('temp', data); // Always set TTL for temp data
 
 // ❌ WRONG - Using same namespace for different data types
-const cache = caching.get('data'); // Be specific
+const cache = cacheClass.get('data'); // Be specific
 await cache.set('user:123', userData);
 await cache.set('session:456', sessionData); // Use separate namespaces
 
-// ✅ CORRECT - Use caching.get() with specific namespaces
-const userCache = caching.get('users');
-const sessionCache = caching.get('sessions');
+// ✅ CORRECT - Use cacheClass.get() with specific namespaces
+const userCache = cacheClass.get('users');
+const sessionCache = cacheClass.get('sessions');
 ```
 
 ### **Wrong Error Handling**
@@ -168,12 +168,12 @@ if (!user) {
 // ❌ WRONG - No cleanup between tests
 test('should cache user', async () => {
   await cache.set('user:123', userData);
-  // Missing: await caching.clear();
+  // Missing: await cacheClass.clear();
 });
 
 // ✅ CORRECT - Proper test cleanup
 afterEach(async () => {
-  await caching.clear(); // Clean up between tests
+  await cacheClass.clear(); // Clean up between tests
 });
 ```
 
@@ -183,7 +183,7 @@ afterEach(async () => {
 
 ```typescript
 async function getUserProfile(userId) {
-  const cache = caching.get('profiles');
+  const cache = cacheClass.get('profiles');
 
   try {
     // Try cache first
@@ -213,7 +213,7 @@ async function getUserProfile(userId) {
 
 ```typescript
 async function getSession(sessionId) {
-  const cache = caching.get('sessions');
+  const cache = cacheClass.get('sessions');
 
   try {
     const session = await cache.get(`session:${sessionId}`);
@@ -235,7 +235,7 @@ async function getSession(sessionId) {
 }
 
 async function createSession(userId) {
-  const cache = caching.get('sessions');
+  const cache = cacheClass.get('sessions');
   const sessionId = crypto.randomUUID();
   const sessionData = { userId, loginTime: Date.now() };
 
@@ -255,7 +255,7 @@ async function createSession(userId) {
 
 ```typescript
 async function getWeatherData(city) {
-  const cache = caching.get('weather');
+  const cache = cacheClass.get('weather');
   const cacheKey = `weather:${city.toLowerCase()}`;
 
   try {
@@ -329,8 +329,8 @@ VOILA_CACHE_REDIS_COMMAND_TIMEOUT=5000  # 5 second command timeout
 
 ```typescript
 // ✅ Namespace isolation prevents key collisions
-const userCache = caching.get('users');
-const adminCache = caching.get('admin'); // Completely separate
+const userCache = cacheClass.get('users');
+const adminCache = cacheClass.get('admin'); // Completely separate
 
 // ✅ TTL prevents indefinite data retention
 await cache.set('temp:token', token, 300); // 5 minutes only
@@ -358,7 +358,7 @@ VOILA_CACHE_MEMORY_MAX_SIZE=100000000   # 100MB memory limit
 ### Core Function
 
 ```typescript
-const cache = caching.get(namespace); // One function, everything you need
+const cache = cacheClass.get(namespace); // One function, everything you need
 ```
 
 ### Cache Operations
@@ -375,9 +375,9 @@ await cache.getOrSet(key, factory, ttl?); // Get cached or compute and cache
 
 ```typescript
 cache.getStrategy(); // 'redis' or 'memory'
-caching.hasRedis(); // true if REDIS_URL is set
-caching.getActiveNamespaces(); // List of active namespaces
-caching.getConfig(); // Configuration summary
+cacheClass.hasRedis(); // true if REDIS_URL is set
+cacheClass.getActiveNamespaces(); // List of active namespaces
+cacheClass.getConfig(); // Configuration summary
 ```
 
 ## 💡 Usage Examples
@@ -385,9 +385,9 @@ caching.getConfig(); // Configuration summary
 ### **Basic User Caching**
 
 ```typescript
-import { caching } from '@voilajsx/appkit/cache';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
-const userCache = caching.get('users');
+const userCache = cacheClass.get('users');
 
 async function getUser(id) {
   // Try cache first
@@ -408,9 +408,9 @@ async function getUser(id) {
 ### **API Response Caching**
 
 ```typescript
-import { caching } from '@voilajsx/appkit/cache';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
-const apiCache = caching.get('external-api');
+const apiCache = cacheClass.get('external-api');
 
 async function getWeather(city) {
   return await apiCache.getOrSet(
@@ -436,9 +436,9 @@ const weather2 = await getWeather('london');
 ### **Session Management**
 
 ```typescript
-import { caching } from '@voilajsx/appkit/cache';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
-const sessionCache = caching.get('sessions');
+const sessionCache = cacheClass.get('sessions');
 
 // Store session
 async function createSession(userId) {
@@ -465,9 +465,9 @@ async function logout(sessionId) {
 ### **Shopping Cart**
 
 ```typescript
-import { caching } from '@voilajsx/appkit/cache';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
-const cartCache = caching.get('shopping-carts');
+const cartCache = cacheClass.get('shopping-carts');
 
 // Add item to cart
 async function addToCart(userId, item) {
@@ -492,9 +492,9 @@ async function clearCart(userId) {
 ### **Rate Limiting Cache**
 
 ```typescript
-import { caching } from '@voilajsx/appkit/cache';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
-const rateLimitCache = caching.get('rate-limits');
+const rateLimitCache = cacheClass.get('rate-limits');
 
 async function checkRateLimit(userId, maxRequests = 100, windowSeconds = 3600) {
   const key = `rate:${userId}:${Math.floor(Date.now() / 1000 / windowSeconds)}`;
@@ -565,7 +565,7 @@ NODE_ENV=development
 ```
 
 ```typescript
-const cache = caching.get('users');
+const cache = cacheClass.get('users');
 // Strategy: Memory (in-process)
 // Features: LRU eviction, TTL cleanup, memory limits
 ```
@@ -579,7 +579,7 @@ REDIS_URL=redis://your-redis-host:6379
 ```
 
 ```typescript
-const cache = caching.get('users');
+const cache = cacheClass.get('users');
 // Strategy: Redis (distributed)
 // Features: Clustering, persistence, atomic operations
 ```
@@ -600,15 +600,15 @@ const cache = caching.get('users');
 ## 🧪 Testing
 
 ```typescript
-import { caching } from '@voilajsx/appkit/cache';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
 describe('Cache Tests', () => {
   afterEach(async () => {
-    await caching.clear(); // Clean up between tests
+    await cacheClass.clear(); // Clean up between tests
   });
 
   test('basic caching', async () => {
-    const cache = caching.get('test');
+    const cache = cacheClass.get('test');
 
     await cache.set('key', 'value', 60);
     const result = await cache.get('key');
@@ -617,7 +617,7 @@ describe('Cache Tests', () => {
   });
 
   test('cache expiration', async () => {
-    const cache = caching.get('test');
+    const cache = cacheClass.get('test');
 
     await cache.set('temp', 'data', 1); // 1 second TTL
 
@@ -629,8 +629,8 @@ describe('Cache Tests', () => {
   });
 
   test('namespace isolation', async () => {
-    const cache1 = caching.get('namespace1');
-    const cache2 = caching.get('namespace2');
+    const cache1 = cacheClass.get('namespace1');
+    const cache2 = cacheClass.get('namespace2');
 
     await cache1.set('key', 'value1');
     await cache2.set('key', 'value2');
@@ -647,7 +647,7 @@ describe('Cache Tests', () => {
 describe('Cache with Memory Strategy', () => {
   beforeEach(async () => {
     // Force memory strategy for tests
-    await caching.reset({
+    await cacheClass.reset({
       strategy: 'memory',
       memory: {
         maxItems: 1000,
@@ -658,7 +658,7 @@ describe('Cache with Memory Strategy', () => {
   });
 
   afterEach(async () => {
-    await caching.clear();
+    await cacheClass.clear();
   });
 });
 ```
@@ -685,7 +685,7 @@ describe('Cache with Memory Strategy', () => {
 import type { Cache } from '@voilajsx/appkit/cache';
 
 // Strongly typed cache operations
-const cache: Cache = caching.get('users');
+const cache: Cache = cacheClass.get('users');
 const user: User | null = await cache.get('user:123');
 
 // Typed namespace operations
@@ -713,8 +713,8 @@ await client.setEx('user:123', 3600, JSON.stringify(userData));
 
 ```typescript
 // 3 lines, automatic Redis/Memory, built-in serialization
-import { caching } from '@voilajsx/appkit/cache';
-const cache = caching.get('users');
+import { cacheClass } from '@voilajsx/appkit/cache';
+const cache = cacheClass.get('users');
 await cache.set('user:123', userData, 3600);
 ```
 

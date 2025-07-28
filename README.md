@@ -22,14 +22,14 @@ work together seamlessly.
 
 **🎯 For Rapid Development**
 
-- **One function per module**: `authenticator.get()`, `database.get()`,
-  `security.get()`
+- **One function per module**: `authClass.get()`, `databaseClass.get()`,
+  `securityClass.get()`
 - **Instant setup**: No configuration files, just environment variables
 - **Production patterns**: Enterprise-grade security and scalability built-in
 
 **🏗️ For Maintainable Architecture**
 
-- **Consistent APIs**: Same patterns across all modules
+- **Consistent APIs**: Same `{moduleClass}.get()` pattern across all modules
 - **Progressive complexity**: Start simple, scale to enterprise automatically
 - **Type-safe**: Full TypeScript support with intelligent IntelliSense
 
@@ -68,16 +68,16 @@ development:
 
 ```typescript
 // Day 1: Simple development
-const auth = authenticator.get();
+const auth = authClass.get();
 const token = auth.signToken({ userId: 123, role: 'user', level: 'basic' });
 
 // Month 6: Multi-tenant (just add environment variable)
 // VOILA_DB_TENANT=auto
-const db = await database.get(); // Now auto-filtered by tenant
+const database = await databaseClass.get(); // Now auto-filtered by tenant
 
 // Year 1: Multi-organization enterprise (same code)
 // ORG_ACME=postgresql://acme.aws.com/prod
-const acmeDb = await database.org('acme').get(); // Enterprise scaling
+const acmeDatabase = await databaseClass.org('acme').get(); // Enterprise scaling
 ```
 
 ## 🚀 Quick Start for Developers & AI Agents
@@ -91,30 +91,36 @@ npm install @voilajsx/appkit
 ### **30-Second Working App**
 
 ```typescript
-import { authenticator, database, error, logger } from '@voilajsx/appkit';
+import { authClass } from '@voilajsx/appkit/auth';
+import { databaseClass } from '@voilajsx/appkit/database';
+import { errorClass } from '@voilajsx/appkit/error';
+import { loggerClass } from '@voilajsx/appkit/logger';
 
-const auth = authenticator.get();
-const db = await database.get();
-const err = error.get();
-const log = logger.get('api');
+const auth = authClass.get();
+const database = await databaseClass.get();
+const error = errorClass.get();
+const logger = loggerClass.get('api');
 
 // Protected API endpoint
 app.post(
   '/api/users',
   auth.requireRole('admin.tenant'),
-  err.asyncRoute(async (req, res) => {
+  error.asyncRoute(async (req, res) => {
     const user = auth.user(req);
 
     if (!req.body.email) {
-      throw err.badRequest('Email required');
+      throw error.badRequest('Email required');
     }
 
-    const newUser = await db.user.create({ data: req.body });
-    log.info('User created', { userId: newUser.id });
+    const newUser = await database.user.create({ data: req.body });
+    logger.info('User created', { userId: newUser.id });
 
     res.json({ user: newUser });
   })
 );
+
+// Error handling middleware (must be last)
+app.use(error.handleErrors());
 ```
 
 **Result**: Production-ready API with authentication, database, error handling,
@@ -122,32 +128,29 @@ and logging. **Zero configuration needed.**
 
 ## 🎭 Complete Module Ecosystem
 
-### **🔧 Core Infrastructure**
+| #   | Module                                  | Category                | Purpose                            | Details                                                                                                                  |
+| --- | --------------------------------------- | ----------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **[Auth](/src/auth/README.md)**         | 🔧 Infrastructure       | JWT tokens, role-based permissions | `authClass.get()` - Semantic role hierarchy (user.basic → admin.system), automatic middleware, production-grade security |
+| 2   | **[Database](/src/database/README.md)** | 🔧 Infrastructure       | Multi-tenant, progressive scaling  | `databaseClass.get()` - Auto-tenant filtering, org management (.org()), mandatory future-proofing with tenant_id         |
+| 3   | **[Security](/src/security/README.md)** | 🔧 Infrastructure       | CSRF, rate limiting, encryption    | `securityClass.get()` - Enterprise-grade by default, AES-256-GCM encryption, input sanitization                          |
+| 4   | **[Error](/src/error/README.md)**       | 🔧 Infrastructure       | HTTP status codes, semantic errors | `errorClass.get()` - Framework-agnostic middleware, semantic error types (badRequest, unauthorized)                      |
+| 5   | **[Cache](/src/cache/README.md)**       | 📊 Data & Communication | Memory → Redis auto-scaling        | `cacheClass.get('namespace')` - Namespace isolation, TTL management, getOrSet pattern                                    |
+| 6   | **[Storage](/src/storage/README.md)**   | 📊 Data & Communication | Local → S3/R2 auto-scaling         | `storageClass.get()` - CDN integration, signed URLs, automatic provider detection                                        |
+| 7   | **[Queue](/src/queue/README.md)**       | 📊 Data & Communication | Memory → Redis → DB scaling        | `queueClass.get()` - Background jobs, scheduling, retry logic with exponential backoff                                   |
+| 8   | **[Email](/src/email/README.md)**       | 📊 Data & Communication | Console → SMTP → Resend            | `emailClass.get()` - Templates, multi-provider, automatic strategy selection                                             |
+| 9   | **[Event](/src/event/README.md)**       | 📊 Data & Communication | Memory → Redis distribution        | `eventClass.get('namespace')` - Real-time, pub/sub, wildcard patterns (user.\*)                                          |
+| 10  | **[Util](/src/util/README.md)**         | 🛠️ Developer Experience | 12 essential utilities             | `utilClass.get()` - Safe property access (get), performance helpers (debounce, chunk)                                    |
+| 11  | **[Config](/src/config/README.md)**     | 🛠️ Developer Experience | Environment variables              | `configClass.get()` - Type-safe, UPPER_SNAKE_CASE convention, validation included                                        |
+| 12  | **[Logger](/src/logger/README.md)**     | 🛠️ Developer Experience | Structured logging                 | `loggerClass.get('component')` - Multi-transport, auto-scaling (Console → File → HTTP)                                   |
 
-| Module                                  | Purpose                            | AI-Optimized Features                    |
-| --------------------------------------- | ---------------------------------- | ---------------------------------------- |
-| **[Auth](/src/auth/README.md)**         | JWT tokens, role-based permissions | Semantic role hierarchy, auto-middleware |
-| **[Database](/src/database/README.md)** | Multi-tenant, progressive scaling  | Auto-tenant filtering, org management    |
-| **[Security](/src/security/README.md)** | CSRF, rate limiting, encryption    | Enterprise-grade by default              |
-| **[Error](/src/error/README.md)**       | HTTP status codes, semantic errors | Framework-agnostic middleware            |
+### **Category Summary**
 
-### **📊 Data & Communication**
-
-| Module                                | Auto-Scales                | Production Features                 |
-| ------------------------------------- | -------------------------- | ----------------------------------- |
-| **[Cache](/src/cache/README.md)**     | Memory → Redis             | Namespace isolation, TTL management |
-| **[Storage](/src/storage/README.md)** | Local → S3/R2              | CDN integration, signed URLs        |
-| **[Queue](/src/queue/README.md)**     | Memory → Redis → DB        | Background jobs, scheduling         |
-| **[Email](/src/email/README.md)**     | Console → SMTP → Resend    | Templates, multi-provider           |
-| **[Events](/src/events/README.md)**   | Memory → Redis → WebSocket | Real-time, pub/sub, notifications   |
-
-### **🛠️ Developer Experience**
-
-| Module                                | Purpose                | Auto-Scales                               |
-| ------------------------------------- | ---------------------- | ----------------------------------------- |
-| **[Utils](/src/utils/README.md)**     | 12 essential utilities | Safe property access, performance helpers |
-| **[Config](/src/config/README.md)**   | Environment variables  | Type-safe, validation included            |
-| **[Logging](/src/logging/README.md)** | Structured logging     | Multi-transport, auto-scaling             |
+- **🔧 Infrastructure (4 modules)**: Core application foundation - auth,
+  database, security, error handling
+- **📊 Data & Communication (5 modules)**: Data flow and external interactions -
+  cache, storage, queue, email, events
+- **🛠️ Developer Experience (3 modules)**: Development productivity - utilities,
+  configuration, logging
 
 ## 🌍 Environment-Driven Progressive Scaling
 
@@ -175,23 +178,26 @@ VOILA_DB_TENANT=auto                      # → Multi-tenant mode
 ### **Multi-Tenant SaaS API**
 
 ```typescript
-import { authenticator, database, security, caching } from '@voilajsx/appkit';
+import { authClass } from '@voilajsx/appkit/auth';
+import { databaseClass } from '@voilajsx/appkit/database';
+import { securityClass } from '@voilajsx/appkit/security';
+import { cacheClass } from '@voilajsx/appkit/cache';
 
-const auth = authenticator.get();
-const db = await database.get(); // Auto-filtered by tenant
-const secure = security.get();
-const cache = caching.get('api');
+const auth = authClass.get();
+const database = await databaseClass.get(); // Auto-filtered by tenant
+const security = securityClass.get();
+const cache = cacheClass.get('api');
 
 // User endpoint (tenant-isolated)
 app.get(
   '/api/users',
   auth.requireLogin(),
-  secure.requests(100, 900000), // Rate limiting
+  security.requests(100, 900000), // Rate limiting
   async (req, res) => {
     const users = await cache.getOrSet(
       'users',
       async () => {
-        return await db.user.findMany(); // Only current tenant
+        return await database.user.findMany(); // Only current tenant
       },
       300
     );
@@ -205,8 +211,8 @@ app.get(
   '/api/admin/analytics',
   auth.requireRole('admin.system'),
   async (req, res) => {
-    const dbAll = await database.getTenants(); // All tenants
-    const stats = await dbAll.user.groupBy({
+    const dbTenants = await databaseClass.getTenants(); // All tenants
+    const stats = await dbTenants.user.groupBy({
       by: ['tenant_id'],
       _count: true,
     });
@@ -219,46 +225,44 @@ app.get(
 ### **Real-Time Chat Application**
 
 ```typescript
-import { eventing, authenticator, database } from '@voilajsx/appkit';
+import { eventClass } from '@voilajsx/appkit/event';
+import { authClass } from '@voilajsx/appkit/auth';
+import { databaseClass } from '@voilajsx/appkit/database';
 
-const events = eventing.get();
-const auth = authenticator.get();
-const db = await database.get();
+const events = eventClass.get();
+const auth = authClass.get();
+const database = await databaseClass.get();
 
-// WebSocket connection with authentication
-events.onConnection(async (socket) => {
-  const token = socket.handshake.auth.token;
-  const user = auth.verifyToken(token);
+// Handle user connections
+events.on('user.connected', async (data) => {
+  const { userId, socketId } = data;
 
   // Join user to their rooms
-  await socket.join(`user:${user.userId}`);
-  await socket.join(`tenant:${user.tenant_id}`);
+  await events.emit('socket.join', {
+    socketId,
+    rooms: [`user:${userId}`, `tenant:${data.tenantId}`],
+  });
+});
 
-  // Handle chat messages
-  socket.on('message', async (data) => {
-    const message = await db.message.create({
-      data: {
-        content: data.content,
-        userId: user.userId,
-        roomId: data.roomId,
-      },
-    });
-
-    // Broadcast to room (tenant-isolated)
-    events.to(`room:${data.roomId}`).emit('newMessage', {
-      id: message.id,
-      content: message.content,
-      user: { name: user.name },
-      timestamp: message.createdAt,
-    });
+// Handle chat messages
+events.on('message.send', async (data) => {
+  const message = await database.message.create({
+    data: {
+      content: data.content,
+      userId: data.userId,
+      roomId: data.roomId,
+    },
   });
 
-  // Real-time notifications
-  socket.on('typing', (data) => {
-    socket.to(`room:${data.roomId}`).emit('userTyping', {
-      userId: user.userId,
-      userName: user.name,
-    });
+  // Broadcast to room (tenant-isolated)
+  await events.emit('message.broadcast', {
+    roomId: data.roomId,
+    message: {
+      id: message.id,
+      content: message.content,
+      user: { name: data.userName },
+      timestamp: message.createdAt,
+    },
   });
 });
 
@@ -267,7 +271,8 @@ app.post('/api/notifications', auth.requireLogin(), async (req, res) => {
   const user = auth.user(req);
 
   // Send real-time notification
-  events.to(`user:${user.userId}`).emit('notification', {
+  await events.emit('notification.send', {
+    userId: user.userId,
     type: 'info',
     message: req.body.message,
     timestamp: new Date(),
@@ -277,21 +282,26 @@ app.post('/api/notifications', auth.requireLogin(), async (req, res) => {
 });
 ```
 
-```typescript
-import { store, queuing, logger, security } from '@voilajsx/appkit';
+### **File Upload with Background Processing**
 
-const storage = store.get();
-const queue = queuing.get();
-const log = logger.get('upload');
-const secure = security.get();
+```typescript
+import { storageClass } from '@voilajsx/appkit/storage';
+import { queueClass } from '@voilajsx/appkit/queue';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { securityClass } from '@voilajsx/appkit/security';
+
+const storage = storageClass.get();
+const queue = queueClass.get();
+const logger = loggerClass.get('upload');
+const security = securityClass.get();
 
 // File upload with background processing
 app.post(
   '/upload',
-  secure.requests(10, 60000), // 10 uploads per minute
+  security.requests(10, 60000), // 10 uploads per minute
   async (req, res) => {
     // Sanitize filename
-    const safeName = secure.input(req.file.originalname);
+    const safeName = security.input(req.file.originalname);
     const key = `uploads/${Date.now()}-${safeName}`;
 
     // Store file (auto-detects Local/S3/R2)
@@ -306,7 +316,7 @@ app.post(
       originalName: req.file.originalname,
     });
 
-    log.info('File uploaded', { key, userId: req.user.id });
+    logger.info('File uploaded', { key, userId: req.user.id });
 
     res.json({
       url: storage.url(key),
@@ -318,7 +328,7 @@ app.post(
 
 // Background processing
 queue.process('process-image', async (data) => {
-  const log = logger.get('processor');
+  const logger = loggerClass.get('processor');
 
   try {
     const buffer = await storage.get(data.key);
@@ -330,14 +340,14 @@ queue.process('process-image', async (data) => {
     const processedKey = data.key.replace('.', '-processed.');
     await storage.put(processedKey, processed);
 
-    log.info('Image processed', {
+    logger.info('Image processed', {
       original: data.key,
       processed: processedKey,
     });
 
     return { processedKey };
   } catch (error) {
-    log.error('Processing failed', {
+    logger.error('Processing failed', {
       key: data.key,
       error: error.message,
     });
@@ -358,31 +368,34 @@ and protected admin routes using VoilaJSX AppKit.
 **AI Agent Output** (guaranteed to work):
 
 ```typescript
-import { authenticator, error, database, logger } from '@voilajsx/appkit';
+import { authClass } from '@voilajsx/appkit/auth';
+import { errorClass } from '@voilajsx/appkit/error';
+import { databaseClass } from '@voilajsx/appkit/database';
+import { loggerClass } from '@voilajsx/appkit/logger';
 
-const auth = authenticator.get();
-const err = error.get();
-const db = await database.get();
-const log = logger.get('auth');
+const auth = authClass.get();
+const error = errorClass.get();
+const database = await databaseClass.get();
+const logger = loggerClass.get('auth');
 
 // Login endpoint
 app.post(
   '/auth/login',
-  err.asyncRoute(async (req, res) => {
+  error.asyncRoute(async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      throw err.badRequest('Email and password required');
+      throw error.badRequest('Email and password required');
     }
 
-    const user = await db.user.findUnique({ where: { email } });
+    const user = await database.user.findUnique({ where: { email } });
     if (!user) {
-      throw err.unauthorized('Invalid credentials');
+      throw error.unauthorized('Invalid credentials');
     }
 
     const isValid = await auth.comparePassword(password, user.password);
     if (!isValid) {
-      throw err.unauthorized('Invalid credentials');
+      throw error.unauthorized('Invalid credentials');
     }
 
     const token = auth.signToken({
@@ -391,7 +404,7 @@ app.post(
       level: user.level,
     });
 
-    log.info('User logged in', { userId: user.id });
+    logger.info('User logged in', { userId: user.id });
     res.json({ token, user: { id: user.id, email: user.email } });
   })
 );
@@ -400,9 +413,9 @@ app.post(
 app.get(
   '/api/profile',
   auth.requireLogin(),
-  err.asyncRoute(async (req, res) => {
+  error.asyncRoute(async (req, res) => {
     const user = auth.user(req);
-    const profile = await db.user.findUnique({
+    const profile = await database.user.findUnique({
       where: { id: user.userId },
     });
     res.json(profile);
@@ -413,14 +426,14 @@ app.get(
 app.get(
   '/api/admin/users',
   auth.requireRole('admin.tenant'),
-  err.asyncRoute(async (req, res) => {
-    const users = await db.user.findMany();
+  error.asyncRoute(async (req, res) => {
+    const users = await database.user.findMany();
     res.json(users);
   })
 );
 
 // Error handling middleware (must be last)
-app.use(err.handleErrors());
+app.use(error.handleErrors());
 ```
 
 ### **Prompt for Multi-Tenant Data API**
@@ -433,18 +446,20 @@ but admins can access all organizations.
 **AI Agent Output**:
 
 ```typescript
-import { database, authenticator, error } from '@voilajsx/appkit';
+import { databaseClass } from '@voilajsx/appkit/database';
+import { authClass } from '@voilajsx/appkit/auth';
+import { errorClass } from '@voilajsx/appkit/error';
 
-const auth = authenticator.get();
-const err = error.get();
+const auth = authClass.get();
+const error = errorClass.get();
 
 // User data (tenant-isolated)
 app.get(
   '/api/projects',
   auth.requireLogin(),
-  err.asyncRoute(async (req, res) => {
-    const db = await database.get(); // Auto-filtered by user's tenant
-    const projects = await db.project.findMany({
+  error.asyncRoute(async (req, res) => {
+    const database = await databaseClass.get(); // Auto-filtered by user's tenant
+    const projects = await database.project.findMany({
       include: { tasks: true },
     });
     res.json(projects); // Only current tenant's projects
@@ -455,9 +470,9 @@ app.get(
 app.get(
   '/api/admin/all-projects',
   auth.requireRole('admin.system'),
-  err.asyncRoute(async (req, res) => {
-    const dbAll = await database.getTenants(); // All tenants
-    const allProjects = await dbAll.project.findMany({
+  error.asyncRoute(async (req, res) => {
+    const dbTenants = await databaseClass.getTenants(); // All tenants
+    const allProjects = await dbTenants.project.findMany({
       include: {
         tasks: true,
         _count: { select: { tasks: true } },
@@ -471,10 +486,10 @@ app.get(
 app.get(
   '/api/admin/org/:orgId/projects',
   auth.requireRole('admin.org'),
-  err.asyncRoute(async (req, res) => {
+  error.asyncRoute(async (req, res) => {
     const { orgId } = req.params;
-    const orgDb = await database.org(orgId).get();
-    const projects = await orgDb.project.findMany();
+    const orgDatabase = await databaseClass.org(orgId).get();
+    const projects = await orgDatabase.project.findMany();
     res.json(projects); // Specific organization's projects
   })
 );
@@ -590,24 +605,28 @@ spec:
 ### **Testing Setup**
 
 ```typescript
-import { utility, logger, caching, database } from '@voilajsx/appkit';
+import { utilClass } from '@voilajsx/appkit/util';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { cacheClass } from '@voilajsx/appkit/cache';
+import { databaseClass } from '@voilajsx/appkit/database';
+import { authClass } from '@voilajsx/appkit/auth';
 
 describe('API Tests', () => {
   beforeEach(() => {
     // Reset modules for clean tests
-    utility.clearCache();
+    utilClass.clearCache();
   });
 
   afterEach(async () => {
     // Clean up resources
-    await logger.clear();
-    await caching.clear();
-    await database.clear();
+    await loggerClass.clear();
+    await cacheClass.clear();
+    await databaseClass.clear();
   });
 
   test('should handle user creation safely', async () => {
-    const auth = authenticator.get();
-    const utils = utility.get();
+    const auth = authClass.get();
+    const util = utilClass.get();
 
     const userData = {
       email: 'test@example.com',
@@ -615,7 +634,7 @@ describe('API Tests', () => {
     };
 
     // Test safe property access
-    const email = utils.get(userData, 'email');
+    const email = util.get(userData, 'email');
     expect(email).toBe('test@example.com');
 
     // Test JWT token creation
@@ -669,8 +688,6 @@ describe('API Tests', () => {
 
 ## 📚 Learning Resources
 
-## 📚 Learning Resources
-
 ### **Quick References**
 
 - [🚀 Getting Started Guide](docs/getting-started.md) - Zero to production in 10
@@ -692,15 +709,14 @@ describe('API Tests', () => {
   isolation
 - [Background Jobs](/src/queue/README.md) - Processing, scheduling, reliability
 - [Email & Communications](/src/email/README.md) - Multi-provider, templates
-- [Real-time Events](/src/events/README.md) - WebSocket, pub/sub, notifications
+- [Real-time Events](/src/event/README.md) - WebSocket, pub/sub, notifications
 - [Security & Compliance](/src/security/README.md) - CSRF, encryption, rate
   limiting
 - [Error Handling](/src/error/README.md) - HTTP status codes, semantic errors
-- [Logging & Observability](/src/logging/README.md) - Structured,
-  multi-transport
+- [Logging & Observability](/src/logger/README.md) - Structured, multi-transport
 - [Configuration Management](/src/config/README.md) - Environment-driven,
   type-safe
-- [Utilities & Helpers](/src/utils/README.md) - 12 essential developer tools
+- [Utilities & Helpers](/src/util/README.md) - 12 essential developer tools
 
 ## 🌟 Community & Support
 
@@ -737,8 +753,6 @@ details.
   <strong>🚀 Built for the AI-first future of software development</strong><br>
   <strong>Where enterprise applications are generated, not written</strong><br><br>
   <a href="https://github.com/voilajsx/appkit">⭐ Star us on GitHub</a> • 
-  <a href="https://discord.gg/voilajsx">💬 Join our Discord</a> • 
-  <a href="https://twitter.com/voilajsx">🐦 Follow on Twitter</a> • 
   <a href="https://docs.voilajsx.com">📖 Read the Docs</a>
 </p>
 

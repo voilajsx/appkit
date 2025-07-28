@@ -10,7 +10,7 @@
  * @llm-rule NOTE: Safe user access - const user = auth.user(req); if (!user) return error;
  */
 
-import { AuthenticationClass } from './authentication.js';
+import { AuthenticationClass } from './auth.js';
 import { getSmartDefaults, type AuthConfig, type RoleHierarchy } from './defaults.js';
 
 // Global authentication instance for performance
@@ -91,7 +91,7 @@ function getAllRoles(): string[] {
 /**
  * Single authentication export with minimal functionality
  */
-export const authenticator = {
+export const authClass = {
   // Core method
   get,
   
@@ -121,6 +121,6 @@ export type {
   MiddlewareOptions,
   FastifyPreHandler,
   ExpressMiddleware,
-} from './authentication.js';
+} from './auth.js';
 
-export { AuthenticationClass } from './authentication.js';
+export { AuthenticationClass } from './auth.js';
