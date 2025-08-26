@@ -130,7 +130,7 @@ and logging. **Zero configuration needed.**
 
 | #   | Module                                  | Category                | Purpose                            | Details                                                                                                                  |
 | --- | --------------------------------------- | ----------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 1   | **[Auth](/src/auth/README.md)**         | 🔧 Infrastructure       | JWT tokens, role-based permissions | `authClass.get()` - Semantic role hierarchy (user.basic → admin.system), automatic middleware, production-grade security |
+| 1   | **[Auth](/src/auth/README.md)**         | 🔧 Infrastructure       | JWT tokens, dual token system, role-level permissions | `authClass.get()` - Login tokens (users) + API tokens (services), role.level hierarchy (user.basic → admin.system), automatic inheritance |
 | 2   | **[Database](/src/database/README.md)** | 🔧 Infrastructure       | Multi-tenant, progressive scaling  | `databaseClass.get()` - Auto-tenant filtering, org management (.org()), mandatory future-proofing with tenant_id         |
 | 3   | **[Security](/src/security/README.md)** | 🔧 Infrastructure       | CSRF, rate limiting, encryption    | `securityClass.get()` - Enterprise-grade by default, AES-256-GCM encryption, input sanitization                          |
 | 4   | **[Error](/src/error/README.md)**       | 🔧 Infrastructure       | HTTP status codes, semantic errors | `errorClass.get()` - Framework-agnostic middleware, semantic error types (badRequest, unauthorized)                      |
@@ -398,21 +398,42 @@ app.post(
       throw error.unauthorized('Invalid credentials');
     }
 
-    const token = auth.signToken({
+    // Generate login token for user authentication
+    const loginToken = auth.generateLoginToken({
       userId: user.id,
       role: user.role,
       level: user.level,
     });
 
     logger.info('User logged in', { userId: user.id });
-    res.json({ token, user: { id: user.id, email: user.email } });
+    res.json({ token: loginToken, user: { id: user.id, email: user.email } });
   })
 );
 
-// Protected user route
+// Create API token for external service
+app.post(
+  '/admin/api-tokens',
+  auth.requireLoginToken(),
+  auth.requireUserRoles(['admin.tenant']),
+  error.asyncRoute(async (req, res) => {
+    const { keyId, permissions } = req.body;
+
+    // Generate API token for service authentication
+    const apiToken = auth.generateApiToken({
+      keyId,
+      role: 'service',
+      level: 'external',
+      permissions,
+    }, '1y');
+
+    res.json({ apiToken });
+  })
+);
+
+// Protected user route (requires login token)
 app.get(
   '/api/profile',
-  auth.requireLogin(),
+  auth.requireLoginToken(),
   error.asyncRoute(async (req, res) => {
     const user = auth.user(req);
     const profile = await database.user.findUnique({
@@ -422,13 +443,25 @@ app.get(
   })
 );
 
-// Admin-only route
+// Admin-only route (requires login token + admin role)
 app.get(
   '/api/admin/users',
-  auth.requireRole('admin.tenant'),
+  auth.requireLoginToken(),
+  auth.requireUserRoles(['admin.tenant']),
   error.asyncRoute(async (req, res) => {
     const users = await database.user.findMany();
     res.json(users);
+  })
+);
+
+// API endpoint (requires API token)
+app.post(
+  '/webhook/data',
+  auth.requireApiToken(),
+  error.asyncRoute(async (req, res) => {
+    const token = auth.user(req);
+    logger.info('Webhook received', { keyId: token.keyId });
+    res.json({ received: true });
   })
 );
 
@@ -699,8 +732,7 @@ describe('API Tests', () => {
 
 ### **Module Documentation**
 
-- [Authentication & Authorization](/src/auth/README.md) - JWT, roles,
-  permissions
+- [Authentication & Authorization](/src/auth/README.md) - Dual token system, role.level hierarchy, automatic inheritance
 - [Database & Multi-tenancy](/src/database/README.md) - Progressive scaling,
   organizations
 - [File Storage & CDN](/src/storage/README.md) - Local to cloud, automatic

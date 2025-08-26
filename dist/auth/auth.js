@@ -5,7 +5,7 @@
  *
  * @llm-rule WHEN: Building apps that need JWT operations, password hashing, and role-based middleware
  * @llm-rule AVOID: Using directly - always get instance via auth.get()
- * @llm-rule NOTE: Use requireRole() for hierarchy-based access, requirePermission() for action-specific access
+ * @llm-rule NOTE: Use requireUserRoles() for hierarchy-based access, requireUserPermissions() for action-specific access
  * @llm-rule NOTE: Uses role.level format (user.basic, admin.tenant) with automatic inheritance
  */
 import jwt from 'jsonwebtoken';
@@ -20,22 +20,52 @@ export class AuthenticationClass {
         this.config = config;
     }
     /**
-     * Creates and signs a JWT token with role-level-permission structure
-     * @llm-rule WHEN: Creating tokens for authenticated users with role-based access
-     * @llm-rule AVOID: Missing userId, role, or level in payload - token will be invalid
-     * @llm-rule AVOID: Using {userId, roles: ['admin']} format - use {userId, role: 'admin', level: 'tenant'}
-     * @llm-rule NOTE: permissions array is optional - defaults are used from role.level config
-     * @llm-rule NOTE: CORRECT TOKEN STRUCTURE EXAMPLES:
-     * @llm-rule NOTE: Basic: {userId: 123, role: 'user', level: 'basic', permissions: ['manage:own']}
-     * @llm-rule NOTE: Admin: {userId: 456, role: 'admin', level: 'tenant', permissions: ['manage:tenant']}
-     * @llm-rule NOTE: WRONG: {userId: 123, roles: ['admin']} or {userId: 123, role: 'admin.tenant'}
+     * Generates a login JWT token for user authentication
+     * @llm-rule WHEN: User successfully logs in to your app (mobile/web)
+     * @llm-rule AVOID: Using for API access - use generateApiToken instead
+     * @llm-rule NOTE: Creates JWT with userId and type: 'login'
+     */
+    generateLoginToken(payload, expiresIn) {
+        const loginPayload = {
+            ...payload,
+            type: 'login',
+        };
+        return this.signToken(loginPayload, expiresIn || '7d');
+    }
+    /**
+     * Generates an API JWT token for external access
+     * @llm-rule WHEN: Creating API keys for third-party integrations
+     * @llm-rule AVOID: Using for user authentication - use generateLoginToken instead
+     * @llm-rule NOTE: Creates JWT with keyId and type: 'api_key'
+     */
+    generateApiToken(payload, expiresIn) {
+        const apiPayload = {
+            ...payload,
+            type: 'api_key',
+        };
+        return this.signToken(apiPayload, expiresIn || '1y');
+    }
+    /**
+     * Internal method to create and sign JWT tokens
+     * @private
      */
     signToken(payload, expiresIn) {
         if (!payload || typeof payload !== 'object') {
             throw new Error('Payload must be an object');
         }
-        if (!payload.userId) {
-            throw new Error('Payload must include userId');
+        // Validate based on token type
+        if (payload.type === 'login') {
+            if (!payload.userId) {
+                throw new Error('Login token must include userId');
+            }
+        }
+        else if (payload.type === 'api_key') {
+            if (!payload.keyId) {
+                throw new Error('API token must include keyId');
+            }
+        }
+        else {
+            throw new Error('Token type must be "login" or "api_key"');
         }
         if (!payload.role || !payload.level) {
             throw new Error('Payload must include both role and level');
@@ -60,9 +90,10 @@ export class AuthenticationClass {
         }
     }
     /**
-     * Verifies and decodes a JWT token
+     * Verifies and decodes a JWT token (both login and API tokens)
      * @llm-rule WHEN: Validating incoming tokens from requests
      * @llm-rule AVOID: Using jwt.verify directly - this handles errors and validates structure
+     * @llm-rule NOTE: Handles both login tokens (userId) and API tokens (keyId)
      */
     verifyToken(token) {
         if (!token || typeof token !== 'string') {
@@ -77,8 +108,15 @@ export class AuthenticationClass {
                 algorithms: [this.config.jwt.algorithm],
             });
             // Validate decoded token has required structure
-            if (!decoded.role || !decoded.level) {
-                throw new Error('Token missing required role or level information');
+            if (!decoded.role || !decoded.level || !decoded.type) {
+                throw new Error('Token missing required role, level, or type information');
+            }
+            // Validate type-specific requirements
+            if (decoded.type === 'login' && !decoded.userId) {
+                throw new Error('Login token missing userId');
+            }
+            if (decoded.type === 'api_key' && !decoded.keyId) {
+                throw new Error('API token missing keyId');
             }
             return decoded;
         }
@@ -137,18 +175,18 @@ export class AuthenticationClass {
      * @llm-rule WHEN: Need to access user data from authenticated requests
      * @llm-rule AVOID: Accessing req.user directly - may be undefined and cause crashes
      * @llm-rule NOTE: Always returns null for unauthenticated requests - safe to use
-     * @llm-rule NOTE: Works with both user authentication (req.user) and API tokens (req.token)
+     * @llm-rule NOTE: Works with both login authentication (req.user) and API tokens (req.token)
      */
     user(request) {
         if (!request || typeof request !== 'object') {
             return null;
         }
         // Check for user authentication first (login-based)
-        if (request.user && typeof request.user === 'object' && request.user.userId) {
+        if (request.user && typeof request.user === 'object' && (request.user.userId || request.user.keyId)) {
             return request.user;
         }
         // Check for token authentication (API-based)
-        if (request.token && typeof request.token === 'object' && request.token.userId) {
+        if (request.token && typeof request.token === 'object' && (request.token.userId || request.token.keyId)) {
             return request.token;
         }
         return null;
@@ -238,60 +276,15 @@ export class AuthenticationClass {
         return false;
     }
     // ====================================================================
-    // FRAMEWORK-SPECIFIC MIDDLEWARE
-    // ====================================================================
-    // Use requireLogin() for Fastify (async/await pattern)
-    // Use requireLoginExpress() for Express (callback pattern)
-    // The framework is auto-detected by the response object type
+    // EXPRESS MIDDLEWARE
     // ====================================================================
     /**
-     * Creates Fastify-native authentication middleware for login-based routes
-     * @llm-rule WHEN: Protecting routes that need authenticated users (Fastify framework)
-     * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
-     * @llm-rule AVOID: Using with Express - use requireLoginExpress() for Express apps
-     * @llm-rule NOTE: FASTIFY PATTERN: async (request, reply) => Promise<void>
-     * @llm-rule NOTE: Auto-detects from async handler signature and reply.code() method
+     * Creates Express authentication middleware for login tokens
+     * @llm-rule WHEN: Protecting routes that need authenticated users
+     * @llm-rule AVOID: Using for API routes - use requireApiToken instead
+     * @llm-rule NOTE: Validates login tokens (type: 'login') and sets req.user
      */
-    requireLogin(options = {}) {
-        if (!this.config.jwt.secret) {
-            throw new Error('JWT secret required for authentication middleware');
-        }
-        const getToken = options.getToken || this.getDefaultTokenExtractor();
-        return async (request, reply) => {
-            try {
-                const token = getToken(request);
-                if (!token) {
-                    throw {
-                        statusCode: 401,
-                        error: 'Authentication required',
-                        message: this.config.middleware.errorMessages.noToken,
-                    };
-                }
-                const payload = this.verifyToken(token);
-                request.user = payload;
-            }
-            catch (error) {
-                const isExpired = error.message === 'Token has expired';
-                const statusCode = error.statusCode || 401;
-                const message = isExpired
-                    ? this.config.middleware.errorMessages.expiredToken
-                    : this.config.middleware.errorMessages.invalidToken;
-                reply.code(statusCode).send({
-                    error: 'Unauthorized',
-                    message,
-                });
-            }
-        };
-    }
-    /**
-     * Creates Express-native authentication middleware for login-based routes
-     * @llm-rule WHEN: Protecting routes that need authenticated users (Express framework)
-     * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
-     * @llm-rule AVOID: Using with Fastify - use requireLogin() for Fastify apps
-     * @llm-rule NOTE: EXPRESS PATTERN: (req, res, next) => void
-     * @llm-rule NOTE: Auto-detects from callback signature and res.status() method
-     */
-    requireLoginExpress(options = {}) {
+    requireLoginToken(options = {}) {
         if (!this.config.jwt.secret) {
             throw new Error('JWT secret required for authentication middleware');
         }
@@ -306,16 +299,21 @@ export class AuthenticationClass {
                     });
                 }
                 const payload = this.verifyToken(token);
+                if (payload.type !== 'login') {
+                    return res.status(401).json({
+                        error: 'Invalid token type',
+                        message: 'Login token required for this endpoint',
+                    });
+                }
                 req.user = payload;
                 next();
             }
             catch (error) {
                 const isExpired = error.message === 'Token has expired';
-                const statusCode = 401;
                 const message = isExpired
                     ? this.config.middleware.errorMessages.expiredToken
                     : this.config.middleware.errorMessages.invalidToken;
-                return res.status(statusCode).json({
+                return res.status(401).json({
                     error: 'Unauthorized',
                     message,
                 });
@@ -323,43 +321,22 @@ export class AuthenticationClass {
         };
     }
     /**
-     * Creates Fastify role-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific role.level (Fastify)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * Creates Express role-based authorization middleware for authenticated users
+     * @llm-rule WHEN: Protecting routes that require specific user roles
+     * @llm-rule AVOID: Using without requireLoginToken - this assumes user is already authenticated
+     * @llm-rule AVOID: Using with API tokens - API tokens don't have user roles
+     * @llm-rule NOTE: User needs ANY role from the array (OR logic)
      * @llm-rule NOTE: Role inheritance applies - admin.org can access admin.tenant routes
      */
-    requireRole(requiredRoleLevel) {
-        if (!validateRoleLevel(requiredRoleLevel, this.config.roles)) {
-            throw new Error(`Invalid role.level for middleware: "${requiredRoleLevel}"`);
+    requireUserRoles(requiredRoles) {
+        if (!Array.isArray(requiredRoles) || requiredRoles.length === 0) {
+            throw new Error('requiredRoles must be a non-empty array');
         }
-        return async (request, reply) => {
-            const user = this.user(request);
-            if (!user) {
-                reply.code(401).send({
-                    error: 'Authentication required',
-                    message: this.config.middleware.errorMessages.noToken,
-                });
-                return;
+        // Validate all roles exist
+        for (const role of requiredRoles) {
+            if (!validateRoleLevel(role, this.config.roles)) {
+                throw new Error(`Invalid role.level for middleware: "${role}"`);
             }
-            const userRoleLevel = `${user.role}.${user.level}`;
-            if (!this.hasRole(userRoleLevel, requiredRoleLevel)) {
-                reply.code(403).send({
-                    error: 'Access denied',
-                    message: this.config.middleware.errorMessages.insufficientRole,
-                });
-                return;
-            }
-        };
-    }
-    /**
-     * Creates Express role-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific role.level (Express)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
-     * @llm-rule NOTE: Role inheritance applies - admin.org can access admin.tenant routes
-     */
-    requireRoleExpress(requiredRoleLevel) {
-        if (!validateRoleLevel(requiredRoleLevel, this.config.roles)) {
-            throw new Error(`Invalid role.level for middleware: "${requiredRoleLevel}"`);
         }
         return (req, res, next) => {
             const user = this.user(req);
@@ -369,8 +346,15 @@ export class AuthenticationClass {
                     message: this.config.middleware.errorMessages.noToken,
                 });
             }
+            if (user.type !== 'login') {
+                return res.status(403).json({
+                    error: 'Access denied',
+                    message: 'User roles only apply to login tokens',
+                });
+            }
             const userRoleLevel = `${user.role}.${user.level}`;
-            if (!this.hasRole(userRoleLevel, requiredRoleLevel)) {
+            const hasRequiredRole = requiredRoles.some(requiredRole => this.hasRole(userRoleLevel, requiredRole));
+            if (!hasRequiredRole) {
                 return res.status(403).json({
                     error: 'Access denied',
                     message: this.config.middleware.errorMessages.insufficientRole,
@@ -380,42 +364,22 @@ export class AuthenticationClass {
         };
     }
     /**
-     * Creates Fastify permission-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific permissions (Fastify)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * Creates Express permission-based authorization middleware for authenticated users
+     * @llm-rule WHEN: Protecting routes that require specific user permissions
+     * @llm-rule AVOID: Using without requireLoginToken - this assumes user is already authenticated
+     * @llm-rule AVOID: Using with API tokens - API tokens don't have user permissions
+     * @llm-rule NOTE: User needs ALL permissions from the array (AND logic)
      * @llm-rule NOTE: Permission inheritance applies - manage:tenant can access edit:tenant routes
      */
-    requirePermission(permission) {
-        if (!validatePermission(permission)) {
-            throw new Error(`Invalid permission format for middleware: "${permission}"`);
+    requireUserPermissions(requiredPermissions) {
+        if (!Array.isArray(requiredPermissions) || requiredPermissions.length === 0) {
+            throw new Error('requiredPermissions must be a non-empty array');
         }
-        return async (request, reply) => {
-            const user = this.user(request);
-            if (!user) {
-                reply.code(401).send({
-                    error: 'Authentication required',
-                    message: this.config.middleware.errorMessages.noToken,
-                });
-                return;
+        // Validate all permissions
+        for (const permission of requiredPermissions) {
+            if (!validatePermission(permission)) {
+                throw new Error(`Invalid permission format for middleware: "${permission}"`);
             }
-            if (!this.can(user, permission)) {
-                reply.code(403).send({
-                    error: 'Access denied',
-                    message: this.config.middleware.errorMessages.insufficientPermissions,
-                });
-                return;
-            }
-        };
-    }
-    /**
-     * Creates Express permission-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific permissions (Express)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
-     * @llm-rule NOTE: Permission inheritance applies - manage:tenant can access edit:tenant routes
-     */
-    requirePermissionExpress(permission) {
-        if (!validatePermission(permission)) {
-            throw new Error(`Invalid permission format for middleware: "${permission}"`);
         }
         return (req, res, next) => {
             const user = this.user(req);
@@ -425,7 +389,14 @@ export class AuthenticationClass {
                     message: this.config.middleware.errorMessages.noToken,
                 });
             }
-            if (!this.can(user, permission)) {
+            if (user.type !== 'login') {
+                return res.status(403).json({
+                    error: 'Access denied',
+                    message: 'User permissions only apply to login tokens',
+                });
+            }
+            const hasAllPermissions = requiredPermissions.every(permission => this.can(user, permission));
+            if (!hasAllPermissions) {
                 return res.status(403).json({
                     error: 'Access denied',
                     message: this.config.middleware.errorMessages.insufficientPermissions,
@@ -435,35 +406,41 @@ export class AuthenticationClass {
         };
     }
     /**
-     * Creates API token authentication middleware for service-to-service communication
-     * @llm-rule WHEN: Protecting API routes that need token-based authentication
-     * @llm-rule AVOID: Using for user-facing routes - use requireLogin instead
-     * @llm-rule NOTE: Sets req.token instead of req.user for API authentication
+     * Creates Express API token authentication middleware for external access
+     * @llm-rule WHEN: Protecting API routes for third-party integrations
+     * @llm-rule AVOID: Using for user routes - use requireLoginToken instead
+     * @llm-rule NOTE: Validates API tokens (type: 'api_key') and sets req.token
      */
-    requireToken(options = {}) {
+    requireApiToken(options = {}) {
         if (!this.config.jwt.secret) {
-            throw new Error('JWT secret required for token authentication middleware');
+            throw new Error('JWT secret required for API token authentication middleware');
         }
         const getToken = options.getToken || this.getDefaultTokenExtractor();
-        return async (request, reply) => {
+        return (req, res, next) => {
             try {
-                const token = getToken(request);
+                const token = getToken(req);
                 if (!token) {
-                    throw {
-                        statusCode: 401,
+                    return res.status(401).json({
                         error: 'API token required',
                         message: 'API token required for this endpoint',
-                    };
+                    });
                 }
                 const payload = this.verifyToken(token);
-                request.token = payload;
+                if (payload.type !== 'api_key') {
+                    return res.status(401).json({
+                        error: 'Invalid token type',
+                        message: 'API token required for this endpoint',
+                    });
+                }
+                req.token = payload;
+                next();
             }
             catch (error) {
-                const statusCode = error.statusCode || 401;
-                const message = error.message === 'Token has expired'
+                const isExpired = error.message === 'Token has expired';
+                const message = isExpired
                     ? 'API token has expired'
                     : 'Invalid API token';
-                reply.code(statusCode).send({
+                return res.status(401).json({
                     error: 'Unauthorized',
                     message,
                 });

@@ -5,12 +5,14 @@
  *
  * @llm-rule WHEN: Building apps that need JWT operations, password hashing, and role-based middleware
  * @llm-rule AVOID: Using directly - always get instance via auth.get()
- * @llm-rule NOTE: Use requireRole() for hierarchy-based access, requirePermission() for action-specific access
+ * @llm-rule NOTE: Use requireUserRoles() for hierarchy-based access, requireUserPermissions() for action-specific access
  * @llm-rule NOTE: Uses role.level format (user.basic, admin.tenant) with automatic inheritance
  */
 import { type AuthConfig } from './defaults.js';
 export interface JwtPayload {
-    userId: string | number;
+    userId?: string | number;
+    keyId?: string;
+    type: 'login' | 'api_key';
     role: string;
     level: string;
     permissions?: string[];
@@ -20,7 +22,23 @@ export interface JwtPayload {
     iss?: string;
     aud?: string;
 }
-export interface FastifyRequest {
+export interface LoginTokenPayload {
+    userId: string | number;
+    type: 'login';
+    role: string;
+    level: string;
+    permissions?: string[];
+    [key: string]: any;
+}
+export interface ApiTokenPayload {
+    keyId: string;
+    type: 'api_key';
+    role: string;
+    level: string;
+    permissions?: string[];
+    [key: string]: any;
+}
+export interface ExpressRequest {
     headers: {
         [key: string]: string | string[] | undefined;
     };
@@ -32,19 +50,6 @@ export interface FastifyRequest {
     };
     user?: JwtPayload;
     token?: JwtPayload;
-}
-export interface FastifyReply {
-    code: (statusCode: number) => {
-        send: (data: any) => void;
-    };
-    send: (data: any) => void;
-}
-export interface FastifyError {
-    statusCode: number;
-    error: string;
-    message: string;
-}
-export interface ExpressRequest extends FastifyRequest {
     [key: string]: any;
 }
 export interface ExpressResponse {
@@ -54,9 +59,8 @@ export interface ExpressResponse {
     json: (data: any) => void;
 }
 export interface MiddlewareOptions {
-    getToken?: (request: FastifyRequest) => string | null;
+    getToken?: (request: ExpressRequest) => string | null;
 }
-export type FastifyPreHandler = (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
 export type ExpressMiddleware = (req: ExpressRequest, res: ExpressResponse, next: () => void) => void;
 /**
  * Authentication class with JWT, password, and role-level-permission system
@@ -65,21 +69,29 @@ export declare class AuthenticationClass {
     config: AuthConfig;
     constructor(config: AuthConfig);
     /**
-     * Creates and signs a JWT token with role-level-permission structure
-     * @llm-rule WHEN: Creating tokens for authenticated users with role-based access
-     * @llm-rule AVOID: Missing userId, role, or level in payload - token will be invalid
-     * @llm-rule AVOID: Using {userId, roles: ['admin']} format - use {userId, role: 'admin', level: 'tenant'}
-     * @llm-rule NOTE: permissions array is optional - defaults are used from role.level config
-     * @llm-rule NOTE: CORRECT TOKEN STRUCTURE EXAMPLES:
-     * @llm-rule NOTE: Basic: {userId: 123, role: 'user', level: 'basic', permissions: ['manage:own']}
-     * @llm-rule NOTE: Admin: {userId: 456, role: 'admin', level: 'tenant', permissions: ['manage:tenant']}
-     * @llm-rule NOTE: WRONG: {userId: 123, roles: ['admin']} or {userId: 123, role: 'admin.tenant'}
+     * Generates a login JWT token for user authentication
+     * @llm-rule WHEN: User successfully logs in to your app (mobile/web)
+     * @llm-rule AVOID: Using for API access - use generateApiToken instead
+     * @llm-rule NOTE: Creates JWT with userId and type: 'login'
      */
-    signToken(payload: Omit<JwtPayload, 'iat' | 'exp' | 'iss' | 'aud'>, expiresIn?: string): string;
+    generateLoginToken(payload: Omit<LoginTokenPayload, 'type' | 'iat' | 'exp' | 'iss' | 'aud'>, expiresIn?: string): string;
     /**
-     * Verifies and decodes a JWT token
+     * Generates an API JWT token for external access
+     * @llm-rule WHEN: Creating API keys for third-party integrations
+     * @llm-rule AVOID: Using for user authentication - use generateLoginToken instead
+     * @llm-rule NOTE: Creates JWT with keyId and type: 'api_key'
+     */
+    generateApiToken(payload: Omit<ApiTokenPayload, 'type' | 'iat' | 'exp' | 'iss' | 'aud'>, expiresIn?: string): string;
+    /**
+     * Internal method to create and sign JWT tokens
+     * @private
+     */
+    private signToken;
+    /**
+     * Verifies and decodes a JWT token (both login and API tokens)
      * @llm-rule WHEN: Validating incoming tokens from requests
      * @llm-rule AVOID: Using jwt.verify directly - this handles errors and validates structure
+     * @llm-rule NOTE: Handles both login tokens (userId) and API tokens (keyId)
      */
     verifyToken(token: string): JwtPayload;
     /**
@@ -101,9 +113,9 @@ export declare class AuthenticationClass {
      * @llm-rule WHEN: Need to access user data from authenticated requests
      * @llm-rule AVOID: Accessing req.user directly - may be undefined and cause crashes
      * @llm-rule NOTE: Always returns null for unauthenticated requests - safe to use
-     * @llm-rule NOTE: Works with both user authentication (req.user) and API tokens (req.token)
+     * @llm-rule NOTE: Works with both login authentication (req.user) and API tokens (req.token)
      */
-    user(request: FastifyRequest | ExpressRequest): JwtPayload | null;
+    user(request: ExpressRequest): JwtPayload | null;
     /**
      * Checks if user has specified role with automatic inheritance
      * @llm-rule WHEN: Checking if user can access role-protected resources
@@ -129,58 +141,37 @@ export declare class AuthenticationClass {
      */
     can(user: JwtPayload, permission: string): boolean;
     /**
-     * Creates Fastify-native authentication middleware for login-based routes
-     * @llm-rule WHEN: Protecting routes that need authenticated users (Fastify framework)
-     * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
-     * @llm-rule AVOID: Using with Express - use requireLoginExpress() for Express apps
-     * @llm-rule NOTE: FASTIFY PATTERN: async (request, reply) => Promise<void>
-     * @llm-rule NOTE: Auto-detects from async handler signature and reply.code() method
+     * Creates Express authentication middleware for login tokens
+     * @llm-rule WHEN: Protecting routes that need authenticated users
+     * @llm-rule AVOID: Using for API routes - use requireApiToken instead
+     * @llm-rule NOTE: Validates login tokens (type: 'login') and sets req.user
      */
-    requireLogin(options?: MiddlewareOptions): FastifyPreHandler;
+    requireLoginToken(options?: MiddlewareOptions): ExpressMiddleware;
     /**
-     * Creates Express-native authentication middleware for login-based routes
-     * @llm-rule WHEN: Protecting routes that need authenticated users (Express framework)
-     * @llm-rule AVOID: Using without requireRole/requirePermission - this only validates token
-     * @llm-rule AVOID: Using with Fastify - use requireLogin() for Fastify apps
-     * @llm-rule NOTE: EXPRESS PATTERN: (req, res, next) => void
-     * @llm-rule NOTE: Auto-detects from callback signature and res.status() method
-     */
-    requireLoginExpress(options?: MiddlewareOptions): ExpressMiddleware;
-    /**
-     * Creates Fastify role-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific role.level (Fastify)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * Creates Express role-based authorization middleware for authenticated users
+     * @llm-rule WHEN: Protecting routes that require specific user roles
+     * @llm-rule AVOID: Using without requireLoginToken - this assumes user is already authenticated
+     * @llm-rule AVOID: Using with API tokens - API tokens don't have user roles
+     * @llm-rule NOTE: User needs ANY role from the array (OR logic)
      * @llm-rule NOTE: Role inheritance applies - admin.org can access admin.tenant routes
      */
-    requireRole(requiredRoleLevel: string): FastifyPreHandler;
+    requireUserRoles(requiredRoles: string[]): ExpressMiddleware;
     /**
-     * Creates Express role-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific role.level (Express)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
-     * @llm-rule NOTE: Role inheritance applies - admin.org can access admin.tenant routes
-     */
-    requireRoleExpress(requiredRoleLevel: string): ExpressMiddleware;
-    /**
-     * Creates Fastify permission-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific permissions (Fastify)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
+     * Creates Express permission-based authorization middleware for authenticated users
+     * @llm-rule WHEN: Protecting routes that require specific user permissions
+     * @llm-rule AVOID: Using without requireLoginToken - this assumes user is already authenticated
+     * @llm-rule AVOID: Using with API tokens - API tokens don't have user permissions
+     * @llm-rule NOTE: User needs ALL permissions from the array (AND logic)
      * @llm-rule NOTE: Permission inheritance applies - manage:tenant can access edit:tenant routes
      */
-    requirePermission(permission: string): FastifyPreHandler;
+    requireUserPermissions(requiredPermissions: string[]): ExpressMiddleware;
     /**
-     * Creates Express permission-based authorization middleware
-     * @llm-rule WHEN: Protecting routes that require specific permissions (Express)
-     * @llm-rule AVOID: Using without requireLogin - this assumes user is already authenticated
-     * @llm-rule NOTE: Permission inheritance applies - manage:tenant can access edit:tenant routes
+     * Creates Express API token authentication middleware for external access
+     * @llm-rule WHEN: Protecting API routes for third-party integrations
+     * @llm-rule AVOID: Using for user routes - use requireLoginToken instead
+     * @llm-rule NOTE: Validates API tokens (type: 'api_key') and sets req.token
      */
-    requirePermissionExpress(permission: string): ExpressMiddleware;
-    /**
-     * Creates API token authentication middleware for service-to-service communication
-     * @llm-rule WHEN: Protecting API routes that need token-based authentication
-     * @llm-rule AVOID: Using for user-facing routes - use requireLogin instead
-     * @llm-rule NOTE: Sets req.token instead of req.user for API authentication
-     */
-    requireToken(options?: MiddlewareOptions): FastifyPreHandler;
+    requireApiToken(options?: MiddlewareOptions): ExpressMiddleware;
     /**
      * Gets default token extractor that checks headers, cookies, and query params
      * @llm-rule WHEN: Need custom token extraction logic

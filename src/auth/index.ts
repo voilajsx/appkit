@@ -6,7 +6,7 @@
  * @llm-rule WHEN: Building apps that need authentication with user roles and permissions
  * @llm-rule AVOID: Complex auth setups with multiple libraries - this handles JWT + bcrypt + middleware in one API
  * @llm-rule NOTE: Uses role.level hierarchy (user.basic → admin.system) with automatic inheritance
- * @llm-rule NOTE: Common pattern - auth.requireLogin() → auth.requireRole() → handler
+ * @llm-rule NOTE: Common pattern - auth.requireLoginToken() → auth.requireUserRoles() → handler
  * @llm-rule NOTE: Safe user access - const user = auth.user(req); if (!user) return error;
  */
 
@@ -21,7 +21,7 @@ let globalAuthentication: AuthenticationClass | null = null;
  * Environment variables parsed once for performance
  * @llm-rule WHEN: Starting any auth operation - this is your main entry point
  * @llm-rule AVOID: Calling new AuthenticationClass() directly - always use this function
- * @llm-rule NOTE: Typical flow - get() → signToken() → middleware → user()
+ * @llm-rule NOTE: Typical flow - get() → generateLoginToken() → middleware → user()
  */
 function get(overrides: Partial<AuthConfig> = {}): AuthenticationClass {
   // Lazy initialization - parse environment once
@@ -113,13 +113,11 @@ export type {
 
 export type {
   JwtPayload,
-  FastifyRequest,
-  FastifyReply,
-  FastifyError,
+  LoginTokenPayload,
+  ApiTokenPayload,
   ExpressRequest,
   ExpressResponse,
   MiddlewareOptions,
-  FastifyPreHandler,
   ExpressMiddleware,
 } from './auth.js';
 

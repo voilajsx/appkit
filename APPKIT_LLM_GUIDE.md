@@ -598,7 +598,7 @@ try {
 
 ### When to Use
 
-✅ **JWT tokens, role-based access, API security, password hashing**  
+✅ **Dual token system, JWT operations, role-level permissions, API security, password hashing**  
 ❌ **Frontend authentication, OAuth providers, session storage**
 
 ### Core Pattern
@@ -608,15 +608,26 @@ import { authClass } from '@voilajsx/appkit/auth';
 const auth = authClass.get();
 ```
 
-### Token Structure (CRITICAL - EXACT FORMAT)
+### Dual Token System (CRITICAL - Two Distinct Types)
 
 ```javascript
-// ✅ CORRECT - Always use this EXACT structure (3 required fields)
-const token = auth.signToken({
-  userId: 123, // REQUIRED - unique user identifier
-  role: 'admin', // REQUIRED - role name (admin, user, moderator)
+// ✅ LOGIN TOKENS - For user authentication (mobile/web)
+const loginToken = auth.generateLoginToken({
+  userId: 123,     // REQUIRED - unique user identifier
+  role: 'admin',   // REQUIRED - role name (admin, user, moderator)
   level: 'tenant', // REQUIRED - level within role (basic, tenant, org, system)
-});
+}, '7d'); // Short-medium expiry
+
+// ✅ API TOKENS - For service authentication (webhooks/integrations)
+const apiToken = auth.generateApiToken({
+  keyId: 'webhook_service', // REQUIRED - service identifier
+  role: 'service',          // REQUIRED - role name
+  level: 'external',        // REQUIRED - level within role
+}, '1y'); // Long expiry
+
+// ❌ WRONG - Don't mix these up
+auth.generateLoginToken({ keyId: 'test' }); // keyId is for API tokens
+auth.generateApiToken({ userId: 123 });    // userId is for login tokens
 ```
 
 ### Role Hierarchy (Built-in Inheritance)
@@ -630,32 +641,40 @@ user.max > user.pro > user.basic
 ### Essential Auth Patterns
 
 ```javascript
-// 1. Route protection middleware
-app.get('/admin', auth.requireRole('admin.tenant'), handler);
-app.post('/api/*', auth.requireLogin(), handler);
+// 1. User route protection (login tokens only)
+app.get('/profile', auth.requireLoginToken(), handler);
+app.get('/admin', auth.requireLoginToken(), auth.requireUserRoles(['admin.tenant']), handler);
 
-// 2. Safe user extraction (returns null if not authenticated)
+// 2. API route protection (API tokens only) 
+app.post('/webhook/data', auth.requireApiToken(), handler);
+
+// 3. Safe user extraction (works with both token types)
 const user = auth.user(req);
-if (!user) throw error.unauthorized('Login required');
+if (!user) throw error.unauthorized('Authentication required');
 
-// 3. Role hierarchy checking
+// 4. Role hierarchy checking
 const userRoleLevel = `${user.role}.${user.level}`;
 if (!auth.hasRole(userRoleLevel, 'admin.tenant')) {
   throw error.forbidden('Admin access required');
 }
 
-// 4. Password handling
+// 5. Permission checking (action:scope format)
+if (!auth.can(user, 'manage:tenant')) {
+  throw error.forbidden('Insufficient permissions');
+}
+
+// 6. Password handling
 const hashedPassword = await auth.hashPassword(plainPassword);
 const isValid = await auth.comparePassword(plainPassword, hashedPassword);
 
-// 5. Token operations
+// 7. Token operations (works with both types)
 const payload = auth.verifyToken(token);
 ```
 
 ### Complete Authentication Flow
 
 ```javascript
-// Login endpoint
+// User login endpoint (generates login token)
 app.post(
   '/auth/login',
   error.asyncRoute(async (req, res) => {
@@ -670,16 +689,43 @@ app.post(
     const isValid = await auth.comparePassword(password, user.password);
     if (!isValid) throw error.unauthorized('Invalid credentials');
 
-    const token = auth.signToken({
+    // Generate login token for user authentication
+    const loginToken = auth.generateLoginToken({
       userId: user.id,
       role: user.role,
       level: user.level,
     });
 
     res.json({
-      token,
+      token: loginToken,
       user: util.pick(user, ['id', 'email', 'name']),
     });
+  })
+);
+
+// API token creation endpoint (admin-only)
+app.post(
+  '/admin/api-tokens',
+  auth.requireLoginToken(),
+  auth.requireUserRoles(['admin.tenant']),
+  error.asyncRoute(async (req, res) => {
+    const { keyId, permissions } = req.body;
+
+    // Generate API token for service authentication  
+    const apiToken = auth.generateApiToken({
+      keyId,
+      role: 'service',
+      level: 'external',
+      permissions,
+    }, '1y');
+
+    // Store token info in database (store hash, not plain token)
+    const hashedToken = await auth.hashPassword(apiToken);
+    await database.apiToken.create({
+      data: { keyId, token: hashedToken, permissions },
+    });
+
+    res.json({ apiToken }); // Return once for client to save
   })
 );
 ```
