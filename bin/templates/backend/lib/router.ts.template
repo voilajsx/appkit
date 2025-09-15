@@ -18,6 +18,21 @@ const __dirname = dirname(__filename);
 
 export async function createApiRouter() {
   const router = express.Router();
+  const discoveredRoutes: string[] = [];
+
+  // API root route - list available endpoints
+  router.get('/', (req, res) => {
+    res.json({
+      message: 'API Server - Feature-Based Component Architecture',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+        features: discoveredRoutes.map(route => `/api${route}`)
+      },
+      timestamp: new Date().toISOString()
+    });
+  });
 
   try {
     // Auto-discover feature routes
@@ -40,6 +55,7 @@ export async function createApiRouter() {
           try {
             const { default: featureRouter } = await import(routeFile);
             router.use(`/${featureName}`, featureRouter);
+            discoveredRoutes.push(`/${featureName}`);
             const fileType = routeFile.endsWith('.ts') ? '.ts' : '.js';
             console.log(`  /api/${featureName} -> ${featureName}.route${fileType}`);
             loaded = true;

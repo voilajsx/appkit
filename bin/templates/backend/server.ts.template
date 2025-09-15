@@ -39,6 +39,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// Root route - application welcome
+app.get('/', error.asyncRoute(async (req, res) => {
+  logger.info('Root route requested');
+
+  const welcomeData = {
+    message: 'Welcome to {{projectName}} API',
+    description: 'Feature-Based Component Architecture Backend',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      api: '/api'
+    },
+    timestamp: new Date().toISOString()
+  };
+
+  res.json(welcomeData);
+}));
+
 // Health check with AppKit integration
 app.get('/health', error.asyncRoute(async (req, res) => {
   logger.info('Health check requested');
