@@ -6,6 +6,9 @@
   "type": "module",
   "types": "./dist/index.d.ts",
   "sideEffects": false,
+  "bin": {
+    "appkit": "./bin/appkit.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -58,6 +61,7 @@
   },
   "files": [
     "dist/",
+    "bin/",
     "README.md",
     "LICENSE"
   ],
@@ -115,7 +119,11 @@
     "error-handling",
     "tree-shaking",
     "esm",
-    "typescript"
+    "typescript",
+    "cli",
+    "scaffolding",
+    "fbca",
+    "code-generation"
   ],
   "author": "VoilaJS",
   "contributors": [
@@ -131,7 +139,8 @@
     "bcrypt": "^5.1.1",
     "dotenv": "^16.6.1",
     "ioredis": "^5.6.1",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "commander": "^12.1.0"
   },
   "peerDependencies": {
     "@fastify/cookie": "^11.0.0",

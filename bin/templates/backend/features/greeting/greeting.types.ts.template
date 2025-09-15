@@ -1,0 +1,18 @@
+/**
+ * Greeting Feature Type Definitions - Shared interfaces and types
+ * @module {{projectName}}/greeting-types
+ * @file src/api/features/greeting/greeting.types.ts
+ *
+ * @llm-rule WHEN: Need type safety for greeting feature data structures
+ * @llm-rule AVOID: Defining types inline - reduces reusability and consistency
+ * @llm-rule NOTE: Shared across service and route layers for type consistency
+ */
+
+export interface GreetingResponse {
+  message: string;
+  timestamp: string;
+}
+
+export interface PersonalizedGreetingResponse extends GreetingResponse {
+  name: string;
+}

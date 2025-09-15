@@ -1,0 +1,65 @@
+/**
+ * FBCA Auto-Discovery Router
+ * @module {{projectName}}/router
+ * @file src/api/lib/router.ts
+ *
+ * @llm-rule WHEN: Need automatic API route discovery based on feature directories
+ * @llm-rule AVOID: Manual route registration - defeats FBCA auto-discovery purpose
+ * @llm-rule NOTE: Follows {featureName}.route.ts naming convention for TypeScript or .js for JavaScript
+ */
+
+import express from 'express';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { readdir } from 'fs/promises';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export async function createApiRouter() {
+  const router = express.Router();
+
+  try {
+    // Auto-discover feature routes
+    const featuresPath = join(__dirname, '../features');
+    const features = await readdir(featuresPath, { withFileTypes: true });
+
+    console.log('🔍 Discovering API routes:');
+
+    for (const feature of features) {
+      if (feature.isDirectory()) {
+        const featureName = feature.name;
+        // Try .ts first, then .js
+        const routeFiles = [
+          join(featuresPath, featureName, `${featureName}.route.ts`),
+          join(featuresPath, featureName, `${featureName}.route.js`)
+        ];
+
+        let loaded = false;
+        for (const routeFile of routeFiles) {
+          try {
+            const { default: featureRouter } = await import(routeFile);
+            router.use(`/${featureName}`, featureRouter);
+            const fileType = routeFile.endsWith('.ts') ? '.ts' : '.js';
+            console.log(`  /api/${featureName} -> ${featureName}.route${fileType}`);
+            loaded = true;
+            break;
+          } catch (error) {
+            // Continue to next file type
+          }
+        }
+
+        if (!loaded) {
+          console.warn(`⚠️  Could not load route for feature "${featureName}"`);
+        }
+      }
+    }
+
+    console.log('✅ API routes discovered\\n');
+
+  } catch (error) {
+    console.warn('⚠️ No features directory found');
+  }
+
+  return router;
+}

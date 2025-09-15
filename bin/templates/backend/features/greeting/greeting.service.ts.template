@@ -1,0 +1,88 @@
+/**
+ * Greeting Feature Service - Business logic with AppKit integration
+ * @module {{projectName}}/greeting-service
+ * @file src/api/features/greeting/greeting.service.ts
+ *
+ * @llm-rule WHEN: Need business logic layer with validation, logging, and config
+ * @llm-rule AVOID: Direct database calls from routes - always use service layer
+ * @llm-rule NOTE: Demonstrates AppKit logger, config, and error patterns for FBCA
+ */
+
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { configClass } from '@voilajsx/appkit/config';
+import { errorClass } from '@voilajsx/appkit/error';
+import type { GreetingResponse, PersonalizedGreetingResponse } from './greeting.types.js';
+
+// Initialize AppKit modules following the pattern
+const logger = loggerClass.get('greeting');
+const config = configClass.get();
+const error = errorClass.get();
+
+export const greetingService = {
+  /**
+   * Get basic hello message
+   */
+  async getHello(): Promise<GreetingResponse> {
+    try {
+      logger.info('Processing basic hello request');
+
+      // Get default greeting from config (with fallback)
+      const defaultGreeting = config.get('greeting.default', 'hello');
+
+      const result = {
+        message: defaultGreeting,
+        timestamp: new Date().toISOString()
+      };
+
+      logger.info('Basic hello request completed', { result });
+      return result;
+
+    } catch (err) {
+      logger.error('Failed to process basic hello request', { error: err });
+      throw error.serverError('Failed to generate greeting');
+    }
+  },
+
+  /**
+   * Get hello message with name
+   */
+  async getHelloWithName(name: string): Promise<PersonalizedGreetingResponse> {
+    try {
+      logger.info('Processing personalized hello request', { name });
+
+      // Validate input
+      if (!name || typeof name !== 'string') {
+        logger.warn('Invalid name provided', { name });
+        throw error.badRequest('Name must be a valid string');
+      }
+
+      if (name.length > 100) {
+        logger.warn('Name too long', { name, length: name.length });
+        throw error.badRequest('Name must be less than 100 characters');
+      }
+
+      // Get greeting format from config
+      const greetingFormat = config.get('greeting.format', 'hello {name}') as string;
+      const message = greetingFormat.replace('{name}', name);
+
+      const result = {
+        message,
+        name,
+        timestamp: new Date().toISOString()
+      };
+
+      logger.info('Personalized hello request completed', { name, result });
+      return result;
+
+    } catch (err: any) {
+      // Re-throw AppKit errors as-is
+      if (err.statusCode) {
+        throw err;
+      }
+
+      // Convert other errors to server errors
+      logger.error('Failed to process personalized hello request', { name, error: err });
+      throw error.serverError('Failed to generate personalized greeting');
+    }
+  }
+};

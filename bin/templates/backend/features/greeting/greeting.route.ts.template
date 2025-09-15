@@ -1,0 +1,36 @@
+/**
+ * Greeting Feature Routes - Express endpoints with AppKit integration
+ * @module {{projectName}}/greeting-routes
+ * @file src/api/features/greeting/greeting.route.ts
+ *
+ * @llm-rule WHEN: Need HTTP endpoints for greeting feature with error handling
+ * @llm-rule AVOID: Adding routes without asyncRoute wrapper - breaks error handling
+ * @llm-rule NOTE: Auto-discovered by router.ts, exports default Express router
+ */
+
+import express from 'express';
+import { errorClass } from '@voilajsx/appkit/error';
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { greetingService } from './greeting.service.js';
+
+const router = express.Router();
+const error = errorClass.get();
+const logger = loggerClass.get('greeting-routes');
+
+// GET /api/greeting - replies "hello"
+router.get('/', error.asyncRoute(async (_req, res) => {
+  logger.info('GET /api/greeting request received');
+  const result = await greetingService.getHello();
+  res.json(result);
+}));
+
+// GET /api/greeting/:name - replies "hello :name"
+router.get('/:name', error.asyncRoute(async (req, res) => {
+  const name = req.params.name;
+  logger.info('GET /api/greeting/:name request received', { name });
+
+  const result = await greetingService.getHelloWithName(name);
+  res.json(result);
+}));
+
+export default router;
