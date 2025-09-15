@@ -148,8 +148,8 @@ export async function createProject(name, options) {
       await fs.mkdir(projectPath, { recursive: true });
       console.log(`✅ Created ${name}/`);
 
-      // Copy all templates except package.json.template (handled separately)
-      await copyDirectory(templatesPath, path.join(projectPath, 'src', 'api'), name, ['package.json.template']);
+      // Copy all templates except package.json.template and .env.template (handled separately)
+      await copyDirectory(templatesPath, path.join(projectPath, 'src', 'api'), name, ['package.json.template', '.env.template']);
 
       // Copy package.json to project root
       const packageTemplatePath = path.join(templatesPath, 'package.json.template');
@@ -157,7 +157,14 @@ export async function createProject(name, options) {
       const processedPackage = packageContent.replace(/{{projectName}}/g, name);
       await fs.writeFile(path.join(projectPath, 'package.json'), processedPackage);
 
+      // Copy .env to project root
+      const envTemplatePath = path.join(templatesPath, '.env.template');
+      const envContent = await fs.readFile(envTemplatePath, 'utf8');
+      const processedEnv = envContent.replace(/{{projectName}}/g, name);
+      await fs.writeFile(path.join(projectPath, '.env'), processedEnv);
+
       console.log('✅ Generated backend API structure');
+      console.log('✅ Generated .env configuration file');
 
       // Install dependencies
       await installDependencies(projectPath);

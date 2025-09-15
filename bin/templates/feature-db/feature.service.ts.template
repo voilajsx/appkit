@@ -1,0 +1,272 @@
+/**
+ * {{FeatureName}} Feature Service - Business logic with AppKit database integration
+ * @module {{projectName}}/{{featureName}}-service
+ * @file src/api/features/{{featureName}}/{{featureName}}.service.ts
+ *
+ * @llm-rule WHEN: Need business logic layer with validation, logging, config, and database access
+ * @llm-rule AVOID: Direct database calls from routes - always use service layer
+ * @llm-rule NOTE: Demonstrates AppKit database, logger, config, and error patterns for FBCA with Prisma
+ */
+
+import { loggerClass } from '@voilajsx/appkit/logger';
+import { configClass } from '@voilajsx/appkit/config';
+import { errorClass } from '@voilajsx/appkit/error';
+import { databaseClass } from '@voilajsx/appkit/database';
+import type { {{FeatureName}}Response, {{FeatureName}}CreateRequest, {{FeatureName}}UpdateRequest } from './{{featureName}}.types.js';
+
+// Initialize AppKit modules following the pattern
+const logger = loggerClass.get('{{featureName}}');
+const config = configClass.get();
+const error = errorClass.get();
+
+export const {{featureName}}Service = {
+  /**
+   * Get all {{featureName}} items
+   */
+  async getAll(): Promise<{{FeatureName}}Response[]> {
+    try {
+      logger.info('Processing get all {{featureName}} request');
+
+      // Get database client with automatic tenant filtering
+      const db = await databaseClass.get();
+
+      const items = await db.{{featureName}}.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+
+      // Transform to response format
+      const result = items.map(item => ({
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString()
+      }));
+
+      logger.info('Get all {{featureName}} request completed', { count: result.length });
+      return result;
+
+    } catch (err) {
+      logger.error('Failed to get all {{featureName}} items', { error: err });
+      throw error.serverError('Failed to retrieve {{featureName}} items');
+    }
+  },
+
+  /**
+   * Get {{featureName}} by ID
+   */
+  async getById(id: string): Promise<{{FeatureName}}Response> {
+    try {
+      logger.info('Processing get {{featureName}} by ID request', { id });
+
+      // Validate input
+      if (!id || typeof id !== 'string') {
+        logger.warn('Invalid ID provided', { id });
+        throw error.badRequest('ID must be a valid string');
+      }
+
+      // Get database client with automatic tenant filtering
+      const db = await databaseClass.get();
+
+      const item = await db.{{featureName}}.findUnique({
+        where: { id }
+      });
+
+      if (!item) {
+        logger.warn('{{FeatureName}} not found', { id });
+        throw error.notFound('{{FeatureName}} not found');
+      }
+
+      // Transform to response format
+      const result = {
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString()
+      };
+
+      logger.info('Get {{featureName}} by ID request completed', { id, result });
+      return result;
+
+    } catch (err: any) {
+      // Re-throw AppKit errors as-is
+      if (err.statusCode) {
+        throw err;
+      }
+
+      // Convert other errors to server errors
+      logger.error('Failed to get {{featureName}} by ID', { id, error: err });
+      throw error.serverError('Failed to retrieve {{featureName}} item');
+    }
+  },
+
+  /**
+   * Create a new {{featureName}}
+   */
+  async create(data: {{FeatureName}}CreateRequest): Promise<{{FeatureName}}Response> {
+    try {
+      logger.info('Processing create {{featureName}} request', { data });
+
+      // Validate input
+      if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
+        logger.warn('Invalid name provided', { data });
+        throw error.badRequest('Name is required and must be a non-empty string');
+      }
+
+      if (data.name.length > 200) {
+        logger.warn('Name too long', { nameLength: data.name.length });
+        throw error.badRequest('Name must be less than 200 characters');
+      }
+
+      if (data.description && data.description.length > 1000) {
+        logger.warn('Description too long', { descriptionLength: data.description.length });
+        throw error.badRequest('Description must be less than 1000 characters');
+      }
+
+      // Get database client with automatic tenant filtering
+      const db = await databaseClass.get();
+
+      const item = await db.{{featureName}}.create({
+        data: {
+          name: data.name.trim(),
+          description: data.description?.trim() || null,
+        }
+      });
+
+      // Transform to response format
+      const result = {
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString()
+      };
+
+      logger.info('Create {{featureName}} request completed', { id: item.id, result });
+      return result;
+
+    } catch (err: any) {
+      // Re-throw AppKit errors as-is
+      if (err.statusCode) {
+        throw err;
+      }
+
+      // Convert other errors to server errors
+      logger.error('Failed to create {{featureName}}', { data, error: err });
+      throw error.serverError('Failed to create {{featureName}} item');
+    }
+  },
+
+  /**
+   * Update a {{featureName}}
+   */
+  async update(id: string, data: {{FeatureName}}UpdateRequest): Promise<{{FeatureName}}Response> {
+    try {
+      logger.info('Processing update {{featureName}} request', { id, data });
+
+      // Validate input
+      if (!id || typeof id !== 'string') {
+        logger.warn('Invalid ID provided', { id });
+        throw error.badRequest('ID must be a valid string');
+      }
+
+      if (data.name !== undefined) {
+        if (typeof data.name !== 'string' || data.name.trim().length === 0) {
+          logger.warn('Invalid name provided', { data });
+          throw error.badRequest('Name must be a non-empty string');
+        }
+        if (data.name.length > 200) {
+          logger.warn('Name too long', { nameLength: data.name.length });
+          throw error.badRequest('Name must be less than 200 characters');
+        }
+      }
+
+      if (data.description !== undefined && data.description !== null && data.description.length > 1000) {
+        logger.warn('Description too long', { descriptionLength: data.description.length });
+        throw error.badRequest('Description must be less than 1000 characters');
+      }
+
+      // Get database client with automatic tenant filtering
+      const db = await databaseClass.get();
+
+      // Check if item exists
+      const existingItem = await db.{{featureName}}.findUnique({
+        where: { id }
+      });
+
+      if (!existingItem) {
+        logger.warn('{{FeatureName}} not found for update', { id });
+        throw error.notFound('{{FeatureName}} not found');
+      }
+
+      // Build update data
+      const updateData: any = {};
+      if (data.name !== undefined) updateData.name = data.name.trim();
+      if (data.description !== undefined) updateData.description = data.description?.trim() || null;
+
+      const item = await db.{{featureName}}.update({
+        where: { id },
+        data: updateData
+      });
+
+      // Transform to response format
+      const result = {
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString()
+      };
+
+      logger.info('Update {{featureName}} request completed', { id, result });
+      return result;
+
+    } catch (err: any) {
+      // Re-throw AppKit errors as-is
+      if (err.statusCode) {
+        throw err;
+      }
+
+      // Convert other errors to server errors
+      logger.error('Failed to update {{featureName}}', { id, data, error: err });
+      throw error.serverError('Failed to update {{featureName}} item');
+    }
+  },
+
+  /**
+   * Delete a {{featureName}}
+   */
+  async delete(id: string): Promise<void> {
+    try {
+      logger.info('Processing delete {{featureName}} request', { id });
+
+      // Validate input
+      if (!id || typeof id !== 'string') {
+        logger.warn('Invalid ID provided', { id });
+        throw error.badRequest('ID must be a valid string');
+      }
+
+      // Get database client with automatic tenant filtering
+      const db = await databaseClass.get();
+
+      // Check if item exists
+      const existingItem = await db.{{featureName}}.findUnique({
+        where: { id }
+      });
+
+      if (!existingItem) {
+        logger.warn('{{FeatureName}} not found for deletion', { id });
+        throw error.notFound('{{FeatureName}} not found');
+      }
+
+      await db.{{featureName}}.delete({
+        where: { id }
+      });
+
+      logger.info('Delete {{featureName}} request completed', { id });
+
+    } catch (err: any) {
+      // Re-throw AppKit errors as-is
+      if (err.statusCode) {
+        throw err;
+      }
+
+      // Convert other errors to server errors
+      logger.error('Failed to delete {{featureName}}', { id, error: err });
+      throw error.serverError('Failed to delete {{featureName}} item');
+    }
+  }
+};

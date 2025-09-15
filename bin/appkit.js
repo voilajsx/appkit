@@ -47,6 +47,7 @@ program
   .argument('<name>', 'feature name')
   .option('--crud', 'include CRUD operations')
   .option('--auth', 'include authentication using @voilajsx/appkit/auth')
+  .option('--db', 'include database integration with Prisma and AppKit database module')
   .action(async (type, name, options) => {
     const { generateFeature } = await import('./commands/generate.js');
     await generateFeature(type, name, options);
