@@ -1,6 +1,7 @@
 /**
  * @fileoverview AppKit Generate Command - Smart project and feature scaffolding
  * @description Generates apps, features, and components using FBCA pattern with AppKit modules
+ * @file appkit/bin/commands/generate.js
  */
 
 import fs from 'fs/promises';
@@ -31,8 +32,12 @@ export async function generate(type, name, options = {}) {
     default:
       console.error(`❌ Unknown type "${type}". Use: app, feature`);
       console.log(`\n💡 Available commands:`);
-      console.log(`  npx appkit generate app [name]     - Create full AppKit project`);
-      console.log(`  npx appkit generate feature <name> - Add feature to existing project`);
+      console.log(
+        `  npx appkit generate app [name]     - Create full AppKit project`
+      );
+      console.log(
+        `  npx appkit generate feature <name> - Add feature to existing project`
+      );
       process.exit(1);
   }
 }
@@ -44,10 +49,14 @@ async function generateApp(name, options) {
   try {
     const currentDir = process.cwd();
     const isCurrentDir = !name || name === path.basename(currentDir);
-    const projectPath = isCurrentDir ? currentDir : path.resolve(currentDir, name);
+    const projectPath = isCurrentDir
+      ? currentDir
+      : path.resolve(currentDir, name);
     const projectName = name || path.basename(currentDir);
 
-    console.log(`📁 Creating AppKit structure${isCurrentDir ? ' in current directory' : ` in "${name}"`}...`);
+    console.log(
+      `📁 Creating AppKit structure${isCurrentDir ? ' in current directory' : ` in "${name}"`}...`
+    );
 
     const templatesPath = path.join(__dirname, '..', 'templates', 'backend');
     const createdFiles = [];
@@ -58,14 +67,18 @@ async function generateApp(name, options) {
     const hasExistingApi = await fileExists(existingApiPath);
 
     if (hasExistingApi) {
-      console.log('🔍 Detected existing src/api structure, adding missing files only...\n');
+      console.log(
+        '🔍 Detected existing src/api structure, adding missing files only...\n'
+      );
     }
 
     // Create project directory if needed
     if (!isCurrentDir) {
       try {
         await fs.access(projectPath);
-        console.log(`⚠️  Directory "${name}" already exists, adding files safely...`);
+        console.log(
+          `⚠️  Directory "${name}" already exists, adding files safely...`
+        );
       } catch {
         await fs.mkdir(projectPath, { recursive: true });
         createdFiles.push(`📁 ${name}/`);
@@ -73,33 +86,56 @@ async function generateApp(name, options) {
     }
 
     // Generate shared random keys for the project
-    const randomFrontendKey = 'voila_' + Math.random().toString(36).substring(2, 15) +
-                             Math.random().toString(36).substring(2, 15);
-    const randomAuthSecret = 'auth_' + Math.random().toString(36).substring(2, 15) +
-                            Math.random().toString(36).substring(2, 15) +
-                            Math.random().toString(36).substring(2, 15);
-    const randomDefaultPassword = Math.random().toString(36).substring(2, 8) +
-                                 Math.random().toString(36).substring(2, 6);
+    const randomFrontendKey =
+      'voila_' +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
+    const randomAuthSecret =
+      'auth_' +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
+    const randomDefaultPassword =
+      Math.random().toString(36).substring(2, 8) +
+      Math.random().toString(36).substring(2, 6);
 
     // Copy backend structure with smart file handling
-    await copyDirectorySafe(templatesPath, projectPath, projectName, createdFiles, skippedFiles, ['api.http.template'], randomFrontendKey, randomAuthSecret, randomDefaultPassword);
+    await copyDirectorySafe(
+      templatesPath,
+      projectPath,
+      projectName,
+      createdFiles,
+      skippedFiles,
+      ['api.http.template'],
+      randomFrontendKey,
+      randomAuthSecret,
+      randomDefaultPassword
+    );
 
     // Handle package.json smartly
-    await handlePackageJson(projectPath, projectName, createdFiles, skippedFiles);
+    await handlePackageJson(
+      projectPath,
+      projectName,
+      createdFiles,
+      skippedFiles
+    );
 
     // Report results
     console.log(`\n📊 Summary:`);
     if (createdFiles.length > 0) {
       console.log(`✅ Created ${createdFiles.length} files:`);
-      createdFiles.forEach(file => console.log(`  ${file}`));
+      createdFiles.forEach((file) => console.log(`  ${file}`));
     }
     if (skippedFiles.length > 0) {
       console.log(`⚠️  Skipped ${skippedFiles.length} existing files:`);
-      skippedFiles.forEach(file => console.log(`  ${file}`));
+      skippedFiles.forEach((file) => console.log(`  ${file}`));
     }
 
     // Install dependencies if package.json was created/updated
-    if (createdFiles.some(f => f.includes('package.json')) || createdFiles.length > 2) {
+    if (
+      createdFiles.some((f) => f.includes('package.json')) ||
+      createdFiles.length > 2
+    ) {
       console.log(`\n📦 Installing dependencies...`);
       await installDependencies(projectPath);
     }
@@ -111,8 +147,9 @@ async function generateApp(name, options) {
       console.log(`  cd ${name}`);
     }
     console.log(`  npm run dev:api`);
-    console.log(`\n🌐 Your API will be available at: http://localhost:3000/api`);
-
+    console.log(
+      `\n🌐 Your API will be available at: http://localhost:3000/api`
+    );
   } catch (error) {
     console.error('❌ Failed to generate app:', error.message);
     process.exit(1);
@@ -126,12 +163,16 @@ async function generateFeature(name, options) {
   const withDb = options && options.db;
   const isUserFeature = name === 'user';
 
-  console.log(`🔧 Generating ${isUserFeature ? 'user authentication feature' : `feature: "${name}"`}${withDb ? ' with database support' : ''}...\n`);
+  console.log(
+    `🔧 Generating ${isUserFeature ? 'user authentication feature' : `feature: "${name}"`}${withDb ? ' with database support' : ''}...\n`
+  );
 
   try {
     // Validate feature name
     if (!name || !/^[a-zA-Z0-9-_]+$/.test(name)) {
-      console.error('❌ Invalid feature name. Use only letters, numbers, hyphens, and underscores.');
+      console.error(
+        '❌ Invalid feature name. Use only letters, numbers, hyphens, and underscores.'
+      );
       process.exit(1);
     }
 
@@ -140,9 +181,16 @@ async function generateFeature(name, options) {
     const packageJsonPath = path.join(currentDir, 'package.json');
 
     try {
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
-      if (!packageJson.dependencies || !packageJson.dependencies['@voilajsx/appkit']) {
-        console.error('❌ Not in an AppKit project directory. Run this from project root.');
+      const packageJson = JSON.parse(
+        await fs.readFile(packageJsonPath, 'utf8')
+      );
+      if (
+        !packageJson.dependencies ||
+        !packageJson.dependencies['@voilajsx/appkit']
+      ) {
+        console.error(
+          '❌ Not in an AppKit project directory. Run this from project root.'
+        );
         console.log('💡 First run: npx appkit generate app');
         process.exit(1);
       }
@@ -177,7 +225,9 @@ async function generateFeature(name, options) {
       }
     }
 
-    console.log(`✅ Generated ${isUserFeature ? 'user authentication feature' : `feature "${name}"`} successfully!`);
+    console.log(
+      `✅ Generated ${isUserFeature ? 'user authentication feature' : `feature "${name}"`} successfully!`
+    );
     console.log(`\n📁 Files created:`);
 
     if (isUserFeature) {
@@ -203,17 +253,25 @@ async function generateFeature(name, options) {
     console.log(`\n💡 Next steps:`);
 
     if (isUserFeature) {
-      console.log(`  1. Install dependencies: npm install prisma @prisma/client bcrypt`);
-      console.log(`  2. Install dev dependencies: npm install -D @types/bcrypt`);
+      console.log(
+        `  1. Install dependencies: npm install prisma @prisma/client bcrypt`
+      );
+      console.log(
+        `  2. Install dev dependencies: npm install -D @types/bcrypt`
+      );
       console.log(`  3. Create database: npx prisma db push`);
       console.log(`  4. Generate Prisma client: npx prisma generate`);
       console.log(`  5. Seed user accounts: node prisma/seeding/user.seed.js`);
       console.log(`  6. Test authentication: Use user.http file in VS Code`);
       console.log(`  7. Start server: npm run dev:api`);
-      console.log(`\n🔐 Complete authentication system with 9 role accounts ready!`);
+      console.log(
+        `\n🔐 Complete authentication system with 9 role accounts ready!`
+      );
       console.log(`🧪 Default password for all test accounts: Password123!`);
     } else if (withDb) {
-      console.log(`  1. Install Prisma if needed: npm install prisma @prisma/client`);
+      console.log(
+        `  1. Install Prisma if needed: npm install prisma @prisma/client`
+      );
       console.log(`  2. Create database: npx prisma db push`);
       console.log(`  3. Generate client: npx prisma generate`);
       console.log(`  4. Seed data: node prisma/seeding/${name}.seed.js`);
@@ -225,7 +283,6 @@ async function generateFeature(name, options) {
       console.log(`  2. Implement business logic in ${name}.service.ts`);
       console.log(`  3. Test your API: curl http://localhost:3000/api/${name}`);
     }
-
   } catch (error) {
     console.error('❌ Failed to generate feature:', error.message);
     process.exit(1);
@@ -235,7 +292,17 @@ async function generateFeature(name, options) {
 /**
  * Copy directory recursively with safe non-destructive behavior
  */
-async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFiles, excludeFiles = [], sharedFrontendKey = null, sharedAuthSecret = null, sharedDefaultPassword = null) {
+async function copyDirectorySafe(
+  src,
+  dest,
+  projectName,
+  createdFiles,
+  skippedFiles,
+  excludeFiles = [],
+  sharedFrontendKey = null,
+  sharedAuthSecret = null,
+  sharedDefaultPassword = null
+) {
   await fs.mkdir(dest, { recursive: true });
 
   const entries = await fs.readdir(src, { withFileTypes: true });
@@ -250,7 +317,16 @@ async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFi
     const destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await copyDirectorySafe(srcPath, destPath, projectName, createdFiles, skippedFiles, excludeFiles, sharedFrontendKey, sharedAuthSecret);
+      await copyDirectorySafe(
+        srcPath,
+        destPath,
+        projectName,
+        createdFiles,
+        skippedFiles,
+        excludeFiles,
+        sharedFrontendKey,
+        sharedAuthSecret
+      );
     } else {
       // Remove .template extension for final path
       const finalDestPath = destPath.endsWith('.template')
@@ -268,13 +344,21 @@ async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFi
       let content = await fs.readFile(srcPath, 'utf8');
 
       // Use shared keys or generate them if not provided
-      const frontendKey = sharedFrontendKey || ('voila_' + Math.random().toString(36).substring(2, 15) +
-                                               Math.random().toString(36).substring(2, 15));
-      const authSecret = sharedAuthSecret || ('auth_' + Math.random().toString(36).substring(2, 15) +
-                                             Math.random().toString(36).substring(2, 15) +
-                                             Math.random().toString(36).substring(2, 15));
-      const defaultPassword = sharedDefaultPassword || (Math.random().toString(36).substring(2, 8) +
-                                                       Math.random().toString(36).substring(2, 6));
+      const frontendKey =
+        sharedFrontendKey ||
+        'voila_' +
+          Math.random().toString(36).substring(2, 15) +
+          Math.random().toString(36).substring(2, 15);
+      const authSecret =
+        sharedAuthSecret ||
+        'auth_' +
+          Math.random().toString(36).substring(2, 15) +
+          Math.random().toString(36).substring(2, 15) +
+          Math.random().toString(36).substring(2, 15);
+      const defaultPassword =
+        sharedDefaultPassword ||
+        Math.random().toString(36).substring(2, 8) +
+          Math.random().toString(36).substring(2, 6);
 
       content = content
         .replace(/\{\{projectName\}\}/g, projectName)
@@ -293,7 +377,12 @@ async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFi
 /**
  * Handle package.json creation/updating smartly
  */
-async function handlePackageJson(projectPath, projectName, createdFiles, skippedFiles) {
+async function handlePackageJson(
+  projectPath,
+  projectName,
+  createdFiles,
+  skippedFiles
+) {
   const packageJsonPath = path.join(projectPath, 'package.json');
   const exists = await fileExists(packageJsonPath);
 
@@ -332,7 +421,8 @@ async function handlePackageJson(projectPath, projectName, createdFiles, skipped
       // Add scripts if they don't exist
       packageJson.scripts = packageJson.scripts || {};
       if (!packageJson.scripts['dev:api']) {
-        packageJson.scripts['dev:api'] = 'API_ONLY=true nodemon --exec tsx src/api/server.ts';
+        packageJson.scripts['dev:api'] =
+          'API_ONLY=true nodemon --exec tsx src/api/server.ts';
         updated = true;
       }
       if (!packageJson.scripts['build:api']) {
@@ -345,12 +435,14 @@ async function handlePackageJson(projectPath, projectName, createdFiles, skipped
       }
 
       if (updated) {
-        await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+        await fs.writeFile(
+          packageJsonPath,
+          JSON.stringify(packageJson, null, 2)
+        );
         createdFiles.push('package.json (updated)');
       } else {
         skippedFiles.push('package.json (no changes needed)');
       }
-
     } catch (error) {
       skippedFiles.push('package.json (update failed)');
     }
@@ -372,12 +464,36 @@ async function generateFeatureScaffolding(featuresPath, name, options) {
 
   try {
     // Generate core feature files
-    await generateFromTemplate(templatesPath, 'feature.route.ts.template', featurePath, `${name}.route.ts`, name);
-    await generateFromTemplate(templatesPath, 'feature.service.ts.template', featurePath, `${name}.service.ts`, name);
-    await generateFromTemplate(templatesPath, 'feature.types.ts.template', featurePath, `${name}.types.ts`, name);
+    await generateFromTemplate(
+      templatesPath,
+      'feature.route.ts.template',
+      featurePath,
+      `${name}.route.ts`,
+      name
+    );
+    await generateFromTemplate(
+      templatesPath,
+      'feature.service.ts.template',
+      featurePath,
+      `${name}.service.ts`,
+      name
+    );
+    await generateFromTemplate(
+      templatesPath,
+      'feature.types.ts.template',
+      featurePath,
+      `${name}.types.ts`,
+      name
+    );
 
     // Generate .http file for all features
-    await generateFromTemplate(templatesPath, 'feature.http.template', featurePath, `${name}.http`, name);
+    await generateFromTemplate(
+      templatesPath,
+      'feature.http.template',
+      featurePath,
+      `${name}.http`,
+      name
+    );
 
     console.log(`  ✅ Generated ${name}.route.ts`);
     console.log(`  ✅ Generated ${name}.service.ts`);
@@ -386,16 +502,26 @@ async function generateFeatureScaffolding(featuresPath, name, options) {
 
     // Generate additional files for database features
     if (withDb) {
-      await generateFromTemplate(templatesPath, 'feature.model.ts.template', featurePath, `${name}.model.ts`, name);
+      await generateFromTemplate(
+        templatesPath,
+        'feature.model.ts.template',
+        featurePath,
+        `${name}.model.ts`,
+        name
+      );
       console.log(`  ✅ Generated ${name}.model.ts`);
 
       // Generate seeding files
       await generateSeedingFiles(templatesPath, name);
     }
 
-    console.log(`✅ Created feature directory: ${name}/ ${withDb ? '(with database support)' : ''}`);
+    console.log(
+      `✅ Created feature directory: ${name}/ ${withDb ? '(with database support)' : ''}`
+    );
   } catch (error) {
-    console.error(`❌ Failed to generate feature from templates: ${error.message}`);
+    console.error(
+      `❌ Failed to generate feature from templates: ${error.message}`
+    );
     throw error;
   }
 }
@@ -403,7 +529,13 @@ async function generateFeatureScaffolding(featuresPath, name, options) {
 /**
  * Generate file from template with variable replacement
  */
-async function generateFromTemplate(templatesPath, templateFile, outputPath, outputFile, featureName) {
+async function generateFromTemplate(
+  templatesPath,
+  templateFile,
+  outputPath,
+  outputFile,
+  featureName
+) {
   try {
     // Read template file
     const templatePath = path.join(templatesPath, templateFile);
@@ -422,15 +554,21 @@ async function generateFromTemplate(templatesPath, templateFile, outputPath, out
     try {
       const envPath = path.join(currentDir, '.env');
       const envContent = await fs.readFile(envPath, 'utf8');
-      const keyMatch = envContent.match(/VOILA_FRONTEND_KEY\s*=\s*["']?([^"'\n\r]+)["']?/);
+      const keyMatch = envContent.match(
+        /VOILA_FRONTEND_KEY\s*=\s*["']?([^"'\n\r]+)["']?/
+      );
       if (keyMatch) {
         frontendKey = keyMatch[1];
       }
-      const authMatch = envContent.match(/VOILA_AUTH_SECRET\s*=\s*["']?([^"'\n\r]+)["']?/);
+      const authMatch = envContent.match(
+        /VOILA_AUTH_SECRET\s*=\s*["']?([^"'\n\r]+)["']?/
+      );
       if (authMatch) {
         authSecret = authMatch[1];
       }
-      const passwordMatch = envContent.match(/DEFAULT_USER_PASSWORD\s*=\s*["']?([^"'\n\r]+)["']?/);
+      const passwordMatch = envContent.match(
+        /DEFAULT_USER_PASSWORD\s*=\s*["']?([^"'\n\r]+)["']?/
+      );
       if (passwordMatch) {
         defaultPassword = passwordMatch[1];
       }
@@ -441,7 +579,10 @@ async function generateFromTemplate(templatesPath, templateFile, outputPath, out
     // Replace template variables
     const processedContent = templateContent
       .replace(/\{\{featureName\}\}/g, featureName)
-      .replace(/\{\{FeatureName\}\}/g, featureName.charAt(0).toUpperCase() + featureName.slice(1))
+      .replace(
+        /\{\{FeatureName\}\}/g,
+        featureName.charAt(0).toUpperCase() + featureName.slice(1)
+      )
       .replace(/\{\{tableName\}\}/g, featureName)
       .replace(/\{\{projectName\}\}/g, projectName)
       .replace(/\{\{frontendKey\}\}/g, frontendKey)
@@ -452,7 +593,10 @@ async function generateFromTemplate(templatesPath, templateFile, outputPath, out
     const outputFilePath = path.join(outputPath, outputFile);
     await fs.writeFile(outputFilePath, processedContent, 'utf8');
   } catch (error) {
-    console.error(`❌ Failed to generate ${outputFile} from template ${templateFile}:`, error.message);
+    console.error(
+      `❌ Failed to generate ${outputFile} from template ${templateFile}:`,
+      error.message
+    );
     throw error;
   }
 }
@@ -468,7 +612,10 @@ async function handleDatabaseIntegration(projectDir, featureName) {
     const packageJsonPath = path.join(projectDir, 'package.json');
     const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
 
-    if (!packageJson.dependencies?.prisma && !packageJson.devDependencies?.prisma) {
+    if (
+      !packageJson.dependencies?.prisma &&
+      !packageJson.devDependencies?.prisma
+    ) {
       console.log(`📦 Installing Prisma...`);
       console.log(`⚠️  Please run: npm install prisma @prisma/client`);
     }
@@ -506,11 +653,14 @@ model ${featureName.charAt(0).toUpperCase() + featureName.slice(1)} {
     } else {
       // Schema exists, check if model already exists
       const schemaContent = await fs.readFile(schemaPath, 'utf8');
-      const modelName = featureName.charAt(0).toUpperCase() + featureName.slice(1);
+      const modelName =
+        featureName.charAt(0).toUpperCase() + featureName.slice(1);
       const modelPattern = new RegExp(`model\\s+${modelName}\\s*\\{`, 'i');
 
       if (modelPattern.test(schemaContent)) {
-        console.log(`⚠️  Model "${modelName}" already exists in schema. Skipping...`);
+        console.log(
+          `⚠️  Model "${modelName}" already exists in schema. Skipping...`
+        );
       } else {
         // Append new model to existing schema
         const newModel = `
@@ -527,7 +677,9 @@ model ${modelName} {
       }
     }
 
-    console.log(`📊 Database integration ready! Run 'npx prisma generate' to update the client.`);
+    console.log(
+      `📊 Database integration ready! Run 'npx prisma generate' to update the client.`
+    );
   } catch (error) {
     console.error(`❌ Failed to setup database integration: ${error.message}`);
     throw error;
@@ -547,13 +699,25 @@ async function generateSeedingFiles(templatesPath, featureName) {
 
     // Generate feature seed file
     const seedingTemplatesPath = path.join(templatesPath, 'seeding');
-    await generateFromTemplate(seedingTemplatesPath, 'feature.seed.js.template', seedingDir, `${featureName}.seed.js`, featureName);
+    await generateFromTemplate(
+      seedingTemplatesPath,
+      'feature.seed.js.template',
+      seedingDir,
+      `${featureName}.seed.js`,
+      featureName
+    );
 
     // Generate README if it doesn't exist
     const readmePath = path.join(seedingDir, 'README.md');
     const readmeExists = await fileExists(readmePath);
     if (!readmeExists) {
-      await generateFromTemplate(seedingTemplatesPath, 'README.md.template', seedingDir, 'README.md', featureName);
+      await generateFromTemplate(
+        seedingTemplatesPath,
+        'README.md.template',
+        seedingDir,
+        'README.md',
+        featureName
+      );
       console.log(`  ✅ Generated seeding/README.md`);
     }
 
@@ -571,7 +735,7 @@ function installDependencies(projectPath) {
   return new Promise((resolve, reject) => {
     const npm = spawn('npm', ['install'], {
       cwd: projectPath,
-      stdio: 'inherit'
+      stdio: 'inherit',
     });
 
     npm.on('close', (code) => {
@@ -607,26 +771,27 @@ async function validateFBCAStructure(projectDir) {
     { path: 'src/api/features', name: 'features directory' },
     { path: 'src/api/lib', name: 'lib directory' },
     { path: 'src/api/server.ts', name: 'server.ts file' },
-    { path: 'src/api/lib/api-router.ts', name: 'api-router.ts file' }
+    { path: 'src/api/lib/api-router.ts', name: 'api-router.ts file' },
   ];
 
   const missingPaths = [];
 
   for (const required of requiredPaths) {
     const fullPath = path.join(projectDir, required.path);
-    if (!await fileExists(fullPath)) {
+    if (!(await fileExists(fullPath))) {
       missingPaths.push(required.name);
     }
   }
 
   if (missingPaths.length > 0) {
     console.error('❌ Inconsistent FBCA structure detected. Missing:');
-    missingPaths.forEach(missing => console.error(`   • ${missing}`));
+    missingPaths.forEach((missing) => console.error(`   • ${missing}`));
     console.log('\n💡 To fix this, run: npx appkit generate app');
-    console.log('   This will safely add missing AppKit files without overwriting existing ones.');
+    console.log(
+      '   This will safely add missing AppKit files without overwriting existing ones.'
+    );
     process.exit(1);
   }
-
 
   return path.join(projectDir, 'src/api/features');
 }
@@ -642,11 +807,41 @@ async function generateUserFeature(featuresPath, name, projectDir) {
 
   try {
     // Generate user-specific files from templates
-    await generateFromTemplate(templatesPath, 'user.route.ts.template', featurePath, 'user.route.ts', name);
-    await generateFromTemplate(templatesPath, 'user.service.ts.template', featurePath, 'user.service.ts', name);
-    await generateFromTemplate(templatesPath, 'user.types.ts.template', featurePath, 'user.types.ts', name);
-    await generateFromTemplate(templatesPath, 'user.model.ts.template', featurePath, 'user.model.ts', name);
-    await generateFromTemplate(templatesPath, 'user.http.template', featurePath, 'user.http', name);
+    await generateFromTemplate(
+      templatesPath,
+      'user.route.ts.template',
+      featurePath,
+      'user.route.ts',
+      name
+    );
+    await generateFromTemplate(
+      templatesPath,
+      'user.service.ts.template',
+      featurePath,
+      'user.service.ts',
+      name
+    );
+    await generateFromTemplate(
+      templatesPath,
+      'user.types.ts.template',
+      featurePath,
+      'user.types.ts',
+      name
+    );
+    await generateFromTemplate(
+      templatesPath,
+      'user.model.ts.template',
+      featurePath,
+      'user.model.ts',
+      name
+    );
+    await generateFromTemplate(
+      templatesPath,
+      'user.http.template',
+      featurePath,
+      'user.http',
+      name
+    );
 
     console.log(`  ✅ Generated user.route.ts`);
     console.log(`  ✅ Generated user.service.ts`);
@@ -662,7 +857,9 @@ async function generateUserFeature(featuresPath, name, projectDir) {
 
     console.log(`✅ Created user authentication feature with complete setup`);
   } catch (error) {
-    console.error(`❌ Failed to generate user feature from templates: ${error.message}`);
+    console.error(
+      `❌ Failed to generate user feature from templates: ${error.message}`
+    );
     throw error;
   }
 }
@@ -758,7 +955,9 @@ model User {
 
     console.log(`📊 User database integration ready!`);
   } catch (error) {
-    console.error(`❌ Failed to setup user database integration: ${error.message}`);
+    console.error(
+      `❌ Failed to setup user database integration: ${error.message}`
+    );
     throw error;
   }
 }
@@ -774,7 +973,13 @@ async function generateUserSeedingFiles(templatesPath, projectDir) {
     await fs.mkdir(seedingDir, { recursive: true });
 
     // Generate user seed file
-    await generateFromTemplate(templatesPath, 'user.seed.js.template', seedingDir, 'user.seed.js', 'user');
+    await generateFromTemplate(
+      templatesPath,
+      'user.seed.js.template',
+      seedingDir,
+      'user.seed.js',
+      'user'
+    );
 
     console.log(`  ✅ Generated seeding/user.seed.js`);
   } catch (error) {
@@ -810,9 +1015,11 @@ async function ensureDatabaseUrl(projectDir) {
 
     // Check if VOILA_AUTH_SECRET already exists
     if (!envContent.includes('VOILA_AUTH_SECRET=')) {
-      const authSecret = 'auth_' + Math.random().toString(36).substring(2, 15) +
-                        Math.random().toString(36).substring(2, 15) +
-                        Math.random().toString(36).substring(2, 15);
+      const authSecret =
+        'auth_' +
+        Math.random().toString(36).substring(2, 15) +
+        Math.random().toString(36).substring(2, 15) +
+        Math.random().toString(36).substring(2, 15);
       const authSecretLine = '\nVOILA_AUTH_SECRET=' + authSecret + '\n';
       envContent += authSecretLine;
       updated = true;
@@ -821,8 +1028,9 @@ async function ensureDatabaseUrl(projectDir) {
 
     // Check if DEFAULT_USER_PASSWORD already exists
     if (!envContent.includes('DEFAULT_USER_PASSWORD=')) {
-      const defaultPassword = Math.random().toString(36).substring(2, 8) +
-                             Math.random().toString(36).substring(2, 6);
+      const defaultPassword =
+        Math.random().toString(36).substring(2, 8) +
+        Math.random().toString(36).substring(2, 6);
       const passwordLine = '\nDEFAULT_USER_PASSWORD=' + defaultPassword + '\n';
       envContent += passwordLine;
       updated = true;
@@ -832,7 +1040,6 @@ async function ensureDatabaseUrl(projectDir) {
     if (updated) {
       await fs.writeFile(envPath, envContent, 'utf8');
     }
-
   } catch (error) {
     console.error(`❌ Failed to setup .env file: ${error.message}`);
     throw error;

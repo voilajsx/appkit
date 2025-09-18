@@ -85,10 +85,43 @@ const acmeDatabase = await databaseClass.org('acme').get(); // Enterprise scalin
 ### **Installation**
 
 ```bash
-npm install @voilajsx/appkit
+# Install CLI globally
+npm install -g @voilajsx/appkit
+
+# Or use npx (no installation needed)
+npx appkit generate app myproject
 ```
 
 ### **30-Second Working App**
+
+```bash
+# Create a complete backend with CLI
+npx appkit generate app myproject
+cd myproject
+npm run dev:api
+
+# Your API is ready at: http://localhost:3000/api
+```
+
+### **Add Features Instantly**
+
+```bash
+# Add custom feature
+npx appkit generate feature product
+
+# Add complete authentication system
+npx appkit generate feature user
+
+# Add database-enabled feature
+npx appkit generate feature order --db
+```
+
+### **Manual Setup (Library Usage)**
+
+```bash
+# For library usage in existing projects
+npm install @voilajsx/appkit
+```
 
 ```typescript
 import { authClass } from '@voilajsx/appkit/auth';
@@ -123,8 +156,56 @@ app.post(
 app.use(error.handleErrors());
 ```
 
-**Result**: Production-ready API with authentication, database, error handling,
-and logging. **Zero configuration needed.**
+**Result**: Production-ready API with authentication, database, error handling, and logging. **Zero configuration needed.**
+
+## 🛠️ AppKit CLI
+
+### **Project Generation**
+
+```bash
+# Create complete backend application
+npx appkit generate app [name]
+
+# What you get:
+# ✅ TypeScript setup with proper configuration
+# ✅ Express server with auto-discovery routing
+# ✅ Environment variables with secure random keys
+# ✅ Database integration ready
+# ✅ Complete documentation included
+# ✅ Production-ready npm scripts
+```
+
+### **Feature Generation**
+
+```bash
+# Basic feature (route + service + types)
+npx appkit generate feature product
+
+# Database-enabled feature (+ model + HTTP tests)
+npx appkit generate feature order --db
+
+# Complete authentication system (9-role hierarchy)
+npx appkit generate feature user
+```
+
+### **Generated Project Structure**
+
+```
+myproject/
+├── docs/                         # Complete documentation
+│   ├── APPKIT_CLI.md            # CLI reference
+│   ├── APPKIT_LLM_GUIDE.md      # AI integration guide
+│   └── APPKIT_COMMENTS_GUIDELINES.md # Code standards
+├── src/api/
+│   ├── server.ts                # Main server
+│   ├── lib/api-router.ts        # Auto-discovery routing
+│   └── features/                # Feature-based architecture
+│       ├── welcome/             # Default endpoints
+│       └── [your-features]/     # Generated features
+├── .env                         # Secure environment variables
+├── package.json                 # With backend scripts
+└── README.md                    # Project-specific guide
+```
 
 ## 🎭 Complete Module Ecosystem
 
@@ -723,12 +804,9 @@ describe('API Tests', () => {
 
 ### **Quick References**
 
-- [🚀 Getting Started Guide](docs/getting-started.md) - Zero to production in 10
-  minutes
-- [🏗️ Architecture Guide](docs/architecture.md) - How modules work together
-- [🔒 Security Best Practices](docs/security.md) - Production-ready security
-- [📈 Scaling Guide](docs/scaling.md) - Development to enterprise
-- [🤖 AI Integration](docs/ai-integration.md) - LLM code generation patterns
+- [🚀 CLI Reference](docs/APPKIT_CLI.md) - Complete command guide and usage examples
+- [🤖 LLM Integration Guide](docs/APPKIT_LLM_GUIDE.md) - AI development patterns and module usage
+- [📝 Code Standards](docs/APPKIT_COMMENTS_GUIDELINES.md) - Documentation guidelines for backend apps
 
 ### **Module Documentation**
 
