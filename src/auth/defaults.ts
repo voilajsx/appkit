@@ -292,18 +292,41 @@ function parseDefaultPermissions(): PermissionDefaults {
  */
 export function validateSecret(secret: string): void {
   if (!secret || typeof secret !== 'string') {
+    console.error('\n🚨 ============================================');
+    console.error('❌ CRITICAL AUTH CONFIGURATION ERROR');
+    console.error('🚨 ============================================');
+    console.error('🔑 MISSING REQUIRED ENVIRONMENT VARIABLE: VOILA_AUTH_SECRET');
+    console.error('🚨 ============================================\n');
+
     throw new Error(
       'VOILA_AUTH_SECRET is required. Set environment variable: VOILA_AUTH_SECRET=your-jwt-secret-key'
     );
   }
 
   if (secret.length < 32) {
+    console.error('\n🚨 ============================================');
+    console.error('❌ AUTH SECRET TOO SHORT');
+    console.error('🚨 ============================================');
+    console.error(`🔑 Current length: ${secret.length} characters (minimum: 32)`);
+    console.error('🚨 ============================================\n');
+
     throw new Error(
       `VOILA_AUTH_SECRET must be at least 32 characters for security. Current length: ${secret.length}`
     );
   }
 
   if (secret === 'your-jwt-secret-key' || secret === 'secret' || secret === 'supersecret') {
+    console.error('\n🚨 ============================================');
+    console.error('❌ INSECURE AUTH SECRET DETECTED');
+    console.error('🚨 ============================================');
+    console.error('🔑 VOILA_AUTH_SECRET appears to be a default/example value');
+    console.error('⚠️  This is a security risk in production!');
+    console.error('');
+    console.error('💡 SOLUTION:');
+    console.error('   Generate a strong, random secret:');
+    console.error('   VOILA_AUTH_SECRET=k8s9m2n4p7q1w3e5r8t0y2u4i6o9a1s5d7f9g2h4j6l8');
+    console.error('🚨 ============================================\n');
+
     throw new Error(
       'VOILA_AUTH_SECRET appears to be a default/example value. Use a strong, random secret'
     );
@@ -387,15 +410,48 @@ function validatePermissionFormat(permission: string): boolean {
  */
 function validateEnvironment(): void {
   const secret = process.env.VOILA_AUTH_SECRET;
-  
-  // Enhanced validation with better error messages
+
+  // Enhanced validation with clear console logging and better error messages
   if (!secret) {
+    console.error('\n🚨 ============================================');
+    console.error('❌ CRITICAL AUTH CONFIGURATION ERROR');
+    console.error('🚨 ============================================');
+    console.error('🔑 MISSING REQUIRED ENVIRONMENT VARIABLE: VOILA_AUTH_SECRET');
+    console.error('');
+    console.error('💡 SOLUTION:');
+    console.error('   Add the following to your .env file:');
+    console.error('   VOILA_AUTH_SECRET=your-secure-32-character-secret-key-here');
+    console.error('');
+    console.error('📋 REQUIREMENTS:');
+    console.error('   - Must be at least 32 characters long');
+    console.error('   - Should be a strong, random string');
+    console.error('   - Do not use default values like "secret" or "supersecret"');
+    console.error('');
+    console.error('🔧 EXAMPLE:');
+    console.error('   VOILA_AUTH_SECRET=k8s9m2n4p7q1w3e5r8t0y2u4i6o9a1s5d7f9g2h4j6l8');
+    console.error('');
+    console.error('⚠️  Without this variable, authentication features will not work');
+    console.error('🚨 ============================================\n');
+
     throw new Error(
       'VOILA_AUTH_SECRET is required. Set environment variable: VOILA_AUTH_SECRET=your-jwt-secret-key'
     );
   }
-  
+
   if (secret.length < 32) {
+    console.error('\n🚨 ============================================');
+    console.error('❌ AUTH SECRET TOO SHORT');
+    console.error('🚨 ============================================');
+    console.error(`🔑 Current VOILA_AUTH_SECRET length: ${secret.length} characters`);
+    console.error('⚠️  Minimum required: 32 characters');
+    console.error('');
+    console.error('💡 SOLUTION:');
+    console.error('   Generate a stronger secret with at least 32 characters');
+    console.error('');
+    console.error('🔧 EXAMPLE:');
+    console.error('   VOILA_AUTH_SECRET=k8s9m2n4p7q1w3e5r8t0y2u4i6o9a1s5d7f9g2h4j6l8');
+    console.error('🚨 ============================================\n');
+
     throw new Error(
       `VOILA_AUTH_SECRET must be at least 32 characters for security. Current length: ${secret.length}`
     );

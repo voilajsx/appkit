@@ -52,7 +52,7 @@ router.delete('/:id', error.asyncRoute(async (req, res) => {
   const id = req.params.id;
   logger.info('DELETE /api/{{featureName}}/:id request received', { id });
   await {{featureName}}Service.delete(id);
-  res.status(204).send();
+  res.status(200).json({ message: 'Deleted successfully' });
 }));
 
 export default router;

@@ -1,21 +1,127 @@
 /**
- * @fileoverview AppKit Generate Command - Feature scaffolding with TypeScript templates
- * @description Generates new features using FBCA pattern with AppKit modules
+ * @fileoverview AppKit Generate Command - Smart project and feature scaffolding
+ * @description Generates apps, features, and components using FBCA pattern with AppKit modules
  */
 
 import fs from 'fs/promises';
 import path from 'path';
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Generate a new feature using TypeScript templates
+ * Main generate command router
  */
-export async function generateFeature(type, name, options) {
+export async function generate(type, name, options = {}) {
+  // Smart folder name detection if no name provided
+  if (!name && type === 'app') {
+    name = path.basename(process.cwd());
+    console.log(`🔍 Detected project name: "${name}"`);
+  }
+
+  switch (type) {
+    case 'app':
+      await generateApp(name, options);
+      break;
+    case 'feature':
+      await generateFeature(name, options);
+      break;
+    default:
+      console.error(`❌ Unknown type "${type}". Use: app, feature`);
+      console.log(`\n💡 Available commands:`);
+      console.log(`  npx appkit generate app [name]     - Create full AppKit project`);
+      console.log(`  npx appkit generate feature <name> - Add feature to existing project`);
+      process.exit(1);
+  }
+}
+
+/**
+ * Generate a complete AppKit application with smart context detection
+ */
+async function generateApp(name, options) {
+  try {
+    const currentDir = process.cwd();
+    const isCurrentDir = !name || name === path.basename(currentDir);
+    const projectPath = isCurrentDir ? currentDir : path.resolve(currentDir, name);
+    const projectName = name || path.basename(currentDir);
+
+    console.log(`📁 Creating AppKit structure${isCurrentDir ? ' in current directory' : ` in "${name}"`}...`);
+
+    const templatesPath = path.join(__dirname, '..', 'templates', 'backend');
+    const createdFiles = [];
+    const skippedFiles = [];
+
+    // Check if we're adding to existing project
+    const existingApiPath = path.join(projectPath, 'src', 'api');
+    const hasExistingApi = await fileExists(existingApiPath);
+
+    if (hasExistingApi) {
+      console.log('🔍 Detected existing src/api structure, adding missing files only...\n');
+    }
+
+    // Create project directory if needed
+    if (!isCurrentDir) {
+      try {
+        await fs.access(projectPath);
+        console.log(`⚠️  Directory "${name}" already exists, adding files safely...`);
+      } catch {
+        await fs.mkdir(projectPath, { recursive: true });
+        createdFiles.push(`📁 ${name}/`);
+      }
+    }
+
+    // Generate shared random frontend key for the project
+    const randomFrontendKey = 'voila_' + Math.random().toString(36).substring(2, 15) +
+                             Math.random().toString(36).substring(2, 15);
+
+    // Copy backend structure with smart file handling
+    await copyDirectorySafe(templatesPath, projectPath, projectName, createdFiles, skippedFiles, ['api.http.template'], randomFrontendKey);
+
+    // Handle package.json smartly
+    await handlePackageJson(projectPath, projectName, createdFiles, skippedFiles);
+
+    // Report results
+    console.log(`\n📊 Summary:`);
+    if (createdFiles.length > 0) {
+      console.log(`✅ Created ${createdFiles.length} files:`);
+      createdFiles.forEach(file => console.log(`  ${file}`));
+    }
+    if (skippedFiles.length > 0) {
+      console.log(`⚠️  Skipped ${skippedFiles.length} existing files:`);
+      skippedFiles.forEach(file => console.log(`  ${file}`));
+    }
+
+    // Install dependencies if package.json was created/updated
+    if (createdFiles.some(f => f.includes('package.json')) || createdFiles.length > 2) {
+      console.log(`\n📦 Installing dependencies...`);
+      await installDependencies(projectPath);
+    }
+
+    // Success message
+    console.log(`\n🚀 AppKit project ready!`);
+    console.log(`\n💡 Next steps:`);
+    if (!isCurrentDir) {
+      console.log(`  cd ${name}`);
+    }
+    console.log(`  npm run dev:api`);
+    console.log(`\n🌐 Your API will be available at: http://localhost:3000/api`);
+
+  } catch (error) {
+    console.error('❌ Failed to generate app:', error.message);
+    process.exit(1);
+  }
+}
+
+/**
+ * Generate a new feature in existing project
+ */
+async function generateFeature(name, options) {
   const withDb = options && options.db;
-  console.log(`🔧 Generating ${type}: "${name}"${withDb ? ' with database support' : ''}...\n`);
+  const isUserFeature = name === 'user';
+
+  console.log(`🔧 Generating ${isUserFeature ? 'user authentication feature' : `feature: "${name}"`}${withDb ? ' with database support' : ''}...\n`);
 
   try {
     // Validate feature name
@@ -32,6 +138,7 @@ export async function generateFeature(type, name, options) {
       const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
       if (!packageJson.dependencies || !packageJson.dependencies['@voilajsx/appkit']) {
         console.error('❌ Not in an AppKit project directory. Run this from project root.');
+        console.log('💡 First run: npx appkit generate app');
         process.exit(1);
       }
     } catch {
@@ -39,14 +146,8 @@ export async function generateFeature(type, name, options) {
       process.exit(1);
     }
 
-    // Check if features directory exists
-    const featuresPath = path.join(currentDir, 'src/api/features');
-    try {
-      await fs.access(featuresPath);
-    } catch {
-      console.error('❌ Features directory not found. Make sure you have the correct FBCA structure.');
-      process.exit(1);
-    }
+    // Validate FBCA structure
+    const featuresPath = await validateFBCAStructure(currentDir);
 
     // Check if feature already exists
     const featurePath = path.join(featuresPath, name);
@@ -59,31 +160,61 @@ export async function generateFeature(type, name, options) {
     }
 
     // Generate feature based on type
-    if (type === 'feature') {
+    if (isUserFeature) {
+      await generateUserFeature(featuresPath, name, currentDir);
+    } else {
+      // Generate regular feature scaffolding
       await generateFeatureScaffolding(featuresPath, name, options);
 
       // Handle database integration if --db flag is used
       if (withDb) {
         await handleDatabaseIntegration(currentDir, name);
       }
-    } else {
-      console.error(`❌ Unknown type "${type}". Use: feature`);
-      process.exit(1);
     }
 
-    console.log(`✅ Generated ${type} "${name}" successfully!`);
+    console.log(`✅ Generated ${isUserFeature ? 'user authentication feature' : `feature "${name}"`} successfully!`);
     console.log(`\n📁 Files created:`);
-    console.log(`  src/api/features/${name}/${name}.route.ts`);
-    console.log(`  src/api/features/${name}/${name}.service.ts`);
-    console.log(`  src/api/features/${name}/${name}.types.ts`);
+
+    if (isUserFeature) {
+      console.log(`  src/api/features/user/user.route.ts`);
+      console.log(`  src/api/features/user/user.service.ts`);
+      console.log(`  src/api/features/user/user.types.ts`);
+      console.log(`  src/api/features/user/user.model.ts`);
+      console.log(`  src/api/features/user/user.http`);
+      console.log(`  prisma/seeding/user.seed.js`);
+      console.log(`  prisma/schema.prisma (User model added)`);
+    } else {
+      console.log(`  src/api/features/${name}/${name}.route.ts`);
+      console.log(`  src/api/features/${name}/${name}.service.ts`);
+      console.log(`  src/api/features/${name}/${name}.types.ts`);
+      if (withDb) {
+        console.log(`  src/api/features/${name}/${name}.model.ts`);
+        console.log(`  src/api/features/${name}/${name}.http`);
+        console.log(`  prisma/seeding/${name}.seed.js`);
+      }
+    }
 
     console.log(`\n🚀 Feature available at: /api/${name}`);
     console.log(`\n💡 Next steps:`);
-    if (withDb) {
-      console.log(`  1. Start your server: npm run dev`);
-      console.log(`  2. Test your API: curl http://localhost:3000/api/${name}`);
-      console.log(`  3. Update ${name}.types.ts with your data types if needed`);
-      console.log(`\n📊 Database and Prisma client ready to use!`);
+
+    if (isUserFeature) {
+      console.log(`  1. Install dependencies: npm install prisma @prisma/client bcrypt`);
+      console.log(`  2. Install dev dependencies: npm install -D @types/bcrypt`);
+      console.log(`  3. Create database: npx prisma db push`);
+      console.log(`  4. Generate Prisma client: npx prisma generate`);
+      console.log(`  5. Seed user accounts: node prisma/seeding/user.seed.js`);
+      console.log(`  6. Test authentication: Use user.http file in VS Code`);
+      console.log(`  7. Start server: npm run dev:api`);
+      console.log(`\n🔐 Complete authentication system with 9 role accounts ready!`);
+      console.log(`🧪 Default password for all test accounts: Password123!`);
+    } else if (withDb) {
+      console.log(`  1. Install Prisma if needed: npm install prisma @prisma/client`);
+      console.log(`  2. Create database: npx prisma db push`);
+      console.log(`  3. Generate client: npx prisma generate`);
+      console.log(`  4. Seed data: node prisma/seeding/${name}.seed.js`);
+      console.log(`  5. Test API: Use ${name}.http file in VS Code`);
+      console.log(`  6. Start server: npm run dev:api`);
+      console.log(`\n🌱 Manual seeding gives you full control over your data!`);
     } else {
       console.log(`  1. Update ${name}.types.ts with your data types`);
       console.log(`  2. Implement business logic in ${name}.service.ts`);
@@ -94,6 +225,125 @@ export async function generateFeature(type, name, options) {
     console.error('❌ Failed to generate feature:', error.message);
     process.exit(1);
   }
+}
+
+/**
+ * Copy directory recursively with safe non-destructive behavior
+ */
+async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFiles, excludeFiles = [], sharedFrontendKey = null) {
+  await fs.mkdir(dest, { recursive: true });
+
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    // Skip excluded files
+    if (excludeFiles.includes(entry.name)) {
+      continue;
+    }
+
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectorySafe(srcPath, destPath, projectName, createdFiles, skippedFiles, excludeFiles, sharedFrontendKey);
+    } else {
+      // Remove .template extension for final path
+      const finalDestPath = destPath.endsWith('.template')
+        ? destPath.slice(0, -9)
+        : destPath;
+
+      // Check if file already exists
+      const exists = await fileExists(finalDestPath);
+      if (exists) {
+        skippedFiles.push(path.relative(dest, finalDestPath));
+        continue;
+      }
+
+      // Read and process template
+      let content = await fs.readFile(srcPath, 'utf8');
+
+      // Use shared frontend key or generate one if not provided
+      const frontendKey = sharedFrontendKey || ('voila_' + Math.random().toString(36).substring(2, 15) +
+                                               Math.random().toString(36).substring(2, 15));
+
+      content = content
+        .replace(/\{\{projectName\}\}/g, projectName)
+        .replace(/\{\{randomFrontendKey\}\}/g, frontendKey)
+        .replace(/\{\{frontendKey\}\}/g, frontendKey);
+
+      // Write file
+      await fs.writeFile(finalDestPath, content);
+      createdFiles.push(path.relative(dest, finalDestPath));
+    }
+  }
+}
+
+/**
+ * Handle package.json creation/updating smartly
+ */
+async function handlePackageJson(projectPath, projectName, createdFiles, skippedFiles) {
+  const packageJsonPath = path.join(projectPath, 'package.json');
+  const exists = await fileExists(packageJsonPath);
+
+  if (exists) {
+    // Update existing package.json
+    try {
+      const packageContent = await fs.readFile(packageJsonPath, 'utf8');
+      const packageJson = JSON.parse(packageContent);
+      let updated = false;
+
+      // Add backend dependencies if missing
+      packageJson.dependencies = packageJson.dependencies || {};
+      if (!packageJson.dependencies['@voilajsx/appkit']) {
+        packageJson.dependencies['@voilajsx/appkit'] = '^1.0.0';
+        updated = true;
+      }
+      if (!packageJson.dependencies['express']) {
+        packageJson.dependencies['express'] = '^4.18.2';
+        updated = true;
+      }
+      if (!packageJson.dependencies['cors']) {
+        packageJson.dependencies['cors'] = '^2.8.5';
+        updated = true;
+      }
+
+      packageJson.devDependencies = packageJson.devDependencies || {};
+      if (!packageJson.devDependencies['nodemon']) {
+        packageJson.devDependencies['nodemon'] = '^3.0.1';
+        updated = true;
+      }
+      if (!packageJson.devDependencies['tsx']) {
+        packageJson.devDependencies['tsx'] = '^4.20.5';
+        updated = true;
+      }
+
+      // Add scripts if they don't exist
+      packageJson.scripts = packageJson.scripts || {};
+      if (!packageJson.scripts['dev:api']) {
+        packageJson.scripts['dev:api'] = 'API_ONLY=true nodemon --exec tsx src/api/server.ts';
+        updated = true;
+      }
+      if (!packageJson.scripts['build:api']) {
+        packageJson.scripts['build:api'] = 'tsc --project tsconfig.api.json';
+        updated = true;
+      }
+      if (!packageJson.scripts['start:api']) {
+        packageJson.scripts['start:api'] = 'node dist/api/server.js';
+        updated = true;
+      }
+
+      if (updated) {
+        await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+        createdFiles.push('package.json (updated)');
+      } else {
+        skippedFiles.push('package.json (no changes needed)');
+      }
+
+    } catch (error) {
+      skippedFiles.push('package.json (update failed)');
+    }
+  }
+  // If package.json doesn't exist, it will be created by copyDirectorySafe
 }
 
 /**
@@ -109,10 +359,27 @@ async function generateFeatureScaffolding(featuresPath, name, options) {
   const templatesPath = path.join(__dirname, `../templates/${templateDir}`);
 
   try {
-    // Generate TypeScript files from templates
+    // Generate core feature files
     await generateFromTemplate(templatesPath, 'feature.route.ts.template', featurePath, `${name}.route.ts`, name);
     await generateFromTemplate(templatesPath, 'feature.service.ts.template', featurePath, `${name}.service.ts`, name);
     await generateFromTemplate(templatesPath, 'feature.types.ts.template', featurePath, `${name}.types.ts`, name);
+
+    // Generate .http file for all features
+    await generateFromTemplate(templatesPath, 'feature.http.template', featurePath, `${name}.http`, name);
+
+    console.log(`  ✅ Generated ${name}.route.ts`);
+    console.log(`  ✅ Generated ${name}.service.ts`);
+    console.log(`  ✅ Generated ${name}.types.ts`);
+    console.log(`  ✅ Generated ${name}.http`);
+
+    // Generate additional files for database features
+    if (withDb) {
+      await generateFromTemplate(templatesPath, 'feature.model.ts.template', featurePath, `${name}.model.ts`, name);
+      console.log(`  ✅ Generated ${name}.model.ts`);
+
+      // Generate seeding files
+      await generateSeedingFiles(templatesPath, name);
+    }
 
     console.log(`✅ Created feature directory: ${name}/ ${withDb ? '(with database support)' : ''}`);
   } catch (error) {
@@ -134,19 +401,32 @@ async function generateFromTemplate(templatesPath, templateFile, outputPath, out
     const currentDir = process.cwd();
     const packageJsonPath = path.join(currentDir, 'package.json');
     const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
-    const projectName = packageJson.name || 'my-project';
+    const projectName = packageJson.name || path.basename(currentDir);
+
+    // Get frontend key from .env file
+    let frontendKey = 'frontend_dev_2024_test_key_12345'; // default
+    try {
+      const envPath = path.join(currentDir, '.env');
+      const envContent = await fs.readFile(envPath, 'utf8');
+      const keyMatch = envContent.match(/VOILA_FRONTEND_KEY\s*=\s*["']?([^"'\n\r]+)["']?/);
+      if (keyMatch) {
+        frontendKey = keyMatch[1];
+      }
+    } catch (error) {
+      // Use default if .env doesn't exist or can't be read
+    }
 
     // Replace template variables
     const processedContent = templateContent
       .replace(/\{\{featureName\}\}/g, featureName)
       .replace(/\{\{FeatureName\}\}/g, featureName.charAt(0).toUpperCase() + featureName.slice(1))
-      .replace(/\{\{projectName\}\}/g, projectName);
+      .replace(/\{\{tableName\}\}/g, featureName)
+      .replace(/\{\{projectName\}\}/g, projectName)
+      .replace(/\{\{frontendKey\}\}/g, frontendKey);
 
     // Write output file
     const outputFilePath = path.join(outputPath, outputFile);
     await fs.writeFile(outputFilePath, processedContent, 'utf8');
-
-    console.log(`  ✅ Generated ${outputFile}`);
   } catch (error) {
     console.error(`❌ Failed to generate ${outputFile} from template ${templateFile}:`, error.message);
     throw error;
@@ -166,23 +446,15 @@ async function handleDatabaseIntegration(projectDir, featureName) {
 
     if (!packageJson.dependencies?.prisma && !packageJson.devDependencies?.prisma) {
       console.log(`📦 Installing Prisma...`);
-      // Note: In a real implementation, you would run npm install prisma here
       console.log(`⚠️  Please run: npm install prisma @prisma/client`);
     }
 
     // Check if prisma/schema.prisma exists
     const schemaPath = path.join(projectDir, 'prisma/schema.prisma');
-    let schemaExists = false;
-
-    try {
-      await fs.access(schemaPath);
-      schemaExists = true;
-    } catch {
-      // Schema doesn't exist, will create it
-    }
+    const schemaExists = await fileExists(schemaPath);
 
     if (!schemaExists) {
-      // Create prisma directory and basic schema
+      // Create prisma directory and basic schema with first model
       await fs.mkdir(path.join(projectDir, 'prisma'), { recursive: true });
 
       const basicSchema = `// This is your Prisma schema file,
@@ -197,22 +469,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model ${featureName.charAt(0).toUpperCase() + featureName.slice(1)} {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 `;
-      await fs.writeFile(schemaPath, basicSchema, 'utf8');
-      console.log(`✅ Created prisma/schema.prisma`);
+
+      await fs.writeFile(schemaPath, basicSchema);
+      console.log(`✅ Created prisma/schema.prisma with ${featureName} model`);
+    } else {
+      // Schema exists, check if model already exists
+      const schemaContent = await fs.readFile(schemaPath, 'utf8');
+      const modelName = featureName.charAt(0).toUpperCase() + featureName.slice(1);
+      const modelPattern = new RegExp(`model\\s+${modelName}\\s*\\{`, 'i');
+
+      if (modelPattern.test(schemaContent)) {
+        console.log(`⚠️  Model "${modelName}" already exists in schema. Skipping...`);
+      } else {
+        // Append new model to existing schema
+        const newModel = `
+model ${modelName} {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+`;
+
+        await fs.appendFile(schemaPath, newModel);
+        console.log(`✅ Added ${modelName} model to existing schema`);
+      }
     }
 
-    // Add model to schema
-    await addModelToSchema(schemaPath, featureName);
-
-    // Create or update .env file
-    await ensureDatabaseUrl(projectDir);
-
-    // Run Prisma commands automatically
-    await runPrismaCommands(projectDir);
-
-    console.log(`✅ Database integration completed for ${featureName}`);
-
+    console.log(`📊 Database integration ready! Run 'npx prisma generate' to update the client.`);
   } catch (error) {
     console.error(`❌ Failed to setup database integration: ${error.message}`);
     throw error;
@@ -220,30 +511,250 @@ datasource db {
 }
 
 /**
- * Add model to Prisma schema
+ * Generate seeding files for database features
  */
-async function addModelToSchema(schemaPath, featureName) {
+async function generateSeedingFiles(templatesPath, featureName) {
   try {
-    // Read existing schema
-    const schemaContent = await fs.readFile(schemaPath, 'utf8');
+    const currentDir = process.cwd();
+    const seedingDir = path.join(currentDir, 'prisma', 'seeding');
 
-    // Read model template
-    const templatePath = path.join(__dirname, '../templates/feature-db/schema-addition.prisma.template');
-    const modelTemplate = await fs.readFile(templatePath, 'utf8');
+    // Create seeding directory if it doesn't exist
+    await fs.mkdir(seedingDir, { recursive: true });
 
-    // Replace template variables
-    const modelContent = modelTemplate
-      .replace(/\{\{featureName\}\}/g, featureName)
-      .replace(/\{\{FeatureName\}\}/g, featureName.charAt(0).toUpperCase() + featureName.slice(1));
+    // Generate feature seed file
+    const seedingTemplatesPath = path.join(templatesPath, 'seeding');
+    await generateFromTemplate(seedingTemplatesPath, 'feature.seed.js.template', seedingDir, `${featureName}.seed.js`, featureName);
 
-    // Append model to schema
-    const updatedSchema = schemaContent + '\n' + modelContent + '\n';
+    // Generate README if it doesn't exist
+    const readmePath = path.join(seedingDir, 'README.md');
+    const readmeExists = await fileExists(readmePath);
+    if (!readmeExists) {
+      await generateFromTemplate(seedingTemplatesPath, 'README.md.template', seedingDir, 'README.md', featureName);
+      console.log(`  ✅ Generated seeding/README.md`);
+    }
 
-    await fs.writeFile(schemaPath, updatedSchema, 'utf8');
-    console.log(`✅ Added ${featureName.charAt(0).toUpperCase() + featureName.slice(1)} model to schema.prisma`);
-
+    console.log(`  ✅ Generated seeding/${featureName}.seed.js`);
   } catch (error) {
-    console.error(`❌ Failed to add model to schema: ${error.message}`);
+    console.error(`❌ Failed to generate seeding files: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Install dependencies
+ */
+function installDependencies(projectPath) {
+  return new Promise((resolve, reject) => {
+    const npm = spawn('npm', ['install'], {
+      cwd: projectPath,
+      stdio: 'inherit'
+    });
+
+    npm.on('close', (code) => {
+      if (code === 0) {
+        console.log('✅ Dependencies installed');
+        resolve();
+      } else {
+        reject(new Error(`npm install failed with code ${code}`));
+      }
+    });
+  });
+}
+
+/**
+ * Check if file exists
+ */
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate FBCA structure for feature generation
+ */
+async function validateFBCAStructure(projectDir) {
+  const requiredPaths = [
+    { path: 'src', name: 'src directory' },
+    { path: 'src/api', name: 'src/api directory' },
+    { path: 'src/api/features', name: 'features directory' },
+    { path: 'src/api/lib', name: 'lib directory' },
+    { path: 'src/api/server.ts', name: 'server.ts file' },
+    { path: 'src/api/lib/api-router.ts', name: 'api-router.ts file' }
+  ];
+
+  const missingPaths = [];
+
+  for (const required of requiredPaths) {
+    const fullPath = path.join(projectDir, required.path);
+    if (!await fileExists(fullPath)) {
+      missingPaths.push(required.name);
+    }
+  }
+
+  if (missingPaths.length > 0) {
+    console.error('❌ Inconsistent FBCA structure detected. Missing:');
+    missingPaths.forEach(missing => console.error(`   • ${missing}`));
+    console.log('\n💡 To fix this, run: npx appkit generate app');
+    console.log('   This will safely add missing AppKit files without overwriting existing ones.');
+    process.exit(1);
+  }
+
+
+  return path.join(projectDir, 'src/api/features');
+}
+
+/**
+ * Generate user authentication feature with complete setup
+ */
+async function generateUserFeature(featuresPath, name, projectDir) {
+  const featurePath = path.join(featuresPath, name);
+  await fs.mkdir(featurePath, { recursive: true });
+
+  const templatesPath = path.join(__dirname, `../templates/feature-user`);
+
+  try {
+    // Generate user-specific files from templates
+    await generateFromTemplate(templatesPath, 'user.route.ts.template', featurePath, 'user.route.ts', name);
+    await generateFromTemplate(templatesPath, 'user.service.ts.template', featurePath, 'user.service.ts', name);
+    await generateFromTemplate(templatesPath, 'user.types.ts.template', featurePath, 'user.types.ts', name);
+    await generateFromTemplate(templatesPath, 'user.model.ts.template', featurePath, 'user.model.ts', name);
+    await generateFromTemplate(templatesPath, 'user.http.template', featurePath, 'user.http', name);
+
+    console.log(`  ✅ Generated user.route.ts`);
+    console.log(`  ✅ Generated user.service.ts`);
+    console.log(`  ✅ Generated user.types.ts`);
+    console.log(`  ✅ Generated user.model.ts`);
+    console.log(`  ✅ Generated user.http`);
+
+    // Handle user database integration
+    await handleUserDatabaseIntegration(projectDir);
+
+    // Generate user seeding files
+    await generateUserSeedingFiles(templatesPath, projectDir);
+
+    console.log(`✅ Created user authentication feature with complete setup`);
+  } catch (error) {
+    console.error(`❌ Failed to generate user feature from templates: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Handle database integration for user feature
+ */
+async function handleUserDatabaseIntegration(projectDir) {
+  try {
+    console.log(`🗄️  Setting up user database integration...`);
+
+    // Check if prisma/schema.prisma exists
+    const schemaPath = path.join(projectDir, 'prisma/schema.prisma');
+    const schemaExists = await fileExists(schemaPath);
+
+    if (!schemaExists) {
+      // Create prisma directory and schema with User model
+      await fs.mkdir(path.join(projectDir, 'prisma'), { recursive: true });
+
+      const userSchema = `// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  password          String
+  name              String?
+  phone             String?
+  role              String    @default("user")
+  level             String    @default("basic")
+  tenantId          String?
+  isVerified        Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  lastLogin         DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("users")
+}
+`;
+
+      await fs.writeFile(schemaPath, userSchema);
+      console.log(`✅ Created prisma/schema.prisma with User model`);
+    } else {
+      // Schema exists, check if User model already exists
+      const schemaContent = await fs.readFile(schemaPath, 'utf8');
+      const userModelPattern = /model\s+User\s*\{/i;
+
+      if (userModelPattern.test(schemaContent)) {
+        console.log(`⚠️  User model already exists in schema. Skipping...`);
+      } else {
+        // Append User model to existing schema
+        const userModel = `
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  password          String
+  name              String?
+  phone             String?
+  role              String    @default("user")
+  level             String    @default("basic")
+  tenantId          String?
+  isVerified        Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  lastLogin         DateTime?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("users")
+}
+`;
+
+        await fs.appendFile(schemaPath, userModel);
+        console.log(`✅ Added User model to existing schema`);
+      }
+    }
+
+    // Create or update .env file with DATABASE_URL
+    await ensureDatabaseUrl(projectDir);
+
+    console.log(`📊 User database integration ready!`);
+  } catch (error) {
+    console.error(`❌ Failed to setup user database integration: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Generate user seeding files
+ */
+async function generateUserSeedingFiles(templatesPath, projectDir) {
+  try {
+    const seedingDir = path.join(projectDir, 'prisma', 'seeding');
+
+    // Create seeding directory if it doesn't exist
+    await fs.mkdir(seedingDir, { recursive: true });
+
+    // Generate user seed file
+    await generateFromTemplate(templatesPath, 'user.seed.js.template', seedingDir, 'user.seed.js', 'user');
+
+    console.log(`  ✅ Generated seeding/user.seed.js`);
+  } catch (error) {
+    console.error(`❌ Failed to generate user seeding files: ${error.message}`);
     throw error;
   }
 }
@@ -277,75 +788,5 @@ async function ensureDatabaseUrl(projectDir) {
   }
 }
 
-/**
- * Run Prisma commands automatically
- */
-async function runPrismaCommands(projectDir) {
-  const { spawn } = await import('child_process');
-
-  try {
-    console.log(`🔄 Running Prisma database setup...`);
-
-    // Run prisma db push
-    await new Promise((resolve, reject) => {
-      const dbPush = spawn('npx', ['prisma', 'db', 'push'], {
-        cwd: projectDir,
-        stdio: 'pipe'
-      });
-
-      let output = '';
-      let errorOutput = '';
-
-      dbPush.stdout?.on('data', (data) => {
-        output += data.toString();
-      });
-
-      dbPush.stderr?.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      dbPush.on('close', (code) => {
-        if (code === 0) {
-          console.log(`✅ Database schema applied`);
-          resolve(undefined);
-        } else {
-          console.error(`❌ prisma db push failed: ${errorOutput}`);
-          reject(new Error(`prisma db push failed with code ${code}`));
-        }
-      });
-    });
-
-    // Run prisma generate
-    await new Promise((resolve, reject) => {
-      const generate = spawn('npx', ['prisma', 'generate'], {
-        cwd: projectDir,
-        stdio: 'pipe'
-      });
-
-      let output = '';
-      let errorOutput = '';
-
-      generate.stdout?.on('data', (data) => {
-        output += data.toString();
-      });
-
-      generate.stderr?.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      generate.on('close', (code) => {
-        if (code === 0) {
-          console.log(`✅ Prisma client generated`);
-          resolve(undefined);
-        } else {
-          console.error(`❌ prisma generate failed: ${errorOutput}`);
-          reject(new Error(`prisma generate failed with code ${code}`));
-        }
-      });
-    });
-
-  } catch (error) {
-    console.error(`❌ Failed to run Prisma commands: ${error.message}`);
-    throw error;
-  }
-}
+// Legacy export for backward compatibility
+export const createProject = (name, options) => generate('app', name, options);

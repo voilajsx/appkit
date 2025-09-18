@@ -94,6 +94,10 @@ export declare class PrismaAdapter {
      */
     private _getTenantRegistryModel;
     /**
+     * Resolve database URL with fallback paths for SQLite files
+     */
+    private _resolveDatabaseUrl;
+    /**
      * Mask URL for logging (hide credentials)
      */
     private _maskUrl;

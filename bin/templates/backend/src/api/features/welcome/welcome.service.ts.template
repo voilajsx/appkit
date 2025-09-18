@@ -1,7 +1,7 @@
 /**
- * Greeting Feature Service - Business logic with AppKit integration
- * @module {{projectName}}/greeting-service
- * @file src/api/features/greeting/greeting.service.ts
+ * Welcome Feature Service - Business logic with AppKit integration
+ * @module {{projectName}}/welcome-service
+ * @file {{projectName}}/src/api/features/{featureName}/{featureName}.service.ts
  *
  * @llm-rule WHEN: Need business logic layer with validation, logging, and config
  * @llm-rule AVOID: Direct database calls from routes - always use service layer
@@ -11,26 +11,26 @@
 import { loggerClass } from '@voilajsx/appkit/logger';
 import { configClass } from '@voilajsx/appkit/config';
 import { errorClass } from '@voilajsx/appkit/error';
-import type { GreetingResponse, PersonalizedGreetingResponse } from './greeting.types.js';
+import type { WelcomeResponse, PersonalizedWelcomeResponse } from './welcome.types.js';
 
 // Initialize AppKit modules following the pattern
-const logger = loggerClass.get('greeting');
+const logger = loggerClass.get('welcome');
 const config = configClass.get();
 const error = errorClass.get();
 
-export const greetingService = {
+export const welcomeService = {
   /**
    * Get basic hello message
    */
-  async getHello(): Promise<GreetingResponse> {
+  async getHello(): Promise<WelcomeResponse> {
     try {
       logger.info('Processing basic hello request');
 
-      // Get default greeting from config (with fallback)
-      const defaultGreeting = config.get('greeting.default', 'hello');
+      // Get default welcome from config (with fallback)
+      const defaultWelcome = config.get('welcome.default', 'hello') as string;
 
-      const result = {
-        message: defaultGreeting,
+      const result: WelcomeResponse = {
+        message: defaultWelcome,
         timestamp: new Date().toISOString()
       };
 
@@ -39,14 +39,14 @@ export const greetingService = {
 
     } catch (err) {
       logger.error('Failed to process basic hello request', { error: err });
-      throw error.serverError('Failed to generate greeting');
+      throw error.serverError('Failed to generate welcome message');
     }
   },
 
   /**
    * Get hello message with name
    */
-  async getHelloWithName(name: string): Promise<PersonalizedGreetingResponse> {
+  async getHelloWithName(name: string): Promise<PersonalizedWelcomeResponse> {
     try {
       logger.info('Processing personalized hello request', { name });
 
@@ -61,9 +61,9 @@ export const greetingService = {
         throw error.badRequest('Name must be less than 100 characters');
       }
 
-      // Get greeting format from config
-      const greetingFormat = config.get('greeting.format', 'hello {name}') as string;
-      const message = greetingFormat.replace('{name}', name);
+      // Get welcome format from config
+      const welcomeFormat = config.get('welcome.format', 'hello {name}') as string;
+      const message = welcomeFormat.replace('{name}', name);
 
       const result = {
         message,
@@ -82,7 +82,7 @@ export const greetingService = {
 
       // Convert other errors to server errors
       logger.error('Failed to process personalized hello request', { name, error: err });
-      throw error.serverError('Failed to generate personalized greeting');
+      throw error.serverError('Failed to generate personalized welcome message');
     }
   }
 };

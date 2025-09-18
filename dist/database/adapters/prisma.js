@@ -38,9 +38,15 @@ export class PrismaAdapter {
             try {
                 // Load app-specific Prisma client
                 const PrismaClient = await this._loadPrismaClientForApp(appName);
+                // Use original URL directly (don't resolve) to match working direct Prisma client
+                if (this.isDevelopment) {
+                    console.log('🔍 [AppKit DB Debug] Using original URL:', url);
+                }
+                console.log('🔍 [AppKit DB Debug] Masked URL:', url);
+                // Use the exact same config as the working direct Prisma client
                 const client = new PrismaClient({
                     datasources: {
-                        db: { url },
+                        db: { url: url },
                     },
                     log: this.isDevelopment ? ['error', 'warn'] : ['error'],
                     ...options,
@@ -393,14 +399,16 @@ export class PrismaAdapter {
             `./apps/${appName}/prisma/generated/client/index.js`,
             `../apps/${appName}/prisma/generated/client/index.js`,
             `../../apps/${appName}/prisma/generated/client/index.js`,
+            `./node_modules/@prisma/client/index.js`,
             '@prisma/client', // Global fallback
         ];
         for (const clientPath of fallbackPaths) {
             try {
                 const module = await import(clientPath);
                 if (module.PrismaClient) {
+                    console.log(`🔍 [AppKit DB Debug] Loaded Prisma client from: ${clientPath} ${module.PrismaClient}`);
                     if (this.isDevelopment) {
-                        console.log(`✅ [AppKit] Found Prisma client at: ${clientPath}`);
+                        console.log(`✅ [AppKit] Found Prisma client at - ${clientPath}`);
                     }
                     return module.PrismaClient;
                 }
@@ -409,6 +417,7 @@ export class PrismaAdapter {
                 }
             }
             catch (error) {
+                console.log(`❌ [AppKit] Failed to load Prisma client at: ${clientPath}`);
                 continue;
             }
         }
@@ -431,6 +440,43 @@ export class PrismaAdapter {
             }
         }
         return null;
+    }
+    /**
+     * Resolve database URL with fallback paths for SQLite files
+     */
+    _resolveDatabaseUrl(url) {
+        // Only process file:// URLs (SQLite)
+        if (!url.startsWith('file:')) {
+            return url;
+        }
+        // Extract the file path from the URL
+        const filePath = url.replace(/^file:/, '');
+        // If it's an absolute path, return as-is
+        if (path.isAbsolute(filePath)) {
+            return url;
+        }
+        // For relative paths, check multiple locations
+        const fallbackPaths = [
+            filePath, // Original path (e.g., "dev.db")
+            `prisma/${filePath}`, // Check in prisma folder
+            `./prisma/${filePath}`, // Check in ./prisma folder
+            `data/${filePath}`, // Check in data folder
+        ];
+        for (const testPath of fallbackPaths) {
+            const fullPath = path.resolve(process.cwd(), testPath);
+            if (fs.existsSync(fullPath)) {
+                const resolvedUrl = `file:${testPath}`;
+                if (this.isDevelopment) {
+                    console.log(`📂 [AppKit] Database found at: ${testPath}`);
+                }
+                return resolvedUrl;
+            }
+        }
+        // If no file found, return original URL (Prisma will create it)
+        if (this.isDevelopment) {
+            console.log(`📂 [AppKit] Database will be created at: ${filePath}`);
+        }
+        return url;
     }
     /**
      * Mask URL for logging (hide credentials)

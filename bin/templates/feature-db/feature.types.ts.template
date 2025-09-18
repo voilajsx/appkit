@@ -9,9 +9,8 @@
  */
 
 export interface {{FeatureName}}Response {
-  id: string;
+  id: number;
   name: string;
-  description: string | null;
   tenant_id: string | null;
   createdAt: string;
   updatedAt: string;
@@ -19,10 +18,8 @@ export interface {{FeatureName}}Response {
 
 export interface {{FeatureName}}CreateRequest {
   name: string;
-  description?: string;
 }
 
 export interface {{FeatureName}}UpdateRequest {
   name?: string;
-  description?: string;
 }

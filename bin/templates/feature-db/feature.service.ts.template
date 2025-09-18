@@ -9,14 +9,12 @@
  */
 
 import { loggerClass } from '@voilajsx/appkit/logger';
-import { configClass } from '@voilajsx/appkit/config';
 import { errorClass } from '@voilajsx/appkit/error';
-import { databaseClass } from '@voilajsx/appkit/database';
+import { model } from './{{featureName}}.model.js';
 import type { {{FeatureName}}Response, {{FeatureName}}CreateRequest, {{FeatureName}}UpdateRequest } from './{{featureName}}.types.js';
 
 // Initialize AppKit modules following the pattern
 const logger = loggerClass.get('{{featureName}}');
-const config = configClass.get();
 const error = errorClass.get();
 
 export const {{featureName}}Service = {
@@ -27,15 +25,10 @@ export const {{featureName}}Service = {
     try {
       logger.info('Processing get all {{featureName}} request');
 
-      // Get database client with automatic tenant filtering
-      const db = await databaseClass.get();
-
-      const items = await db.{{featureName}}.findMany({
-        orderBy: { createdAt: 'desc' }
-      });
+      const items = await model.findAll();
 
       // Transform to response format
-      const result = items.map(item => ({
+      const result = items.map((item: any) => ({
         ...item,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString()
@@ -57,18 +50,14 @@ export const {{featureName}}Service = {
     try {
       logger.info('Processing get {{featureName}} by ID request', { id });
 
-      // Validate input
-      if (!id || typeof id !== 'string') {
+      // Validate and convert ID to number
+      const numId = parseInt(id, 10);
+      if (!id || isNaN(numId)) {
         logger.warn('Invalid ID provided', { id });
-        throw error.badRequest('ID must be a valid string');
+        throw error.badRequest('ID must be a valid number');
       }
 
-      // Get database client with automatic tenant filtering
-      const db = await databaseClass.get();
-
-      const item = await db.{{featureName}}.findUnique({
-        where: { id }
-      });
+      const item = await model.findById(numId);
 
       if (!item) {
         logger.warn('{{FeatureName}} not found', { id });
@@ -115,19 +104,8 @@ export const {{featureName}}Service = {
         throw error.badRequest('Name must be less than 200 characters');
       }
 
-      if (data.description && data.description.length > 1000) {
-        logger.warn('Description too long', { descriptionLength: data.description.length });
-        throw error.badRequest('Description must be less than 1000 characters');
-      }
-
-      // Get database client with automatic tenant filtering
-      const db = await databaseClass.get();
-
-      const item = await db.{{featureName}}.create({
-        data: {
-          name: data.name.trim(),
-          description: data.description?.trim() || null,
-        }
+      const item = await model.create({
+        name: data.name.trim()
       });
 
       // Transform to response format
@@ -159,10 +137,11 @@ export const {{featureName}}Service = {
     try {
       logger.info('Processing update {{featureName}} request', { id, data });
 
-      // Validate input
-      if (!id || typeof id !== 'string') {
+      // Validate and convert ID to number
+      const numId = parseInt(id, 10);
+      if (!id || isNaN(numId)) {
         logger.warn('Invalid ID provided', { id });
-        throw error.badRequest('ID must be a valid string');
+        throw error.badRequest('ID must be a valid number');
       }
 
       if (data.name !== undefined) {
@@ -176,18 +155,8 @@ export const {{featureName}}Service = {
         }
       }
 
-      if (data.description !== undefined && data.description !== null && data.description.length > 1000) {
-        logger.warn('Description too long', { descriptionLength: data.description.length });
-        throw error.badRequest('Description must be less than 1000 characters');
-      }
-
-      // Get database client with automatic tenant filtering
-      const db = await databaseClass.get();
-
       // Check if item exists
-      const existingItem = await db.{{featureName}}.findUnique({
-        where: { id }
-      });
+      const existingItem = await model.findById(numId);
 
       if (!existingItem) {
         logger.warn('{{FeatureName}} not found for update', { id });
@@ -197,12 +166,8 @@ export const {{featureName}}Service = {
       // Build update data
       const updateData: any = {};
       if (data.name !== undefined) updateData.name = data.name.trim();
-      if (data.description !== undefined) updateData.description = data.description?.trim() || null;
 
-      const item = await db.{{featureName}}.update({
-        where: { id },
-        data: updateData
-      });
+      const item = await model.update(numId, updateData);
 
       // Transform to response format
       const result = {
@@ -233,28 +198,22 @@ export const {{featureName}}Service = {
     try {
       logger.info('Processing delete {{featureName}} request', { id });
 
-      // Validate input
-      if (!id || typeof id !== 'string') {
+      // Validate and convert ID to number
+      const numId = parseInt(id, 10);
+      if (!id || isNaN(numId)) {
         logger.warn('Invalid ID provided', { id });
-        throw error.badRequest('ID must be a valid string');
+        throw error.badRequest('ID must be a valid number');
       }
 
-      // Get database client with automatic tenant filtering
-      const db = await databaseClass.get();
-
       // Check if item exists
-      const existingItem = await db.{{featureName}}.findUnique({
-        where: { id }
-      });
+      const existingItem = await model.findById(numId);
 
       if (!existingItem) {
         logger.warn('{{FeatureName}} not found for deletion', { id });
         throw error.notFound('{{FeatureName}} not found');
       }
 
-      await db.{{featureName}}.delete({
-        where: { id }
-      });
+      await model.delete(numId);
 
       logger.info('Delete {{featureName}} request completed', { id });
 

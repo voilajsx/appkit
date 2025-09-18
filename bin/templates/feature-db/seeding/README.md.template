@@ -1,0 +1,57 @@
+# Database Seeding
+
+This folder contains individual seed files for each feature. Each seed file is independent and can be run separately.
+
+## Running Individual Seeds
+
+```bash
+# Seed {{featureName}} data only
+node prisma/seeding/{{featureName}}.seed.js
+```
+
+## Running All Seeds
+
+Create a main seed file in your project root to run all feature seeds:
+
+```javascript
+// prisma/seed.js
+import { seed{{FeatureName}} } from './seeding/{{featureName}}.seed.js';
+
+async function main() {
+  console.log('🌱 Starting database seeding...');
+
+  await seed{{FeatureName}}();
+  // Add other feature seeds here as you create them
+
+  console.log('✅ Database seeding completed!');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+```
+
+## Adding to package.json
+
+Add these scripts to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "seed": "node prisma/seed.js",
+    "seed:{{featureName}}": "node prisma/seeding/{{featureName}}.seed.js"
+  }
+}
+```
+
+## Features
+
+- ✅ **Non-destructive**: Won't overwrite existing data
+- ✅ **Independent**: Each feature can be seeded separately
+- ✅ **Safe**: Checks for existing data before seeding
+- ✅ **Informative**: Clear console output about what's happening
