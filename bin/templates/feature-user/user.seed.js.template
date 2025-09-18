@@ -2,6 +2,9 @@
  * User Feature Seed Data - Creates all 9 role accounts for testing
  * @file prisma/seeding/user.seed.js
  *
+ * Requires DEFAULT_USER_PASSWORD environment variable to be set.
+ * This ensures no hardcoded passwords in the repository.
+ *
  * Run this seed file individually:
  * node prisma/seeding/user.seed.js
  *
@@ -26,8 +29,11 @@ export async function seedUsers() {
       return { skipped: true, count: existingCount };
     }
 
-    // Hash default password for all accounts
-    const defaultPassword = 'Password123!';
+    // Hash default password for all accounts (from environment)
+    const defaultPassword = process.env.DEFAULT_USER_PASSWORD;
+    if (!defaultPassword) {
+      throw new Error('DEFAULT_USER_PASSWORD environment variable is required for seeding');
+    }
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
     // Create all 9 role accounts based on AppKit's role hierarchy
@@ -135,7 +141,7 @@ export async function seedUsers() {
 
     console.log(`✅ Successfully seeded ${result.count} user accounts with all 9 roles`);
     console.log('📋 Test accounts created:');
-    console.log('   Default password for all accounts: Password123!');
+    console.log(`   Default password for all accounts: ${defaultPassword}`);
     console.log(`
 👤 USER ACCOUNTS:
    • user.basic@{{projectName}}.com (role: user.basic)

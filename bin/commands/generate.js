@@ -72,12 +72,17 @@ async function generateApp(name, options) {
       }
     }
 
-    // Generate shared random frontend key for the project
+    // Generate shared random keys for the project
     const randomFrontendKey = 'voila_' + Math.random().toString(36).substring(2, 15) +
                              Math.random().toString(36).substring(2, 15);
+    const randomAuthSecret = 'auth_' + Math.random().toString(36).substring(2, 15) +
+                            Math.random().toString(36).substring(2, 15) +
+                            Math.random().toString(36).substring(2, 15);
+    const randomDefaultPassword = Math.random().toString(36).substring(2, 8) +
+                                 Math.random().toString(36).substring(2, 6);
 
     // Copy backend structure with smart file handling
-    await copyDirectorySafe(templatesPath, projectPath, projectName, createdFiles, skippedFiles, ['api.http.template'], randomFrontendKey);
+    await copyDirectorySafe(templatesPath, projectPath, projectName, createdFiles, skippedFiles, ['api.http.template'], randomFrontendKey, randomAuthSecret, randomDefaultPassword);
 
     // Handle package.json smartly
     await handlePackageJson(projectPath, projectName, createdFiles, skippedFiles);
@@ -230,7 +235,7 @@ async function generateFeature(name, options) {
 /**
  * Copy directory recursively with safe non-destructive behavior
  */
-async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFiles, excludeFiles = [], sharedFrontendKey = null) {
+async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFiles, excludeFiles = [], sharedFrontendKey = null, sharedAuthSecret = null, sharedDefaultPassword = null) {
   await fs.mkdir(dest, { recursive: true });
 
   const entries = await fs.readdir(src, { withFileTypes: true });
@@ -245,7 +250,7 @@ async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFi
     const destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await copyDirectorySafe(srcPath, destPath, projectName, createdFiles, skippedFiles, excludeFiles, sharedFrontendKey);
+      await copyDirectorySafe(srcPath, destPath, projectName, createdFiles, skippedFiles, excludeFiles, sharedFrontendKey, sharedAuthSecret);
     } else {
       // Remove .template extension for final path
       const finalDestPath = destPath.endsWith('.template')
@@ -262,14 +267,21 @@ async function copyDirectorySafe(src, dest, projectName, createdFiles, skippedFi
       // Read and process template
       let content = await fs.readFile(srcPath, 'utf8');
 
-      // Use shared frontend key or generate one if not provided
+      // Use shared keys or generate them if not provided
       const frontendKey = sharedFrontendKey || ('voila_' + Math.random().toString(36).substring(2, 15) +
                                                Math.random().toString(36).substring(2, 15));
+      const authSecret = sharedAuthSecret || ('auth_' + Math.random().toString(36).substring(2, 15) +
+                                             Math.random().toString(36).substring(2, 15) +
+                                             Math.random().toString(36).substring(2, 15));
+      const defaultPassword = sharedDefaultPassword || (Math.random().toString(36).substring(2, 8) +
+                                                       Math.random().toString(36).substring(2, 6));
 
       content = content
         .replace(/\{\{projectName\}\}/g, projectName)
         .replace(/\{\{randomFrontendKey\}\}/g, frontendKey)
-        .replace(/\{\{frontendKey\}\}/g, frontendKey);
+        .replace(/\{\{frontendKey\}\}/g, frontendKey)
+        .replace(/\{\{randomAuthSecret\}\}/g, authSecret)
+        .replace(/\{\{randomDefaultPassword\}\}/g, defaultPassword);
 
       // Write file
       await fs.writeFile(finalDestPath, content);
@@ -403,8 +415,10 @@ async function generateFromTemplate(templatesPath, templateFile, outputPath, out
     const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
     const projectName = packageJson.name || path.basename(currentDir);
 
-    // Get frontend key from .env file
+    // Get keys from .env file
     let frontendKey = 'frontend_dev_2024_test_key_12345'; // default
+    let authSecret = 'auth_default_secret_12345678901234567890'; // default
+    let defaultPassword = 'default123'; // default
     try {
       const envPath = path.join(currentDir, '.env');
       const envContent = await fs.readFile(envPath, 'utf8');
@@ -412,8 +426,16 @@ async function generateFromTemplate(templatesPath, templateFile, outputPath, out
       if (keyMatch) {
         frontendKey = keyMatch[1];
       }
+      const authMatch = envContent.match(/VOILA_AUTH_SECRET\s*=\s*["']?([^"'\n\r]+)["']?/);
+      if (authMatch) {
+        authSecret = authMatch[1];
+      }
+      const passwordMatch = envContent.match(/DEFAULT_USER_PASSWORD\s*=\s*["']?([^"'\n\r]+)["']?/);
+      if (passwordMatch) {
+        defaultPassword = passwordMatch[1];
+      }
     } catch (error) {
-      // Use default if .env doesn't exist or can't be read
+      // Use defaults if .env doesn't exist or can't be read
     }
 
     // Replace template variables
@@ -422,7 +444,9 @@ async function generateFromTemplate(templatesPath, templateFile, outputPath, out
       .replace(/\{\{FeatureName\}\}/g, featureName.charAt(0).toUpperCase() + featureName.slice(1))
       .replace(/\{\{tableName\}\}/g, featureName)
       .replace(/\{\{projectName\}\}/g, projectName)
-      .replace(/\{\{frontendKey\}\}/g, frontendKey);
+      .replace(/\{\{frontendKey\}\}/g, frontendKey)
+      .replace(/\{\{randomAuthSecret\}\}/g, authSecret)
+      .replace(/\{\{randomDefaultPassword\}\}/g, defaultPassword);
 
     // Write output file
     const outputFilePath = path.join(outputPath, outputFile);
@@ -760,7 +784,7 @@ async function generateUserSeedingFiles(templatesPath, projectDir) {
 }
 
 /**
- * Ensure DATABASE_URL exists in .env
+ * Ensure DATABASE_URL, VOILA_AUTH_SECRET, and DEFAULT_USER_PASSWORD exist in .env
  */
 async function ensureDatabaseUrl(projectDir) {
   const envPath = path.join(projectDir, '.env');
@@ -774,12 +798,39 @@ async function ensureDatabaseUrl(projectDir) {
       // .env doesn't exist, will create it
     }
 
+    let updated = false;
+
     // Check if DATABASE_URL already exists
     if (!envContent.includes('DATABASE_URL=')) {
       const databaseUrl = '\nDATABASE_URL="file:./dev.db"\n';
       envContent += databaseUrl;
-      await fs.writeFile(envPath, envContent, 'utf8');
+      updated = true;
       console.log(`✅ Added DATABASE_URL to .env`);
+    }
+
+    // Check if VOILA_AUTH_SECRET already exists
+    if (!envContent.includes('VOILA_AUTH_SECRET=')) {
+      const authSecret = 'auth_' + Math.random().toString(36).substring(2, 15) +
+                        Math.random().toString(36).substring(2, 15) +
+                        Math.random().toString(36).substring(2, 15);
+      const authSecretLine = '\nVOILA_AUTH_SECRET=' + authSecret + '\n';
+      envContent += authSecretLine;
+      updated = true;
+      console.log(`✅ Added VOILA_AUTH_SECRET to .env`);
+    }
+
+    // Check if DEFAULT_USER_PASSWORD already exists
+    if (!envContent.includes('DEFAULT_USER_PASSWORD=')) {
+      const defaultPassword = Math.random().toString(36).substring(2, 8) +
+                             Math.random().toString(36).substring(2, 6);
+      const passwordLine = '\nDEFAULT_USER_PASSWORD=' + defaultPassword + '\n';
+      envContent += passwordLine;
+      updated = true;
+      console.log(`✅ Added DEFAULT_USER_PASSWORD to .env`);
+    }
+
+    if (updated) {
+      await fs.writeFile(envPath, envContent, 'utf8');
     }
 
   } catch (error) {

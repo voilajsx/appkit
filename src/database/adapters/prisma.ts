@@ -495,7 +495,6 @@ export class PrismaAdapter {
       try {
         const module = await import(clientPath);
         if (module.PrismaClient) { 
-          console.log(`🔍 [AppKit DB Debug] Loaded Prisma client from: ${clientPath} ${module.PrismaClient}`);
          
           if (this.isDevelopment) {
             console.log(`✅ [AppKit] Found Prisma client at - ${clientPath}`);
