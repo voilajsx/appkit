@@ -34,6 +34,9 @@ coverage/
 *.swp
 *.swo
 
+# Claude Code configuration
+.claude/
+
 # OS files
 .DS_Store
 Thumbs.db
