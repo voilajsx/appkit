@@ -82,6 +82,16 @@ const acmeDatabase = await databaseClass.org('acme').get(); // Enterprise scalin
 
 ## 🚀 Quick Start
 
+**Two Ways to Use AppKit:**
+
+**📦 As a Library** - Install AppKit modules into your existing Node.js/Express projects (NestJS, Fastify, Koa, etc.):
+```bash
+npm install @voilajsx/appkit
+```
+Import modules directly: `import { authClass, databaseClass } from '@voilajsx/appkit'`
+
+**🚀 Complete Microservice Scaffolding** - Use AppKit CLI to generate enterprise-ready backend applications:
+
 ```bash
 # Step 1: Install AppKit CLI globally
 npm install -g @voilajsx/appkit
@@ -109,7 +119,7 @@ appkit generate feature user
 appkit generate feature order --db
 ```
 
-### **Manual Setup (Library Usage)**
+### **Library Integration Example**
 
 ```bash
 # For library usage in existing projects
