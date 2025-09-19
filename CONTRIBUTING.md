@@ -1,6 +1,6 @@
-# Contributing to @voilajs/appkit
+# Contributing to @voilajsx/appkit
 
-Thank you for your interest in contributing to @voilajs/appkit! We welcome
+Thank you for your interest in contributing to @voilajsx/appkit! We welcome
 contributions from the community and are excited to have you on board.
 
 ## Table of Contents
@@ -27,7 +27,7 @@ contributions from the community and are excited to have you on board.
    ```
 3. Add the upstream repository:
    ```bash
-   git remote add upstream https://github.com/voilajs/appkit.git
+   git remote add upstream https://github.com/voilajsx/appkit.git
    ```
 4. Create a new branch for your feature or fix:
    ```bash
@@ -66,11 +66,38 @@ contributions from the community and are excited to have you on board.
 appkit/
 ├── src/
 │   ├── auth/                    # Authentication module
-│   │   ├── docs/               # Module documentation
-│   │   ├── examples/           # Usage examples
-│   │   ├── tests/              # Test files
-│   │   └── *.js               # Source files
-│   └── [other-modules]/        # Other modules
+│   │   ├── auth.ts             # Core authentication class
+│   │   ├── defaults.ts         # Smart defaults and validation
+│   │   ├── index.ts            # Module exports
+│   │   └── README.md           # Module documentation
+│   ├── cache/                   # Cache module with Redis/Memory strategies
+│   │   └── strategies/         # Cache implementation strategies
+│   ├── config/                  # Configuration module
+│   │   ├── config.ts           # Core configuration class
+│   │   ├── defaults.ts         # Environment parsing and defaults
+│   │   ├── index.ts            # Module exports
+│   │   └── README.md           # Module documentation
+│   ├── database/                # Database module with adapters
+│   │   └── adapters/           # Database adapters (Prisma, Mongoose)
+│   ├── email/                   # Email module
+│   │   └── strategies/         # Email strategies
+│   ├── error/                   # Error handling module
+│   ├── event/                   # Event handling module
+│   │   └── strategies/         # Event strategies
+│   ├── logger/                  # Logger module
+│   │   └── transports/         # Logger transports (Console, File, etc.)
+│   ├── queue/                   # Queue module
+│   │   └── transports/         # Queue transports
+│   ├── security/                # Security utilities
+│   ├── storage/                 # Storage module
+│   │   └── strategies/         # Storage strategies
+│   ├── util/                    # Utility functions
+│   └── index.ts                # Main AppKit exports
+├── bin/                         # CLI tools
+│   ├── commands/               # CLI command implementations
+│   ├── templates/              # Project templates
+│   └── appkit.js              # Main CLI entry point
+├── docs/                        # Project documentation
 ├── CONTRIBUTING.md             # This file
 ├── README.md                   # Project overview
 ├── package.json               # Project metadata
@@ -85,8 +112,8 @@ appkit/
 2. **New Features**: Add new functionality to existing modules
 3. **New Modules**: Create entirely new modules for the toolkit
 4. **Documentation**: Improve or add documentation
-5. **Examples**: Add or improve examples
-6. **Tests**: Add missing tests or improve test coverage
+5. **CLI Templates**: Add or improve project templates
+6. **Tests**: Add test coverage (testing infrastructure is being developed)
 
 ### Development Workflow
 
@@ -110,15 +137,16 @@ appkit/
 2. **Test your changes**:
 
    ```bash
-   npm test
-   npm run test:coverage
+   npm test                    # Run tests (when available)
+   npm run build              # Build TypeScript
+   npm run lint               # Run linting
    ```
 
 3. **Update documentation**:
 
-   - Update relevant docs in `src/*/docs/`
-   - Update examples if API changes
-   - Update README.md if needed
+   - Update relevant README.md files in module directories
+   - Update CLI templates if needed
+   - Update main README.md if needed
 
 4. **Create Pull Request**:
 
@@ -160,8 +188,8 @@ Types: `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`, `chore`
 ### File Naming
 
 - Use lowercase with hyphens for file names
-- Test files: `*.test.js`
-- Example files: descriptive names like `user-authentication.js`
+- Test files: `*.test.ts`
+- Example files: descriptive names like `user-authentication.ts`
 
 ### Code Structure
 
@@ -185,9 +213,18 @@ export function functionName(paramName) {
 
 ## Testing Guidelines
 
-### Test Structure
+### Current State
 
-```javascript
+Testing infrastructure is currently being developed. For now, focus on:
+
+- **Manual Testing**: Test your changes manually with example implementations
+- **TypeScript Compilation**: Ensure code compiles without errors
+- **Linting**: Follow code style guidelines
+- **CLI Testing**: Test CLI commands manually
+
+### Future Test Structure (When Available)
+
+```typescript
 import { describe, it, expect } from 'vitest';
 
 describe('Module/Function Name', () => {
@@ -210,39 +247,29 @@ describe('Module/Function Name', () => {
 });
 ```
 
-### Test Coverage
-
-- Aim for >90% test coverage
-- Test both success and error cases
-- Test edge cases
-- Include integration tests
-
 ### Running Tests
 
 ```bash
-# Run all tests
-npm test
+# Build and check TypeScript
+npm run build
 
-# Run tests in watch mode
-npm run test:watch
+# Run linting
+npm run lint
 
-# Run tests with coverage
-npm run test:coverage
-
-# Run specific test file
-npm test src/auth/tests/jwt.test.js
+# Test CLI commands manually
+node bin/appkit.js --help
 ```
 
 ## Documentation
 
 ### Documentation Structure
 
-Each module should have:
+Each module currently has:
 
-1. **README.md**: Module overview and quick start
-2. **DEVELOPER_REFERENCE.md**: Detailed implementation guide
-3. **API_REFERENCE.md**: Complete API reference
-4. **PROMPT_REFERENCE.md**: LLM code generation guide
+1. **README.md**: Comprehensive module documentation with examples
+2. **TypeScript types**: Full type definitions for all exports
+3. **JSDoc comments**: Inline documentation in source code
+4. **LLM rules**: Special @llm-rule comments for AI code generation guidance
 
 ### Documentation Standards
 
@@ -271,8 +298,20 @@ Description of what the function does.
 
 ### Example
 
-\```javascript const result = functionName('test', 5); console.log(result); //
-Expected output \```
+\```typescript
+const result = functionName('test', 5);
+console.log(result); // Expected output
+\```
+
+### LLM Rules
+
+```typescript
+/**
+ * @llm-rule WHEN: Building apps that need this functionality
+ * @llm-rule AVOID: Common mistakes developers make
+ * @llm-rule NOTE: Important implementation details
+ */
+```
 ````
 
 ## Reporting Issues
@@ -307,7 +346,7 @@ Use our issue templates and include:
 If you discover a security vulnerability:
 
 1. **DO NOT** create a public GitHub issue
-2. Email kt@voilacode.com with:
+2. Email security@voilajsx.com with:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact
@@ -326,7 +365,7 @@ We will respond within 48 hours and work with you to resolve the issue.
 
 ### Enforcement
 
-Unacceptable behavior should be reported to kt@voilacode.com. All complaints
+Unacceptable behavior should be reported to conduct@voilajsx.com. All complaints
 will be reviewed and investigated promptly and fairly.
 
 ## License
@@ -344,9 +383,9 @@ Contributors will be recognized in:
 
 ## Questions?
 
-- Email us at kt@voilacode.com
+- Email us at support@voilajsx.com
 - Create a discussion in GitHub Discussions
 
 ---
 
-Thank you for contributing to @voilajs/appkit! 🚀
+Thank you for contributing to @voilajsx/appkit! 🚀

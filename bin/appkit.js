@@ -36,11 +36,6 @@ program
     '--db',
     'include database integration with Prisma and AppKit database module'
   )
-  .option('--crud', 'include CRUD operations (for features)')
-  .option(
-    '--auth',
-    'include authentication using @voilajsx/appkit/auth (for features)'
-  )
   .action(async (type, name, options) => {
     const { generate } = await import('./commands/generate.js');
     await generate(type, name, options);
@@ -71,10 +66,16 @@ program.addHelpText(
   `
 
 Examples:
-  $ npx appkit generate app my-project    Create new project in ./my-project/
-  $ npx appkit generate app               Create project in current directory
-  $ npx appkit generate feature users     Add users feature to existing project
+  $ npx appkit generate app my-project     Create new project in ./my-project/
+  $ npx appkit generate app                Create project in current directory
+  $ npx appkit generate feature posts     Add posts feature to existing project
   $ npx appkit generate feature posts --db   Add posts feature with database
+  $ npx appkit generate feature user      Add complete user authentication system
+
+Feature Types:
+  • Basic features: Simple API endpoints with routes, services, and types
+  • Database features (--db): Includes Prisma models and seeding
+  • User feature: Complete authentication with 9 test accounts and JWT
 
 Smart Features:
   • Auto-detects project name from current folder

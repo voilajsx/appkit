@@ -88,8 +88,6 @@ const acmeDatabase = await databaseClass.org('acme').get(); // Enterprise scalin
 # Install CLI globally
 npm install -g @voilajsx/appkit
 
-# Or use npx (no installation needed)
-npx appkit generate app myproject
 ```
 
 ### **30-Second Working App**
@@ -156,7 +154,8 @@ app.post(
 app.use(error.handleErrors());
 ```
 
-**Result**: Production-ready API with authentication, database, error handling, and logging. **Zero configuration needed.**
+**Result**: Production-ready API with authentication, database, error handling,
+and logging. **Zero configuration needed.**
 
 ## 🛠️ AppKit CLI
 
@@ -209,20 +208,20 @@ myproject/
 
 ## 🎭 Complete Module Ecosystem
 
-| #   | Module                                  | Category                | Purpose                            | Details                                                                                                                  |
-| --- | --------------------------------------- | ----------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| #   | Module                                  | Category                | Purpose                                               | Details                                                                                                                                   |
+| --- | --------------------------------------- | ----------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **[Auth](/src/auth/README.md)**         | 🔧 Infrastructure       | JWT tokens, dual token system, role-level permissions | `authClass.get()` - Login tokens (users) + API tokens (services), role.level hierarchy (user.basic → admin.system), automatic inheritance |
-| 2   | **[Database](/src/database/README.md)** | 🔧 Infrastructure       | Multi-tenant, progressive scaling  | `databaseClass.get()` - Auto-tenant filtering, org management (.org()), mandatory future-proofing with tenant_id         |
-| 3   | **[Security](/src/security/README.md)** | 🔧 Infrastructure       | CSRF, rate limiting, encryption    | `securityClass.get()` - Enterprise-grade by default, AES-256-GCM encryption, input sanitization                          |
-| 4   | **[Error](/src/error/README.md)**       | 🔧 Infrastructure       | HTTP status codes, semantic errors | `errorClass.get()` - Framework-agnostic middleware, semantic error types (badRequest, unauthorized)                      |
-| 5   | **[Cache](/src/cache/README.md)**       | 📊 Data & Communication | Memory → Redis auto-scaling        | `cacheClass.get('namespace')` - Namespace isolation, TTL management, getOrSet pattern                                    |
-| 6   | **[Storage](/src/storage/README.md)**   | 📊 Data & Communication | Local → S3/R2 auto-scaling         | `storageClass.get()` - CDN integration, signed URLs, automatic provider detection                                        |
-| 7   | **[Queue](/src/queue/README.md)**       | 📊 Data & Communication | Memory → Redis → DB scaling        | `queueClass.get()` - Background jobs, scheduling, retry logic with exponential backoff                                   |
-| 8   | **[Email](/src/email/README.md)**       | 📊 Data & Communication | Console → SMTP → Resend            | `emailClass.get()` - Templates, multi-provider, automatic strategy selection                                             |
-| 9   | **[Event](/src/event/README.md)**       | 📊 Data & Communication | Memory → Redis distribution        | `eventClass.get('namespace')` - Real-time, pub/sub, wildcard patterns (user.\*)                                          |
-| 10  | **[Util](/src/util/README.md)**         | 🛠️ Developer Experience | 12 essential utilities             | `utilClass.get()` - Safe property access (get), performance helpers (debounce, chunk)                                    |
-| 11  | **[Config](/src/config/README.md)**     | 🛠️ Developer Experience | Environment variables              | `configClass.get()` - Type-safe, UPPER_SNAKE_CASE convention, validation included                                        |
-| 12  | **[Logger](/src/logger/README.md)**     | 🛠️ Developer Experience | Structured logging                 | `loggerClass.get('component')` - Multi-transport, auto-scaling (Console → File → HTTP)                                   |
+| 2   | **[Database](/src/database/README.md)** | 🔧 Infrastructure       | Multi-tenant, progressive scaling                     | `databaseClass.get()` - Auto-tenant filtering, org management (.org()), mandatory future-proofing with tenant_id                          |
+| 3   | **[Security](/src/security/README.md)** | 🔧 Infrastructure       | CSRF, rate limiting, encryption                       | `securityClass.get()` - Enterprise-grade by default, AES-256-GCM encryption, input sanitization                                           |
+| 4   | **[Error](/src/error/README.md)**       | 🔧 Infrastructure       | HTTP status codes, semantic errors                    | `errorClass.get()` - Framework-agnostic middleware, semantic error types (badRequest, unauthorized)                                       |
+| 5   | **[Cache](/src/cache/README.md)**       | 📊 Data & Communication | Memory → Redis auto-scaling                           | `cacheClass.get('namespace')` - Namespace isolation, TTL management, getOrSet pattern                                                     |
+| 6   | **[Storage](/src/storage/README.md)**   | 📊 Data & Communication | Local → S3/R2 auto-scaling                            | `storageClass.get()` - CDN integration, signed URLs, automatic provider detection                                                         |
+| 7   | **[Queue](/src/queue/README.md)**       | 📊 Data & Communication | Memory → Redis → DB scaling                           | `queueClass.get()` - Background jobs, scheduling, retry logic with exponential backoff                                                    |
+| 8   | **[Email](/src/email/README.md)**       | 📊 Data & Communication | Console → SMTP → Resend                               | `emailClass.get()` - Templates, multi-provider, automatic strategy selection                                                              |
+| 9   | **[Event](/src/event/README.md)**       | 📊 Data & Communication | Memory → Redis distribution                           | `eventClass.get('namespace')` - Real-time, pub/sub, wildcard patterns (user.\*)                                                           |
+| 10  | **[Util](/src/util/README.md)**         | 🛠️ Developer Experience | 12 essential utilities                                | `utilClass.get()` - Safe property access (get), performance helpers (debounce, chunk)                                                     |
+| 11  | **[Config](/src/config/README.md)**     | 🛠️ Developer Experience | Environment variables                                 | `configClass.get()` - Type-safe, UPPER_SNAKE_CASE convention, validation included                                                         |
+| 12  | **[Logger](/src/logger/README.md)**     | 🛠️ Developer Experience | Structured logging                                    | `loggerClass.get('component')` - Multi-transport, auto-scaling (Console → File → HTTP)                                                    |
 
 ### **Category Summary**
 
@@ -500,12 +499,15 @@ app.post(
     const { keyId, permissions } = req.body;
 
     // Generate API token for service authentication
-    const apiToken = auth.generateApiToken({
-      keyId,
-      role: 'service',
-      level: 'external',
-      permissions,
-    }, '1y');
+    const apiToken = auth.generateApiToken(
+      {
+        keyId,
+        role: 'service',
+        level: 'external',
+        permissions,
+      },
+      '1y'
+    );
 
     res.json({ apiToken });
   })
@@ -804,13 +806,17 @@ describe('API Tests', () => {
 
 ### **Quick References**
 
-- [🚀 CLI Reference](docs/APPKIT_CLI.md) - Complete command guide and usage examples
-- [🤖 LLM Integration Guide](docs/APPKIT_LLM_GUIDE.md) - AI development patterns and module usage
-- [📝 Code Standards](docs/APPKIT_COMMENTS_GUIDELINES.md) - Documentation guidelines for backend apps
+- [🚀 CLI Reference](docs/APPKIT_CLI.md) - Complete command guide and usage
+  examples
+- [🤖 LLM Integration Guide](docs/APPKIT_LLM_GUIDE.md) - AI development patterns
+  and module usage
+- [📝 Code Standards](docs/APPKIT_COMMENTS_GUIDELINES.md) - Documentation
+  guidelines for backend apps
 
 ### **Module Documentation**
 
-- [Authentication & Authorization](/src/auth/README.md) - Dual token system, role.level hierarchy, automatic inheritance
+- [Authentication & Authorization](/src/auth/README.md) - Dual token system,
+  role.level hierarchy, automatic inheritance
 - [Database & Multi-tenancy](/src/database/README.md) - Progressive scaling,
   organizations
 - [File Storage & CDN](/src/storage/README.md) - Local to cloud, automatic
@@ -832,15 +838,9 @@ describe('API Tests', () => {
 
 ### **Getting Help**
 
-- 📖 [Documentation](https://docs.voilajsx.com) - Comprehensive guides and API
-  reference
-- 💬 [Discord Community](https://discord.gg/voilajsx) - Real-time help and
-  discussions
 - 🐙 [GitHub Issues](https://github.com/voilajsx/appkit/issues) - Bug reports
   and feature requests
-- 🐦 [Twitter Updates](https://twitter.com/voilajsx) - Latest news and tips
-- 📧 [Email Support](mailto:support@voilajsx.com) - Direct support for
-  enterprises
+- 📧 [Email Support](mailto:kt@voilacode.com) - Direct support for enterprises
 
 ### **Contributing**
 
@@ -862,8 +862,7 @@ details.
 <p align="center">
   <strong>🚀 Built for the AI-first future of software development</strong><br>
   <strong>Where enterprise applications are generated, not written</strong><br><br>
-  <a href="https://github.com/voilajsx/appkit">⭐ Star us on GitHub</a> • 
-  <a href="https://docs.voilajsx.com">📖 Read the Docs</a>
+  <a href="https://github.com/voilajsx/appkit">⭐ Star us on GitHub</a> 
 </p>
 
 ---
