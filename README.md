@@ -80,38 +80,33 @@ const database = await databaseClass.get(); // Now auto-filtered by tenant
 const acmeDatabase = await databaseClass.org('acme').get(); // Enterprise scaling
 ```
 
-## 🚀 Quick Start for Developers & AI Agents
-
-### **Installation**
+## 🚀 Quick Start
 
 ```bash
-# Install CLI globally
+# Step 1: Install AppKit CLI globally
 npm install -g @voilajsx/appkit
 
+# Check if you have the latest version
+npm list -g @voilajsx/appkit
+
+# Step 2: Create your app
+appkit generate app myproject
+cd myproject && npm run dev:api
 ```
 
-### **30-Second Working App**
-
-```bash
-# Create a complete backend with CLI
-npx appkit generate app myproject
-cd myproject
-npm run dev:api
-
-# Your API is ready at: http://localhost:3000/api
-```
+**Done.** Your API is running with authentication, database, and enterprise features ready at http://localhost:3000/api
 
 ### **Add Features Instantly**
 
 ```bash
 # Add custom feature
-npx appkit generate feature product
+appkit generate feature product
 
 # Add complete authentication system
-npx appkit generate feature user
+appkit generate feature user
 
 # Add database-enabled feature
-npx appkit generate feature order --db
+appkit generate feature order --db
 ```
 
 ### **Manual Setup (Library Usage)**
@@ -163,7 +158,7 @@ and logging. **Zero configuration needed.**
 
 ```bash
 # Create complete backend application
-npx appkit generate app [name]
+appkit generate app [name]
 
 # What you get:
 # ✅ TypeScript setup with proper configuration
@@ -178,13 +173,13 @@ npx appkit generate app [name]
 
 ```bash
 # Basic feature (route + service + types)
-npx appkit generate feature product
+appkit generate feature product
 
 # Database-enabled feature (+ model + HTTP tests)
-npx appkit generate feature order --db
+appkit generate feature order --db
 
 # Complete authentication system (9-role hierarchy)
-npx appkit generate feature user
+appkit generate feature user
 ```
 
 ### **Generated Project Structure**

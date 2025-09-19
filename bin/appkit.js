@@ -41,24 +41,6 @@ program
     await generate(type, name, options);
   });
 
-// Create command - legacy compatibility (redirects to generate app)
-program
-  .command('create')
-  .description(
-    'Create a new backend API project (legacy - use "generate app" instead)'
-  )
-  .argument('<name>', 'project name')
-  .option('--api', 'create backend API with FBCA structure (default)')
-  .option('--express', 'use Express.js framework (default)', true)
-  .option('--fastify', 'use Fastify framework')
-  .option('--prisma', 'include Prisma ORM setup', true)
-  .action(async (name, options) => {
-    console.log(
-      '⚠️  "create" command is deprecated. Use "npx appkit generate app" instead.'
-    );
-    const { createProject } = await import('./commands/create.js');
-    await createProject(name, options);
-  });
 
 // Add help examples
 program.addHelpText(
@@ -66,11 +48,11 @@ program.addHelpText(
   `
 
 Examples:
-  $ npx appkit generate app my-project     Create new project in ./my-project/
-  $ npx appkit generate app                Create project in current directory
-  $ npx appkit generate feature posts     Add posts feature to existing project
-  $ npx appkit generate feature posts --db   Add posts feature with database
-  $ npx appkit generate feature user      Add complete user authentication system
+  $ appkit generate app my-project     Create new project in ./my-project/
+  $ appkit generate app                Create project in current directory
+  $ appkit generate feature posts     Add posts feature to existing project
+  $ appkit generate feature posts --db   Add posts feature with database
+  $ appkit generate feature user      Add complete user authentication system
 
 Feature Types:
   • Basic features: Simple API endpoints with routes, services, and types

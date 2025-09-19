@@ -14,15 +14,15 @@ npm install -g @voilajsx/appkit
 
 ```bash
 # Create a new app
-npx appkit generate app myproject
+appkit generate app myproject
 cd myproject
 
 # Add authentication system
-npx appkit generate feature user
+appkit generate feature user
 
 # Add custom features
-npx appkit generate feature product
-npx appkit generate feature order
+appkit generate feature product
+appkit generate feature order
 
 # Start development
 npm run dev:api
@@ -45,10 +45,10 @@ Creates a complete TypeScript backend application with modern architecture.
 **Usage:**
 ```bash
 # Create in current directory
-npx appkit generate app
+appkit generate app
 
 # Create in new directory
-npx appkit generate app myproject
+appkit generate app myproject
 ```
 
 **What it creates:**
@@ -91,9 +91,9 @@ Creates a custom feature with complete CRUD operations.
 
 **Usage:**
 ```bash
-npx appkit generate feature product
-npx appkit generate feature order
-npx appkit generate feature blog
+appkit generate feature product
+appkit generate feature order
+appkit generate feature blog
 ```
 
 **What it creates:**
@@ -125,7 +125,7 @@ Creates a complete authentication and user management system.
 
 **Usage:**
 ```bash
-npx appkit generate feature user
+appkit generate feature user
 ```
 
 **What it creates:**
@@ -256,7 +256,7 @@ src/api/features/<feature>/
 ### 1. Project Setup
 ```bash
 # Create project
-npx appkit generate app myapp
+appkit generate app myapp
 cd myapp
 
 # Install dependencies (auto-done)
@@ -269,7 +269,7 @@ npm run dev:api
 ### 2. Add Authentication
 ```bash
 # Add complete auth system
-npx appkit generate feature user
+appkit generate feature user
 
 # Seed test users
 node prisma/seeding/user.seed.js
@@ -283,9 +283,9 @@ curl -X POST http://localhost:3000/api/user/login \
 ### 3. Add Custom Features
 ```bash
 # Add business features
-npx appkit generate feature product
-npx appkit generate feature order
-npx appkit generate feature customer
+appkit generate feature product
+appkit generate feature order
+appkit generate feature customer
 ```
 
 ### 4. Test & Deploy
@@ -459,9 +459,9 @@ logger.info('Request processed', { userId });
 
 ```bash
 # 1. Create app with auth
-npx appkit generate app userapp
+appkit generate app userapp
 cd userapp
-npx appkit generate feature user
+appkit generate feature user
 
 # 2. Seed test users
 node prisma/seeding/user.seed.js
@@ -480,17 +480,17 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 
 ```bash
 # Create e-commerce backend
-npx appkit generate app shopapi
+appkit generate app shopapi
 cd shopapi
 
 # Add authentication
-npx appkit generate feature user
+appkit generate feature user
 
 # Add business features
-npx appkit generate feature product
-npx appkit generate feature order
-npx appkit generate feature customer
-npx appkit generate feature category
+appkit generate feature product
+appkit generate feature order
+appkit generate feature customer
+appkit generate feature category
 
 # Result: Complete e-commerce API with auth
 # GET  /api/user/*      - User management
